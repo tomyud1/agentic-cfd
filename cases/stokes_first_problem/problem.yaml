@@ -1,0 +1,24 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: stokes_first_problem
+title: Impulsively started flat plate (Stokes' first problem)
+description: >
+  A flat plate under a deep layer of still water is suddenly set in motion parallel to itself. Find
+  how the motion spreads into the water over the first 20 seconds, and compare the simulation with the
+  exact solution of this problem.
+setup:
+  - 'A very large flat plate lies at \(y = 0\) under a very deep layer of water, initially at rest.'
+  - 'At \(t = 0\) the plate starts moving in the \(x\) direction at constant speed \(U\), and keeps that speed.'
+  - 'The plate is so large and the water so deep that the flow depends only on the distance \(y\) from the plate and on time \(t\).'
+  - 'Far above the plate the water stays at rest.'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  U:     {value: 0.02,    unit: m/s,   symbol: '\(U\)',     label: "Plate speed (in +x), from t = 0 on"}
+  nu:    {value: 1.0e-6,  unit: m²/s,  symbol: '\(\nu\)',   label: "Kinematic viscosity of the water"}
+  rho:   {value: 998.2,   unit: kg/m³, symbol: '\(\rho\)',  label: "Density of the water"}
+  t_end: {value: 20.0,    unit: s,     symbol: '\(t_{\mathrm{end}}\)', label: "Duration of interest"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: u_profiles, text: 'Velocity profiles \(u(y)\) at \(t = 1\), 5 and 20 s, compared with the exact solution'}
+  - {key: tau_w,      text: 'Wall shear stress on the plate as a function of time for \(0 < t \le 20\) s, and its value at \(t = 20\) s'}
+  - {key: delta99,    text: 'Penetration depth at \(t = 1\), 5 and 20 s: the distance from the plate where \(u\) has fallen to 1 % of \(U\)'}
+  - {key: momentum,   text: 'Total \(x\)-momentum given to the water per unit plate area by \(t = 20\) s'}

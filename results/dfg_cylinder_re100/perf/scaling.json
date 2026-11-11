@@ -1,0 +1,157 @@
+[
+ {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/scale_M4_np16",
+  "solver": "pimpleFoam",
+  "cells": 214912,
+  "cores": 16,
+  "steps": 200,
+  "wall_s": 45.99908896600027,
+  "cpu_s": 722.852233,
+  "solver_cpu_s": 44.41,
+  "peak_mem_mb": 107.671875,
+  "us_per_cell_step": 1.0701842839394793,
+  "cpu_efficiency": 0.9821556378191103,
+  "write_share": 0.021719755509478467,
+  "lin_iters": {
+   "Ux": 4.6625,
+   "Uy": 5.175,
+   "p": 6.465
+  },
+  "lin_solves_per_step": {
+   "Ux": 2.0,
+   "Uy": 2.0,
+   "p": 8.0
+  },
+  "wall_solver": 45.99908896600027,
+  "Fcyl_last": [
+   0.001581448537768,
+   0.0001596408949104,
+   3.623755576186e-23
+  ],
+  "loop_us_per_cell_step": 1.0522011486856557
+ },
+ {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/scale_M4_np8",
+  "solver": "pimpleFoam",
+  "cells": 214912,
+  "cores": 8,
+  "steps": 200,
+  "wall_s": 58.186102962000405,
+  "cpu_s": 460.76908199999997,
+  "solver_cpu_s": 57.43,
+  "peak_mem_mb": 125.53515625,
+  "us_per_cell_step": 1.3537192656063972,
+  "cpu_efficiency": 0.9898606766570069,
+  "write_share": 0.020384643439259276,
+  "lin_iters": {
+   "Ux": 4.31,
+   "Uy": 5.0925,
+   "p": 6.56625
+  },
+  "lin_solves_per_step": {
+   "Ux": 2.0,
+   "Uy": 2.0,
+   "p": 8.0
+  },
+  "wall_solver": 58.186102962000405,
+  "Fcyl_last": [
+   0.001581437689077,
+   0.00015963570769,
+   3.743948892795e-23
+  ],
+  "loop_us_per_cell_step": 1.3327881216684974
+ },
+ {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/scale_M4_np4",
+  "solver": "pimpleFoam",
+  "cells": 214912,
+  "cores": 4,
+  "steps": 200,
+  "wall_s": 87.52968090299964,
+  "cpu_s": 347.845121,
+  "solver_cpu_s": 86.76,
+  "peak_mem_mb": 163.1875,
+  "us_per_cell_step": 2.036407480806089,
+  "cpu_efficiency": 0.9935061953027163,
+  "write_share": 0.017476139376022992,
+  "lin_iters": {
+   "Ux": 4.3,
+   "Uy": 5.0425,
+   "p": 6.354375
+  },
+  "lin_solves_per_step": {
+   "Ux": 2.0,
+   "Uy": 2.0,
+   "p": 8.0
+  },
+  "wall_solver": 87.52968090299964,
+  "Fcyl_last": [
+   0.001581424389526,
+   0.0001597742602001,
+   3.837230210811e-23
+  ],
+  "loop_us_per_cell_step": 2.010873306377031
+ },
+ {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/scale_M4_np2",
+  "solver": "pimpleFoam",
+  "cells": 214912,
+  "cores": 2,
+  "steps": 200,
+  "wall_s": 149.30957578299967,
+  "cpu_s": 297.80737,
+  "solver_cpu_s": 148.59,
+  "peak_mem_mb": 234.09765625,
+  "us_per_cell_step": 3.4737375247310447,
+  "cpu_efficiency": 0.9972815488834448,
+  "write_share": 0.015468370135592102,
+  "lin_iters": {
+   "Ux": 4.29,
+   "Uy": 5.01,
+   "p": 5.7175
+  },
+  "lin_solves_per_step": {
+   "Ux": 2.0,
+   "Uy": 2.0,
+   "p": 8.0
+  },
+  "wall_solver": 149.30957578299967,
+  "Fcyl_last": [
+   0.001581425277201,
+   0.0001596864179727,
+   3.623586295389e-23
+  ],
+  "loop_us_per_cell_step": 3.437190419039809
+ },
+ {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/scale_M4_np1",
+  "solver": "pimpleFoam",
+  "cells": 214912,
+  "cores": 1,
+  "steps": 200,
+  "wall_s": 245.0279778969998,
+  "cpu_s": 244.798807,
+  "solver_cpu_s": 244.56,
+  "peak_mem_mb": 408.58203125,
+  "us_per_cell_step": 5.700658360096221,
+  "cpu_efficiency": 0.9990647153889662,
+  "write_share": 0.016438848867670997,
+  "lin_iters": {
+   "Ux": 4.2825,
+   "Uy": 5.0075,
+   "p": 5.153125
+  },
+  "lin_solves_per_step": {
+   "Ux": 2.0,
+   "Uy": 2.0,
+   "p": 8.0
+  },
+  "wall_solver": 245.0279778969998,
+  "Fcyl_last": [
+   0.001581419366563,
+   0.000159847314744,
+   3.623114587392e-23
+  ],
+  "loop_us_per_cell_step": 5.635121707405401
+ }
+]

@@ -1,0 +1,14 @@
+# Numerical choices (made by the agent/pipeline, not given by the user).
+solver: simpleFoam            # steady incompressible SIMPLE-family solver
+mesh:
+  Ny: [8, 16, 32, 64, 128]    # cells across the gap, refinement ratio 2
+  Nx: 1                       # flow is fully developed: one cell along x with periodic ends
+  Lx_over_H: 0.1              # domain length (any value works with periodic ends)
+schemes: "Gauss linear (second order) for gradients and Laplacian"
+convergence:
+  # Normalised residuals are meaningless here: v and p are ~0 (round-off noise), so their
+  # normalised residuals never fall. Convergence is judged physically instead (see run.py):
+  iterations: 5               # linear problem: converges in 1; the rest confirm it stays put.
+                              # (More is worse: unrelaxed round-off noise in p slowly grows.)
+  q_change_tol: 1.0e-10       # relative change of flow rate over the last 10 % of iterations
+  force_balance_tol: 1.0e-8   # |wall friction - driving force| / driving force

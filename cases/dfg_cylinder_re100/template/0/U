@@ -1,0 +1,38 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    // Parabolic inflow u = 4 Um y (H - y) / H^2, evaluated at each inlet face centre.
+    inlet
+    {
+        type            exprFixedValue;
+        value           uniform (0 0 0);
+        valueExpr       "vector(4*{{ Um }}*pos().y()*({{ H }} - pos().y())/({{ H }}*{{ H }}), 0, 0)";
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            noSlip;
+    }
+    cylinder
+    {
+        type            noSlip;
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
+}

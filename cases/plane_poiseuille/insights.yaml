@@ -1,0 +1,59 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling
+
+- id: 1
+  stage: production
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: All runs stopped at the 5000-iteration limit, "not converged"; wall shear stress 0.4 % off on the finest
+    mesh although it must be exact.
+  diagnosis: 'Two causes. (1) The stopping rule used normalised residuals of \(v\) and \(p\), which are zero in
+    this flow, so their normalised residuals are pure round-off noise and never fall. (2) Under-relaxation (U 0.9)
+    acts like a pseudo time step: for diffusion-dominated problems each iteration removes only \(\sim 1/N^2\) of
+    the smooth error, about 0.3 % per iteration at 128 cells.'
+  fix: 'Judge convergence physically (flow rate stops changing, wall friction balances the driving force). Linear
+    problem: remove relaxation; it converges in 1 iteration.'
+  lesson: Normalised residuals are meaningless for fields that are ~0. Under-relaxation cost grows like \(N^2\)
+    on diffusion-dominated problems.
+  guideline: Always define a physical convergence check (a conserved quantity or balance). For linear problems use
+    relaxation 1.
+- id: 2
+  stage: production
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: Removing relaxation crashed the solver with a floating-point exception on the first iteration.
+  diagnosis: SIMPLEC (<code>consistent yes</code>) divides by \(A_P - \sum A_{nb}\), which is exactly zero for pure
+    diffusion without relaxation.
+  fix: Plain SIMPLE (<code>consistent no</code>) with relaxation factors 1.
+  lesson: SIMPLEC needs either relaxation or a convection/time term.
+  guideline: Do not combine SIMPLEC with relaxation factor 1.
+- id: 3
+  stage: production
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: With 20 undamped iterations the 128-cell run drifted after converging (flow rate changing by \(10^{-9}\)).
+  diagnosis: Round-off noise in the (zero) pressure field grows a little each undamped iteration and feeds back
+    into \(\mathbf{u}\).
+  fix: Stop after 5 iterations; the answer is exact after the first.
+  lesson: More iterations is not always safer when nothing damps round-off.
+  guideline: For linear problems run a handful of iterations and confirm with the physical check.
+- id: 4
+  stage: analysis
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: An earlier analysis matched cells by their \(x\)-coordinate and got a wrong result on the finest mesh.
+  diagnosis: OpenFOAM writes coordinates with 6 significant digits by default, so exact-coordinate matching is fragile.
+  fix: Locate cells by grid index; write results with <code>writePrecision 12</code>.
+  lesson: Never match cells by exact floating-point coordinates.
+  guideline: Set writePrecision 12 and sample by index or with OpenFOAM sampling functions.
+- id: 5
+  stage: tooling
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: Shell commands passed from PowerShell to WSL lost quotes and parentheses.
+  diagnosis: PowerShell re-parses the command line before WSL receives it.
+  fix: Put every Linux command in a script file and run it with <code>wsl ... -- bash script.sh</code>.
+  lesson: Never pass complex inline bash through PowerShell.
+  guideline: 'Already in the skill: run Linux work from script files or the Python pipeline.'

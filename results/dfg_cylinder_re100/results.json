@@ -1,0 +1,1957 @@
+{
+ "title": "Flow past a cylinder in a channel at Re = 100 (DFG benchmark 2D-2)",
+ "date": "2026-11-11",
+ "verdict": "WARN",
+ "comparison_type": "benchmark",
+ "summary": {
+  "headline": "<b>Benchmark comparison passed with caveats.</b> On the finest mesh (M4, 214,912 cells) the mean drag is \\(3.1964\\) (reference \\(3.1884\\)), the lift amplitude \\(2.0147\\) (\\(2.0080\\)) and the Strouhal number \\(0.3015\\) (\\(0.3019\\)).",
+  "answer_columns": [
+   "Requested",
+   "Reference (FeatFlow level 6, \\(\\Delta t = 1/200\\,\\mathrm{s}\\))",
+   "Simulation (M4, last cycle)",
+   "Difference (÷ band)"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Drag coefficient over one shedding cycle of the fully developed flow: maximum, minimum, mean and amplitude",
+    "theory": "\\(c_{D,\\max} = 3.2200 \\pm 0.0078\\)<br>\\(c_{D,\\min} = 3.1569 \\pm 0.0076\\)<br>\\(\\bar c_D = 3.1884 \\pm 0.0077\\)<br>\\(\\Delta c_D = 0.0631 \\pm 4.1 \\times 10^{-4}\\)",
+    "sim": "\\(c_{D,\\max} = 3.2280\\)<br>\\(c_{D,\\min} = 3.1648\\)<br>\\(\\bar c_D = 3.1964\\)<br>\\(\\Delta c_D = 0.0632\\)",
+    "diff": "\\(+0.0080\\) (0.95 band) ✓<br>\\(+0.0079\\) (0.97 band) ✓<br>\\(+0.0080\\) (0.96 band) ✓<br>\\(+0.0001\\) (0.15 band) ✓"
+   },
+   {
+    "letter": "b",
+    "label": "Lift coefficient over one shedding cycle: maximum, minimum, mean and amplitude",
+    "theory": "\\(c_{L,\\max} = 0.9859 \\pm 0.0041\\)<br>\\(c_{L,\\min} = -1.0206 \\pm 0.0037\\)<br>\\(\\bar c_L = -0.0173 \\pm 0.0023\\)<br>\\(\\Delta c_L = 2.0080 \\pm 0.005\\)",
+    "sim": "\\(c_{L,\\max} = 0.9900\\)<br>\\(c_{L,\\min} = -1.0247\\)<br>\\(\\bar c_L = -0.0174\\)<br>\\(\\Delta c_L = 2.0147\\)",
+    "diff": "\\(+0.0041\\) (0.49 band) ✓<br>\\(-0.0041\\) (0.50 band) ✓<br>\\(-0.0001\\) (0.03 band) ✓<br>\\(+0.0067\\) (0.49 band) ✓"
+   },
+   {
+    "letter": "c",
+    "label": "Shedding frequency \\(f\\) and Strouhal number \\(St\\)",
+    "theory": "\\(f = 3.019\\,\\mathrm{Hz}\\)<br>\\(St = 0.3019 \\pm 0.0012\\)",
+    "sim": "\\(f = 3.015\\,\\mathrm{Hz}\\)<br>\\(St = 0.3015\\)",
+    "diff": "\\(-0.0004\\) (0.25 band) ✓"
+   },
+   {
+    "letter": "d",
+    "label": "A picture of the flow (vorticity or velocity) at the moment of maximum lift, showing the vortex street",
+    "theory": "Alternating vortices of opposite sign shed from the two sides (Theory, step 4)",
+    "sim": "Vorticity at the lift maximum, Figure 3<div class='sub'>\\(t = 23.72\\,\\mathrm{s}\\), \\(c_L = 0.9893\\)</div>",
+    "diff": "\\(0.58\\,\\%\\) of a period from the exact maximum"
+   }
+  ],
+  "findings": [
+   "<b>Drag (a).</b> \\(\\bar c_D = 3.1964\\) against \\(3.1884\\) (\\(0.25\\,\\%\\)); maximum \\(3.2280\\) against \\(3.2200\\). The drag amplitude \\(\\Delta c_D = 0.0632\\) is \\(0.13\\,\\%\\) off the reference.",
+   "<b>Lift (b).</b> \\(c_{L,\\max} = 0.9900\\), \\(c_{L,\\min} = -1.0247\\), amplitude \\(2.0147\\) against \\(2.0080\\) (\\(0.34\\,\\%\\)). The small negative mean lift \\(\\bar c_L = -0.0174\\) comes from the cylinder sitting slightly below the centreline.",
+   "<b>Frequency (c).</b> \\(f = 3.0150\\,\\mathrm{Hz}\\), \\(St = 0.3015\\) against \\(0.3019\\) (\\(-0.12\\,\\%\\)). Lift zero crossings, the FFT of the lift and the wake probe agree to \\(4.1 \\times 10^{-4}\\) (relative).",
+   "<b>Largest disagreement</b> relative to the combined uncertainty band: \\(c_{D,\\min}\\), \\(0.97\\) times the band (simulation GCI plus time error plus reference spread).",
+   "<b>Mesh convergence.</b> \\(\\bar c_D\\) not monotonic, \\(\\Delta c_L\\) \\(p = 1.48\\), \\(St\\) \\(p = 2.29\\) on the three finest meshes (time step halved with the cell size; design order 2). The mean drag changes by at most \\(7.6 \\times 10^{-4}\\) between them, too little to give an order.",
+   "<b>Periodic and conserving.</b> On every run the peaks change by at most \\(0.0016\\) (lift) between the last cycles; the time-averaged momentum balance of the channel closes to \\(0.0073\\,\\%\\) of the drag on the finest mesh.",
+   "<b>Caveat:</b> run M1 not periodic to the set tolerance over its last 4 cycles.",
+   "<b>Caveat:</b> \\(c_{D,\\max}\\): convergence on the three finest meshes not monotonic (order undefined).",
+   "<b>Caveat:</b> \\(c_{D,\\min}\\): convergence on the three finest meshes not monotonic (order undefined).",
+   "<b>Caveat:</b> \\(\\bar c_D\\): convergence on the three finest meshes not monotonic (order undefined)."
+  ],
+  "limitations": [
+   "The reference is itself a numerical solution (finite elements, FeatFlow level 6, \\(\\Delta t = 1/200\\,\\mathrm{s}\\)), not an experiment; its own spread between levels is used as its uncertainty.",
+   "Only four meshes and one time-step study (on M2) fit the time budget; a fifth mesh (about 859,648 cells, 8 times the cost of M4) and a time-step study on the finest mesh were left out.",
+   "Each finer mesh ran only \\(3\\,\\mathrm{s}\\) (about 9 cycles) from the interpolated coarser flow, not 25-30 s from rest as the reference; the answers use the last 4 cycles, and the periodicity check shows they were settled.",
+   "Two-dimensional, laminar model, as the benchmark: no statement about a real three-dimensional channel.",
+   "The finest run took 35 min, over the 30-minute budget per run: the pre-flight projection (29 min) was made from a start from rest, where the pressure solver needs fewer iterations than in the developed shedding flow (Insights). It was let run to the planned length rather than cut short, so that the periodicity check and the measured cycles are not compromised."
+  ]
+ },
+ "problem": {
+  "description": "Fluid flows through a two-dimensional channel past a fixed circular cylinder. At this Reynolds number the flow never settles: vortices are shed alternately from the two sides of the cylinder and the forces on it oscillate periodically. Find the fully developed periodic flow and compare the forces and the shedding frequency with the published benchmark.\n",
+  "setup": [
+   "Channel of height \\(H\\) and length \\(L\\). A cylinder of diameter \\(D\\) is centred at \\((x_c, y_c)\\), slightly below the centreline.",
+   "Coordinates: \\(x\\) along the channel from the inlet, \\(y\\) across it from the lower wall.",
+   "Inlet (\\(x = 0\\)): parabolic velocity profile \\(u = 4 U_m\\, y (H - y) / H^2\\), \\(v = 0\\).",
+   "Outlet (\\(x = L\\)): free outflow, no stress imposed.",
+   "Channel walls and cylinder: no-slip (the fluid sticks to them).",
+   "Force coefficients use the mean inflow velocity \\(\\bar U = \\tfrac{2}{3} U_m\\) and the diameter: \\(c = 2F / (\\rho \\bar U^2 D)\\) per unit depth, with the drag \\(F_D\\) along \\(x\\) and the lift \\(F_L\\) along \\(y\\).",
+   "Strouhal number: \\(St = f D / \\bar U\\), where \\(f\\) is the frequency of the lift."
+  ],
+  "given": [
+   {
+    "label": "Channel height",
+    "symbol": "\\(H\\)",
+    "value": "\\(0.41\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Channel length (inlet to outlet)",
+    "symbol": "\\(L\\)",
+    "value": "\\(2.2\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Cylinder diameter",
+    "symbol": "\\(D\\)",
+    "value": "\\(0.1\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Cylinder centre, distance from the inlet",
+    "symbol": "\\(x_c\\)",
+    "value": "\\(0.2\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Cylinder centre, height above the lower wall",
+    "symbol": "\\(y_c\\)",
+    "value": "\\(0.2\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Maximum inflow velocity (centre of the parabola)",
+    "symbol": "\\(U_m\\)",
+    "value": "\\(1.5\\)",
+    "unit": "m/s"
+   },
+   {
+    "label": "Kinematic viscosity",
+    "symbol": "\\(\\nu\\)",
+    "value": "\\(0.001\\)",
+    "unit": "m²/s"
+   },
+   {
+    "label": "Density",
+    "symbol": "\\(\\rho\\)",
+    "value": "\\(1\\)",
+    "unit": "kg/m³"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "drag",
+    "text": "Drag coefficient over one shedding cycle of the fully developed flow: maximum, minimum, mean and amplitude"
+   },
+   {
+    "letter": "b",
+    "key": "lift",
+    "text": "Lift coefficient over one shedding cycle: maximum, minimum, mean and amplitude"
+   },
+   {
+    "letter": "c",
+    "key": "strouhal",
+    "text": "Shedding frequency \\(f\\) and Strouhal number \\(St\\)"
+   },
+   {
+    "letter": "d",
+    "key": "wake",
+    "text": "A picture of the flow (vorticity or velocity) at the moment of maximum lift, showing the vortex street"
+   }
+  ],
+  "reference": "FeatFlow group (TU Dortmund), DFG benchmark 2D-2 (Schäfer and Turek 1996): drag, lift and period on mesh levels 3-6 and three time steps, parsed from the benchmark page into <code>reference/featflow_dfg2d2_re100.yaml</code>."
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "Two-dimensional flow",
+    "status": "imposed",
+    "check": "The benchmark is posed in 2D. Imposed with one cell and <code>empty</code> front/back. A real cylinder at \\(Re = 100\\) also sheds a 2D street, but end walls of a real channel would add 3D effects."
+   },
+   {
+    "name": "Laminar, incompressible, Newtonian",
+    "status": "standard",
+    "check": "\\(Re = U_{\\mathrm{mean}} D/\\nu = 100\\): laminar; constant density and viscosity are given. The fluid is not named, so compressibility is judged by the velocity: \\(U_m = 1.5\\,\\mathrm{m/s}\\) is far below the speed of sound of any common fluid."
+   },
+   {
+    "name": "Periodic state reached",
+    "status": "ok",
+    "check": "Checked per run: over the last 4 cycles the lift peaks change by less than \\(0.002\\), the drag peaks by less than \\(5 \\times 10^{-4}\\) and the period by less than \\(5 \\times 10^{-4}\\) (relative); finest run: \\(6 \\times 10^{-5}\\), \\(1.4 \\times 10^{-5}\\), \\(9.9 \\times 10^{-7}\\) (4)."
+   },
+   {
+    "name": "Outlet far enough downstream",
+    "status": "standard",
+    "check": "The outlet is \\(20\\,D\\) behind the cylinder, as in the benchmark. The model's zero-gradient/zero-pressure outlet equals the benchmark's stress-free outflow for parallel outflow; the time-averaged momentum balance closes to \\(0.0073\\,\\%\\) of the drag."
+   },
+   {
+    "name": "Cylinder surface as straight faces",
+    "status": "imposed",
+    "check": "The circle is represented by 512 straight faces on the finest mesh (points on the exact circle). The area lost is a second-order error that shrinks with the mesh and is part of the mesh study."
+   }
+  ]
+ },
+ "theory": {
+  "intro": "Vortex shedding behind a cylinder has <b>no exact solution</b>: the convection term makes the equations nonlinear, and the steady solution is unstable at this Reynolds number. The comparison therefore uses the FeatFlow benchmark. Theory still fixes the scales (one number, \\(Re\\)), the inflow (an exact channel-flow solution), what the shedding must look like (symmetry: drag at twice the lift frequency) and a conservation law used as a check (the momentum balance of the channel). The algebra marked below is checked by SymPy.",
+  "steps": [
+   {
+    "label": "Governing equations: incompressible, Newtonian, constant density, two-dimensional",
+    "latex": "\\nabla\\cdot\\mathbf{u} = 0,\\qquad \\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u}\\cdot\\nabla)\\,\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nu\\,\\nabla^2\\mathbf{u}",
+    "note": "Convection makes the equations nonlinear and, at this Reynolds number, the steady solution unstable: no exact solution is known. The flow is computed; theory gives scales, limits and checks."
+   },
+   {
+    "label": "Boundary conditions",
+    "latex": "x = 0:\\ u = \\frac{4U_m\\,y\\,(H - y)}{H^2},\\ v = 0;\\qquad x = L:\\ \\nu\\frac{\\partial \\mathbf{u}}{\\partial n} - \\frac{p}{\\rho}\\,\\mathbf{n} = 0;\\qquad \\text{walls, cylinder: } \\mathbf{u} = 0",
+    "note": "The outflow condition is the 'do-nothing' (stress-free) condition of the benchmark. The finite-volume model uses zero normal gradient of velocity and zero pressure at the outlet, which is the same condition when the flow leaves parallel to the axis (the wake is weak 2 m downstream)."
+   },
+   {
+    "label": "Requested quantities",
+    "latex": "c_D = \\frac{2F_D}{\\rho\\,U_{\\mathrm{mean}}^2 D},\\quad c_L = \\frac{2F_L}{\\rho\\,U_{\\mathrm{mean}}^2 D},\\quad St = \\frac{f D}{U_{\\mathrm{mean}}},\\quad \\bar c = \\tfrac12(c_{\\max} + c_{\\min}),\\quad \\Delta c = c_{\\max} - c_{\\min}",
+    "note": "Forces per unit depth, integrated over the cylinder surface (pressure and viscous parts). Mean and amplitude follow the benchmark's definitions over one cycle (amplitude = peak to peak)."
+   },
+   {
+    "label": "Symmetry: what shedding must look like",
+    "latex": "y_c = H/2:\\quad c_L(t + T/2) = -c_L(t),\\qquad c_D(t + T/2) = c_D(t)\\ \\Rightarrow\\ f_D = 2 f_L",
+    "note": "For a centred cylinder the flow half a period later is the mirror image of the flow now. Lift changes sign under the mirror, drag does not, so drag oscillates at twice the lift frequency and the mean lift is zero. The offset here is small, so this should hold closely; it is checked on the simulated signals."
+   },
+   {
+    "label": "Time-averaged x-momentum balance of the whole channel (check of the force output)",
+    "latex": "\\overline{F_{D}} + \\overline{F_{w}} = \\overline{\\int_{\\mathrm{in}}\\!\\left(\\tfrac{p}{\\rho} + u^2\\right)dy} - \\overline{\\int_{\\mathrm{out}}\\!\\left(\\tfrac{p}{\\rho} + u^2\\right)dy} - \\frac{M(t_1) - M(t_0)}{t_1 - t_0}",
+    "note": "Over whole cycles, the drag on the cylinder plus the friction on the channel walls must equal the net pressure and momentum flux through inlet and outlet, minus the change of the momentum \\(M\\) stored in the channel (all per unit depth and density; viscous normal stresses at inlet and outlet are neglected, they vanish for parallel flow). Without the cylinder it reduces to the pressure-friction balance checked by SymPy below."
+   }
+  ],
+  "derived": [
+   {
+    "key": "Umean",
+    "label": "Mean inflow velocity",
+    "symbol": "U_{\\mathrm{mean}}",
+    "value": 1.0,
+    "value_tex": "1",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "U_{\\mathrm{mean}} = \\frac{2 U_{m}}{3}",
+    "check": "U_{\\mathrm{mean}} = \\frac{2 \\cdot 1.5}{3} = 1",
+    "why": "The velocity scale of the benchmark: force coefficients and the Strouhal number are defined with it (mean of the parabola, checked by SymPy below).",
+    "params": [
+     {
+      "tex": "U_m",
+      "meaning": "maximum inflow velocity",
+      "value": 1.5,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "Re",
+    "label": "Reynolds number",
+    "symbol": "Re",
+    "value": 100.0,
+    "value_tex": "100",
+    "unit_tex": "",
+    "formula": "Re = \\frac{D U_{\\mathrm{mean}}}{\\nu}",
+    "check": "Re = \\frac{0.1 \\cdot 1}{0.001} = 100",
+    "why": "Inertia versus friction at the scale of the cylinder. The DFG benchmark 2D-2 is defined at \\(Re = 100\\); at this value the wake behind a cylinder is unstable and sheds vortices periodically (the problem statement says so; for an unconfined cylinder the onset is near \\(Re \\approx 47\\), Williamson 1996, Annu. Rev. Fluid Mech. 28, approximate).",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.001,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "U_{\\mathrm{mean}}",
+      "meaning": "mean inflow velocity, \\(\\tfrac{2}{3}U_m\\)",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "blockage",
+    "label": "Blockage ratio",
+    "symbol": "D/H",
+    "value": 0.24390243902439024,
+    "value_tex": "0.2439",
+    "unit_tex": "",
+    "formula": "D/H = \\frac{D}{H}",
+    "check": "D/H = \\frac{0.1}{0.41} = 0.2439",
+    "why": "The cylinder fills a quarter of the channel: the walls are close, so the flow is strongly confined and the numbers cannot be compared with an unconfined cylinder.",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "channel height",
+      "value": 0.41,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   },
+   {
+    "key": "offset",
+    "label": "Vertical offset of the cylinder",
+    "symbol": "\\frac{H/2 - y_c}{D}",
+    "value": 0.04999999999999982,
+    "value_tex": "0.05",
+    "unit_tex": "",
+    "formula": "\\frac{H/2 - y_c}{D} = \\frac{\\frac{H}{2} - y_{c}}{D}",
+    "check": "\\frac{H/2 - y_c}{D} = \\frac{\\frac{0.41}{2} - 0.2}{0.1} = 0.05",
+    "why": "The cylinder sits slightly below the centreline. A centred cylinder would give a mean lift of zero by symmetry; the small offset gives a small non-zero mean lift and makes the start of shedding reproducible (no random perturbation is needed).",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "channel height",
+      "value": 0.41,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "y_c",
+      "meaning": "height of the cylinder centre",
+      "value": 0.2,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   },
+   {
+    "key": "t_conv",
+    "label": "Convective time",
+    "symbol": "t_c",
+    "value": 0.1,
+    "value_tex": "0.1",
+    "unit_tex": "\\mathrm{s}",
+    "formula": "t_c = \\frac{D}{U_{\\mathrm{mean}}}",
+    "check": "t_c = \\frac{0.1}{1} = 0.1",
+    "why": "Time for the flow to pass one diameter. The shedding period is a few of these (a Strouhal number \\(St = t_c / T\\) of order 0.3 means \\(T \\approx 3\\,t_c\\)).",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "U_{\\mathrm{mean}}",
+      "meaning": "mean inflow velocity, \\(\\tfrac{2}{3}U_m\\)",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "t_through",
+    "label": "Flow-through time",
+    "symbol": "t_L",
+    "value": 2.2,
+    "value_tex": "2.2",
+    "unit_tex": "\\mathrm{s}",
+    "formula": "t_L = \\frac{L}{U_{\\mathrm{mean}}}",
+    "check": "t_L = \\frac{2.2}{1} = 2.2",
+    "why": "Time for the mean flow to cross the whole channel. A start-up disturbance leaves through the outlet after about this time; the developing run covers several of them.",
+    "params": [
+     {
+      "tex": "L",
+      "meaning": "channel length",
+      "value": 2.2,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "U_{\\mathrm{mean}}",
+      "meaning": "mean inflow velocity, \\(\\tfrac{2}{3}U_m\\)",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "delta",
+    "label": "Boundary-layer thickness scale",
+    "symbol": "\\delta",
+    "value": 0.01,
+    "value_tex": "0.01",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "\\delta = \\frac{\\sqrt{D} \\sqrt{\\nu}}{\\sqrt{U_{\\mathrm{mean}}}}",
+    "check": "\\delta = \\frac{\\sqrt{0.1} \\sqrt{0.001}}{\\sqrt{1}} = 0.01",
+    "why": "Laminar boundary layers on the cylinder have a thickness of order \\(D/\\sqrt{Re}\\) (scaling, not an exact value). The mesh must resolve it with several cells: see the mesh table.",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.001,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "U_{\\mathrm{mean}}",
+      "meaning": "mean inflow velocity, \\(\\tfrac{2}{3}U_m\\)",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "dpdx",
+    "label": "Pressure gradient of the undisturbed channel flow",
+    "symbol": "-\\frac{\\partial p}{\\partial x}",
+    "value": 0.0713860797144557,
+    "value_tex": "0.07139",
+    "unit_tex": "\\mathrm{m/s^2}",
+    "formula": "-\\frac{\\partial p}{\\partial x} = \\frac{8 U_{m} \\nu}{H^{2}}",
+    "check": "-\\frac{\\partial p}{\\partial x} = \\frac{8 \\cdot 1.5 \\cdot 0.001}{0.41^{2}} = 0.07139",
+    "why": "Kinematic pressure gradient (\\(p/\\rho\\)) that drives the parabolic flow without the cylinder (SymPy check below). It sets the scale of the wall friction in the momentum balance.",
+    "params": [
+     {
+      "tex": "U_m",
+      "meaning": "maximum inflow velocity",
+      "value": 1.5,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "H",
+      "meaning": "channel height",
+      "value": 0.41,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.001,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ]
+   },
+   {
+    "key": "Fwall",
+    "label": "Wall friction of the undisturbed channel, per unit depth",
+    "symbol": "F_{w}",
+    "value": 0.06439024390243903,
+    "value_tex": "0.06439",
+    "unit_tex": "\\mathrm{m^3/s^2}",
+    "formula": "F_{w} = \\frac{8 L U_{m} \\nu}{H}",
+    "check": "F_{w} = \\frac{8 \\cdot 2.2 \\cdot 1.5 \\cdot 0.001}{0.41} = 0.06439",
+    "why": "Kinematic friction force of the parabolic flow on both walls over the full length \\(L\\). In the momentum balance it is of the same order as the cylinder drag (\\(\\tfrac12 c_D U_{\\mathrm{mean}}^2 D \\approx 0.16\\) for \\(c_D \\approx 3.2\\)), so the balance cannot ignore it.",
+    "params": [
+     {
+      "tex": "U_m",
+      "meaning": "maximum inflow velocity",
+      "value": 1.5,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "H",
+      "meaning": "channel height",
+      "value": 0.41,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "L",
+      "meaning": "channel length",
+      "value": 2.2,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.001,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ]
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "inflow \\(u(0) = u(H) = 0\\) (no slip at both walls)",
+    "ok": true
+   },
+   {
+    "name": "inflow maximum at \\(y = H/2\\) with \\(u = U_m\\)",
+    "ok": true
+   },
+   {
+    "name": "mean inflow velocity \\(U_{\\mathrm{mean}} = \\frac{1}{H}\\int_0^H u\\,dy = \\frac{2}{3}U_m\\)",
+    "ok": true
+   },
+   {
+    "name": "the parabola solves the channel momentum equation: \\(\\nu\\,u'' = \\partial p/\\partial x = -8\\nu U_m/H^2\\) (constant)",
+    "ok": true
+   },
+   {
+    "name": "empty channel: pressure force \\(H\\,\\Delta p\\) equals the friction \\(2\\tau_w L_c\\) on both walls",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "Transient, incompressible, laminar, Newtonian flow in two dimensions",
+   "settings": [
+    "constant/turbulenceProperties/simulationType",
+    "constant/transportProperties/*"
+   ],
+   "why": "The benchmark is defined for the 2D incompressible Navier-Stokes equations with constant viscosity \\(\\nu = 10^{-3}\\,\\mathrm{m^2/s}\\) at \\(Re = 100\\), where the wake is laminar but unsteady (periodic shedding). Density is constant (\\(\\rho = 1\\)), so OpenFOAM's kinematic pressure \\(p/\\rho\\) equals the pressure.",
+   "affects": "Defines the equations solved. A turbulence model would add an eddy viscosity the benchmark does not have.",
+   "alternatives": "None sensible for this benchmark (a 3D cylinder at \\(Re = 100\\) would also be 2D in its wake, but is not the problem posed)."
+  },
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "<code>pimpleFoam</code> (transient PIMPLE algorithm, here with two outer correctors per step), as in the <code>pimpleFoam/laminar/cylinder2D</code> tutorial",
+   "settings": [
+    "system/controlDict/application"
+   ],
+   "why": "A transient solver is required: the requested outputs are a periodic time history. <code>pimpleFoam</code> carries the laminar momentum-transport model used by the <code>forces</code> function object for the viscous part of the force.",
+   "affects": "None on the converged answer of each time step; it decides how each step is solved.",
+   "alternatives": "<code>icoFoam</code> (PISO only, which is first order in time for this flow (Insights); also the <code>forces</code> function object needs a viscosity model it can find; pimpleFoam is the tutorial's choice)."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "Channel \\(L \\times H = 2.2 \\times 0.41\\,\\mathrm{m}\\) with the cylinder of diameter \\(0.1\\,\\mathrm{m}\\) centred at \\((0.2, 0.2)\\,\\mathrm{m}\\); one cell in \\(z\\) (thickness \\(\\Delta z = 0.01\\,\\mathrm{m}\\)) with <code>empty</code> front and back",
+   "settings": [
+    "system/blockMeshDict/vertices",
+    "system/blockMeshDict/scale",
+    "system/blockMeshDict/boundary",
+    "0/*/boundaryField/frontAndBack/*"
+   ],
+   "why": "The geometry is given. The empty front/back make OpenFOAM solve the 2D equations; forces per unit depth are the patch forces divided by \\(\\Delta z\\) (any thickness gives the same coefficients).",
+   "affects": "Defines the problem. The cylinder surface is represented by straight faces between points on the exact circle (blockMesh arcs), a geometric error that shrinks with the square of the surface cell size.",
+   "alternatives": "A curved-boundary (higher-order) representation, as finite-element codes such as FeatFlow can use; not available in standard finite-volume OpenFOAM."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "Inlet: parabolic velocity \\(u = 4U_m y(H - y)/H^2\\), \\(v = 0\\), evaluated at each inlet face centre (<code>exprFixedValue</code>), zero normal pressure gradient. Outlet: zero normal velocity gradient, \\(p = 0\\). Walls and cylinder: no slip, zero normal pressure gradient.",
+   "settings": [
+    "0/U/boundaryField/inlet/*",
+    "0/U/boundaryField/outlet/*",
+    "0/U/boundaryField/walls/*",
+    "0/U/boundaryField/cylinder/*",
+    "0/p/boundaryField/inlet/*",
+    "0/p/boundaryField/outlet/*",
+    "0/p/boundaryField/walls/*",
+    "0/p/boundaryField/cylinder/*"
+   ],
+   "why": "The inflow and no-slip conditions are given. The benchmark's free (stress-free, \"do-nothing\") outflow \\(\\nu\\,\\partial\\mathbf{u}/\\partial n - p\\,\\mathbf{n} = 0\\) is modelled by the standard OpenFOAM pair zero-gradient velocity / fixed zero pressure; both are the same for flow leaving parallel to the axis. Face-centre values of the parabola give an inflow rate too large by \\(\\Delta y^2/(2H^2)\\) (\\(4.6 \\times 10^{-4}\\) on M1, 64 times less on M4, measured in the pre-flight), a second-order error that the mesh study includes.",
+   "affects": "Defines the problem. The outflow model can differ from the benchmark's near the outlet only; the cylinder is \\(20\\,D\\) upstream of it.",
+   "alternatives": "Exact face-averaged inflow values written as a list (removes the small inflow excess); <code>inletOutlet</code> at the outlet (prevents backflow, not needed: none occurs)."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "solver",
+   "choice": "Initial field: fluid at rest on M1 (shedding develops on its own over \\(15\\,\\mathrm{s}\\)); every finer mesh starts from the developed flow of the next coarser mesh, interpolated with <code>mapFields</code>; the time-step study and the scheme test start from the developed M2 flow or the same M2 field as M3.",
+   "settings": [
+    "0/U/internalField",
+    "0/p/internalField",
+    "system/controlDict/startTime"
+   ],
+   "why": "The periodic state does not depend on how it was reached, but starting from rest costs about 10-15 s of simulated time on every mesh (more than the whole measured window). Starting from a developed coarse flow leaves only the adjustment to the finer mesh, which is checked by the periodicity test of each run.",
+   "affects": "How fast the periodic state is reached, not the state itself (checked: periodicity over the measured cycles).",
+   "alternatives": "Start every mesh from rest (3-5 times more simulated time on the expensive meshes); a small perturbation to trigger shedding (not needed: the offset of the cylinder breaks the symmetry)."
+  },
+  {
+   "area": "Mesh",
+   "kind": "accuracy",
+   "choice": "Block-structured O-grid: 4 blocks around the cylinder inside the square box \\([0.1, 0.3]^2\\,\\mathrm{m}\\) (cells shrinking 4 times towards the cylinder), 8 rectangular blocks filling the channel (downstream cells growing 4 times towards the outlet). Four levels M1-M4 with 64 to 512 cells around the cylinder (3358 to 214912 cells); every cell count doubles per level (refinement ratio 2).",
+   "settings": [
+    "system/blockMeshDict/blocks"
+   ],
+   "why": "A body-fitted O-grid gives orthogonal, smoothly graded cells at the cylinder, where the forces are decided; refinement ratio 2 in every block gives the observed order and the GCI. The mesh table gives, per level, the ratio of the boundary-layer scale \\(\\delta = D/\\sqrt{Re}\\) to the wall-cell size.",
+   "affects": "Spatial discretisation error, measured by the mesh study (observed order, Richardson extrapolation, GCI).",
+   "alternatives": "snappyHexMesh around an STL cylinder (as the tutorial; less regular cells at the wall); an unstructured triangle mesh (not native to OpenFOAM)."
+  },
+  {
+   "area": "Time stepping",
+   "kind": "accuracy",
+   "choice": "Fixed time step, halved with the cell size: \\(\\Delta t = 4 \\times 10^{-3}\\,\\mathrm{s}\\) on M1 to \\(5 \\times 10^{-4}\\,\\mathrm{s}\\) on M4 (maximum Courant number 1.5 to 1.8 on every level, mesh table); second-order implicit <code>backward</code> (BDF2) time scheme. Time-step study on M2 with \\(\\Delta t\\) halved twice.",
+   "settings": [
+    "system/controlDict/deltaT",
+    "system/controlDict/adjustTimeStep",
+    "system/controlDict/endTime",
+    "system/fvSchemes/ddtSchemes/*"
+   ],
+   "why": "With both time and space second order and \\(\\Delta t \\propto h\\), the combined error should fall about 4 times per level. A fixed step samples the force signal evenly for the frequency analysis. The first plan (half this step, PISO) turned out first order in time (Insights, the piso runs in the Comparison); with two outer correctors the M2 answers did not change measurably between \\(\\Delta t = 2\\), 1 and \\(0.5\\,\\mathrm{ms}\\), so the larger step is accurate and keeps the cost of the finest run within the budget.",
+   "affects": "Time discretisation error (about 80 steps per shedding period on M1, 670 on M4), measured by the time-step study.",
+   "alternatives": "Courant number below 1 (twice the cost, no measurable gain here); adaptive time step (uneven sampling); <code>CrankNicolson 0.9</code> (FeatFlow uses Crank-Nicolson; OpenFOAM's version is off-centred)."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "accuracy",
+   "choice": "Second-order central schemes in space: <code>Gauss linear</code> for convection, gradients, interpolation and the Laplacian, with explicit non-orthogonal correction (<code>corrected</code>)",
+   "settings": [
+    "system/fvSchemes/gradSchemes/*",
+    "system/fvSchemes/laplacianSchemes/*",
+    "system/fvSchemes/interpolationSchemes/*",
+    "system/fvSchemes/snGradSchemes/*",
+    "system/fvSchemes/divSchemes/*"
+   ],
+   "why": "Central convection adds no numerical damping, which matters for the amplitude of the shed vortices and of the lift. The flow is smooth and laminar, and the cell Péclet number near the cylinder is small on the fine meshes. The O-grid corners are up to 44 degrees non-orthogonal, so the Laplacian needs the correction. A run with linear-upwind convection on M3 tests the sensitivity.",
+   "affects": "Spatial order of accuracy (2) and the size of the error constant.",
+   "alternatives": "<code>linearUpwind</code> (also second order, more dissipative, more robust on coarse meshes); <code>LUST</code> (a blend of the two)."
+  },
+  {
+   "area": "Algorithm and linear solvers",
+   "kind": "accuracy",
+   "choice": "PIMPLE with 2 outer correctors per time step, momentum predictor on, 2 pressure correctors, 1 non-orthogonal corrector, no under-relaxation. Pressure: GAMG (DIC-Gauss-Seidel smoother) to an absolute tolerance \\(10^{-7}\\) with \\(relTol\\ 0.01\\), and 0 in the final corrector. Velocity: symmetric Gauss-Seidel to \\(10^{-8}\\).",
+   "settings": [
+    "system/fvSolution/PIMPLE/*",
+    "system/fvSolution/relaxationFactors/*",
+    "system/fvSolution/solvers/*"
+   ],
+   "why": "With one outer corrector (PISO, the tutorial's setting) the convecting face flux lags one step behind, a first-order splitting error: on M2 the lift amplitude changed by 0.24 when the time step was halved (Insights). The second outer corrector re-solves the step with the updated flux and removes this; a third changed the lift amplitude by only 0.001. The non-orthogonal corrector handles the O-grid corners. Linear-solver tolerances are several decades below the force differences studied; the pressure solver and tolerance were tested on M3 (Performance appendix): the drag changes by less than \\(2 \\times 10^{-6}\\) (relative).",
+   "affects": "Time accuracy (the outer correctors) and run time; the linear-solver settings only change the iteration error, shown to be negligible.",
+   "alternatives": "PISO (one outer corrector; first order in time here); more outer correctors or residual-controlled outer loops (no measurable gain); PCG for pressure (4 times slower on M3)."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Forces on the cylinder and the channel walls, momentum and pressure fluxes and volume flow at inlet and outlet, the total momentum and a wake probe at \\((0.5, 0.2)\\,\\mathrm{m}\\), all every time step; fields written only at the end of a run, on the finest run every \\(0.01\\,\\mathrm{s}\\) keeping the last 40 (one and a bit cycles) for the wake picture; 12 significant digits.",
+   "settings": [
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/writePrecision",
+    "system/controlDict/timePrecision",
+    "system/controlDict/functions/*"
+   ],
+   "why": "Drag and lift every step give the requested cycle values (a), (b) and the frequency (c); the probe gives an independent frequency; the fluxes and wall friction close the momentum balance (physical check). The picture at maximum lift (d) needs fields within a small fraction of a period of that moment: \\(0.01\\,\\mathrm{s}\\) is about 3 % of a period.",
+   "affects": "What is measured and how precisely; not the solution.",
+   "alternatives": "The <code>forceCoeffs</code> function object (same numbers, but the coefficient definition would be hidden in its settings; here the coefficients are computed in the analysis from the raw forces)."
+  },
+  {
+   "area": "Parallel runs",
+   "kind": "solver",
+   "choice": "M1 and M2 on one core; M3 on 4 MPI ranks; M4 on 16 ranks, one per hardware thread (<code>mpirun --use-hwthread-cpus</code>, scotch decomposition); independent runs at the same time where cores allow",
+   "settings": [],
+   "why": "Chosen from the measured scaling on the finest mesh (Performance appendix). Domain decomposition changes the order of floating-point operations and the GAMG coarsening, so results differ at the level of the solver tolerance only (checked).",
+   "affects": "Run time only.",
+   "alternatives": "Everything serial (M4 would take about 1.5 hours); 8 ranks on the 8 physical cores (tested: 1.36 times slower than 16 on M4)."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before the production runs, short runs on the coarsest and the finest mesh check that the setup runs, stays stable, records every output and fits the time budget.",
+  "runs": [
+   {
+    "name": "M1 (3,358 cells, 1 core)",
+    "setup": "0.1 s of simulated time from rest (25 steps) instead of 15.0 s",
+    "outcome": "✓ OK; 0.9 s; projected 2.3 min for the full run"
+   },
+   {
+    "name": "M4 (214,912 cells, 16 cores)",
+    "setup": "0.1 s of simulated time from rest (200 steps) instead of 3.0 s",
+    "outcome": "✓ OK; 57.2 s; projected 28.6 min for the full run"
+   }
+  ],
+  "checks": [
+   {
+    "name": "Solver finished without errors (M1)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (M1)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number (M1)",
+    "status": "ok",
+    "value": "1.54",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 2.0)."
+   },
+   {
+    "name": "Courant number trend (M1)",
+    "status": "ok",
+    "value": "\\(\\times\\,1.09\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux (M1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.19\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy (M1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.662\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p (M1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.407\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend (M1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.34\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Inflow rate (M1)",
+    "status": "ok",
+    "value": "\\(4.6 \\times 10^{-4}\\) relative to \\(U_{\\mathrm{mean}} H\\)",
+    "meaning": "The parabolic inlet must deliver the mean velocity of the benchmark; face-centre values give a small second-order excess \\(\\Delta y^2/(2H^2)\\)."
+   },
+   {
+    "name": "Forces recorded every step (M1)",
+    "status": "ok",
+    "value": "25 rows for 25 steps",
+    "meaning": "Drag and lift are needed at every step for the cycle analysis."
+   },
+   {
+    "name": "Projected run time (M1)",
+    "status": "ok",
+    "value": "2.3 min",
+    "meaning": "Budget: 30 minutes per run."
+   },
+   {
+    "name": "Solver finished without errors (M4)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (M4)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number (M4)",
+    "status": "ok",
+    "value": "1.73",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 2.0)."
+   },
+   {
+    "name": "Courant number trend (M4)",
+    "status": "ok",
+    "value": "\\(\\times\\,1.04\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux (M4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.182\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy (M4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.66\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p (M4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.962\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend (M4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.3\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Inflow rate (M4)",
+    "status": "ok",
+    "value": "\\(7.2 \\times 10^{-6}\\) relative to \\(U_{\\mathrm{mean}} H\\)",
+    "meaning": "The parabolic inlet must deliver the mean velocity of the benchmark; face-centre values give a small second-order excess \\(\\Delta y^2/(2H^2)\\)."
+   },
+   {
+    "name": "Forces recorded every step (M4)",
+    "status": "ok",
+    "value": "200 rows for 200 steps",
+    "meaning": "Drag and lift are needed at every step for the cycle analysis."
+   },
+   {
+    "name": "Projected run time (M4)",
+    "status": "ok",
+    "value": "28.6 min",
+    "meaning": "Budget: 30 minutes per run."
+   }
+  ],
+  "conclusion": "All pre-flight checks passed after one fix (the inlet condition's keyword, Insights). The finest-mesh projection (29 min for 3 s on 16 cores) exceeded the 30-minute budget; the scaling test then showed 16 ranks to be faster, and the 3 s production run took 35.2 min."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Geometry",
+    "real": "Channel \\(2.2 \\times 0.41\\,\\mathrm{m}\\), cylinder \\(D = 0.1\\,\\mathrm{m}\\) at \\((0.2, 0.2)\\,\\mathrm{m}\\)",
+    "model": "The same, one cell thick in \\(z\\) with <code>empty</code> front and back; the circle as straight faces between points on it."
+   },
+   {
+    "aspect": "Inflow",
+    "real": "Parabola with maximum \\(U_m = 1.5\\,\\mathrm{m/s}\\)",
+    "model": "The parabola evaluated at each inlet face centre; inflow rate within \\(7.2 \\times 10^{-6}\\) (relative) of \\(U_{\\mathrm{mean}} H\\) on M4."
+   },
+   {
+    "aspect": "Outflow",
+    "real": "Free (stress-free) outflow",
+    "model": "Zero normal velocity gradient, zero pressure."
+   },
+   {
+    "aspect": "Fully developed periodic flow",
+    "real": "The flow long after any start-up",
+    "model": "M1 from rest for \\(15\\,\\mathrm{s}\\); each finer mesh from the developed coarser flow; answers from the last 4 cycles after a periodicity check."
+   },
+   {
+    "aspect": "Forces",
+    "real": "Pressure and friction on the cylinder per unit length",
+    "model": "OpenFOAM <code>forces</code> on the cylinder patch every step, divided by the slab thickness; coefficients and cycle values computed in the analysis."
+   }
+  ],
+  "meshes": {
+   "intro": "Four block-structured O-grid meshes; every cell count doubles from one to the next (ratio 2), and the time step is halved with the cell size. \\(h_w\\): radial size of the cells on the cylinder; \\(\\delta = D/\\sqrt{Re}\\) is the boundary-layer scale.",
+   "head": [
+    "Mesh",
+    "Cells",
+    "Faces on cylinder",
+    "Wall cell \\(h_w\\)",
+    "\\(\\delta/h_w\\)",
+    "Time step",
+    "Max Courant",
+    "Steps per period"
+   ],
+   "rows": [
+    [
+     "M1",
+     "3,358",
+     "64",
+     "\\(2.83\\,\\mathrm{mm}\\)",
+     "\\(3.54\\)",
+     "\\(0.004\\,\\mathrm{s}\\)",
+     "\\(1.8\\)",
+     "90"
+    ],
+    [
+     "M2",
+     "13,432",
+     "128",
+     "\\(1.43\\,\\mathrm{mm}\\)",
+     "\\(7\\)",
+     "\\(0.002\\,\\mathrm{s}\\)",
+     "\\(1.8\\)",
+     "168"
+    ],
+    [
+     "M3",
+     "53,728",
+     "256",
+     "\\(0.718\\,\\mathrm{mm}\\)",
+     "\\(13.9\\)",
+     "\\(0.001\\,\\mathrm{s}\\)",
+     "\\(1.8\\)",
+     "333"
+    ],
+    [
+     "M4",
+     "214,912",
+     "512",
+     "\\(0.36\\,\\mathrm{mm}\\)",
+     "\\(27.8\\)",
+     "\\(5 \\times 10^{-4}\\,\\mathrm{s}\\)",
+     "\\(1.8\\)",
+     "663"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Run",
+    "\\(c_{D,\\max}\\)",
+    "\\(c_{D,\\min}\\)",
+    "\\(\\bar c_D\\)",
+    "\\(\\Delta c_D\\)",
+    "\\(c_{L,\\max}\\)",
+    "\\(c_{L,\\min}\\)",
+    "\\(\\bar c_L\\)",
+    "\\(\\Delta c_L\\)",
+    "\\(St\\)"
+   ],
+   "rows": [
+    [
+     "M1",
+     "\\(3.2078\\)",
+     "\\(3.1541\\)",
+     "\\(3.1810\\)",
+     "\\(0.0537\\)",
+     "\\(1.0394\\)",
+     "\\(-1.0769\\)",
+     "\\(-0.0187\\)",
+     "\\(2.1163\\)",
+     "\\(0.2790\\)"
+    ],
+    [
+     "M2",
+     "\\(3.2266\\)",
+     "\\(3.1658\\)",
+     "\\(3.1962\\)",
+     "\\(0.0608\\)",
+     "\\(1.0101\\)",
+     "\\(-1.0460\\)",
+     "\\(-0.0180\\)",
+     "\\(2.0561\\)",
+     "\\(0.2968\\)"
+    ],
+    [
+     "M3",
+     "\\(3.2284\\)",
+     "\\(3.1655\\)",
+     "\\(3.1969\\)",
+     "\\(0.0630\\)",
+     "\\(0.9953\\)",
+     "\\(-1.0303\\)",
+     "\\(-0.0175\\)",
+     "\\(2.0256\\)",
+     "\\(0.3007\\)"
+    ],
+    [
+     "M4",
+     "\\(3.2280\\)",
+     "\\(3.1648\\)",
+     "\\(3.1964\\)",
+     "\\(0.0632\\)",
+     "\\(0.9900\\)",
+     "\\(-1.0247\\)",
+     "\\(-0.0174\\)",
+     "\\(2.0147\\)",
+     "\\(0.3015\\)"
+    ],
+    [
+     "M2_dtx0.5",
+     "\\(3.2261\\)",
+     "\\(3.1654\\)",
+     "\\(3.1958\\)",
+     "\\(0.0607\\)",
+     "\\(1.0097\\)",
+     "\\(-1.0453\\)",
+     "\\(-0.0178\\)",
+     "\\(2.0550\\)",
+     "\\(0.2969\\)"
+    ],
+    [
+     "M2_dtx0.25",
+     "\\(3.2264\\)",
+     "\\(3.1656\\)",
+     "\\(3.1960\\)",
+     "\\(0.0608\\)",
+     "\\(1.0106\\)",
+     "\\(-1.0460\\)",
+     "\\(-0.0177\\)",
+     "\\(2.0566\\)",
+     "\\(0.2970\\)"
+    ],
+    [
+     "M3_LU",
+     "\\(3.2334\\)",
+     "\\(3.1695\\)",
+     "\\(3.2015\\)",
+     "\\(0.0639\\)",
+     "\\(0.9994\\)",
+     "\\(-1.0344\\)",
+     "\\(-0.0175\\)",
+     "\\(2.0338\\)",
+     "\\(0.3008\\)"
+    ],
+    [
+     "Observed order \\(p\\) (– not monotonic)",
+     "–",
+     "–",
+     "–",
+     "\\(3.23\\)",
+     "\\(1.48\\)",
+     "\\(1.49\\)",
+     "\\(1.76\\)",
+     "\\(1.48\\)",
+     "\\(2.29\\)"
+    ],
+    [
+     "Richardson extrapolation",
+     "\\(3.2279\\)",
+     "\\(3.1646\\)",
+     "\\(3.1963\\)",
+     "\\(0.0632\\)",
+     "\\(0.9870\\)",
+     "\\(-1.0217\\)",
+     "\\(-0.0173\\)",
+     "\\(2.0087\\)",
+     "\\(0.3017\\)"
+    ],
+    [
+     "GCI, finest mesh (absolute)",
+     "\\(1.6 \\times 10^{-4}\\)",
+     "\\(2.6 \\times 10^{-4}\\)",
+     "\\(2.1 \\times 10^{-4}\\)",
+     "\\(3.4 \\times 10^{-5}\\)",
+     "\\(0.0037\\)",
+     "\\(0.0038\\)",
+     "\\(6.9 \\times 10^{-5}\\)",
+     "\\(0.0076\\)",
+     "\\(2.6 \\times 10^{-4}\\)"
+    ],
+    [
+     "Reference (level 6)",
+     "\\(3.2200\\)",
+     "\\(3.1569\\)",
+     "\\(3.1884\\)",
+     "\\(0.0631\\)",
+     "\\(0.9859\\)",
+     "\\(-1.0206\\)",
+     "\\(-0.0173\\)",
+     "\\(2.0080\\)",
+     "\\(0.3019\\)"
+    ],
+    [
+     "Reference spread \\(U_{\\mathrm{ref}}\\)",
+     "\\(0.0078\\)",
+     "\\(0.0076\\)",
+     "\\(0.0077\\)",
+     "\\(4.1 \\times 10^{-4}\\)",
+     "\\(0.0041\\)",
+     "\\(0.0037\\)",
+     "\\(0.0023\\)",
+     "\\(0.005\\)",
+     "\\(0.0012\\)"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Run",
+    "Steps",
+    "Max Co",
+    "Log",
+    "\\(c_L\\) peaks",
+    "\\(c_D\\) peaks",
+    "Period",
+    "Periodic",
+    "Momentum",
+    "Mass",
+    "Wall (s)"
+   ],
+   "rows": [
+    [
+     "M1",
+     "3750",
+     "\\(1.8\\)",
+     "✓ OK",
+     "\\(0.0016\\)",
+     "\\(8.3 \\times 10^{-4}\\)",
+     "\\(6.9 \\times 10^{-5}\\)",
+     "✗",
+     "\\(-5 \\times 10^{-4}\\)",
+     "\\(6.4 \\times 10^{-7}\\)",
+     "56"
+    ],
+    [
+     "M2",
+     "1500",
+     "\\(1.8\\)",
+     "✓ OK",
+     "\\(4 \\times 10^{-4}\\)",
+     "\\(2 \\times 10^{-4}\\)",
+     "\\(5.7 \\times 10^{-5}\\)",
+     "✓",
+     "\\(1.6 \\times 10^{-4}\\)",
+     "\\(7.8 \\times 10^{-8}\\)",
+     "97"
+    ],
+    [
+     "M3",
+     "3000",
+     "\\(1.8\\)",
+     "✓ OK",
+     "\\(1.6 \\times 10^{-4}\\)",
+     "\\(4.2 \\times 10^{-5}\\)",
+     "\\(7.6 \\times 10^{-6}\\)",
+     "✓",
+     "\\(1.2 \\times 10^{-4}\\)",
+     "\\(8.7 \\times 10^{-9}\\)",
+     "285"
+    ],
+    [
+     "M4",
+     "6000",
+     "\\(1.8\\)",
+     "✓ OK",
+     "\\(6 \\times 10^{-5}\\)",
+     "\\(1.4 \\times 10^{-5}\\)",
+     "\\(9.9 \\times 10^{-7}\\)",
+     "✓",
+     "\\(7.3 \\times 10^{-5}\\)",
+     "\\(8.9 \\times 10^{-9}\\)",
+     "2110"
+    ],
+    [
+     "M2_dtx0.5",
+     "3000",
+     "\\(0.89\\)",
+     "✓ OK",
+     "\\(3.2 \\times 10^{-4}\\)",
+     "\\(8.3 \\times 10^{-5}\\)",
+     "\\(3 \\times 10^{-6}\\)",
+     "✓",
+     "\\(1.7 \\times 10^{-4}\\)",
+     "\\(1.5 \\times 10^{-8}\\)",
+     "192"
+    ],
+    [
+     "M2_dtx0.25",
+     "6000",
+     "\\(0.44\\)",
+     "✓ OK",
+     "\\(3.3 \\times 10^{-4}\\)",
+     "\\(1.3 \\times 10^{-4}\\)",
+     "\\(1.2 \\times 10^{-5}\\)",
+     "✓",
+     "\\(1.7 \\times 10^{-4}\\)",
+     "\\(2.1 \\times 10^{-8}\\)",
+     "353"
+    ],
+    [
+     "M3_LU",
+     "3000",
+     "\\(1.8\\)",
+     "✓ OK",
+     "\\(1.1 \\times 10^{-4}\\)",
+     "\\(2.7 \\times 10^{-5}\\)",
+     "\\(2.9 \\times 10^{-6}\\)",
+     "✓",
+     "\\(1 \\times 10^{-4}\\)",
+     "\\(1.1 \\times 10^{-8}\\)",
+     "280"
+    ]
+   ],
+   "notes": [
+    "Log: automatic log checks (no crash, no NaN, Courant number up to \\(2\\), residual and continuity-error trends; cfdlib.monitor).",
+    "\\(c_L\\) peaks, \\(c_D\\) peaks, Period (relative): largest change between consecutive cycles over the last 4 cycles; tolerances \\(0.002\\) (lift peaks), \\(5 \\times 10^{-4}\\) (drag peaks), \\(5 \\times 10^{-4}\\) (period), fixed before the runs.",
+    "Momentum: imbalance of the time average over the measured cycles of drag + wall friction minus the inlet/outlet pressure and momentum fluxes and the change of stored momentum (Theory, step 5), divided by the mean drag force; tolerance \\(1\\,\\%\\) on the finest mesh.",
+    "Mass: largest \\(|Q_{\\mathrm{in}} + Q_{\\mathrm{out}}|/Q_{\\mathrm{in}}\\) over all steps.",
+    "Runs named M2_dtx* are the time-step study, M3_LU the convection-scheme test."
+   ]
+  }
+ },
+ "comparison": {
+  "kind": "Benchmark: the simulation is compared with the FeatFlow finite-element solution of the same equations (FeatFlow level 6, \\(\\Delta t = 1/200\\,\\mathrm{s}\\)). Agreement is judged against a band: the simulation's own uncertainty (GCI of the three finest meshes plus the estimated time-step error) plus the reference's spread.",
+  "definitions": [
+   {
+    "name": "Cycle values",
+    "latex": "\\bar c = \\tfrac12(c_{\\max} + c_{\\min}),\\qquad \\Delta c = c_{\\max} - c_{\\min}",
+    "meaning": "Over the last complete lift cycle, as the reference defines them."
+   },
+   {
+    "name": "Strouhal number",
+    "latex": "St = \\frac{D}{U_{\\mathrm{mean}}\\,T}",
+    "meaning": "The period \\(T\\) is the mean interval between upward zero crossings of the lift over the last 4 cycles."
+   },
+   {
+    "name": "Reference uncertainty",
+    "latex": "U_{\\mathrm{ref}} = \\max_{\\Delta t}\\left|q_{6} - q_{5}(\\Delta t)\\right|",
+    "meaning": "Largest difference between the finest reference level and the three results one level coarser."
+   },
+   {
+    "name": "Simulation uncertainty",
+    "latex": "U_{\\mathrm{sim}} = 1.25\\,\\frac{|q_4 - q_3|}{2^p - 1} + e_t",
+    "meaning": "GCI of the finest mesh (Celik et al. 2008) from M2, M3, M4 with their observed order \\(p\\), plus the time-step error \\(e_t\\) from the M2 study: Richardson in \\(\\Delta t\\) scaled to the finest time step when the three M2 results change monotonically, otherwise the largest change among them (no scaling)."
+   },
+   {
+    "name": "Verdict per number",
+    "latex": "|q_{\\mathrm{sim}} - q_{\\mathrm{ref}}| \\le U_{\\mathrm{sim}} + U_{\\mathrm{ref}}",
+    "meaning": "Inside the band: ok; up to twice the band: warning; beyond: fail (warning only for the secondary numbers \\(\\Delta c_D\\) and \\(\\bar c_L\\))."
+   }
+  ],
+  "head": [
+   "Number",
+   "Reference",
+   "\\(U_{\\mathrm{ref}}\\)",
+   "Simulation (M4)",
+   "\\(U_{\\mathrm{sim}}\\)",
+   "Difference",
+   "Relative",
+   "÷ band",
+   "Status",
+   "Richardson"
+  ],
+  "rows": [
+   [
+    "\\(c_{D,\\max}\\)",
+    "\\(3.2200\\)",
+    "\\(0.0078\\)",
+    "\\(3.2280\\)",
+    "\\(6.7 \\times 10^{-4}\\)",
+    "\\(+0.0080\\)",
+    "\\(0.25\\,\\%\\)",
+    "\\(0.95\\)",
+    "✓ OK",
+    "\\(3.2279\\)"
+   ],
+   [
+    "\\(c_{D,\\min}\\)",
+    "\\(3.1569\\)",
+    "\\(0.0076\\)",
+    "\\(3.1648\\)",
+    "\\(6.3 \\times 10^{-4}\\)",
+    "\\(+0.0079\\)",
+    "\\(0.25\\,\\%\\)",
+    "\\(0.97\\)",
+    "✓ OK",
+    "\\(3.1646\\)"
+   ],
+   [
+    "\\(\\bar c_D\\)",
+    "\\(3.1884\\)",
+    "\\(0.0077\\)",
+    "\\(3.1964\\)",
+    "\\(6.5 \\times 10^{-4}\\)",
+    "\\(+0.0080\\)",
+    "\\(0.25\\,\\%\\)",
+    "\\(0.96\\)",
+    "✓ OK",
+    "\\(3.1963\\)"
+   ],
+   [
+    "\\(\\Delta c_D\\)",
+    "\\(0.0631\\)",
+    "\\(4.1 \\times 10^{-4}\\)",
+    "\\(0.0632\\)",
+    "\\(1.7 \\times 10^{-4}\\)",
+    "\\(+0.0001\\)",
+    "\\(0.13\\,\\%\\)",
+    "\\(0.15\\)",
+    "✓ OK (secondary)",
+    "\\(0.0632\\)"
+   ],
+   [
+    "\\(c_{L,\\max}\\)",
+    "\\(0.9859\\)",
+    "\\(0.0041\\)",
+    "\\(0.9900\\)",
+    "\\(0.0043\\)",
+    "\\(+0.0041\\)",
+    "\\(0.41\\,\\%\\)",
+    "\\(0.49\\)",
+    "✓ OK",
+    "\\(0.9870\\)"
+   ],
+   [
+    "\\(c_{L,\\min}\\)",
+    "\\(-1.0206\\)",
+    "\\(0.0037\\)",
+    "\\(-1.0247\\)",
+    "\\(0.0046\\)",
+    "\\(-0.0041\\)",
+    "\\(-0.41\\,\\%\\)",
+    "\\(0.50\\)",
+    "✓ OK",
+    "\\(-1.0217\\)"
+   ],
+   [
+    "\\(\\bar c_L\\)",
+    "\\(-0.0173\\)",
+    "\\(0.0023\\)",
+    "\\(-0.0174\\)",
+    "\\(5.4 \\times 10^{-4}\\)",
+    "\\(-0.0001\\)",
+    "\\(-0.48\\,\\%\\)",
+    "\\(0.03\\)",
+    "✓ OK (secondary)",
+    "\\(-0.0173\\)"
+   ],
+   [
+    "\\(\\Delta c_L\\)",
+    "\\(2.0080\\)",
+    "\\(0.005\\)",
+    "\\(2.0147\\)",
+    "\\(0.0086\\)",
+    "\\(+0.0067\\)",
+    "\\(0.34\\,\\%\\)",
+    "\\(0.49\\)",
+    "✓ OK",
+    "\\(2.0087\\)"
+   ],
+   [
+    "\\(St\\)",
+    "\\(0.3019\\)",
+    "\\(0.0012\\)",
+    "\\(0.3015\\)",
+    "\\(3.5 \\times 10^{-4}\\)",
+    "\\(-0.0004\\)",
+    "\\(-0.12\\,\\%\\)",
+    "\\(0.25\\)",
+    "✓ OK",
+    "\\(0.3017\\)"
+   ]
+  ],
+  "findings": [
+   "<b>The reference has its own spread.</b> From level 5 to 6 FeatFlow's \\(c_{D,\\max}\\) still changes by \\(0.0078\\), and its levels 4-6 converge with order \\(1.04\\) towards \\(3.2274\\). The level-6 value is therefore used with an uncertainty equal to its largest difference from the three level-5 results (all three time steps); for the Strouhal number this also covers the period being read only to about one time step.",
+   "<b>Drag against the reference's own extrapolation.</b> The simulated \\(\\bar c_D\\) lies \\(+0.0080\\) from the level-6 value but only \\(+0.0012\\) from the value the reference's levels 4-6 extrapolate to (\\(3.1952\\), observed order \\(1.08\\)). The drag difference is therefore mostly the reference's remaining discretisation error, not the simulation's. The verdict still uses the level-6 value and the spread rule fixed beforehand.",
+   "<b>Extrapolation.</b> Richardson extrapolation of the three finest meshes moves 7 of 7 primary numbers closer to the reference (table, last column). \\(c_{D,\\max}\\): \\(+0.0080\\) \\(\\to\\) \\(+0.0079\\), \\(\\Delta c_L\\): \\(+0.0067\\) \\(\\to\\) \\(+0.0007\\), \\(St\\): \\(-0.0004\\) \\(\\to\\) \\(-0.0002\\).",
+   "<b>Time-step error is small.</b> On M2, reducing the time step up to four times changes \\(\\Delta c_L\\) by at most \\(0.0011\\) and \\(St\\) by \\(1.9 \\times 10^{-4}\\), against \\(0.011\\) and \\(8 \\times 10^{-4}\\) between the two finest meshes M3 \\(\\to\\) M4: the mesh, not the time step, dominates the remaining error.",
+   "<b>The first plan was first order in time.</b> With PISO (one outer corrector) the M2 lift amplitude was \\(2.532\\), \\(2.296\\), \\(2.180\\), \\(2.122\\) for \\(2\\), \\(1\\), \\(0.5\\), \\(0.25\\) \\(\\mathrm{ms}\\) (observed order \\(1.02\\)): the face flux that convects the momentum lags one step, which adds an error proportional to the time step. That family of runs looked like slow mesh convergence, because the time step was refined together with the mesh. With two outer correctors the same mesh gives \\(2.056\\) at \\(2\\,\\mathrm{ms}\\). All production runs were repeated with two outer correctors (Insights).",
+   "<b>Convection scheme.</b> M3 with linear-upwind instead of central convection: \\(\\bar c_D\\) \\(+0.0045\\), \\(\\Delta c_L\\) \\(+0.0082\\), \\(St\\) \\(+0.0001\\). Compare with the mesh change M3 \\(\\to\\) M4: \\(-0.0005\\), \\(-0.0109\\), \\(+0.0008\\).",
+   "<b>Symmetry check.</b> The drag frequency is \\(1.9992\\) times the lift frequency (theory for a centred cylinder: exactly 2)."
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "tooling",
+   "logged": "2026-11-11 00:44",
+   "status": "resolved",
+   "problem": "The Skill tool answered 'Unknown skill: agentic-cfd' (the project skill is not registered in a subagent session), so the workflow had to be read from .claude/skills/agentic-cfd/SKILL.md by hand. The caller anticipated this.",
+   "diagnosis": "Same as insight 1 of the Stokes case: project skills are not registered in a sub-agent session. The launching prompt gave the file path as a fallback, so it cost under a minute this time.",
+   "fix": "Read SKILL.md and the three references directly.",
+   "lesson": "The fallback path in the prompt works; the problem is now known and cheap.",
+   "guideline": "Keep the fallback path in launching prompts (or register project skills for sub-agents).",
+   "resolved": "2026-11-11 01:13"
+  },
+  {
+   "id": 2,
+   "stage": "setup",
+   "logged": "2026-11-11 00:48",
+   "status": "resolved",
+   "problem": "The closest tutorial (pimpleFoam/laminar/cylinder2D) is not the DFG channel: unbounded box with symmetry top/bottom, codeStream blockMesh plus snappyHexMesh, Euler time stepping, DMD function objects. Its numerics can be copied, but the O-grid channel mesh has to be written from scratch; the primer has no guidance for meshing curved bodies with blockMesh.",
+   "diagnosis": "OpenFOAM ships no DFG channel case. The cylinder2D tutorial is a different flow (unbounded, symmetry planes, Euler time stepping, snappyHexMesh around an STL). Only its solver settings (pimpleFoam, PISO, GAMG for p, noSlip cylinder, zeroGradient/fixedValue outlet) carry over.",
+   "fix": "Wrote a Python generator for a 12-block O-grid blockMeshDict (box around the cylinder split into 4 blocks with arcs, 8 channel blocks), with every cell count doubling per level. Worked first time (insight 3). Cost about 20 minutes of writing.",
+   "lesson": "For a curved body in a simple channel, a code-generated O-grid in blockMesh is quick, fully controllable and gives exact ratio-2 refinement, which snappyHexMesh does not.",
+   "guideline": "openfoam-primer.md: add a section 'curved bodies with blockMesh' (O-grid around the body inside a box, arcs via edges, cells graded towards the wall, generate the dictionary in Python and fill it through the template) and point to this case's run.mesh_spec as the worked example.",
+   "resolved": "2026-11-11 01:12"
+  },
+  {
+   "id": 3,
+   "stage": "setup",
+   "logged": "2026-11-11 00:57",
+   "status": "resolved",
+   "problem": "Worked first time: the 12-block O-grid blockMeshDict generated by Python (vertices, blocks, arcs and patches computed in run.py and filled into a Jinja template) passed checkMesh on M1 and M2 at the first attempt (max non-orthogonality about 41 to 43 degrees at the O-grid corners). Rendering the whole dictionary from code, as the worked examples do with placeholders, made the doubling of every cell count per level trivial.",
+   "diagnosis": "Nothing failed. The template mechanism of the worked examples (Jinja placeholders filled by run.py) scales to a whole generated dictionary: lists of vertices, blocks, arcs and patch faces.",
+   "fix": "None needed.",
+   "lesson": "Generate complex dictionaries in Python and keep the OpenFOAM file a thin template; check the counts in code (cells = sum over blocks) so the report's mesh table cannot drift from the mesh.",
+   "guideline": "Mention in SKILL.md stage 2 that loops in the template are fine and that this case's mesh_spec is an example for curved geometry.",
+   "resolved": "2026-11-11 01:43"
+  },
+  {
+   "id": 4,
+   "stage": "preflight",
+   "logged": "2026-11-11 00:58",
+   "status": "resolved",
+   "problem": "First pre-flight crashed at once on both meshes: FOAM FATAL IO ERROR 'Entry valueExpr not found' for the parabolic inlet. I had written the exprFixedValue condition with the keyword 'expression' from memory; v2606 wants 'valueExpr'. No tutorial in v2606 uses exprFixedValue for U, and the primer does not mention how to impose a non-uniform inflow profile. Also my pre-flight wrapper crashed afterwards because the M4 log did not exist (decomposePar had failed first).",
+   "diagnosis": "In ESI v2606 the exprFixedValue boundary condition reads its expression from the keyword valueExpr (a quoted string), not expression; the error message names the missing keyword, so the fix took one look. The wrapper crash was my own code assuming the solver had started.",
+   "fix": "valueExpr with the parabola in terms of pos().y(); a guard in the pre-flight that stops with a clear message if the solver log is missing. Checked the result instead of trusting it: the inflow rate on M1 is \\(4.1019 \\times 10^{-3}\\) against the exact \\(U_{\\mathrm{mean}} H\\,\\Delta z = 4.1 \\times 10^{-3}\\), a relative excess of \\(4.6 \\times 10^{-4}\\), exactly the midpoint-rule error \\(\\Delta y^2/(2H^2)\\) predicted for face-centre values; on M4 it is 64 times smaller. Cost about 5 minutes.",
+   "lesson": "Boundary conditions written from memory need a one-step test; and a quantity with a known exact value (here the inflow rate) is the cheapest check that a non-uniform inlet is right.",
+   "guideline": "openfoam-primer.md: add a short recipe for a non-uniform inlet profile without compilation (exprFixedValue with valueExpr and pos()), and suggest checking the patch flow rate (surfaceFieldValue sum of phi) against the exact value in the pre-flight.",
+   "resolved": "2026-11-11 01:00"
+  },
+  {
+   "id": 5,
+   "stage": "production",
+   "logged": "2026-11-11 01:02",
+   "status": "resolved",
+   "problem": "Two output surprises on the first production run (M1): (1) the forces function object in v2606 writes force.dat as nine scalar columns (total, pressure, viscous x y z), not as bracketed vectors, so my reader (written like the worked examples for vector outputs) failed; (2) surfaceFieldValue areaNormalIntegrate of the scalar p printed exactly 0 at every step on the inlet, silently: the pressure term of my momentum balance would have been missing.",
+   "diagnosis": "The v2606 forces function object writes nine plain columns per line (the header names them); cfdlib.foam.read_dat returns them as separate floats, so indexing as vectors failed loudly. The areaNormalIntegrate operation is meant for vector fields (it dots with the face normal); for a scalar it wrote zeros without any warning. Caught only because I printed the first lines of every .dat file before writing the analysis.",
+   "fix": "Reader takes columns 1-3 (total), 4-6 (pressure), 7-9 (viscous); pressure at inlet and outlet now uses areaIntegrate (the patches are planes with known normals, so the x-force is minus or plus the integral). M1 (56 s) was re-run with the corrected function object. Cost about 5 minutes.",
+   "lesson": "Look at the raw output of every function object after the first short run, before writing analysis code: a silent zero is worse than a crash.",
+   "guideline": "SKILL.md stage 3: add 'print the header and first rows of every postProcessing file of the pre-flight run and check each is non-trivial'; openfoam-primer.md: note the forces.dat column layout in v2606 and that areaNormalIntegrate of a scalar returns 0 (use areaIntegrate).",
+   "resolved": "2026-11-11 01:12"
+  },
+  {
+   "id": 6,
+   "stage": "analysis",
+   "logged": "2026-11-11 01:04",
+   "status": "resolved",
+   "problem": "Cycle periods measured between consecutive lift minima (the FeatFlow definition, t0 = time of minimum lift) jittered by up to \\(0.4\\,\\%\\) from cycle to cycle on M1 (0.3589 to 0.3625 s) although the run was clearly periodic: this would have failed my own periodicity rule (\\(5 \\times 10^{-4}\\)). Periods between upward zero crossings of the lift were constant to 4 digits (0.3618 s) and agree with the FFT peak and the wake probe.",
+   "diagnosis": "The lift minimum is broad and flat, so the time of its discrete minimum (even parabola-refined) moves by a few time steps from cycle to cycle; a period measured between minima inherits that jitter. Upward zero crossings sit on the steepest part of the signal and are located to a tiny fraction of a step by linear interpolation.",
+   "fix": "Cycles are now delimited by upward crossings of the lift through its mid-range; peak values are taken inside each full cycle (the same values as for a minimum-to-minimum cycle). Period from crossings, cross-checked against the FFT of the lift and of the wake probe. Cost about 10 minutes.",
+   "lesson": "Define cycle boundaries and periods where the signal is steep, not at its extrema; and cross-check a frequency by two independent methods.",
+   "guideline": "Add a small cfdlib helper for periodic signals (cycles from zero crossings, parabola-refined peaks, FFT cross-check, cycle-to-cycle periodicity check), since every shedding or oscillating case needs the same code.",
+   "resolved": "2026-11-11 01:12"
+  },
+  {
+   "id": 7,
+   "stage": "performance",
+   "logged": "2026-11-11 01:08",
+   "status": "resolved",
+   "problem": "Pre-flight projected the M4 production run (3 s simulated, 12000 steps, 214912 cells) at about 33 min on 8 MPI ranks, over the 30-minute budget per run, and the first scaling numbers show 8 ranks only 1.15 times faster than 4 (0.795 versus 0.912 wall microseconds per cell per step inside the time loop), with GAMG needing 8.2 instead of 5.5 pressure iterations per solve on 8 subdomains.",
+   "diagnosis": "Scaling test on M4 (214912 cells, 200 steps from the developed M1 flow mapped onto M4), wall microseconds per cell per step inside the time loop: 1 rank 2.69, 2 ranks 1.50, 4 ranks 0.912, 8 ranks 0.795, 16 ranks (hardware threads) 0.585. Speed-up 3.4 on 8 physical cores but 4.6 on 16 threads: the solver is limited by memory latency/bandwidth rather than arithmetic, so the second hardware thread per core hides stalls. The 8-rank case is also penalised by GAMG needing 8.2 pressure iterations per solve against 4.7 to 5.7 for the other decompositions (scotch partition quality differs).",
+   "fix": "M4 runs on 16 ranks (mpirun --use-hwthread-cpus): projected 25 min for the full 3 s, so the planned run length was kept instead of shortening it to 2.4 s.",
+   "lesson": "Measure before choosing the rank count: on this machine 16 hardware threads beat 8 physical cores by 1.36 times for a 200k-cell 2D case, and the GAMG iteration count depends on the decomposition.",
+   "guideline": "environment.md: state that Open MPI needs --use-hwthread-cpus for more than 8 ranks, and that 16 ranks were fastest for a 200k-cell pimpleFoam case; SKILL.md performance section: include 16 in the scaling test and record pressure iterations per decomposition.",
+   "resolved": "2026-11-11 01:17"
+  },
+  {
+   "id": 8,
+   "stage": "performance",
+   "logged": "2026-11-11 01:12",
+   "status": "resolved",
+   "problem": "The 16-rank scaling run (one rank per hardware thread) failed at once: Open MPI 4.1.6 counts only the 8 physical cores as slots ('not enough slots available'). Needs --use-hwthread-cpus or --oversubscribe; the Skill and environment.md do not mention it.",
+   "diagnosis": "Open MPI defaults to one slot per physical core (8 here).",
+   "fix": "solve() adds --use-hwthread-cpus when more than 8 ranks are requested; the 16-rank run then worked and was the fastest (insight 7).",
+   "lesson": "Hardware threads are not MPI slots by default.",
+   "guideline": "environment.md: one line on --use-hwthread-cpus; cfdlib could offer a run_parallel helper that adds it automatically.",
+   "resolved": "2026-11-11 01:17"
+  },
+  {
+   "id": 9,
+   "stage": "performance",
+   "logged": "2026-11-11 01:16",
+   "status": "resolved",
+   "problem": "Pressure linear-solver test on M3 (53728 cells, 1 core, 200 steps from the developed flow): GAMG with relTol 0.01 is the fastest (2.43 wall microseconds per cell per step, 4.4 iterations per solve); PCG with DIC needs 182 iterations per solve and is 4.0 times slower; GAMG with relTol 0 in the first corrector is 1.7 times slower; tolerance \\(10^{-6}\\) instead of \\(10^{-7}\\) saves only 8 %. All variants give the same drag force to within \\(1.5 \\times 10^{-6}\\) (relative) after 200 steps.",
+   "diagnosis": "The pressure equation dominates the cost; multigrid (GAMG) needs about 4 to 6 iterations per solve where diagonal-incomplete-Cholesky PCG needs about 180 on 54k cells, and that gap widens with mesh size. A loose relative tolerance in the first of the two pressure correctors is enough because the final corrector is solved fully (relTol 0); demanding relTol 0 everywhere doubles the iterations with no change in the forces. Note: this test ran with one outer corrector (before insight 10); the relative comparison of pressure solvers carries over.",
+   "fix": "Kept GAMG, tolerance \\(10^{-7}\\), relTol 0.01 / pFinal 0 (the tutorial's pattern). No change needed.",
+   "lesson": "For transient incompressible runs on this machine GAMG is the right CPU baseline; the solver tolerance is not a useful speed lever (8 % for a decade).",
+   "guideline": "SKILL.md performance section: a GPU test should compare against GAMG (not PCG) and report pressure iterations and time per pressure solve separately; record that PCG is 4 times slower here so nobody benchmarks a GPU against a weak CPU baseline.",
+   "resolved": "2026-11-11 01:41"
+  },
+  {
+   "id": 10,
+   "stage": "production",
+   "logged": "2026-11-11 01:22",
+   "status": "resolved",
+   "problem": "Time-step study on M2 (same mesh, PISO with one outer corrector, backward): the lift amplitude is 2.532, 2.296 and 2.180 for dt = 2, 1 and \\(0.5 \\times 10^{-3}\\) s. The changes (0.236, then 0.116) halve with dt: FIRST-order convergence in time, and the time error at the planned dt (Courant number 0.8) is about 10 times larger than the reference spread. The mesh family M1-M3 (h and dt halved together) also converges slowly (changes 0.161, 0.140). Stopped the just-started M4 run (25 min) before it wasted the budget.",
+   "diagnosis": "PISO (PIMPLE with one outer corrector) convects the new velocity with the face flux of the previous step: the nonlinear term is lagged by one step, an \\(O(\\Delta t)\\) splitting error, so the solution is first order in time although the backward scheme is second order. Confirmed with five extra M2 runs from the same start: PISO gives a lift amplitude of 2.532, 2.296, 2.180, 2.122 for dt = 2, 1, 0.5, 0.25 ms (changes halving: first order, extrapolating to about 2.06), while PIMPLE with 2 outer correctors gives 2.057, 2.056, 2.058 for dt = 2, 1, 0.5 ms (no measurable dt dependence) and 3 outer correctors changes it by only 0.001. The worked examples did not meet this because case 3 is linear (no convection) and case 2 is steady. Cost: about 25 minutes (the PISO family M1-M3 and the time-step study had to be redone; the M4 run was stopped after a minute).",
+   "fix": "nOuterCorrectors 2 (cost per step about 1.9 times PISO) with the time step doubled (Courant number about 1.6), so the total cost is unchanged; whole chain M1-M4 re-run. The PISO runs are kept (piso_*) as evidence for the report.",
+   "lesson": "For a transient NONLINEAR flow, run the time-step study early, on a cheap mesh, before the mesh family: a first-order time error can hide behind dt proportional to h and look like slow mesh convergence. PISO with one outer corrector is only first order in time.",
+   "guideline": "openfoam-primer.md: add a pitfall 'PISO (nOuterCorrectors 1) is first order in time for nonlinear flows; use 2 outer correctors (PIMPLE) when forces or frequencies must be time-accurate, and check with a 3-point time-step study before the mesh study'; SKILL.md stage 3: for transient nonlinear problems, make a short time-step study part of the pre-flight.",
+   "resolved": "2026-11-11 01:31"
+  },
+  {
+   "id": 11,
+   "stage": "report",
+   "logged": "2026-11-11 01:31",
+   "status": "resolved",
+   "problem": "Repeated the Stokes case's insight 10: a Python patch script fed through a Git Bash heredoc turned LaTeX in decisions.yaml into a TAB character (the backslash-t of times) despite the doubled backslashes; Python printed SyntaxWarnings about invalid escapes, which I noticed only afterwards. Found by grepping the file.",
+   "diagnosis": "Root cause found later: the Bash tool on this machine collapses a double backslash to a single one even inside a quoted heredoc (tested: a heredoc containing two backslashes and t prints one backslash and t). Python then reads a single backslash followed by t as a tab. So any LaTeX in a heredoc-fed script is corrupted, whatever the quoting. It happened a second time in analyze.py (a to-arrow became tab-o) before I found the cause.",
+   "fix": "Found the two tab characters with grep, repaired them with the Edit tool, and re-checked the file for control characters. About 3 minutes.",
+   "lesson": "Never patch LaTeX-containing files through shell heredocs; use the Edit tool, and grep for control characters after any scripted edit.",
+   "guideline": "Put the rule in SKILL.md itself (not only in an old case's insights): 'edit files that contain LaTeX only with the Edit tool'; cfdlib.contract could flag control characters (tab, bell, form feed) in decisions.yaml and results text.",
+   "resolved": "2026-11-11 01:32"
+  },
+  {
+   "id": 12,
+   "stage": "analysis",
+   "logged": "2026-11-11 01:41",
+   "status": "resolved",
+   "problem": "With M1-M3 the simulated mean drag (3.1970) sits \\(0.27\\,\\%\\) above FeatFlow level 6 (3.1884), slightly outside my pre-registered band (simulation GCI + time error + reference spread = 0.0082), which turns cd_mean and cd_min into WARN. But the reference itself is still converging: its drag rises level by level (3.1308, 3.1645, 3.1807, 3.1884 for the finest-dt rows), order about 1, and its own Richardson extrapolation of levels 4-6 is 3.1952, only 0.0018 from my result. My rule took the reference uncertainty as |level 6 - level 5|, which for a first-order converging sequence is about the remaining error, but my M2-M3 drag is already flat.",
+   "diagnosis": "With M4 the drag settled: M2, M3, M4 give a mean drag of 3.1962, 3.1970, 3.1964 (changes below \\(10^{-3}\\), not monotonic), so the simulation's own uncertainty is tiny and the difference to level 6 (+0.0080) is just inside the band (0.0084), dominated by the reference spread (0.0077). The reference's own levels 4-6 extrapolate to 3.1952, 0.0012 from the simulation.",
+   "fix": "Kept the pre-registered rule (verdict unchanged by hindsight) and added a computed finding comparing the simulation with the reference's extrapolated value.",
+   "lesson": "A benchmark given at several resolutions should be extrapolated like the simulation; the finest level is not the converged answer when it still changes 0.25 percent per level.",
+   "guideline": "SKILL.md stage 5: when the reference provides several levels, compute its observed order and Richardson value and report the simulation against both the finest level and the extrapolated value; use the latter's uncertainty in the band when the reference converges monotonically.",
+   "resolved": "2026-11-11 03:22"
+  },
+  {
+   "id": 13,
+   "stage": "report",
+   "logged": "2026-11-11 01:42",
+   "status": "resolved",
+   "problem": "An early look at a draft report (rendered with M1-M3 while M4 ran) found what the contract does not check: the results table (nine requested numbers per run plus extra columns) and the run-health table (12 columns) were wider than the column, a three-part definition formula overflowed its card, and a difference-over-band ratio printed with one decimal read as 1.0 next to a pass mark although the value was 0.99. The SKILL overflow snippet also lists MathJax internal mjx-ext elements (stretchy delimiters) as overflowing: false positives that have to be filtered by eye.",
+   "diagnosis": "Nine requested numbers per run do not fit one table row with extra columns; the snippet tests every element, including MathJax internals.",
+   "fix": "Dropped the cells column from the results table (it is in the mesh table), shortened the health headers and moved their meaning to the notes, split the definition in two, two decimals for the band ratio. Rendering a draft before the last run finished made this cheap: about 10 minutes, no waiting.",
+   "lesson": "Render the report as soon as three meshes exist; layout problems do not depend on the last run.",
+   "guideline": "SKILL.md stage 7: in the overflow snippet, skip mjx-* elements (filter tagName starting with MJX) and wait for MathJax to finish (e.g. await MathJax.startup.promise) before measuring: run right after navigation it reported tables 1.5 times too wide from un-typeset TeX; suggest rendering a draft report from partial results while the finest run is still going.",
+   "resolved": "2026-11-11 01:42"
+  },
+  {
+   "id": 14,
+   "stage": "production",
+   "logged": "2026-11-11 01:45",
+   "status": "resolved",
+   "problem": "The M4 production run (16 ranks, 2 outer correctors, 6000 steps) runs at about 0.55 s per step, twice the pre-flight rate: it will take about 55 min instead of the projected 29 min, breaking the 30-minute budget per run. The pre-flight started from rest (0.1 s), where GAMG needs fewer pressure iterations; in the developed shedding flow it needs 7 to 12 per solve, four solves per step. Every one of the 16 hardware threads is busy, so any other activity on the machine (analysis, browser, post-processing) also stalls all ranks.",
+   "diagnosis": "M4 finished on its own: 2110 s (35 min) for 6000 steps, 1.64 wall microseconds per cell per step against 1.05 in the 16-rank scaling test of the same algorithm and 1.33 in the pre-flight. Causes, from the logs: more GAMG iterations per solve in the developed flow than in the start from rest (7 to 12 against about 6), fields written every 0.01 s (300 writes, kept 40), and my own analysis and browser work on the same machine while all 16 hardware threads were busy (the step rate rose from 1.6 to 3.0 steps per second once I stopped working in parallel).",
+   "fix": "Let it run to the planned length (5 minutes over the budget) rather than cut the measured window; stated in the report's limitations. No other work was started on the machine while it ran.",
+   "lesson": "Project production run time from a short run started from the developed state of a coarser mesh (as the production run is), not from rest; with every hardware thread subscribed, the machine has no room for anything else.",
+   "guideline": "cfdlib.monitor.preflight: allow a mapped start field (or warn that a start from rest underestimates cost for shedding flows); SKILL.md performance: leave one or two hardware threads free when the agent keeps working during a run, or budget 1.5 times the projection.",
+   "resolved": "2026-11-11 03:22"
+  },
+  {
+   "id": 15,
+   "stage": "tooling",
+   "logged": "2026-11-11 03:22",
+   "status": "resolved",
+   "problem": "The session was interrupted by an API usage limit for about an hour (02:15 to 03:21) while the M4 run, the scheme test and the scaling test were already queued in a background shell script. The queued chain finished on its own; the coordinator, looking only at the process list after the pause, concluded that M4 had died. The wall time of the whole job grows by the pause.",
+   "diagnosis": "Long runs were chained in one background script (chain.sh: M1, M2, then M3 with the time-step runs, M4, the wake picture, the scheme test; after.sh then ran the scaling test), each writing a DONE marker and a per-run JSON record. A pause of the agent does not stop such a chain, and an empty process list then means finished, not crashed.",
+   "fix": "Checked the chain's output file and the run records: everything had completed (M4 in 35 min). Nothing was re-run.",
+   "lesson": "Before restarting a long run after an interruption, read its log and record files; the process list alone cannot tell crashed from finished.",
+   "guideline": "SKILL.md stage 4: run long sequences as one background script with completion markers and per-run records, and after any interruption check those files before re-running; cfdlib.foam ps could also report the last finished runs of a case (from their perf.*.json).",
+   "resolved": "2026-11-11 03:22"
+  },
+  {
+   "id": 16,
+   "stage": "report",
+   "logged": "2026-11-11 03:26",
+   "status": "resolved",
+   "problem": "Final visual review (all sections, panels opened) found stale or wrong text that every automatic check passed: decision D2 still said 'PIMPLE used in PISO mode' after the switch to two outer correctors; the reproducibility list still named the old time-step runs (M2_dtx2) and the old rank count; a limitation said the finest run was shortened for the budget when it was not; the performance table had a column of 'nan' (pFinal iterations: the v2606 log names both pressure solves 'p', so cfdlib.perf cannot separate them); the drag panel of the force figure was scaled so wide the oscillation looked flat.",
+   "diagnosis": "A mid-course change of plan (PISO to PIMPLE, 8 to 16 ranks, 2.4 to 3 s) leaves hand-written text in decisions.yaml and analyze.py behind; the contract checks structure and typesetting, not whether prose matches the current numerics.yaml. The nan column came from assuming the log labels the final pressure solve pFinal.",
+   "fix": "Rewrote D2, the reproducibility commands and notes (including how the piso_* and X_* runs were made), made the limitation conditional on the measured wall time, removed the pFinal column, tightened the drag axis; re-rendered and re-checked (overflow scan empty, contract OK). About 15 minutes.",
+   "lesson": "After any change of plan, grep decisions.yaml and the report text for the old setting names and numbers before the final render.",
+   "guideline": "SKILL.md stage 7: add 'after a mid-course change, search decisions and report text for the superseded values'; cfdlib.contract could cross-check a few decision texts against the case files (e.g. nOuterCorrectors, deltaT); cfdlib.perf should count the final pressure solve per step by position, not by the name pFinal.",
+   "resolved": "2026-11-11 03:26"
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The channel with the cylinder (to scale), the parabolic inflow and the free outflow. The orange arrows are the requested forces, the dotted circles a sketch of the vortex street; the square marks the wake probe used as a second frequency record."
+  },
+  {
+   "key": "forces",
+   "section": "simulation",
+   "caption": "Drag and lift coefficients on the finest mesh (M4). The run starts from the developed flow of the next coarser mesh, interpolated onto this mesh; the jolt at the start (drag axis clipped) is that interpolation settling. The shaded band is the 4 cycles used for the answers. Drag oscillates at twice the lift frequency (measured ratio \\(1.9992\\))."
+  },
+  {
+   "key": "wake",
+   "section": "simulation",
+   "caption": "Output (d): vorticity \\(\\omega_z = \\partial v/\\partial x - \\partial u/\\partial y\\) on the finest mesh at the moment of maximum lift (written field closest to it). Red: anticlockwise rotation, blue: clockwise. Vortices of alternating sign leave the upper and lower sides of the cylinder and are carried downstream as a staggered street, which slowly diffuses on the way to the outlet."
+  },
+  {
+   "key": "periodic",
+   "section": "convergence",
+   "caption": "Physical check that each run reached the periodic state: change of the lift maximum from one cycle to the next. After the start (from rest on M1, from the interpolated coarser flow on the others) it falls below the tolerance fixed before the runs (dashed). M1 ends at \\(0.0016\\). M2 ends at \\(4 \\times 10^{-4}\\). M3 ends at \\(1.6 \\times 10^{-4}\\). M4 ends at \\(6 \\times 10^{-5}\\). The answers use the last 4 cycles of each run."
+  },
+  {
+   "key": "cycle",
+   "section": "comparison",
+   "caption": "One shedding cycle on each mesh (time from an upward zero crossing of the lift, in units of the period). Dashed: reference maxima and minima (FeatFlow level 6, \\(\\Delta t = 1/200\\,\\mathrm{s}\\)). The coarse meshes overpredict the lift amplitude; refinement moves it towards the reference."
+  },
+  {
+   "key": "conv",
+   "section": "comparison",
+   "caption": "Mesh study for three of the requested numbers, against the cell size relative to the finest mesh (the time step is halved with the cell size). Dots: the four meshes; open diamond: Richardson extrapolation from the three finest, with its GCI bar; shaded: the reference value with its own spread (level 5 versus level 6)."
+  },
+  {
+   "key": "timestep",
+   "section": "comparison",
+   "caption": "Time-step study on M2 (same mesh, each run started from the same developed flow). Orange: the first plan, PISO with one outer corrector: the lift amplitude converges with observed order \\(1.02\\) in the time step and is far from converged at the planned step. Blue: PIMPLE with two outer correctors, used for all production runs: the lift amplitude varies by at most \\(0.0016\\) over a four-fold range of time steps. Dotted: the reference."
+  },
+  {
+   "key": "scaling",
+   "section": "performance",
+   "caption": "MPI scaling on the finest mesh (214,912 cells, the same 200 time steps): speed-up over one core (left) and wall time per cell and time step inside the time loop (right). The dashed line is ideal scaling."
+  }
+ ],
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run preflight",
+    "what": "Short test runs on M1 (1 core) and M4 (16 ranks)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run production M1 M2",
+    "what": "M1 from rest (0 to 15 s), M2 from the developed M1 flow"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run production M3 M2_dtx0.5 M2_dtx0.25 --jobs 3",
+    "what": "M3 (4 ranks) and the two time-step-study runs, at the same time"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run production M4",
+    "what": "Finest mesh, 16 MPI ranks (hardware threads)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run wake M4",
+    "what": "Vorticity at the lift maximum for the picture"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run production M3_LU",
+    "what": "Convection-scheme test on M3"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run scaling 16 8 4 2 1",
+    "what": "MPI scaling test on M4 (200 steps each)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run psolver",
+    "what": "Pressure linear-solver test on M3 (200 steps each; was run with nOuterCorrectors 1)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.run exp X_M2_o2_dt1 M2 1 2 M2 -- X_M2_o1_dt025 M2 0.25 1 M2",
+    "what": "Time-integration experiments on M2 (outer correctors and time step), started from the M2 run"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_re100.analyze --report",
+    "what": "Analysis, figures and this report"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/dfg_cylinder_re100/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/dfg_cylinder_re100/reference/",
+    "what": "FeatFlow tables (parsed) and a copy of the benchmark page"
+   },
+   {
+    "path": "cases/dfg_cylinder_re100/numerics.yaml",
+    "what": "Meshes, time steps, run lengths, acceptance rules"
+   },
+   {
+    "path": "cases/dfg_cylinder_re100/decisions.yaml",
+    "what": "Every choice, with the OpenFOAM settings it controls"
+   },
+   {
+    "path": "cases/dfg_cylinder_re100/insights.yaml",
+    "what": "Workflow insights logged during the work"
+   },
+   {
+    "path": "cases/dfg_cylinder_re100/template/",
+    "what": "OpenFOAM case; blockMeshDict filled from run.mesh_spec"
+   },
+   {
+    "path": "cases/dfg_cylinder_re100/run.py",
+    "what": "Mesh generator, runs, mapping, MPI, performance tests"
+   },
+   {
+    "path": "cases/dfg_cylinder_re100/signals.py",
+    "what": "Cycle analysis of the force signals"
+   },
+   {
+    "path": "cases/dfg_cylinder_re100/theory.py",
+    "what": "What theory can say (SymPy)"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/<run>",
+    "what": "One directory per run (M1-M4, M2_dtx*, M3_LU)"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/pf_<mesh>",
+    "what": "Pre-flight runs"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/scale_M4_np<N>, psolver_*",
+    "what": "Performance tests"
+   },
+   {
+    "path": "results/dfg_cylinder_re100/",
+    "what": "preflight.json, runs/, perf/, analysis.json, results.json, this report"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "15 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "M3 (4 MPI ranks) and the two time-step-study runs (1 core each) ran at the same time; all other production runs ran alone. Per-run wall times of concurrent runs are inflated by shared memory bandwidth.",
+   "The piso_* runs are the first plan (nOuterCorrectors 1, M1 time step 2 ms), made with the same commands before numerics.yaml was changed and then renamed; X_* runs come from the <code>exp</code> command.",
+   "MPI runs: <code>decomposePar</code> (scotch), <code>mpirun -np N pimpleFoam -parallel</code>, <code>reconstructPar</code>."
+  ]
+ },
+ "performance": {
+  "intro": "Run-time data for optimising future cases. Wall microseconds per cell per time step: lower is better; multiplied by the core count it gives the cost in core-microseconds (constant for ideal scaling). Pressure iterations are the mean GAMG/PCG iterations per solve (first corrector \\(p\\), final \\(p_{\\mathrm{final}}\\)): this is the part a GPU linear solver would take over. Outside loop: share of wall time spent in start-up, decomposition overhead and writing.",
+  "head": [
+   "Run",
+   "Cells",
+   "Cores",
+   "Steps",
+   "Wall (s)",
+   "\\(\\mu s\\)/cell/step",
+   "core-\\(\\mu s\\)/cell/step",
+   "CPU eff.",
+   "\\(p\\) iters",
+   "Outside loop"
+  ],
+  "rows": [
+   [
+    "M1",
+    "3,358",
+    "1",
+    "3,750",
+    "56",
+    "\\(4.41\\)",
+    "\\(4.41\\)",
+    "\\(1.00\\)",
+    "\\(3.8\\)",
+    "\\(1.0\\,\\%\\)"
+   ],
+   [
+    "M2",
+    "13,432",
+    "1",
+    "1,500",
+    "97",
+    "\\(4.82\\)",
+    "\\(4.82\\)",
+    "\\(1.00\\)",
+    "\\(4.3\\)",
+    "\\(0.1\\,\\%\\)"
+   ],
+   [
+    "M3",
+    "53,728",
+    "4",
+    "3,000",
+    "285",
+    "\\(1.77\\)",
+    "\\(7.08\\)",
+    "\\(1.00\\)",
+    "\\(5.1\\)",
+    "\\(0.4\\,\\%\\)"
+   ],
+   [
+    "M4",
+    "214,912",
+    "16",
+    "6,000",
+    "2110",
+    "\\(1.64\\)",
+    "\\(26.19\\)",
+    "\\(1.00\\)",
+    "\\(8.5\\)",
+    "\\(< 0.1\\,\\%\\)"
+   ],
+   [
+    "M2_dtx0.5",
+    "13,432",
+    "1",
+    "3,000",
+    "192",
+    "\\(4.77\\)",
+    "\\(4.77\\)",
+    "\\(1.00\\)",
+    "\\(3.9\\)",
+    "\\(0.1\\,\\%\\)"
+   ],
+   [
+    "M2_dtx0.25",
+    "13,432",
+    "1",
+    "6,000",
+    "353",
+    "\\(4.39\\)",
+    "\\(4.39\\)",
+    "\\(1.00\\)",
+    "\\(3.7\\)",
+    "\\(0.1\\,\\%\\)"
+   ],
+   [
+    "M3_LU",
+    "53,728",
+    "4",
+    "3,000",
+    "280",
+    "\\(1.74\\)",
+    "\\(6.96\\)",
+    "\\(1.00\\)",
+    "\\(4.9\\)",
+    "\\(0.1\\,\\%\\)"
+   ],
+   [
+    "piso_M2_dtx2",
+    "13,432",
+    "1",
+    "1,500",
+    "54",
+    "\\(2.69\\)",
+    "\\(2.69\\)",
+    "\\(1.00\\)",
+    "\\(4.5\\)",
+    "\\(0.5\\,\\%\\)"
+   ],
+   [
+    "piso_M2",
+    "13,432",
+    "1",
+    "3,000",
+    "96",
+    "\\(2.38\\)",
+    "\\(2.38\\)",
+    "\\(1.00\\)",
+    "\\(4.1\\)",
+    "\\(< 0.1\\,\\%\\)"
+   ],
+   [
+    "piso_M2_dtx0.5",
+    "13,432",
+    "1",
+    "6,000",
+    "187",
+    "\\(2.32\\)",
+    "\\(2.32\\)",
+    "\\(1.00\\)",
+    "\\(3.9\\)",
+    "\\(< 0.1\\,\\%\\)"
+   ],
+   [
+    "X_M2_o1_dt025",
+    "13,432",
+    "1",
+    "12,000",
+    "352",
+    "\\(2.18\\)",
+    "\\(2.18\\)",
+    "\\(1.00\\)",
+    "\\(3.7\\)",
+    "\\(< 0.1\\,\\%\\)"
+   ],
+   [
+    "scaling, 16 ranks",
+    "214,912",
+    "16",
+    "200",
+    "46",
+    "\\(1.07\\)",
+    "\\(17.12\\)",
+    "\\(0.98\\)",
+    "\\(6.5\\)",
+    "\\(2.2\\,\\%\\)"
+   ],
+   [
+    "scaling, 8 ranks",
+    "214,912",
+    "8",
+    "200",
+    "58",
+    "\\(1.35\\)",
+    "\\(10.83\\)",
+    "\\(0.99\\)",
+    "\\(6.6\\)",
+    "\\(2.0\\,\\%\\)"
+   ],
+   [
+    "scaling, 4 ranks",
+    "214,912",
+    "4",
+    "200",
+    "88",
+    "\\(2.04\\)",
+    "\\(8.15\\)",
+    "\\(0.99\\)",
+    "\\(6.4\\)",
+    "\\(1.7\\,\\%\\)"
+   ],
+   [
+    "scaling, 2 ranks",
+    "214,912",
+    "2",
+    "200",
+    "149",
+    "\\(3.47\\)",
+    "\\(6.95\\)",
+    "\\(1.00\\)",
+    "\\(5.7\\)",
+    "\\(1.5\\,\\%\\)"
+   ],
+   [
+    "scaling, 1 rank",
+    "214,912",
+    "1",
+    "200",
+    "245",
+    "\\(5.70\\)",
+    "\\(5.70\\)",
+    "\\(1.00\\)",
+    "\\(5.2\\)",
+    "\\(1.6\\,\\%\\)"
+   ],
+   [
+    "p solver GAMG, \\(\\mathrm{tol}\\ 1 \\times 10^{-7}\\), \\(\\mathrm{relTol}\\ 0.01\\)",
+    "53,728",
+    "1",
+    "200",
+    "27",
+    "\\(2.53\\)",
+    "\\(2.53\\)",
+    "\\(0.99\\)",
+    "\\(4.4\\)",
+    "\\(4.2\\,\\%\\)"
+   ],
+   [
+    "p solver PCG, \\(\\mathrm{tol}\\ 1 \\times 10^{-7}\\), \\(\\mathrm{relTol}\\ 0.01\\)",
+    "53,728",
+    "1",
+    "200",
+    "107",
+    "\\(9.92\\)",
+    "\\(9.92\\)",
+    "\\(1.00\\)",
+    "\\(182.2\\)",
+    "\\(1.5\\,\\%\\)"
+   ],
+   [
+    "p solver GAMG, \\(\\mathrm{tol}\\ 1 \\times 10^{-7}\\), \\(\\mathrm{relTol}\\ 0\\)",
+    "53,728",
+    "1",
+    "200",
+    "46",
+    "\\(4.28\\)",
+    "\\(4.28\\)",
+    "\\(1.00\\)",
+    "\\(8.7\\)",
+    "\\(2.1\\,\\%\\)"
+   ],
+   [
+    "p solver GAMG, \\(\\mathrm{tol}\\ 1 \\times 10^{-6}\\), \\(\\mathrm{relTol}\\ 0.01\\)",
+    "53,728",
+    "1",
+    "200",
+    "25",
+    "\\(2.31\\)",
+    "\\(2.31\\)",
+    "\\(0.99\\)",
+    "\\(3.8\\)",
+    "\\(3.4\\,\\%\\)"
+   ],
+   [
+    "p solver GAMG, \\(\\mathrm{tol}\\ 1 \\times 10^{-9}\\), \\(\\mathrm{relTol}\\ 0.01\\)",
+    "53,728",
+    "1",
+    "200",
+    "33",
+    "\\(3.06\\)",
+    "\\(3.06\\)",
+    "\\(0.99\\)",
+    "\\(5.7\\)",
+    "\\(2.8\\,\\%\\)"
+   ]
+  ],
+  "notes": [
+   "<b>Scaling (finest mesh, inside the time loop).</b> Speed-up over one core: 1 ranks \\(1.00\\), 2 ranks \\(1.64\\), 4 ranks \\(2.80\\), 8 ranks \\(4.23\\), 16 ranks \\(5.36\\). Fastest: 16 ranks. Parallel efficiency at 8 ranks \\(0.53\\).",
+   "<b>Same answer.</b> After 200 steps the drag force differs between decompositions by at most \\(1.8 \\times 10^{-5}\\) (relative): round-off and solver-tolerance level, far below the mesh error.",
+   "<b>What limits speed.</b> GAMG pressure iterations per solve change with the decomposition (1 ranks \\(5.2\\), 2 ranks \\(5.7\\), 4 ranks \\(6.4\\), 8 ranks \\(6.6\\), 16 ranks \\(6.5\\)), and the cost per core grows with the rank count: the 2D problem has few cells per rank (about 26,864 at 8 ranks) and is limited by memory bandwidth and communication.",
+   "<b>Pressure solver (M3, 1 core, 200 steps, relative to GAMG tol \\(1 \\times 10^{-7}\\) relTol \\(0.01\\)).</b> PCG tol \\(1 \\times 10^{-7}\\) relTol \\(0.01\\): \\(4.04\\) \\(\\times\\) time, drag \\(0.0062\\); GAMG tol \\(1 \\times 10^{-7}\\) relTol \\(0\\): \\(1.73\\) \\(\\times\\) time, drag \\(0.0047\\); GAMG tol \\(1 \\times 10^{-6}\\) relTol \\(0.01\\): \\(0.92\\) \\(\\times\\) time, drag \\(7.9 \\times 10^{-5}\\); GAMG tol \\(1 \\times 10^{-9}\\) relTol \\(0.01\\): \\(1.23\\) \\(\\times\\) time, drag \\(1.4 \\times 10^{-6}\\). (Run with one outer corrector, before the switch to two; the comparison between solvers carries over.)",
+   "<b>Same test with one outer corrector</b> (the first plan): speed-up 1 ranks \\(1.00\\), 2 ranks \\(1.80\\), 4 ranks \\(2.95\\), 8 ranks \\(3.38\\), 16 ranks \\(4.60\\); pressure iterations per solve \\(4.7\\), \\(4.9\\), \\(5.5\\), \\(8.2\\), \\(5.7\\).",
+   "<b>Where the time went.</b> All production runs together: \\(56.2\\) \\(\\mathrm{min}\\) of wall time, of which the finest mesh alone \\(35.2\\) \\(\\mathrm{min}\\) (\\(63\\)\\(\\,\\%\\)). Per time step it cost \\(1.64\\) wall \\(\\mu\\mathrm{s}\\) per cell with 16 ranks; every step has two outer correctors with two pressure solves each.",
+   "<b>What to try next.</b> (1) Run the time-step and scheme tests at the same time as the finest mesh only if they fit in the cores left over (16 hardware threads in total). (2) For a GPU linear solver, the number to beat is the GAMG pressure solve on 16 CPU ranks; measure time per pressure solve and iterations on M3 and M4, the host-device copy per solve, and check the drag after 200 steps against the CPU run (as in the scaling test). A 2D case of 214,912 cells is small for a GPU; a 3D mesh of a few million cells would show the benefit better. (3) Write fewer, binary fields on long runs (the wake picture needs only one cycle of output)."
+  ]
+ },
+ "data": {
+  "analysis": "analysis.json",
+  "verdict_rules": {
+   "fail": [],
+   "warn": [
+    "run M1 not periodic to the set tolerance over its last 4 cycles",
+    "\\(c_{D,\\max}\\): convergence on the three finest meshes not monotonic (order undefined)",
+    "\\(c_{D,\\min}\\): convergence on the three finest meshes not monotonic (order undefined)",
+    "\\(\\bar c_D\\): convergence on the three finest meshes not monotonic (order undefined)"
+   ]
+  }
+ }
+}

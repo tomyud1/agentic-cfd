@@ -1,0 +1,112 @@
+{
+ "name": "M1",
+ "level": "M1",
+ "cells": 3358,
+ "h": {
+  "surface": 0.004908738521234052,
+  "wall": 0.00282521372704853,
+  "box": 0.012499999999999999,
+  "outlet": 0.050057975202564456
+ },
+ "dt": 0.004,
+ "start_time": 0.0,
+ "end_time": 15.0,
+ "cores": 1,
+ "div_U": "Gauss linear",
+ "p_solver": "GAMG",
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/M1",
+ "wall_time": 55.55680906999987,
+ "mesh_ok": true,
+ "checkmesh": {
+  "max_nonorth": 40.5253364068,
+  "max_skew": 0.500856733708,
+  "max_aspect": 4.09565251644
+ },
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "1.75",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 2.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.03\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,1.28\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,1.26\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,1.35\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.81\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 3750,
+  "last_time": 15.0,
+  "wall_time": 55.2,
+  "est_full_runtime": null,
+  "est_kind": null
+ },
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/M1",
+  "solver": "pimpleFoam",
+  "cells": 3358,
+  "cores": 1,
+  "steps": 3750,
+  "wall_s": 55.55680906999987,
+  "cpu_s": 55.389483,
+  "solver_cpu_s": 55.2,
+  "peak_mem_mb": 89.4453125,
+  "us_per_cell_step": 4.411896690093299,
+  "cpu_efficiency": 0.9969881986960581,
+  "write_share": 0.010022337123399394,
+  "lin_iters": {
+   "Ux": 3.7829333333333333,
+   "Uy": 4.3012,
+   "p": 3.7571666666666665
+  },
+  "lin_solves_per_step": {
+   "Ux": 2.0,
+   "Uy": 2.0,
+   "p": 8.0
+  }
+ },
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100",
+ "source": null,
+ "dt_factor": 1.0
+}

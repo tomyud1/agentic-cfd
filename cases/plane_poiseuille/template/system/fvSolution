@@ -1,0 +1,50 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-12;
+        relTol          0;
+    }
+    U
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-12;
+        relTol          0;
+    }
+}
+
+// This problem is LINEAR (no convection: u = u(y), v = 0), so no under-relaxation is needed
+// and SIMPLE converges in one iteration. Under-relaxation (e.g. U 0.9) acts as a pseudo
+// time step whose cost grows like N^2 here (thousands of iterations at 128 cells).
+// SIMPLEC (consistent yes) without relaxation divides by zero for pure diffusion.
+// Nonlinear problems (convection) DO need relaxation: do not copy these settings blindly.
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+    consistent      no;
+    pRefCell        0;
+    pRefValue       0;
+}
+
+relaxationFactors
+{
+    equations
+    {
+        U           1;
+    }
+    fields
+    {
+        p           1;
+    }
+}

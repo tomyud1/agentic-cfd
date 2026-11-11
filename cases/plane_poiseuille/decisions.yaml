@@ -1,0 +1,104 @@
+# Every modelling and numerical choice for this case. Written by the agent WHILE setting up the case.
+# `settings`: the OpenFOAM settings (path patterns, * = wildcard) this decision controls. The report
+# contract fails if any setting in the case files is not covered by some decision.
+# Text may use inline math \( ... \) (single-quoted YAML strings keep the backslashes).
+
+- area: Physical model
+  kind: physics
+  choice: Steady, incompressible, laminar, Newtonian flow
+  settings: [constant/turbulenceProperties/simulationType, constant/transportProperties/*]
+  why: 'Re is about 500 (laminar, see Assumptions); water is Newtonian; \(Ma \approx 5\times10^{-5}\).'
+  affects: 'Defines the equations solved. A turbulence model here would add viscosity that does not exist and give a flatter, wrong profile.'
+  alternatives: 'A transient solver would reach the same steady state, only slower.'
+
+- area: Solver
+  kind: solver
+  choice: '<code>simpleFoam</code>: steady incompressible solver (SIMPLE algorithm)'
+  settings: [system/controlDict/application, system/fvSchemes/ddtSchemes/*]
+  why: 'The question asks for the steady state only; a steady solver gets there directly.'
+  affects: 'None on the converged answer; it decides how the answer is reached.'
+  alternatives: '<code>pimpleFoam</code> (transient) run until steady; <code>icoFoam</code> has no body-force support.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Short channel slice with periodic (cyclic) ends; length \(L_x = 0.1\,H\), one cell thick in \(z\)'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/boundary,
+             0/*/boundaryField/#includeEtc*]
+  why: 'Periodic ends make the slice behave like an infinitely long channel, which is the fully developed flow the problem describes. One cell in \(z\) with empty front/back makes it 2D.'
+  affects: 'Imposes \(\partial u/\partial x = 0\) exactly. Entrance effects of a real channel are excluded by construction.'
+  alternatives: 'A long channel with inlet and outlet: needs the entrance length (\(\sim 0.05\,Re\,H\)) and gives a developing flow near the inlet.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'No slip on both plates: \(\mathbf{u} = 0\); pressure zero-gradient at the walls'
+  settings: [0/U/boundaryField/*, 0/p/boundaryField/*]
+  why: 'Stationary solid walls. Zero-gradient pressure is the standard partner of a fixed-velocity wall.'
+  affects: 'Sets the shape of the profile (zero at both walls).'
+  alternatives: 'None physically sensible for this problem.'
+
+- area: Domain and boundary conditions
+  kind: solver
+  choice: 'Initial state: fluid at rest, \(\mathbf{u} = 0,\ p = 0\)'
+  settings: [0/U/internalField, 0/p/internalField]
+  why: 'A steady, linear problem has one solution regardless of the starting guess.'
+  affects: 'None on the converged answer.'
+  alternatives: 'Start from the analytical profile (would hide solver problems, so not used).'
+
+- area: Driving force
+  kind: physics
+  choice: 'Pressure gradient applied as a uniform body force \(a = -\frac{1}{\rho}\frac{dp}{dx}\)'
+  settings: [constant/fvOptions/*]
+  why: 'Periodic ends cannot carry a net pressure drop. A uniform force per unit mass has the identical effect on the fluid.'
+  affects: 'Drives the flow. Its magnitude sets every velocity linearly.'
+  alternatives: 'A fixed pressure jump across the periodic boundary, or fixing the mean velocity (meanVelocityForce) instead of the gradient.'
+
+- area: Mesh
+  kind: accuracy
+  choice: 'Uniform meshes with \(N_y = 8, 16, 32, 64, 128\) cells across the gap; 1 cell along \(x\)'
+  settings: [system/blockMeshDict/blocks]
+  why: 'Refinement ratio 2 between meshes lets the observed order of accuracy and the mesh error be measured. Nothing varies along \(x\), so one cell suffices.'
+  affects: 'Discretisation error; measured in the Comparison section.'
+  alternatives: 'Cells clustered toward the walls (grading): more accurate near the walls for the same cell count, but a uniform mesh keeps the order-of-accuracy test clean.'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Second-order central schemes: <code>Gauss linear</code> for gradients, Laplacian and interpolation; <code>corrected</code> surface-normal gradients'
+  settings: [system/fvSchemes/gradSchemes/*, system/fvSchemes/laplacianSchemes/*, system/fvSchemes/interpolationSchemes/*,
+             system/fvSchemes/snGradSchemes/*, system/fvSchemes/divSchemes/*]
+  why: 'Second order is the standard for accuracy; the mesh is orthogonal so no limiting or correction is needed. Convection is zero here, so the convection scheme (<code>div(phi,U)</code>) has no effect.'
+  affects: 'Sets the order of accuracy (expected 2).'
+  alternatives: 'First-order upwind for convection would add numerical diffusion in problems where convection matters.'
+
+- area: Algorithm and linear solvers
+  kind: solver
+  choice: 'SIMPLE with NO under-relaxation (factors 1); plain SIMPLE, not SIMPLEC'
+  settings: [system/fvSolution/SIMPLE/*, system/fvSolution/relaxationFactors/*]
+  why: 'The problem is linear (no convection), so one undamped iteration gives the answer. Relaxation 0.9 acted as a pseudo time step and needed thousands of iterations at 128 cells; SIMPLEC without relaxation divides by zero for pure diffusion (see Insights).'
+  affects: 'Only how fast the answer is reached. Nonlinear problems DO need relaxation.'
+  alternatives: 'Standard relaxation (U 0.7, p 0.3) converges slowly here.'
+
+- area: Algorithm and linear solvers
+  kind: solver
+  choice: 'GAMG (multigrid) for \(p\) and \(\mathbf{u}\), solved to \(10^{-12}\) every iteration'
+  settings: [system/fvSolution/solvers/*]
+  why: 'Multigrid removes smooth, domain-wide errors quickly; a tight tolerance makes the iteration error negligible against the mesh error.'
+  affects: 'Iteration error (made negligible).'
+  alternatives: 'PCG/DIC for p and smoothSolver for U: correct but slower on fine meshes.'
+
+- area: Run control
+  kind: accuracy
+  choice: '5 SIMPLE iterations; results written at the end with 12 significant digits'
+  settings: [system/controlDict/endTime, system/controlDict/deltaT, system/controlDict/startTime,
+             system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision,
+             system/controlDict/timePrecision]
+  why: 'Converges in 1 iteration; the rest confirm it stays put. More is worse: undamped round-off noise in \(p\) slowly grows. 12 digits avoid round-off in the error analysis (the default 6 digits broke an earlier analysis).'
+  affects: 'Iteration error and output precision.'
+  alternatives: 'A residual-based stop (residualControl): unusable here, see Insights.'
+
+- area: Outputs
+  kind: output
+  choice: 'Wall shear stress on both plates; flow rate as the flux through the periodic boundary'
+  settings: [system/controlDict/functions/*]
+  why: 'These are requested outputs (c, d) and the momentum-balance convergence check needs the wall shear stress.'
+  affects: 'How the reported quantities are measured.'
+  alternatives: 'Integrating the velocity profile for q (adds its own quadrature error).'

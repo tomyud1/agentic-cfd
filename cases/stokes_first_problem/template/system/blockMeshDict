@@ -1,0 +1,58 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// Water layer 0 <= y <= H above the plate (y = 0); one cell in x (cyclic) and z (empty): 1D in y.
+scale   1;
+
+vertices
+(
+    (0        0       0)
+    ({{ Lx }} 0       0)
+    ({{ Lx }} {{ H }} 0)
+    (0        {{ H }} 0)
+    (0        0       {{ Lz }})
+    ({{ Lx }} 0       {{ Lz }})
+    ({{ Lx }} {{ H }} {{ Lz }})
+    (0        {{ H }} {{ Lz }})
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) (1 {{ Ny }} 1) simpleGrading (1 1 1)
+);
+
+boundary
+(
+    left
+    {
+        type            cyclic;
+        neighbourPatch  right;
+        faces           ((0 4 7 3));
+    }
+    right
+    {
+        type            cyclic;
+        neighbourPatch  left;
+        faces           ((1 2 6 5));
+    }
+    plate
+    {
+        type            wall;
+        faces           ((0 1 5 4));
+    }
+    top
+    {
+        type            symmetryPlane;
+        faces           ((3 7 6 2));
+    }
+    frontAndBack
+    {
+        type            empty;
+        faces           ((0 3 2 1) (4 5 6 7));
+    }
+);

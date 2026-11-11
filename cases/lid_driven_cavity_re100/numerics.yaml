@@ -1,0 +1,39 @@
+# Numerical choices (made by the agent, not given by the user).
+solver: simpleFoam            # steady incompressible solver, SIMPLEC variant (consistent yes)
+mesh:
+  N: [32, 64, 128, 256]       # uniform N x N cells, refinement ratio 2; one cell thick in z
+  dz_over_L: 0.01             # thickness of the 2D slab (any value: empty front/back)
+relaxation:
+  U: 0.9                      # SIMPLEC (consistent yes); pressure not relaxed
+convergence:
+  max_iterations: 20000       # safety cap per run
+  residual_U: 1.0e-11         # residualControl stop (normalised initial residual); was 1e-9, then 1e-10: see insights
+  residual_p: 1.0e-10
+  probe_change_tol: 1.0e-7    # PHYSICAL check: |change of each probed velocity over the last
+                              # 10 % of iterations| / U must be below this
+  write_every: 1000           # write fields every N iterations (steadiness check between writes)
+preflight:
+  iterations: 300             # short test run on coarsest and finest mesh
+schemes:
+  div_U: 'bounded Gauss linearUpwind grad(U)'   # second-order upwind-biased convection
+linear_solvers:
+  p_relTol: 0.05              # GAMG for p; each SIMPLE iteration only needs a partial solve
+probes:                       # monitored points (x/L, y/L): centre, near u_min, near vortex centre, near v_min
+  - [0.5, 0.5]
+  - [0.5, 0.45]
+  - [0.62, 0.74]
+  - [0.80, 0.5]
+# Acceptance rules for the verdict, fixed BEFORE looking at the production results.
+# Velocities in units of U, lengths in units of L, stream function in units of U*L.
+acceptance:
+  profile_max_diff_pass: 0.005   # (a), (b): max |sim - Ghia| over the interior table points, finest mesh
+  profile_max_diff_warn: 0.02    #   between pass and warn -> WARN; above warn -> FAIL
+  u_min_diff_pass: 0.005         # (c): |u_min,sim - u_min,Ghia|
+  location_tol_ghia_cells: 1.0   # (c), (d): locations within this many Ghia grid spacings (1/128)
+  psi_min_rel_pass: 0.01         # (d): |psi_min,sim - psi_min,Ghia| / |psi_min,Ghia|
+  gci_max: 0.01                  # finest-mesh GCI of every scalar output below 1 % (else WARN)
+  order_range: [1.0, 3.0]        # observed order outside this range -> WARN (not FAIL)
+  mass_residual_max: 1.0e-4      # max |psi on the lid| (must be 0): discrete mass conservation
+sensitivity:                  # extra run: same mesh, central differencing for convection
+  N: 128
+  div_U: 'Gauss linear'

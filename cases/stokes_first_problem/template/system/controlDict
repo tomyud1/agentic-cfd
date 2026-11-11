@@ -1,0 +1,64 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     pimpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ end_time }};
+deltaT          {{ dt }};
+adjustTimeStep  no;
+writeControl    runTime;
+writeInterval   {{ write_interval }};
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  12;
+writeCompression off;
+timeFormat      general;
+timePrecision   8;
+runTimeModifiable false;
+
+functions
+{
+    // Wall shear stress field on the plate (kinematic, tau/rho), computed every time step ...
+    wallShearStress
+    {
+        type            wallShearStress;
+        libs            (fieldFunctionObjects);
+        patches         (plate);
+        executeControl  timeStep;
+        executeInterval 1;
+        writeControl    writeTime;
+    }
+    // ... and its plate average written every time step: tau_w(t), requested output (b).
+    tauPlate
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            plate;
+        operation       areaAverage;
+        fields          (wallShearStress);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Integral of u over the layer every time step: x-momentum per unit plate area (d) and the
+    // momentum-balance check (its rate of change must equal the wall shear stress).
+    momentum
+    {
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      all;
+        operation       volIntegrate;
+        fields          (U);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+}

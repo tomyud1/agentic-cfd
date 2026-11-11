@@ -1,0 +1,1625 @@
+{
+ "title": "Impulsively started flat plate (Stokes' first problem)",
+ "date": "2026-11-11",
+ "verdict": "PASS",
+ "comparison_type": "verification",
+ "summary": {
+  "headline": "<b>Verification passed.</b> OpenFOAM reproduces the exact solution of Stokes' first problem: on the finest run the velocity differs by at most \\(0.00205\\,\\%\\) of \\(U\\), and the wall shear stress at 20 s, \\(0.002519\\ \\mathrm{Pa}\\), by \\(1.95 \\times 10^{-4}\\,\\%\\).",
+  "answer_columns": [
+   "Requested",
+   "Theory (exact)",
+   "Simulation (finest run)",
+   "Difference"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Velocity profiles \\(u(y)\\) at \\(t = 1\\), 5 and 20 s, compared with the exact solution",
+    "theory": "\\(u = U\\operatorname{erfc}\\big(y/2\\sqrt{\\nu t}\\big)\\)<div class='sub'>Figure 2</div>",
+    "sim": "largest difference over all cells: \\(0.00205\\,\\%\\) at 1 s, \\(4.06 \\times 10^{-4}\\,\\%\\) at 5 s, \\(1.01 \\times 10^{-4}\\,\\%\\) at 20 s<div class='sub'>as a fraction of \\(U\\)</div>",
+    "diff": "\\(\\le 0.00205\\,\\%\\)"
+   },
+   {
+    "letter": "b",
+    "label": "Wall shear stress on the plate as a function of time for \\(0 < t \\le 20\\) s, and its value at \\(t = 20\\) s",
+    "theory": "\\(|\\tau_w| = \\dfrac{\\mu U}{\\sqrt{\\pi\\nu t}}\\); at \\(t = 20\\,\\mathrm{s}\\): \\(0.002519\\ \\mathrm{Pa}\\)<div class='sub'>acting against the plate motion (Figure 3)</div>",
+    "sim": "\\(0.0025186\\ \\mathrm{Pa}\\)<div class='sub'>within 1 % of the exact value for \\(t \\ge 0.015\\,\\mathrm{s}\\)</div>",
+    "diff": "\\(1.95 \\times 10^{-4}\\,\\%\\)"
+   },
+   {
+    "letter": "c",
+    "label": "Penetration depth at \\(t = 1\\), 5 and 20 s: the distance from the plate where \\(u\\) has fallen to 1 % of \\(U\\)",
+    "theory": "\\(3.6428\\), \\(8.1455\\), \\(16.291\\) \\(\\mathrm{mm}\\)<div class='sub'>\\(\\delta_{1\\%} = 2\\eta_1\\sqrt{\\nu t}\\) at 1, 5, 20 s</div>",
+    "sim": "\\(3.6430\\), \\(8.1456\\), \\(16.291\\) \\(\\mathrm{mm}\\)",
+    "diff": "\\(\\le 0.00633\\,\\%\\)"
+   },
+   {
+    "letter": "d",
+    "label": "Total \\(x\\)-momentum given to the water per unit plate area by \\(t = 20\\) s",
+    "theory": "\\(P = 0.1007\\ \\mathrm{kg/(m\\,s)}\\)<div class='sub'>i.e. \\(\\mathrm{N\\,s/m^2}\\), per square metre of plate</div>",
+    "sim": "\\(0.100743\\ \\mathrm{kg/(m\\,s)}\\)",
+    "diff": "\\(1.95 \\times 10^{-4}\\,\\%\\)"
+   }
+  ],
+  "findings": [
+   "Every requested quantity matches the exact solution on the finest run (2000 cells, \\(\\Delta t = 0.0025\\,\\mathrm{s}\\)): velocity within \\(0.00205\\,\\%\\) of \\(U\\), wall shear stress, depth and momentum within \\(0.00633\\,\\%\\).",
+   "Halving the cell size and the time step together cuts the error by \\(4\\times\\): observed order \\(p = 2.00\\) (design order 2).",
+   "The error is almost entirely spatial: on the finest mesh, refining the time step from \\(0.02\\) to \\(0.0025\\,\\mathrm{s}\\) changes the \\(t = 1\\,\\mathrm{s}\\) profile by at most \\(0.00389\\,\\%\\) of \\(U\\).",
+   "The wall shear stress cannot be matched at the very start (the exact value is infinite at \\(t = 0\\)). It is within 1 % of the exact value after \\(0.015\\,\\mathrm{s}\\) on the finest run and after \\(1.04\\,\\mathrm{s}\\) on the coarsest.",
+   "Momentum is conserved exactly: on every step of every run, the change of the water's momentum equals the plate's drag to \\(7.8 \\times 10^{-9}\\) of the final drag."
+  ],
+  "limitations": [
+   "The plate is infinite and the start instantaneous, as stated. The infinite wall stress at \\(t = 0\\) cannot be reproduced by any finite mesh and time step; the first \\(0.015\\,\\mathrm{s}\\) of the stress history are less accurate than 1 %.",
+   "Laminar flow is assumed (the exact solution is laminar); whether a real layer at \\(Re_\\delta \\approx 326\\) stays undisturbed was not checked (no reference supplied).",
+   "The very deep water is a \\(50\\,\\mathrm{mm}\\) layer with a shear-free top; valid while the motion has not reached it, i.e. well beyond the 20 s asked for."
+  ]
+ },
+ "problem": {
+  "description": "A flat plate under a deep layer of still water is suddenly set in motion parallel to itself. Find how the motion spreads into the water over the first 20 seconds, and compare the simulation with the exact solution of this problem.\n",
+  "setup": [
+   "A very large flat plate lies at \\(y = 0\\) under a very deep layer of water, initially at rest.",
+   "At \\(t = 0\\) the plate starts moving in the \\(x\\) direction at constant speed \\(U\\), and keeps that speed.",
+   "The plate is so large and the water so deep that the flow depends only on the distance \\(y\\) from the plate and on time \\(t\\).",
+   "Far above the plate the water stays at rest."
+  ],
+  "given": [
+   {
+    "label": "Plate speed (in +x), from t = 0 on",
+    "symbol": "\\(U\\)",
+    "value": "\\(0.02\\)",
+    "unit": "m/s"
+   },
+   {
+    "label": "Kinematic viscosity of the water",
+    "symbol": "\\(\\nu\\)",
+    "value": "\\(1 \\times 10^{-6}\\)",
+    "unit": "m²/s"
+   },
+   {
+    "label": "Density of the water",
+    "symbol": "\\(\\rho\\)",
+    "value": "\\(998.2\\)",
+    "unit": "kg/m³"
+   },
+   {
+    "label": "Duration of interest",
+    "symbol": "\\(t_{\\mathrm{end}}\\)",
+    "value": "\\(20\\)",
+    "unit": "s"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "u_profiles",
+    "text": "Velocity profiles \\(u(y)\\) at \\(t = 1\\), 5 and 20 s, compared with the exact solution"
+   },
+   {
+    "letter": "b",
+    "key": "tau_w",
+    "text": "Wall shear stress on the plate as a function of time for \\(0 < t \\le 20\\) s, and its value at \\(t = 20\\) s"
+   },
+   {
+    "letter": "c",
+    "key": "delta99",
+    "text": "Penetration depth at \\(t = 1\\), 5 and 20 s: the distance from the plate where \\(u\\) has fallen to 1 % of \\(U\\)"
+   },
+   {
+    "letter": "d",
+    "key": "momentum",
+    "text": "Total \\(x\\)-momentum given to the water per unit plate area by \\(t = 20\\) s"
+   }
+  ],
+  "reference": null
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "Parallel flow: u depends only on y and t (very large plate)",
+    "status": "imposed",
+    "check": "One cell along \\(x\\) with periodic ends and an empty \\(z\\) direction. Edge effects of a real, finite plate are excluded by construction."
+   },
+   {
+    "name": "Very deep water (at rest far above)",
+    "status": "ok",
+    "check": "Exact solution at the top of the simulated layer \\(H = 0.05\\,\\mathrm{m}\\) at \\(t = 20\\,\\mathrm{s}\\): \\(u(H)/U = 2.7 \\times 10^{-15}\\); simulated, largest over all runs: \\(4.3 \\times 10^{-14}\\). The layer is \\(3.07\\) times the 1 % depth at the end."
+   },
+   {
+    "name": "Laminar flow",
+    "status": "standard",
+    "check": "The exact solution is laminar and the problem asks for it. The convection terms are identically zero in this flow, so nothing in the model could become unstable. A Reynolds number on the 1 % depth at the end, \\(Re_\\delta = U\\delta_{1\\%}/\\nu = 326\\), is given for orientation; no stability or transition reference for this flow was supplied, so laminarity is assumed, not checked."
+   },
+   {
+    "name": "Incompressible (density constant)",
+    "status": "ok",
+    "check": "\\(Ma = U/c = 1.3 \\times 10^{-5} \\ll 0.3\\), with speed of sound in water c ≈ 1482 m/s (approximate)."
+   },
+   {
+    "name": "Newtonian water, constant properties",
+    "status": "standard",
+    "check": "Water is Newtonian; one temperature, so \\(\\rho\\) and \\(\\nu\\) are constant."
+   },
+   {
+    "name": "Gravity does not affect the motion",
+    "status": "standard",
+    "check": "Gravity is normal to the plate; it only adds hydrostatic pressure in \\(y\\) and no force along \\(x\\)."
+   },
+   {
+    "name": "No slip on the plate; impulsive start",
+    "status": "imposed",
+    "check": "The water touching the plate moves with it. The jump from rest to \\(U\\) is instantaneous, as stated; a real plate needs a short time to accelerate, so the infinite wall stress at \\(t = 0\\) is an idealisation."
+   }
+  ]
+ },
+ "theory": {
+  "intro": "This problem has an exact solution. SymPy reduces the equation to an ordinary differential equation with the similarity variable, solves it, and checks the result against the equation, the plate condition, the far field and the initial state. The requested quantities follow from it symbolically.",
+  "steps": [
+   {
+    "label": "Governing equation: x-momentum for a flow that depends only on y and t",
+    "latex": "\\frac{\\partial u}{\\partial t} = \\nu\\,\\frac{\\partial^2 u}{\\partial y^2},\\qquad v = 0,\\ \\ \\frac{\\partial p}{\\partial x} = 0",
+    "note": "With \\(u = u(y, t)\\) and \\(v = 0\\), continuity holds automatically and the convection terms \\(u\\,\\partial u/\\partial x + v\\,\\partial u/\\partial y\\) are zero: the Navier–Stokes equations reduce exactly to a diffusion equation. Momentum spreads from the plate into the water by viscosity, like heat from a suddenly heated wall."
+   },
+   {
+    "label": "Conditions: plate moves from t = 0, water initially and far away at rest",
+    "latex": "u(0, t) = U\\ (t > 0),\\qquad u(y, 0) = 0,\\qquad u(y \\to \\infty, t) = 0",
+    "note": "The plate jumps from rest to \\(U\\), so at \\(t = 0\\) the velocity is discontinuous at the plate."
+   },
+   {
+    "label": "Similarity: no length scale is given, so the profile depends only on \\(y/\\sqrt{\\nu t}\\)",
+    "latex": "u = U f(\\eta),\\quad \\eta = \\frac{y}{2\\sqrt{\\nu t}}\\quad\\Longrightarrow\\quad f'' + 2\\eta f' = 0,\\ \\ f(0) = 1,\\ f(\\infty) = 0",
+    "note": "Profiles at different times collapse onto one curve when plotted against \\(\\eta\\) (checked by SymPy below)."
+   },
+   {
+    "label": "Solution",
+    "latex": "u(y, t) = U\\,\\operatorname{erfc}\\!\\left(\\frac{y}{2\\sqrt{\\nu t}}\\right),\\qquad \\operatorname{erfc}\\eta = \\frac{2}{\\sqrt{\\pi}}\\int_\\eta^\\infty e^{-s^2}\\,ds",
+    "note": "\\(\\operatorname{erfc}\\) is the complementary error function: 1 at the plate, falling to 0 within a few units of \\(\\eta\\)."
+   },
+   {
+    "label": "Requested quantities",
+    "latex": "\\tau_w = \\mu\\left.\\frac{\\partial u}{\\partial y}\\right|_{0} = -\\frac{\\mu U}{\\sqrt{\\pi\\nu t}},\\quad \\delta_{1\\%} = 2\\eta_1\\sqrt{\\nu t},\\ \\operatorname{erfc}\\eta_1 = 0.01,\\quad P = \\rho\\int_0^\\infty u\\,dy = 2\\rho U\\sqrt{\\frac{\\nu t}{\\pi}} = \\int_0^t |\\tau_w|\\,dt'",
+    "note": "The wall shear stress is infinite at \\(t = 0\\) (the jump) and decays like \\(1/\\sqrt{t}\\); its time integral is finite and equals the momentum in the water. \\(\\tau_w < 0\\): the water pulls the plate back (\\(\\mu = \\rho\\nu\\))."
+   },
+   {
+    "label": "Consequence for the numerics: the wall gradient",
+    "latex": "\\left.\\frac{\\partial^2 u}{\\partial y^2}\\right|_{0} = 0\\ \\Rightarrow\\ \\frac{U - u(h/2)}{h/2} = -\\left.\\frac{\\partial u}{\\partial y}\\right|_0\\left(1 - \\frac{h^2}{48\\,\\nu t}\\right) + O(h^4)",
+    "note": "Because \\(u\\) stays equal to \\(U\\) at the plate, its curvature there is zero, so the two-point wall gradient a finite-volume solver uses (plate to first cell centre, distance \\(h/2\\)) is second-order accurate. Its own error is small once \\(\\sqrt{\\nu t}\\) spans many cells; at early times (\\(\\sqrt{\\nu t} \\sim h\\)) it is not. The cell values themselves also carry an error of the same order, so this term is a scale, not the whole error."
+   }
+  ],
+  "derived": [
+   {
+    "key": "tau_w",
+    "label": "Wall shear stress at \\(t = t_{\\mathrm{end}}\\)",
+    "symbol": "|\\tau_w|",
+    "value": 0.0025185908834805242,
+    "value_tex": "0.002519",
+    "unit_tex": "\\mathrm{Pa}",
+    "formula": "|\\tau_w| = \\mu\\left|\\frac{\\partial u}{\\partial y}\\right|_{y=0} = \\frac{U \\sqrt{\\nu} \\rho}{\\sqrt{\\pi} \\sqrt{t}}",
+    "check": "\\begin{aligned}|\\tau_w| &= \\frac{\\left(0.02\\right) \\sqrt{\\left(1 \\times 10^{-6}\\right)} \\left(998.2\\right)}{\\sqrt{\\pi} \\sqrt{\\left(20\\right)}}\\\\ &= 0.002519\\ \\mathrm{Pa}\\end{aligned}",
+    "why": "Friction stress of the water on the plate (it acts against the motion, in \\(-x\\)). It is what keeps pulling the plate back; it falls like \\(1/\\sqrt{t}\\) because the velocity gradient at the plate weakens as the moving layer thickens. Requested output (b).",
+    "params": [
+     {
+      "tex": "U",
+      "meaning": "plate speed",
+      "value": 0.02,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity of water",
+      "value": 1e-06,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "\\rho",
+      "meaning": "density of water",
+      "value": 998.2,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "t",
+      "meaning": "time since the plate started",
+      "value": 20.0,
+      "unit": "\\mathrm{s}"
+     }
+    ]
+   },
+   {
+    "key": "delta_1",
+    "label": "1 % penetration depth at \\(t = 1\\ \\mathrm{s}\\)",
+    "symbol": "\\delta_{1\\%}",
+    "value": 0.003642772735436899,
+    "value_tex": "0.003643",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "\\delta_{1\\%} = 2 \\eta_1 \\sqrt{\\nu} \\sqrt{t}",
+    "check": "\\begin{aligned}\\delta_{1\\%} &= 2 \\cdot 1.821 \\sqrt{\\left(1 \\times 10^{-6}\\right)} \\sqrt{\\left(1\\right)}\\\\ &= 0.003643\\ \\mathrm{m}\\end{aligned}",
+    "why": "How far the motion has reached: the height where \\(u = 0.01\\,U\\). It grows like \\(\\sqrt{\\nu t}\\), the diffusion length. Requested output (c).",
+    "params": [
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity of water",
+      "value": 1e-06,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "t",
+      "meaning": "time since the plate started",
+      "value": 1.0,
+      "unit": "\\mathrm{s}"
+     },
+     {
+      "tex": "\\eta_1",
+      "meaning": "similarity coordinate where \\(\\operatorname{erfc}\\eta_1 = 0.01\\) (solved numerically)",
+      "value": 1.8213863677184496,
+      "unit": ""
+     }
+    ]
+   },
+   {
+    "key": "delta_5",
+    "label": "1 % penetration depth at \\(t = 5\\ \\mathrm{s}\\)",
+    "symbol": "\\delta_{1\\%}",
+    "value": 0.008145487463019765,
+    "value_tex": "0.008145",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "\\delta_{1\\%} = 2 \\eta_1 \\sqrt{\\nu} \\sqrt{t}",
+    "check": "\\begin{aligned}\\delta_{1\\%} &= 2 \\cdot 1.821 \\sqrt{\\left(1 \\times 10^{-6}\\right)} \\sqrt{\\left(5\\right)}\\\\ &= 0.008145\\ \\mathrm{m}\\end{aligned}",
+    "why": "Same formula, five times later: deeper by a factor \\(\\sqrt{5}\\).",
+    "params": [
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity of water",
+      "value": 1e-06,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "t",
+      "meaning": "time since the plate started",
+      "value": 5.0,
+      "unit": "\\mathrm{s}"
+     },
+     {
+      "tex": "\\eta_1",
+      "meaning": "similarity coordinate where \\(\\operatorname{erfc}\\eta_1 = 0.01\\) (solved numerically)",
+      "value": 1.8213863677184496,
+      "unit": ""
+     }
+    ]
+   },
+   {
+    "key": "delta_20",
+    "label": "1 % penetration depth at \\(t = 20\\ \\mathrm{s}\\)",
+    "symbol": "\\delta_{1\\%}",
+    "value": 0.01629097492603953,
+    "value_tex": "0.01629",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "\\delta_{1\\%} = 2 \\eta_1 \\sqrt{\\nu} \\sqrt{t}",
+    "check": "\\begin{aligned}\\delta_{1\\%} &= 2 \\cdot 1.821 \\sqrt{\\left(1 \\times 10^{-6}\\right)} \\sqrt{\\left(20\\right)}\\\\ &= 0.01629\\ \\mathrm{m}\\end{aligned}",
+    "why": "At the end of the period of interest. It sets how deep the simulated water layer must be.",
+    "params": [
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity of water",
+      "value": 1e-06,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "t",
+      "meaning": "time since the plate started",
+      "value": 20.0,
+      "unit": "\\mathrm{s}"
+     },
+     {
+      "tex": "\\eta_1",
+      "meaning": "similarity coordinate where \\(\\operatorname{erfc}\\eta_1 = 0.01\\) (solved numerically)",
+      "value": 1.8213863677184496,
+      "unit": ""
+     }
+    ]
+   },
+   {
+    "key": "P",
+    "label": "x-momentum per unit plate area at \\(t = t_{\\mathrm{end}}\\)",
+    "symbol": "P",
+    "value": 0.10074363533922097,
+    "value_tex": "0.1007",
+    "unit_tex": "\\mathrm{kg/(m\\,s)}",
+    "formula": "P = \\rho\\int_0^\\infty u\\,dy = \\frac{2 U \\sqrt{\\nu} \\rho \\sqrt{t}}{\\sqrt{\\pi}}",
+    "check": "\\begin{aligned}P &= \\frac{2 \\left(0.02\\right) \\sqrt{\\left(1 \\times 10^{-6}\\right)} \\left(998.2\\right) \\sqrt{\\left(20\\right)}}{\\sqrt{\\pi}}\\\\ &= 0.1007\\ \\mathrm{kg/(m\\,s)}\\end{aligned}",
+    "why": "Total momentum the plate has given to the water, \\(\\rho\\int_0^\\infty u\\,dy\\); equal to the time integral of the wall shear stress (the impulse of the drag, in \\(\\mathrm{N\\,s/m^2}\\)). Requested output (d).",
+    "params": [
+     {
+      "tex": "U",
+      "meaning": "plate speed",
+      "value": 0.02,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity of water",
+      "value": 1e-06,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "\\rho",
+      "meaning": "density of water",
+      "value": 998.2,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "t",
+      "meaning": "time since the plate started",
+      "value": 20.0,
+      "unit": "\\mathrm{s}"
+     }
+    ]
+   },
+   {
+    "key": "far",
+    "label": "Velocity left at the top of the simulated layer at \\(t_{\\mathrm{end}}\\)",
+    "symbol": "u(H)/U",
+    "value": 2.6644463892359204e-15,
+    "value_tex": "2.664 \\times 10^{-15}",
+    "unit_tex": "",
+    "formula": "u(H)/U = \\operatorname{erfc}{\\left(\\frac{H}{2 \\sqrt{\\nu} \\sqrt{t}} \\right)}",
+    "check": "\\begin{aligned}u(H)/U &= \\operatorname{erfc}{\\left(\\frac{\\left(0.05\\right)}{2 \\sqrt{\\left(1 \\times 10^{-6}\\right)} \\sqrt{\\left(20\\right)}} \\right)}\\\\ &= 2.664 \\times 10^{-15}\\ \\end{aligned}",
+    "why": "How much of the motion the exact solution puts at the depth where the simulation stops. It must be negligible for the finite layer to stand in for the very deep water of the problem.",
+    "params": [
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity of water",
+      "value": 1e-06,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "t",
+      "meaning": "time since the plate started",
+      "value": 20.0,
+      "unit": "\\mathrm{s}"
+     },
+     {
+      "tex": "H",
+      "meaning": "depth of the simulated water layer (model choice, see Decisions)",
+      "value": 0.05,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "with \\(\\eta = y/(2\\sqrt{\\nu t})\\) the PDE becomes the ODE \\(f'' + 2\\eta f' = 0\\) (no \\(t\\) left)",
+    "ok": true
+   },
+   {
+    "name": "SymPy's solution with \\(f(0) = 1,\\ f(\\infty) = 0\\) is \\(f = \\operatorname{erfc}\\eta\\)",
+    "ok": true
+   },
+   {
+    "name": "\\(u = U\\operatorname{erfc}\\big(y/2\\sqrt{\\nu t}\\big)\\) satisfies \\(\\partial u/\\partial t = \\nu\\,\\partial^2 u/\\partial y^2\\)",
+    "ok": true
+   },
+   {
+    "name": "\\(u(0, t) = U\\) (no slip on the moving plate)",
+    "ok": true
+   },
+   {
+    "name": "\\(u \\to 0\\) as \\(y \\to \\infty\\) (water at rest far away)",
+    "ok": true
+   },
+   {
+    "name": "\\(u \\to 0\\) as \\(t \\to 0^+\\) for every \\(y > 0\\) (water initially at rest)",
+    "ok": true
+   },
+   {
+    "name": "momentum balance \\(dP/dt = -\\tau_w\\): the plate's drag is the only force on the water",
+    "ok": true
+   },
+   {
+    "name": "\\(\\int_0^t |\\tau_w|\\,dt' = P(t)\\) (impulse equals momentum)",
+    "ok": true
+   },
+   {
+    "name": "\\(\\partial^2 u/\\partial y^2 = 0\\) at the plate",
+    "ok": true
+   },
+   {
+    "name": "\\(\\eta_1\\) from SymPy (nsolve) and SciPy (erfcinv) agree to \\(10^{-12}\\)",
+    "ok": true
+   },
+   {
+    "name": "\\(u_{yyy}/u_y = -1/(2\\nu t)\\) at the plate (gives the \\(h^2/(48\\nu t)\\) term)",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "Transient, incompressible, laminar, Newtonian flow",
+   "settings": [
+    "constant/turbulenceProperties/simulationType",
+    "constant/transportProperties/*"
+   ],
+   "why": "The flow is parallel (\\(u = u(y, t)\\), \\(v = 0\\)), so convection vanishes and the equations are those of the exact solution; water is Newtonian; \\(Ma \\sim 10^{-5}\\). Laminar is what the problem and the exact solution describe (see Assumptions for the Reynolds number).",
+   "affects": "Defines the equations solved: a turbulence model would add an eddy viscosity the exact solution does not have.",
+   "alternatives": "None sensible for a verification against the exact laminar solution."
+  },
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "<code>pimpleFoam</code> (transient, PIMPLE) starting from the <code>pimpleFoam/laminar/planarPoiseuille</code> tutorial (a 1D wall-bounded start-up flow)",
+   "settings": [
+    "system/controlDict/application"
+   ],
+   "why": "The question is about the time history, so a transient solver is required. <code>pimpleFoam</code> carries the laminar momentum-transport model that the <code>wallShearStress</code> function object needs (<code>icoFoam</code> has none).",
+   "affects": "None on the converged answer of each time step; it decides how each step is solved.",
+   "alternatives": "<code>icoFoam</code> (same PISO algorithm, but no wall-shear-stress function object: the gradient would have to be evaluated by hand)."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "A water layer of depth \\(H = 0.05\\,\\mathrm{m}\\) above the plate; one cell in \\(x\\) with periodic (cyclic) ends, one cell in \\(z\\) with empty faces: a 1D model in \\(y\\)",
+   "settings": [
+    "system/blockMeshDict/vertices",
+    "system/blockMeshDict/scale",
+    "system/blockMeshDict/boundary",
+    "0/*/boundaryField/#includeEtc*"
+   ],
+   "why": "The plate is very large, so nothing varies along \\(x\\) or \\(z\\): periodic ends in \\(x\\) model an infinite plate, the empty direction removes \\(z\\). \\(x\\) must stay a real (cyclic) direction, because OpenFOAM does not solve velocity components in empty directions. \\(H\\) is about three times the 1 % depth at 20 s: the exact solution has \\(u(H)/U \\approx 3\\times10^{-15}\\) there (Theory), so the finite depth cannot be seen.",
+   "affects": "Replaces the very deep water by a finite layer; the error this causes is the size of \\(u(H)/U\\), negligible.",
+   "alternatives": "A shallower layer (fewer cells for the same resolution, but closer to the edge of the motion); a graded mesh (fine at the plate, coarse above) for fewer cells."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "Plate: velocity fixed at \\((U, 0, 0)\\) from the first time step (impulsive start). Top of the layer: <code>symmetryPlane</code> (no shear, no flow through it). Pressure: zero gradient at the plate.",
+   "settings": [
+    "0/U/boundaryField/*",
+    "0/p/boundaryField/*"
+   ],
+   "why": "No slip on the moving plate is the problem statement. The top is a numerical stand-in for \"water at rest far above\": a shear-free top lets no momentum leave, so the momentum integral must equal the impulse of the wall stress exactly, which is used as a check. The velocity there is \\(\\sim 10^{-15}\\,U\\) anyway.",
+   "affects": "Sets the solution. With a deep enough layer the choice at the top has no visible effect.",
+   "alternatives": "A no-slip top (fixed \\(u = 0\\)): equally good with this depth, but it would let a tiny amount of momentum leave and spoil the exact momentum balance."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "Initial state: water at rest, \\(\\mathbf{u} = 0,\\ p = 0\\)",
+   "settings": [
+    "0/U/internalField",
+    "0/p/internalField"
+   ],
+   "why": "Given in the problem: the water is initially at rest.",
+   "affects": "Defines the initial-value problem. The jump at the plate at \\(t = 0\\) is what makes the early wall stress infinite.",
+   "alternatives": "None (it is part of the problem)."
+  },
+  {
+   "area": "Mesh",
+   "kind": "accuracy",
+   "choice": "Uniform cells in \\(y\\), \\(N_y = 125\\) to \\(2000\\) cells across the layer (cell size \\(0.4\\) to \\(0.025\\,\\mathrm{mm}\\)), refinement ratio 2",
+   "settings": [
+    "system/blockMeshDict/blocks"
+   ],
+   "why": "Ratio-2 refinement gives the observed order of accuracy. Uniform cells keep the order test clean. On the finest mesh the diffusion length \\(\\sqrt{\\nu t}\\) spans 40 cells already at \\(t = 1\\,\\mathrm{s}\\).",
+   "affects": "Spatial discretisation error; measured in the Comparison section.",
+   "alternatives": "Cells clustered at the plate (grading): fewer cells for the same accuracy but a less clean order test."
+  },
+  {
+   "area": "Time stepping",
+   "kind": "accuracy",
+   "choice": "Fixed time step, halved with the cell size: \\(\\Delta t = 0.04\\) to \\(0.0025\\,\\mathrm{s}\\); second-order implicit <code>backward</code> (BDF2) time scheme. Separate studies vary only \\(\\Delta t\\) (finest mesh) or only the mesh (finest \\(\\Delta t\\)).",
+   "settings": [
+    "system/controlDict/deltaT",
+    "system/controlDict/adjustTimeStep",
+    "system/controlDict/endTime",
+    "system/controlDict/startTime",
+    "system/fvSchemes/ddtSchemes/*"
+   ],
+   "why": "Both space and time schemes are second order, so halving both should cut the total error by 4. BDF2 is implicit and strongly damping, so the jump at \\(t = 0\\) does not make it ring; the time step is not limited by stability (implicit diffusion). Fixed steps hit the output times 1, 5 and 20 s exactly.",
+   "affects": "Time discretisation error (measured by the time-step study).",
+   "alternatives": "<code>CrankNicolson</code> (second order, but it rings after a sudden start); <code>Euler</code> (first order, robust)."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "accuracy",
+   "choice": "Second-order central schemes in space: <code>Gauss linear</code> for gradients, Laplacian, interpolation and convection; <code>corrected</code> surface-normal gradients",
+   "settings": [
+    "system/fvSchemes/gradSchemes/*",
+    "system/fvSchemes/laplacianSchemes/*",
+    "system/fvSchemes/interpolationSchemes/*",
+    "system/fvSchemes/snGradSchemes/*",
+    "system/fvSchemes/divSchemes/*"
+   ],
+   "why": "Diffusion is the only physics, discretised to second order. Convection is identically zero (\\(u\\) does not vary along \\(x\\), \\(v = 0\\)), so the convection scheme has no effect. The mesh is orthogonal, so no correction is active.",
+   "affects": "Spatial order of accuracy (expected 2).",
+   "alternatives": "Upwind convection: irrelevant here since convection is zero."
+  },
+  {
+   "area": "Algorithm and linear solvers",
+   "kind": "solver",
+   "choice": "PIMPLE in PISO mode: momentum predictor on, 1 outer corrector, 2 pressure correctors, no under-relaxation; U solved by PBiCGStab, p by PCG, both to \\(10^{-12}\\) every step",
+   "settings": [
+    "system/fvSolution/PIMPLE/*",
+    "system/fvSolution/relaxationFactors/*",
+    "system/fvSolution/solvers/*"
+   ],
+   "why": "The problem is linear, so one implicit momentum solve per time step to round-off is the exact discrete answer; the tutorial's 15 outer correctors with the predictor off would only iterate towards the same answer. The tight tolerance makes iteration error negligible, which the momentum-balance check confirms.",
+   "affects": "Iteration error only (made negligible); no effect on the converged answer.",
+   "alternatives": "The tutorial's <code>momentumPredictor off</code> with outer correctors; GAMG solvers (no advantage in 1D)."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Fields written every \\(1\\,\\mathrm{s}\\) with 12 significant digits; plate-averaged wall shear stress and the integral of \\(u\\) over the layer recorded every time step",
+   "settings": [
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/writePrecision",
+    "system/controlDict/timePrecision",
+    "system/controlDict/functions/*"
+   ],
+   "why": "Profiles at 1, 5 and 20 s (a) and penetration depths (c) come from the written fields; \\(\\tau_w(t)\\) (b) and the momentum (d) need every step, and their pair is the momentum-balance check. 12 digits avoid round-off in the error analysis.",
+   "affects": "What is measured and how precisely; not the solution.",
+   "alternatives": "Wall stress from the near-wall cell value by hand (same formula as OpenFOAM uses); momentum by integrating the written profiles (only once per second)."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before production, the first \\(1\\,\\mathrm{s}\\) (5 %) of the coarsest and finest combined-refinement runs check that the setup runs, stays healthy, records the outputs every step, and give a run-time projection (reliable for a fixed-step transient run).",
+  "runs": [
+   {
+    "name": "125 cells, \\(\\Delta t = 0.04\\,\\mathrm{s}\\)",
+    "setup": "first 1 s of 20 s (25 steps)",
+    "outcome": "✓ OK; 0.05 s; projected full run 0.4 s"
+   },
+   {
+    "name": "2000 cells, \\(\\Delta t = 0.0025\\,\\mathrm{s}\\)",
+    "setup": "first 1 s of 20 s (400 steps)",
+    "outcome": "✓ OK; 2.34 s; projected full run 47.0 s"
+   }
+  ],
+  "checks": [
+   {
+    "name": "Solver finished without errors (125 cells)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (125 cells)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number (125 cells)",
+    "status": "ok",
+    "value": "0.353",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend (125 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,1.27\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux (125 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.14\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy (125 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,7.09\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p (125 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,4.25\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend (125 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,1.94 \\times 10^{8}\\) (late vs early) of round-off; largest value \\(6.6 \\times 10^{-19}\\)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading. Here the error itself is round-off (below \\(1 \\times 10^{-12}\\)), so its trend carries no information (automatic trend check said: fail)."
+   },
+   {
+    "name": "Round-off level of zero quantities (125 cells)",
+    "status": "ok",
+    "value": "continuity \\(6.6 \\times 10^{-19}\\), \\(|v|/U = 2.9 \\times 10^{-17}\\)",
+    "meaning": "Mass conservation error and cross-flow velocity must stay at round-off: v = 0 exactly in this flow."
+   },
+   {
+    "name": "Outputs recorded every time step (125 cells)",
+    "status": "ok",
+    "value": "25 wall-stress rows, 25 momentum rows for 25 steps",
+    "meaning": "The wall shear stress and the momentum integral must be written at every step: they are requested outputs and the momentum-balance check needs them."
+   },
+   {
+    "name": "Solver finished without errors (2000 cells)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (2000 cells)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number (2000 cells)",
+    "status": "ok",
+    "value": "0.0248",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend (2000 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,1.01\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux (2000 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.163\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy (2000 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,16.6\\) (late vs early); but \\(\\max|v|/U = 1.2 \\times 10^{-17}\\)",
+    "meaning": "v is exactly zero in this flow; its normalised residual is round-off noise and its trend means nothing. The absolute level \\(|v|/U < 1 \\times 10^{-10}\\) is checked instead (automatic trend check said: warn)."
+   },
+   {
+    "name": "Residual trend: p (2000 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,8.08\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend (2000 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,1\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Round-off level of zero quantities (2000 cells)",
+    "status": "ok",
+    "value": "continuity \\(1.3 \\times 10^{-20}\\), \\(|v|/U = 1.2 \\times 10^{-17}\\)",
+    "meaning": "Mass conservation error and cross-flow velocity must stay at round-off: v = 0 exactly in this flow."
+   },
+   {
+    "name": "Outputs recorded every time step (2000 cells)",
+    "status": "ok",
+    "value": "400 wall-stress rows, 400 momentum rows for 400 steps",
+    "meaning": "The wall shear stress and the momentum integral must be written at every step: they are requested outputs and the momentum-balance check needs them."
+   }
+  ],
+  "conclusion": "All pre-flight checks passed; projected solver time of the longest run ≈ 47 s (measured in production: 46 s, run alongside others). The first pre-flight attempt was flagged by a round-off continuity-error trend; see Insights."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Plate",
+    "real": "Very large flat plate, suddenly moving at \\(U\\)",
+    "model": "A wall patch with velocity fixed at \\((0.02,\\,0,\\,0)\\ \\mathrm{m/s}\\) from the first step; one cell along \\(x\\) with periodic ends (an infinitely long plate) and an empty \\(z\\) direction: the model is 1D in \\(y\\)."
+   },
+   {
+    "aspect": "Water depth",
+    "real": "Very deep",
+    "model": "A layer \\(H = 0.05\\,\\mathrm{m}\\) deep (\\(3.07\\) times the 1 % depth at 20 s) with a shear-free top (symmetry plane): no momentum can leave."
+   },
+   {
+    "aspect": "Start",
+    "real": "Water at rest, plate jumps to \\(U\\) at \\(t = 0\\)",
+    "model": "Velocity zero everywhere at \\(t = 0\\); the plate value applies from the first step."
+   },
+   {
+    "aspect": "Fluid",
+    "real": "Water",
+    "model": "\\(\\nu = 1 \\times 10^{-6}\\,\\mathrm{m^2/s}\\); OpenFOAM solves for \\(p/\\rho\\), and stresses and momentum are multiplied by \\(\\rho = 998.2\\,\\mathrm{kg/m^3}\\)."
+   },
+   {
+    "aspect": "Outputs",
+    "real": "Profiles, wall stress, depth, momentum",
+    "model": "Fields every second; plate-averaged wall shear stress and the integral of \\(u\\) over the layer every time step (OpenFOAM function objects)."
+   }
+  ],
+  "meshes": {
+   "intro": "11 runs in three studies. <b>Combined</b>: cell size and time step halved together (5 levels). <b>Space</b>: cell size halved at the finest time step. <b>Time</b>: time step halved on the finest mesh. Every run covers the full \\(20\\,\\mathrm{s}\\).",
+   "head": [
+    "Run",
+    "\\(N_y\\)",
+    "Cell size \\(h\\) (mm)",
+    "\\(\\Delta t\\) (s)",
+    "Time steps",
+    "Studies"
+   ],
+   "rows": [
+    [
+     "N125_dt40ms",
+     125,
+     "\\(0.4\\)",
+     "\\(0.04\\)",
+     500,
+     "combined"
+    ],
+    [
+     "N250_dt20ms",
+     250,
+     "\\(0.2\\)",
+     "\\(0.02\\)",
+     1000,
+     "combined"
+    ],
+    [
+     "N250_dt2.5ms",
+     250,
+     "\\(0.2\\)",
+     "\\(0.0025\\)",
+     8000,
+     "space"
+    ],
+    [
+     "N500_dt10ms",
+     500,
+     "\\(0.1\\)",
+     "\\(0.01\\)",
+     2000,
+     "combined"
+    ],
+    [
+     "N500_dt2.5ms",
+     500,
+     "\\(0.1\\)",
+     "\\(0.0025\\)",
+     8000,
+     "space"
+    ],
+    [
+     "N1000_dt5ms",
+     1000,
+     "\\(0.05\\)",
+     "\\(0.005\\)",
+     4000,
+     "combined"
+    ],
+    [
+     "N1000_dt2.5ms",
+     1000,
+     "\\(0.05\\)",
+     "\\(0.0025\\)",
+     8000,
+     "space"
+    ],
+    [
+     "N2000_dt20ms",
+     2000,
+     "\\(0.025\\)",
+     "\\(0.02\\)",
+     1000,
+     "time"
+    ],
+    [
+     "N2000_dt10ms",
+     2000,
+     "\\(0.025\\)",
+     "\\(0.01\\)",
+     2000,
+     "time"
+    ],
+    [
+     "N2000_dt5ms",
+     2000,
+     "\\(0.025\\)",
+     "\\(0.005\\)",
+     4000,
+     "time"
+    ],
+    [
+     "N2000_dt2.5ms",
+     2000,
+     "\\(0.025\\)",
+     "\\(0.0025\\)",
+     8000,
+     "combined, space, time"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Run",
+    "\\(|\\tau_w|\\) at 20 s (Pa)",
+    "\\(P\\) at 20 s (kg/(m s))",
+    "\\(\\delta_{1\\%}\\) at 1 s (mm)",
+    "\\(\\delta_{1\\%}\\) at 5 s (mm)",
+    "\\(\\delta_{1\\%}\\) at 20 s (mm)"
+   ],
+   "rows": [
+    [
+     "exact",
+     "\\(0.00251859\\)",
+     "\\(0.100744\\)",
+     "\\(3.6428\\)",
+     "\\(8.1455\\)",
+     "\\(16.291\\)"
+    ],
+    [
+     "N125_dt40ms",
+     "\\(0.00251985\\)",
+     "\\(0.100693\\)",
+     "\\(3.7054\\)",
+     "\\(8.1655\\)",
+     "\\(16.304\\)"
+    ],
+    [
+     "N250_dt20ms",
+     "\\(0.00251891\\)",
+     "\\(0.100731\\)",
+     "\\(3.6577\\)",
+     "\\(8.1522\\)",
+     "\\(16.293\\)"
+    ],
+    [
+     "N250_dt2.5ms",
+     "\\(0.00251891\\)",
+     "\\(0.100731\\)",
+     "\\(3.6572\\)",
+     "\\(8.1521\\)",
+     "\\(16.293\\)"
+    ],
+    [
+     "N500_dt10ms",
+     "\\(0.00251867\\)",
+     "\\(0.100740\\)",
+     "\\(3.6453\\)",
+     "\\(8.1465\\)",
+     "\\(16.292\\)"
+    ],
+    [
+     "N500_dt2.5ms",
+     "\\(0.00251867\\)",
+     "\\(0.100740\\)",
+     "\\(3.6452\\)",
+     "\\(8.1465\\)",
+     "\\(16.292\\)"
+    ],
+    [
+     "N1000_dt5ms",
+     "\\(0.00251861\\)",
+     "\\(0.100743\\)",
+     "\\(3.6438\\)",
+     "\\(8.1460\\)",
+     "\\(16.291\\)"
+    ],
+    [
+     "N1000_dt2.5ms",
+     "\\(0.00251861\\)",
+     "\\(0.100743\\)",
+     "\\(3.6438\\)",
+     "\\(8.1460\\)",
+     "\\(16.291\\)"
+    ],
+    [
+     "N2000_dt20ms",
+     "\\(0.00251860\\)",
+     "\\(0.100743\\)",
+     "\\(3.6436\\)",
+     "\\(8.1456\\)",
+     "\\(16.291\\)"
+    ],
+    [
+     "N2000_dt10ms",
+     "\\(0.00251860\\)",
+     "\\(0.100743\\)",
+     "\\(3.6431\\)",
+     "\\(8.1456\\)",
+     "\\(16.291\\)"
+    ],
+    [
+     "N2000_dt5ms",
+     "\\(0.00251860\\)",
+     "\\(0.100743\\)",
+     "\\(3.6430\\)",
+     "\\(8.1456\\)",
+     "\\(16.291\\)"
+    ],
+    [
+     "N2000_dt2.5ms",
+     "\\(0.00251860\\)",
+     "\\(0.100743\\)",
+     "\\(3.6430\\)",
+     "\\(8.1456\\)",
+     "\\(16.291\\)"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Run",
+    "Log checks",
+    "Momentum balance (max)",
+    "\\(|u|/U\\) at the top",
+    "Solver time (s)"
+   ],
+   "rows": [
+    [
+     "N125_dt40ms",
+     "✓ OK",
+     "\\(5.2 \\times 10^{-10}\\)",
+     "\\(4.3 \\times 10^{-14}\\)",
+     "0.7"
+    ],
+    [
+     "N250_dt20ms",
+     "✓ OK",
+     "\\(1.2 \\times 10^{-9}\\)",
+     "\\(1 \\times 10^{-14}\\)",
+     "1.4"
+    ],
+    [
+     "N250_dt2.5ms",
+     "✓ OK",
+     "\\(7.7 \\times 10^{-9}\\)",
+     "\\(1 \\times 10^{-14}\\)",
+     "8.3"
+    ],
+    [
+     "N500_dt10ms",
+     "✓ OK",
+     "\\(2 \\times 10^{-9}\\)",
+     "\\(5.8 \\times 10^{-15}\\)",
+     "3.5"
+    ],
+    [
+     "N500_dt2.5ms",
+     "✓ OK",
+     "\\(7.7 \\times 10^{-9}\\)",
+     "\\(6.3 \\times 10^{-15}\\)",
+     "12.5"
+    ],
+    [
+     "N1000_dt5ms",
+     "✓ OK",
+     "\\(3.8 \\times 10^{-9}\\)",
+     "\\(4.8 \\times 10^{-15}\\)",
+     "12.3"
+    ],
+    [
+     "N1000_dt2.5ms",
+     "✓ OK",
+     "\\(7.8 \\times 10^{-9}\\)",
+     "\\(5.1 \\times 10^{-15}\\)",
+     "23.0"
+    ],
+    [
+     "N2000_dt20ms",
+     "✓ OK",
+     "\\(4.2 \\times 10^{-9}\\)",
+     "\\(2.3 \\times 10^{-15}\\)",
+     "6.3"
+    ],
+    [
+     "N2000_dt10ms",
+     "✓ OK",
+     "\\(4.6 \\times 10^{-9}\\)",
+     "\\(3 \\times 10^{-15}\\)",
+     "12.1"
+    ],
+    [
+     "N2000_dt5ms",
+     "✓ OK",
+     "\\(4.6 \\times 10^{-9}\\)",
+     "\\(3.8 \\times 10^{-15}\\)",
+     "23.4"
+    ],
+    [
+     "N2000_dt2.5ms",
+     "✓ OK",
+     "\\(7.6 \\times 10^{-9}\\)",
+     "\\(4.5 \\times 10^{-15}\\)",
+     "46.0"
+    ]
+   ],
+   "notes": [
+    "Each time step is a linear problem solved to round-off (velocity tolerance \\(1 \\times 10^{-12}\\)). The convergence evidence is physical: the momentum of the water must change, step by step, by exactly the plate's drag (Figure 5); the largest mismatch on any run is \\(7.8 \\times 10^{-9}\\) of the final drag (limit \\(1 \\times 10^{-6}\\)).",
+    "Log checks (cfdlib.monitor): no crash, no NaN, Courant number and residual trends. The continuity error and \\(v\\) are exactly zero in this flow; their trend checks only see round-off and are judged by their absolute level instead (see Insights).",
+    "Top of the layer: the water there must stay at rest; largest \\(|u|/U\\) in the top five cells at 20 s (limit \\(1 \\times 10^{-6}\\))."
+   ]
+  }
+ },
+ "comparison": {
+  "kind": "Verification: every run is compared with the exact solution of the same equations, at its own cell centres and time steps.",
+  "definitions": [
+   {
+    "name": "Profile error",
+    "latex": "\\varepsilon_u(t) = \\max_i \\frac{|u_i - u_{\\mathrm{exact}}(y_i, t)|}{U}",
+    "meaning": "Largest difference over all cells, as a fraction of the plate speed."
+   },
+   {
+    "name": "Wall-stress error",
+    "latex": "\\varepsilon_\\tau = \\frac{\\big||\\tau_{w}| - |\\tau_{w,\\mathrm{exact}}|\\big|}{|\\tau_{w,\\mathrm{exact}}|}",
+    "meaning": "Relative error of the plate-averaged wall shear stress from OpenFOAM's wallShearStress function object."
+   },
+   {
+    "name": "Momentum and depth errors",
+    "latex": "\\varepsilon_P = \\frac{|P - P_{\\mathrm{exact}}|}{P_{\\mathrm{exact}}},\\qquad \\varepsilon_\\delta = \\frac{|\\delta_{1\\%} - \\delta_{1\\%,\\mathrm{exact}}|}{\\delta_{1\\%,\\mathrm{exact}}}",
+    "meaning": "Relative errors; the depth is read from the profile by linear interpolation between cell centres."
+   },
+   {
+    "name": "Observed order",
+    "latex": "p = \\frac{\\ln(\\varepsilon_{\\mathrm{coarse}}/\\varepsilon_{\\mathrm{fine}})}{\\ln 2}",
+    "meaning": "\\(p = 2\\) means halving cell size and time step cuts the error by 4."
+   },
+   {
+    "name": "Momentum balance",
+    "latex": "\\frac{\\big|\\,\\mathrm{d}_t\\!\\int u\\,dy - \\tau_w/\\rho\\,\\big|}{|\\tau_w(t_{\\mathrm{end}})|/\\rho}",
+    "meaning": "Per time step, with the solver's own time derivative (Euler on the first step, BDF2 afterwards). Zero up to round-off if every step is solved completely and no momentum is lost."
+   }
+  ],
+  "head": [
+   "Run",
+   "\\(\\varepsilon_u\\) 1 s",
+   "\\(\\varepsilon_u\\) 20 s",
+   "\\(p\\)",
+   "\\(\\varepsilon_\\tau\\) 20 s",
+   "\\(p\\)",
+   "\\(\\varepsilon_\\delta\\) (max)",
+   "\\(\\varepsilon_P\\) 20 s"
+  ],
+  "rows": [
+   [
+    "N125_dt40ms",
+    "\\(0.532\\,\\%\\)",
+    "\\(0.026\\,\\%\\)",
+    "–",
+    "\\(0.0501\\,\\%\\)",
+    "–",
+    "\\(1.72\\,\\%\\)",
+    "\\(0.0501\\,\\%\\)"
+   ],
+   [
+    "N250_dt20ms",
+    "\\(0.132\\,\\%\\)",
+    "\\(0.00649\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.0125\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.411\\,\\%\\)",
+    "\\(0.0125\\,\\%\\)"
+   ],
+   [
+    "N500_dt10ms",
+    "\\(0.0328\\,\\%\\)",
+    "\\(0.00162\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.00312\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.0704\\,\\%\\)",
+    "\\(0.00313\\,\\%\\)"
+   ],
+   [
+    "N1000_dt5ms",
+    "\\(0.00819\\,\\%\\)",
+    "\\(4.06 \\times 10^{-4}\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(7.81 \\times 10^{-4}\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.0293\\,\\%\\)",
+    "\\(7.82 \\times 10^{-4}\\,\\%\\)"
+   ],
+   [
+    "N2000_dt2.5ms",
+    "\\(0.00205\\,\\%\\)",
+    "\\(1.01 \\times 10^{-4}\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(1.95 \\times 10^{-4}\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.00633\\,\\%\\)",
+    "\\(1.95 \\times 10^{-4}\\,\\%\\)"
+   ]
+  ],
+  "findings": [
+   "<b>How the wall-stress error scales.</b> The solver evaluates the stress from the plate to the first cell centre. Theory (last step) gives the truncation error of that two-point difference alone as \\(-h^2/(48\\,\\nu t)\\) (it would make the stress too low). The measured error at 20 s is \\(3\\)–\\(3.01\\) times the size of that term on every level, so it follows the same \\(h^2/(\\nu t)\\) law, about \\(h^2/(16\\,\\nu t)\\), but the simulated stress is higher than exact: the error is dominated by the error of the near-wall cell values, not by the gradient formula. Because it depends on how many cells span the diffusion length \\(\\sqrt{\\nu t}\\), it is large in the first steps and falls with time.",
+   "<b>Space versus time.</b> With the time step fixed at its finest value, halving the cells gives order \\(2.00\\). On the finest mesh, halving the time step changes the 1 s profile by \\(0.00298\\,\\%\\), \\(7.29 \\times 10^{-4}\\,\\%\\), \\(1.8 \\times 10^{-4}\\,\\%\\) of \\(U\\) (order \\(2.01\\)); the time error left in the finest run is about \\(5.93 \\times 10^{-5}\\,\\%\\) of \\(U\\), against a total error of \\(0.00205\\,\\%\\) at 1 s.",
+   "<b>Momentum.</b> The simulated momentum and the time integral of the simulated drag are the same number to round-off (Figure 5), so the momentum error \\(1.95 \\times 10^{-4}\\,\\%\\) is the accumulated wall-stress error, not a conservation error."
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "tooling",
+   "logged": "2026-11-11 00:06",
+   "status": "resolved",
+   "problem": "Skill tool call 'agentic-cfd' failed with 'Unknown skill': the skill exists at .claude/skills/agentic-cfd/SKILL.md but is not registered in this (sub-agent) session, so I had to find and read SKILL.md by hand.",
+   "diagnosis": "The skill lives in the project .claude/skills folder, but this session (an agent launched by another agent) did not list it among available skills; the Skill tool only knows registered skills.",
+   "fix": "Found it with a file search and read SKILL.md and its three references directly (about 1 minute).",
+   "lesson": "Do not rely on the Skill tool alone; the files are the source of truth.",
+   "guideline": "In the launching prompt, give the path .claude/skills/agentic-cfd/SKILL.md as a fallback, or make sure sub-agents load project skills.",
+   "resolved": "2026-11-11 00:23"
+  },
+  {
+   "id": 2,
+   "stage": "setup",
+   "logged": "2026-11-11 00:12",
+   "status": "resolved",
+   "problem": "The closest tutorial (pimpleFoam/laminar/planarPoiseuille: 1D, wall + symmetryPlane, cyclic x, backward) uses momentumPredictor off with 15 outer correctors. For a linear diffusion problem that is a slow Jacobi-like iteration; unclear from the primer whether to keep it.",
+   "diagnosis": "The tutorial is built for viscoelastic (Maxwell) cases where the stress equation is coupled; for a linear Newtonian diffusion problem one implicit momentum solve per step is the exact discrete answer.",
+   "fix": "Momentum predictor on, 1 outer corrector, velocity solved to \\(10^{-12}\\). Confirmed afterwards by the per-step momentum balance (round-off level on every run) rather than by assumption.",
+   "lesson": "Start from the closest tutorial for structure (patches, 1D layout, schemes), but re-derive the algorithm settings from the physics, as SKILL.md says (copy structure, not numerics).",
+   "guideline": "openfoam-primer.md: add planarPoiseuille as the template for 1D transient wall-bounded flows and a note that linear problems need only momentumPredictor yes + nOuterCorrectors 1.",
+   "resolved": "2026-11-11 00:23"
+  },
+  {
+   "id": 3,
+   "stage": "setup",
+   "logged": "2026-11-11 00:15",
+   "status": "resolved",
+   "problem": "Worked first time: decisions.yaml covered every OpenFOAM setting at the first --decisions check, and checkMesh passed.",
+   "diagnosis": "Patterns copied from <code>plane_poiseuille/decisions.yaml</code> (<code>0/*/boundaryField/#includeEtc*</code>, <code>system/controlDict/functions/*</code>, <code>system/fvSchemes/...</code>) already matched a structurally similar 1D case.",
+   "fix": "None needed; the cyclic-x + empty-z 1D layout was also copied from the Poiseuille template.",
+   "lesson": "A structurally close worked example (1D, cyclic x, empty z) makes setup almost mechanical; the <code>--decisions</code> CLI gives a 5-second check.",
+   "guideline": "Keep the <code>--decisions</code> command in SKILL.md stage 2; consider a short list of common setting patterns per file in the primer so cases unlike the examples are equally easy."
+  },
+  {
+   "id": 4,
+   "stage": "preflight",
+   "logged": "2026-11-11 00:16",
+   "status": "resolved",
+   "problem": "Pre-flight FAILED on the coarse level: \"Continuity-error trend \\(\\times 1.9\\times10^{8}\\)\", and warned on the fine level: \"Residual trend Uy \\(\\times 16.6\\)\". The physics looked right (wall stress and momentum at 1 s within 1 % of exact).",
+   "diagnosis": "False alarms. The continuity error (sum local) went from \\(10^{-28}\\) to \\(7\\times10^{-19}\\) and \\(|v|/U\\) is \\(10^{-17}\\): both are round-off, because this flow has \\(v = 0\\) and \\(\\nabla\\cdot\\mathbf{u} = 0\\) exactly. <code>monitor.assess</code> judges continuity and residuals only by their late/early RATIO, and a ratio of round-off noise can be anything (\\(1.9\\times10^{8}\\) here). This is pitfall 3 of the primer (residuals of ~zero fields), but for the continuity check, which <code>assess()</code> treats as FAIL (ratio above 100), not just warn.",
+   "fix": "Case-local <code>health()</code> wrapper in run.py: keeps the <code>assess()</code> output but downgrades the continuity-trend and Uy-trend checks to ok ONLY if the absolute level is round-off (sum local below \\(10^{-12}\\), \\(\\max|v|/U\\) below \\(10^{-10}\\)), keeps the original verdict in the text, and adds an explicit absolute-level check. Cost about 10 minutes.",
+   "lesson": "Trend checks need an absolute floor: a growing ratio of numbers at machine precision is not divergence.",
+   "guideline": "<code>cfdlib.monitor.assess</code>: skip (or mark ok) the continuity-error trend when its maximum is below an absolute floor (e.g. \\(10^{-12}\\)), and the residual trend of a field whose normalised residual is noise; report the absolute maximum next to the ratio. Primer pitfall 3: extend it to continuity errors.",
+   "resolved": "2026-11-11 00:17"
+  },
+  {
+   "id": 5,
+   "stage": "analysis",
+   "logged": "2026-11-11 00:19",
+   "status": "resolved",
+   "problem": "Surprise in the momentum-balance check: to close the discrete balance \\(dP/dt = |\\tau_w|\\) at the first step, the Euler formula is needed, not BDF2 (with BDF2 there the balance error is of order 1). OpenFOAM backward uses Euler for the first step (no old-old field yet).",
+   "diagnosis": "<code>backwardDdtScheme</code> falls back to Euler when only one old time level exists. With the matching formula per step (Euler at step 1, BDF2 after) the balance holds to \\(10^{-8}\\) of the final wall stress on every run (accumulated round-off over 8000 steps).",
+   "fix": "The check uses the scheme the solver actually applied: Euler for step 1, BDF2 coefficients (3/2, -2, 1/2) after.",
+   "lesson": "A discrete conservation check must mirror the exact discrete operator, including start-up special cases; this check then verifies the solver to round-off and is far stronger than residuals.",
+   "guideline": "openfoam-primer.md: note that backward (BDF2) starts with one Euler step, and suggest the per-step integral balance (volFieldValue volIntegrate + wall flux) as the physical convergence check for transient runs."
+  },
+  {
+   "id": 6,
+   "stage": "analysis",
+   "logged": "2026-11-11 00:19",
+   "status": "resolved",
+   "problem": "The acceptance tolerances I fixed before seeing results (0.2 % for profile, wall stress and momentum; 0.5 % for depth) turned out about 100 times looser than what the finest run achieved (profile \\(2\\times10^{-5}\\,U\\), wall stress \\(2\\times10^{-6}\\)). The verdict is PASS, but the rule was not discriminating.",
+   "diagnosis": "SKILL.md asks to fix checks before results but gives no way to size a verification tolerance; I guessed from engineering habit. Here the coarsest run already met every tolerance, so the rules could not catch a moderately wrong finest run.",
+   "fix": "Kept the pre-set rules (no moving goalposts) and added the stronger, physics-based evidence alongside: observed order 2.00 on the combined family, a wall-stress error that follows the predicted \\(h^2/(\\nu t)\\) law, and the momentum balance to \\(10^{-8}\\).",
+   "lesson": "For verification, the strongest acceptance rule is the observed order plus agreement with a predicted error law; absolute tolerances should be sized from a pre-flight coarse-run error and the expected order.",
+   "guideline": "SKILL.md stage 2: for verification cases, size tolerances from the pre-flight (coarse) error divided by \\(r^p\\) per refinement, and make the observed order (within 0.3 of the design order) a pass rule, not only a warn rule."
+  },
+  {
+   "id": 7,
+   "stage": "report",
+   "logged": "2026-11-11 00:22",
+   "status": "resolved",
+   "problem": "First report.render failed on 13 typesetting errors, all inside my own live insight entries (e-notation such as <code>1e-12</code>, ASCII math such as <code>h^2</code>): insights.log() accepts plain text, but the report contract lints insights like any other text.",
+   "diagnosis": "The insight log is a free-text notebook, but its entries are rendered into the report and linted like every other text field (e-notation and ASCII math are errors). Writing live in plain text is natural; the error only appears at the end.",
+   "fix": "Rewrote the affected entries with \\(\\) LaTeX (one-off script scratch/fix_insights.py). About 5 minutes.",
+   "lesson": "Anything that ends up in the report must be typeset from the start, including the lab notebook.",
+   "guideline": "cfdlib.insights.log/resolve: run contract.lint on the new text and print a warning immediately (or auto-wrap e-notation as \\(a\\times10^{b}\\)); mention in SKILL.md rule 4 that insight text is report text.",
+   "resolved": "2026-11-11 00:23"
+  },
+  {
+   "id": 8,
+   "stage": "tooling",
+   "logged": "2026-11-11 00:23",
+   "status": "resolved",
+   "problem": "I resolved the WRONG insight: insights.resolve(case, 3, ...) overwrote the diagnosis/fix/lesson/guideline of entry 3 (a resolved \"worked first time\" entry) with the text meant for entry 4, because I assumed the id instead of reading the id that log() returned.",
+   "diagnosis": "log() returns the id but the CLI/Python call I used did not show it clearly (it printed a bare number among other output), and resolve() silently overwrites fields of an already-resolved entry.",
+   "fix": "Restored entry 3 from my transcript and moved the text to entry 4 (scratch/fix_insights.py). Caught only because the typesetting error forced me to read insights.yaml.",
+   "lesson": "Keep the id returned by log() in a variable or print it labelled; check the entry problem before resolving.",
+   "guideline": "cfdlib.insights.resolve: refuse to overwrite an already-resolved field unless overwrite=True, and echo the entry problem (first 60 characters) so the caller sees which entry was changed."
+  },
+  {
+   "id": 9,
+   "stage": "report",
+   "logged": "2026-11-11 00:26",
+   "status": "resolved",
+   "problem": "Visual review of the first passing report found 5 things the contract did not: (1) a definition card whose formula is too wide (horizontal scrollbar inside the card; the table-wrap overflow check does not cover definition cards); (2) table numbers with stripped trailing zeros (tex_num uses g-format: 0.10074 next to 0.100743), so columns look ragged; (3) plain-text math in theory notes (sqrt, tau_w, Unicode) that the lint does not catch; (4) a comparison finding of mine that attributed the wall-stress error to the two-point wall gradient, while the data show the opposite SIGN and 3x the size; (5) a hand-typed claim in the reproducibility notes (\"under a minute\").",
+   "diagnosis": "The contract checks structure and typesetting patterns, not meaning or appearance: it cannot see a scrollbar inside a definition card, ragged digits, Unicode math, a physically wrong attribution, or a typed claim in free text. Item 4 was the important one: I wrote the explanation from the theory before comparing the SIGN of the measured error with the prediction.",
+   "fix": "Split the definition; a fixed-significant-digit formatter for tables; LaTeX in all theory notes; the wall-stress finding is now conditional on the measured sign and says the error follows the \\(h^2/(\\nu t)\\) law but is dominated by the near-wall cell values; the run-time note is computed. About 15 minutes.",
+   "lesson": "Compare a predicted error term with the data in sign as well as size before writing \"where the error comes from\".",
+   "guideline": "cfdlib.report: offer a fixed-digit number formatter for tables; contract.lint: flag Unicode math (√, τ, ∂, η) outside math delimiters; report template: wrap definition formulas or let the overflow check cover .def cards; SKILL.md stage 6: an explanatory finding must be checked against the data (sign, magnitude) in code.",
+   "resolved": "2026-11-11 00:28"
+  },
+  {
+   "id": 10,
+   "stage": "report",
+   "logged": "2026-11-11 00:28",
+   "status": "resolved",
+   "problem": "A Python patch script fed through a bash heredoc corrupted LaTeX in analytical.py: backslash sequences such as <code>\\nu</code> and <code>\\rho</code> became a newline and a control character inside raw strings, breaking two theory notes. Found only by re-reading the file.",
+   "diagnosis": "Two layers of escaping (heredoc + Python string literal) for LaTeX-heavy replacement text; the assert on the OLD text passed, so nothing flagged the broken NEW text.",
+   "fix": "Repaired the three lines with the Edit tool and checked the file parses; used the Edit tool for all further changes.",
+   "lesson": "For LaTeX-heavy source edits use the editor tool, never generated patch scripts.",
+   "guideline": "SKILL.md / environment.md: one line - edit LaTeX-containing Python with the Edit tool; if a script must do it, read the replacement from a file, not a string literal."
+  },
+  {
+   "id": 11,
+   "stage": "report",
+   "logged": "2026-11-11 00:29",
+   "status": "resolved",
+   "problem": "Second visual pass: three hand-check formulas (numbers with units substituted) are wider than the half-width derived-quantity cards and scroll sideways inside the collapsed panels. The SKILL overflow check only looks at .table-wrap, and collapsed panels are invisible to a top-to-bottom screenshot pass unless opened.",
+   "diagnosis": "The derived-quantity cards are half the column wide; a hand-check with every number AND its unit substituted (as in the worked example) does not fit. The overflow sits inside closed details panels, so neither the SKILL table-wrap check nor a scroll-through screenshot sees it.",
+   "fix": "Hand-checks now substitute numbers only (units are in the symbol table right above) and break into two aligned lines. Verified with a page script that opens every details panel and lists any element whose scrollWidth exceeds its width: none left.",
+   "lesson": "Visual review must open collapsed panels; a generic overflow scan over all elements is more reliable than a list of known containers.",
+   "guideline": "SKILL.md stage 7: replace the table-wrap snippet with one that first opens all details elements and scans .eq, .table-wrap and mjx-container for scrollWidth > clientWidth; report.html template: let .eq wrap or use aligned two-line hand-checks by default.",
+   "resolved": "2026-11-11 00:30"
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The plate, the water above it and the velocity profiles at three times (drawing not to scale). The moving layer thickens with time."
+  },
+  {
+   "key": "profiles",
+   "section": "simulation",
+   "caption": "Left: velocity profiles at 1, 5, 20 s; lines are the exact solution, dots the coarsest run (125 cells, largest difference \\(0.532\\,\\%\\) of \\(U\\)). Right: the finest run's profiles at the three times, plotted against the similarity coordinate, fall on the single exact curve."
+  },
+  {
+   "key": "tau",
+   "section": "simulation",
+   "caption": "Left: wall shear stress magnitude against time (log–log; the exact solution falls like \\(t^{-1/2}\\)). Right: its relative error for the combined-refinement runs; the dashed line is 1 %. The error is large only in the first few time steps, where the exact stress is infinite."
+  },
+  {
+   "key": "growth",
+   "section": "simulation",
+   "caption": "Left: 1 % penetration depth from the written fields (every second). Right: x-momentum per unit plate area. Lines exact, markers simulation (coarsest and finest runs)."
+  },
+  {
+   "key": "balance",
+   "section": "convergence",
+   "caption": "Per-step momentum balance: the change of the water's momentum per step minus the plate's drag, as a fraction of the final drag; each point is the largest value in a half-second window. It stays at round-off level (largest \\(7.6 \\times 10^{-9}\\)), so each step is solved completely."
+  },
+  {
+   "key": "order",
+   "section": "comparison",
+   "caption": "Left: errors of the combined-refinement runs against cell size; all follow the dashed slope-2 line (every observed order between \\(2.00\\) and \\(2.01\\)). Right: the space error alone (mesh halved at the finest time step, order \\(2.00\\)) and the time error alone (change of the 1 s profile on the finest mesh when the time step is halved, order \\(2.01\\)), both against the refinement factor relative to the finest run."
+  }
+ ],
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.stokes_first_problem.run preflight",
+    "what": "Short runs on the coarsest and finest levels; writes preflight.json"
+   },
+   {
+    "cmd": "python -m cases.stokes_first_problem.run production --jobs 4",
+    "what": "All production runs, four at a time; writes runs/*.json, runs/*.npz"
+   },
+   {
+    "cmd": "python -m cases.stokes_first_problem.analyze",
+    "what": "Theory, comparison, figures and this report (checks the contract first)"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/stokes_first_problem/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/stokes_first_problem/numerics.yaml",
+    "what": "Domain, runs, tolerances and acceptance rules"
+   },
+   {
+    "path": "cases/stokes_first_problem/decisions.yaml",
+    "what": "Every choice, with the OpenFOAM settings it controls"
+   },
+   {
+    "path": "cases/stokes_first_problem/insights.yaml",
+    "what": "Workflow insights logged during the work"
+   },
+   {
+    "path": "cases/stokes_first_problem/template/",
+    "what": "OpenFOAM case with {{ placeholders }}"
+   },
+   {
+    "path": "cases/stokes_first_problem/analytical.py",
+    "what": "Exact solution derived and self-checked with SymPy"
+   },
+   {
+    "path": "cases/stokes_first_problem/run.py",
+    "what": "Builds, pre-flights and runs the cases"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/stokes_first_problem/N<cells>_dt<step>ms",
+    "what": "Production runs"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/stokes_first_problem/pf_N<cells>_dt<step>ms_preflight",
+    "what": "Pre-flight runs"
+   },
+   {
+    "path": "results/stokes_first_problem/",
+    "what": "preflight.json, runs/, results.json and this report"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "15 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "Production runs were executed four at a time (one core each), which inflates the per-run solver times a little. The 11 runs used 150 s of solver time in total; the longest single run took 46 s."
+  ]
+ },
+ "data": {
+  "order": {
+   "e_tau": [
+    2.0024299814473796,
+    2.0006035680881924,
+    2.0001497052461374,
+    2.0000367935277295
+   ],
+   "e_P": [
+    2.000812320181394,
+    2.000202379950044,
+    2.0000503961652947,
+    2.000012583482699
+   ],
+   "('eu', 1.0)": [
+    2.0128903833799563,
+    2.005613556766455,
+    2.0017216761356784,
+    2.000136202644029
+   ],
+   "('eu', 5.0)": [
+    2.003573259575415,
+    2.001732430990077,
+    2.0000545222649695,
+    2.000054914418793
+   ],
+   "('eu', 20.0)": [
+    2.001895289914119,
+    1.9999820654826992,
+    2.0000196183232477,
+    2.0000161919211314
+   ]
+  },
+  "order_mesh": [
+   1.999925293077423,
+   1.9998818544188557,
+   1.9995109158107738
+  ],
+  "order_time": [
+   2.030845886790029,
+   2.014848013655355
+  ],
+  "d_time": [
+   2.9772061999988435e-05,
+   7.285567500008895e-06,
+   1.8027424999837727e-06
+  ],
+  "c_tau": [
+   3.005225427862814,
+   3.000167882621065,
+   2.9989129903472396,
+   2.998601815981195,
+   2.9985253426246845
+  ],
+  "failures": [],
+  "warns": [],
+  "runs": {
+   "N125_dt40ms": {
+    "eu": {
+     "1.0": 0.005316046847953469,
+     "5.0": 0.001044222433836152,
+     "20.0": 0.0002600560323492637
+    },
+    "e_tau": 0.0005008709046438023,
+    "e_P": 0.0005006254545732999,
+    "e_delta": {
+     "1.0": 0.01719614651854592,
+     "5.0": 0.0024579664340024987,
+     "20.0": 0.000816953067591577
+    },
+    "t_1pct": 1.04,
+    "balance_max": 5.222399990465875e-10,
+    "far": 4.283334306315e-14
+   },
+   "N250_dt20ms": {
+    "eu": {
+     "1.0": 0.0013171899733910829,
+     "5.0": 0.0002604098273492443,
+     "20.0": 6.49286542963104e-05
+    },
+    "e_tau": 0.00012500699510921103,
+    "e_P": 0.00012508591325684958,
+    "e_delta": {
+     "1.0": 0.00411136467823474,
+     "5.0": 0.0008217537433244563,
+     "20.0": 0.00012730051195874073
+    },
+    "t_1pct": 0.24,
+    "balance_max": 1.1515951785945772e-09,
+    "far": 1.01823025918e-14
+   },
+   "N250_dt2.5ms": {
+    "eu": {
+     "1.0": 0.0013066592503911331,
+     "5.0": 0.00025994473134925006,
+     "20.0": 6.489716679628985e-05
+    },
+    "e_tau": 0.00012506940443506392,
+    "e_P": 0.0001250244284264843,
+    "e_delta": {
+     "1.0": 0.003963311988172012,
+     "5.0": 0.0008154642321715403,
+     "20.0": 0.0001269421790072666
+    },
+    "t_1pct": 0.2625,
+    "balance_max": 7.743608962653651e-09,
+    "far": 1.04529074048e-14
+   },
+   "N500_dt10ms": {
+    "eu": {
+     "1.0": 0.0003280186794302718,
+     "5.0": 6.502432679626746e-05,
+     "20.0": 1.6232365361579237e-05
+    },
+    "e_tau": 3.1238676982783744e-05,
+    "e_P": 3.126709188730521e-05,
+    "e_delta": {
+     "1.0": 0.0007043691452032619,
+     "5.0": 0.00012839690327433372,
+     "20.0": 5.791357016666602e-05
+    },
+    "t_1pct": 0.05,
+    "balance_max": 1.959542430004563e-09,
+    "far": 5.816061795e-15
+   },
+   "N500_dt2.5ms": {
+    "eu": {
+     "1.0": 0.0003249735039302301,
+     "5.0": 6.490467079631537e-05,
+     "20.0": 1.6225131861582337e-05
+    },
+    "e_tau": 3.125341659704316e-05,
+    "e_P": 3.1252441448045916e-05,
+    "e_delta": {
+     "1.0": 0.0006705026682500612,
+     "5.0": 0.00012702738306336213,
+     "20.0": 5.782492232851992e-05
+    },
+    "t_1pct": 0.065,
+    "balance_max": 7.7076558840782e-09,
+    "far": 6.2581246133e-15
+   },
+   "N1000_dt5ms": {
+    "eu": {
+     "1.0": 8.190686590801508e-05,
+     "5.0": 1.6255467361579734e-05,
+     "20.0": 4.058036157279787e-06
+    },
+    "e_tau": 7.808858895784361e-06,
+    "e_P": 7.816499921395543e-06,
+    "e_delta": {
+     "1.0": 0.0002925276352783611,
+     "5.0": 5.8197812241422435e-05,
+     "20.0": 1.3715267187317942e-05
+    },
+    "t_1pct": 0.025,
+    "balance_max": 3.7645803395915545e-09,
+    "far": 4.774722034135e-15
+   },
+   "N1000_dt2.5ms": {
+    "eu": {
+     "1.0": 8.134344740805266e-05,
+     "5.0": 1.62323628615825e-05,
+     "20.0": 4.056615157243398e-06
+    },
+    "e_tau": 7.811796910406214e-06,
+    "e_P": 7.813568297674872e-06,
+    "e_delta": {
+     "1.0": 0.00028524776017910703,
+     "5.0": 5.7913581336168466e-05,
+     "20.0": 1.3697553122481922e-05
+    },
+    "t_1pct": 0.0125,
+    "balance_max": 7.779020300526313e-09,
+    "far": 5.14000212595e-15
+   },
+   "N2000_dt20ms": {
+    "eu": {
+     "1.0": 5.1349844248536544e-05,
+     "5.0": 4.752917361332959e-06,
+     "20.0": 1.0471112887357192e-06
+    },
+    "e_tau": 1.8900021297561365e-06,
+    "e_P": 2.015687390761581e-06,
+    "e_delta": {
+     "1.0": 0.00022341649391508582,
+     "5.0": 1.980518093516316e-05,
+     "20.0": 3.0366900895562372e-06
+    },
+    "t_1pct": 0.12,
+    "balance_max": 4.2422486571482036e-09,
+    "far": 2.284999008895e-15
+   },
+   "N2000_dt10ms": {
+    "eu": {
+     "1.0": 2.5021657658677587e-05,
+     "5.0": 4.188147404490111e-06,
+     "20.0": 1.0217112468569045e-06
+    },
+    "e_tau": 1.9374491023865565e-06,
+    "e_P": 1.968774724125228e-06,
+    "e_delta": {
+     "1.0": 0.00010021329858415874,
+     "5.0": 1.5210953809610968e-05,
+     "20.0": 2.7526982726058966e-06
+    },
+    "t_1pct": 0.06,
+    "balance_max": 4.557950622816009e-09,
+    "far": 3.0491049321949996e-15
+   },
+   "N2000_dt5ms": {
+    "eu": {
+     "1.0": 2.1122218149191574e-05,
+     "5.0": 4.086855083865193e-06,
+     "20.0": 1.0159108131992112e-06
+    },
+    "e_tau": 1.949228507525481e-06,
+    "e_P": 1.9570407981302915e-06,
+    "e_delta": {
+     "1.0": 7.058106406851584e-05,
+     "5.0": 1.407037801536529e-05,
+     "20.0": 2.681803223801283e-06
+    },
+    "t_1pct": 0.03,
+    "balance_max": 4.55383346797278e-09,
+    "far": 3.82677766255e-15
+   },
+   "N2000_dt2.5ms": {
+    "eu": {
+     "1.0": 2.047478339260375e-05,
+     "5.0": 4.063712157227617e-06,
+     "20.0": 1.0144976531588357e-06
+    },
+    "e_tau": 1.952164936604612e-06,
+    "e_P": 1.9541079361434603e-06,
+    "e_delta": {
+     "1.0": 6.330607249335769e-05,
+     "5.0": 1.3786197169381956e-05,
+     "20.0": 2.664091018170867e-06
+    },
+    "t_1pct": 0.015,
+    "balance_max": 7.568812738317065e-09,
+    "far": 4.45321227238e-15
+   }
+  }
+ }
+}

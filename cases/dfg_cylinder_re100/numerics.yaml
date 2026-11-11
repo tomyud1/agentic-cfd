@@ -1,0 +1,67 @@
+# Numerical choices (made by the agent, not given by the user).
+solver: pimpleFoam            # transient incompressible laminar solver (PIMPLE, 2 outer correctors)
+mesh:
+  # Block-structured O-grid around the cylinder inside a square box [0.1, 0.3] x [0.1, 0.3] m, plus
+  # 8 rectangular channel blocks. All cell counts scale with nc (cells along one side of the box =
+  # cells along a quarter of the cylinder) and double per level: refinement ratio 2 everywhere.
+  box: [0.1, 0.3]             # x and y extent of the box around the cylinder [m] (same in x and y)
+  levels: [M1, M2, M3, M4]
+  nc: [16, 32, 64, 128]       # cells per box side / per quarter circle
+  nr_over_nc: 0.5             # radial cells in the O-grid
+  radial_ratio: 4.0           # O-grid radial expansion (cell at the box / cell at the cylinder)
+  nl_over_nc: 0.5             # cells in x upstream of the box (0 .. 0.1 m)
+  nb_over_nc: 0.5             # cells in y below the box (0 .. 0.1 m)
+  nt_M1: 9                    # cells in y above the box (0.3 .. 0.41 m) on M1, doubled per level
+  nd_M1: 70                   # cells in x downstream of the box (0.3 .. 2.2 m) on M1, doubled per level
+  downstream_ratio: 4.0       # downstream expansion (last / first cell)
+  dz: 0.01                    # thickness of the 2D slab [m] (empty front/back); force per unit depth = F / dz
+time:
+  dt_M1: 0.004                # time step on M1 [s]; halved with each mesh level (constant Courant number ~1.6).
+                              # Was 0.002 with PISO (1 outer corrector): first order in time, see insight 10 and
+                              # the piso_* runs. With 2 outer correctors the M2 answer did not change between
+                              # dt = 2, 1 and 0.5 ms, so the larger step is affordable and accurate.
+  develop_end: 15.0           # M1 starts from rest and runs 0 .. 15 s (shedding develops)
+  run_length: 3.0             # each finer mesh starts from the developed field of the next coarser one
+                              # (mapFields) and runs this long [s], ~9 shedding cycles
+  run_length_finest: 3.0      # M4: 3 s was projected at 34 min on 8 ranks (over budget); 16 ranks bring it to ~25 min
+  cycles_measured: 4          # outputs and periodicity checks use the last 4 complete lift cycles
+  write_interval_final: 0.01  # fields written every 0.01 s (~33 per cycle) for the wake picture ...
+  keep_writes: 40             # ... keeping only the last 40 (purgeWrite): more than one cycle
+timestep_study:               # on M2: same mesh, time step /2 and /4 (baseline dt_M2 is the largest)
+  mesh: M2
+  factors: [0.5, 0.25]
+  start_from: M2              # mapped from the developed M2 baseline field
+linear_solvers:
+  p: {solver: GAMG, tol: 1.0e-7, relTol: 0.01}      # pFinal: relTol 0
+  U: {solver: smoothSolver, tol: 1.0e-8, relTol: 0}
+pimple: {nOuterCorrectors: 2, nCorrectors: 2, nNonOrthogonalCorrectors: 1}   # was 1 (PISO): see dt_M1
+schemes:
+  ddt: backward               # BDF2, second order
+  div_U: 'Gauss linear'       # central (second order, no numerical damping of the shed vortices)
+parallel:
+  cores: {M1: 1, M2: 1, M3: 4, M4: 16}  # MPI ranks for production (M4: 16 hardware threads, fastest in the scaling test)
+probes:                       # wake probe (x, y) [m]: second, independent record of the shedding frequency
+  - [0.5, 0.2]
+preflight:
+  end_time_short: 0.1         # 0.1 s of simulated time on M1 and M4 (M4 run from the mapped M1 field)
+# Acceptance rules for the verdict, fixed BEFORE looking at production results.
+acceptance:
+  # Periodic state ("fully developed"): over the last cycles_measured lift cycles, the largest change
+  # between consecutive cycles must stay below these values.
+  periodic_cl_peak: 2.0e-3    # of the lift maximum and minimum (coefficient units; amplitude ~2)
+  periodic_cd_peak: 5.0e-4    # of the drag maximum and minimum (coefficient units; mean ~3.2)
+  periodic_period_rel: 5.0e-4 # relative change of the period
+  # Time-averaged x-momentum balance of the whole channel (physical check of the force output):
+  momentum_balance_rel: 0.01  # |imbalance| / mean cylinder drag force, finest mesh
+  # Comparison with FeatFlow level 6 (reference value) for each requested number q:
+  #   band = U_sim + U_ref, U_sim = mesh GCI (3 finest meshes) + time-step error estimate (M2 study),
+  #   U_ref = largest |level 6 - level 5| over the three level-5 time steps (the reference's own spread).
+  #   primary q: |sim_finest - ref| <= band -> ok; <= 2 band -> WARN; else FAIL
+  #   secondary q (small differences of large numbers: cd amplitude, cl mean): > 2 band -> WARN only
+  primary: [cd_max, cd_min, cd_mean, cl_max, cl_min, cl_amp, St]
+  secondary: [cd_amp, cl_mean]
+  order_range: [1.0, 3.0]     # observed order of the primary quantities outside -> WARN
+  drag_freq_ratio_tol: 0.01   # theory: drag oscillates at twice the lift frequency (|f_D / f_L - 2| / 2)
+sensitivity:                  # extra run on M3: linear-upwind convection instead of central
+  mesh: M3
+  div_U: 'Gauss linearUpwind grad(U)'

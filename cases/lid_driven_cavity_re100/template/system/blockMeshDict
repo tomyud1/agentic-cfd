@@ -1,0 +1,56 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// Square cavity 0 <= x, y <= L, one cell thick in z (2D). Lid at y = L.
+// Adapted from the icoFoam/cavity tutorial (same patch names), uniform N x N cells.
+scale   1;
+
+vertices
+(
+    (0       0       0)
+    ({{ L }} 0       0)
+    ({{ L }} {{ L }} 0)
+    (0       {{ L }} 0)
+    (0       0       {{ dz }})
+    ({{ L }} 0       {{ dz }})
+    ({{ L }} {{ L }} {{ dz }})
+    (0       {{ L }} {{ dz }})
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ({{ N }} {{ N }} 1) simpleGrading (1 1 1)
+);
+
+boundary
+(
+    movingWall
+    {
+        type wall;
+        faces ((3 7 6 2));
+    }
+    fixedWalls
+    {
+        type wall;
+        faces
+        (
+            (0 4 7 3)
+            (2 6 5 1)
+            (1 5 4 0)
+        );
+    }
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            (0 3 2 1)
+            (4 5 6 7)
+        );
+    }
+);

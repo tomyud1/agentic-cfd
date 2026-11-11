@@ -1,0 +1,44 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     simpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ max_iterations }};   // steady solver: "time" = iteration count
+deltaT          1;
+writeControl    timeStep;
+writeInterval   {{ max_iterations }};
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  12;
+writeCompression off;
+timeFormat      general;
+timePrecision   6;
+runTimeModifiable false;
+
+functions
+{
+    wallShearStress
+    {
+        type            wallShearStress;
+        libs            (fieldFunctionObjects);
+        patches         (bottomWall topWall);
+        writeControl    writeTime;
+    }
+    flowRate
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            right;
+        operation       sum;
+        fields          (phi);
+        writeFields     false;
+    }
+}

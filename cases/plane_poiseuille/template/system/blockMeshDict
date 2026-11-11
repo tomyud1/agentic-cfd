@@ -1,0 +1,58 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// Channel 0 <= y <= H, periodic in x, one cell thick in z (2D).
+scale   1;
+
+vertices
+(
+    (0       0      {{ z0 }})
+    ({{ Lx }} 0      {{ z0 }})
+    ({{ Lx }} {{ H }} {{ z0 }})
+    (0       {{ H }} {{ z0 }})
+    (0       0      {{ z1 }})
+    ({{ Lx }} 0      {{ z1 }})
+    ({{ Lx }} {{ H }} {{ z1 }})
+    (0       {{ H }} {{ z1 }})
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ({{ Nx }} {{ Ny }} 1) simpleGrading (1 1 1)
+);
+
+boundary
+(
+    left
+    {
+        type            cyclic;
+        neighbourPatch  right;
+        faces           ((0 4 7 3));
+    }
+    right
+    {
+        type            cyclic;
+        neighbourPatch  left;
+        faces           ((2 6 5 1));
+    }
+    bottomWall
+    {
+        type            wall;
+        faces           ((1 5 4 0));
+    }
+    topWall
+    {
+        type            wall;
+        faces           ((3 7 6 2));
+    }
+    frontAndBack
+    {
+        type            empty;
+        faces           ((0 3 2 1) (4 5 6 7));
+    }
+);

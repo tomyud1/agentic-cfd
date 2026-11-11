@@ -1,0 +1,1050 @@
+{
+ "title": "Pressure-driven laminar flow between two parallel plates",
+ "date": "2026-11-11",
+ "verdict": "PASS",
+ "comparison_type": "verification",
+ "summary": {
+  "headline": "<b>Verification passed.</b> The simulation reproduces the exact solution: on the finest mesh (128 cells across the gap) the velocity profile differs by \\(0.0061\\,\\%\\) of \\(u_{\\max}\\).",
+  "answer_columns": [
+   "Requested",
+   "Theory (exact)",
+   "Simulation (finest mesh)",
+   "Difference"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Velocity profile across the gap, \\(u(y)\\)",
+    "theory": "\\(u(y) = \\frac{G}{2\\mu}\\, y\\,(H - y)\\) (Figure 2)",
+    "sim": "RMS difference \\(0.0061\\,\\%\\) of \\(u_{\\max}\\)",
+    "diff": ""
+   },
+   {
+    "letter": "b",
+    "label": "Maximum velocity",
+    "theory": "\\(u_{\\max} = 0.07484\\ \\mathrm{m/s}\\)",
+    "sim": "\\(0.0748359\\ \\mathrm{m/s}\\)<div class='sub'>centreline, mean of the two middle cells</div>",
+    "diff": "\\(4.46 \\times 10^{-11}\\,\\%\\)"
+   },
+   {
+    "letter": "c",
+    "label": "Flow rate per unit width",
+    "theory": "\\(q = 4.989 \\times 10^{-4}\\ \\mathrm{m^2/s}\\)",
+    "sim": "\\(4.98967 \\times 10^{-4}\\ \\mathrm{m^2/s}\\)<div class='sub'>flux through the periodic boundary</div>",
+    "diff": "\\(0.0122\\,\\%\\)"
+   },
+   {
+    "letter": "d",
+    "label": "Wall shear stress",
+    "theory": "\\(\\tau_w = 0.03\\ \\mathrm{Pa}\\)",
+    "sim": "\\(0.03\\ \\mathrm{Pa}\\)<div class='sub'>mean of both walls</div>",
+    "diff": "\\(6.82 \\times 10^{-11}\\,\\%\\)"
+   }
+  ],
+  "findings": [
+   "The error falls about \\(4\\times\\) each time the cells are halved: observed order \\(p = 2.00\\), the scheme is designed for \\(p = 2\\). The solver behaves as intended.",
+   "Wall friction balances the driving force to \\(6.8 \\times 10^{-13}\\) on every mesh: momentum is conserved and every run converged.",
+   "For 1 % accuracy, \\(N_y = 16\\) cells across the gap are enough (0.33 s).",
+   "Flow is laminar: \\(Re_H = 497\\)."
+  ],
+  "limitations": [
+   "Periodic ends force fully developed flow. A real channel needs an entrance length before this profile forms; that region is not modelled."
+  ]
+ },
+ "problem": {
+  "description": "Water flows between two very large parallel plates, driven by a constant pressure gradient. Find the steady flow and compare the simulation with the exact solution.\n",
+  "setup": [
+   "Two stationary plates a distance \\(H\\) apart, so large that the flow depends only on the position \\(y\\) across the gap.",
+   "A constant pressure gradient \\(dp/dx\\) along the plates drives the flow.",
+   "Both plates are no-slip (the water sticks to them)."
+  ],
+  "given": [
+   {
+    "label": "Gap between the plates",
+    "symbol": "\\(H\\)",
+    "value": "\\(0.01\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Density (water, 20 °C)",
+    "symbol": "\\(\\rho\\)",
+    "value": "\\(998.2\\)",
+    "unit": "kg/m³"
+   },
+   {
+    "label": "Kinematic viscosity (water, 20 °C)",
+    "symbol": "\\(\\nu\\)",
+    "value": "\\(1.004 \\times 10^{-6}\\)",
+    "unit": "m²/s"
+   },
+   {
+    "label": "Pressure gradient along the plates",
+    "symbol": "\\(dp/dx\\)",
+    "value": "\\(-6\\)",
+    "unit": "Pa/m"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "u_profile",
+    "text": "Velocity profile across the gap, \\(u(y)\\)"
+   },
+   {
+    "letter": "b",
+    "key": "u_max",
+    "text": "Maximum velocity"
+   },
+   {
+    "letter": "c",
+    "key": "q",
+    "text": "Flow rate per unit width"
+   },
+   {
+    "letter": "d",
+    "key": "tau_w",
+    "text": "Wall shear stress"
+   }
+  ],
+  "reference": null
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "Laminar flow (smooth layers, no turbulence)",
+    "status": "ok",
+    "check": "\\(Re_H = \\dfrac{\\bar u\\, H}{\\nu} = 497\\). In the units used by stability theory, \\(Re = \\dfrac{u_{\\max}\\,(H/2)}{\\nu} = 373\\), below the linear-stability limit 5772 (Orszag 1971) and below the observed transition ≈ 1000 (Carlson et al. 1982, approximate)."
+   },
+   {
+    "name": "Incompressible (density constant)",
+    "status": "ok",
+    "check": "\\(Ma = \\dfrac{u_{\\max}}{c} = 5 \\times 10^{-5} \\ll 0.3\\), with speed of sound in water c ≈ 1482 m/s (approximate)."
+   },
+   {
+    "name": "Steady and fully developed",
+    "status": "imposed",
+    "check": "\\(\\partial u/\\partial t = 0,\\ \\partial u/\\partial x = 0\\). Enforced by the steady solver and the periodic ends. Holds in a real channel only far from its inlet (after the entrance length)."
+   },
+   {
+    "name": "Two-dimensional",
+    "status": "imposed",
+    "check": "The plates are very wide, so nothing changes across the width (\\(z\\))."
+   },
+   {
+    "name": "Newtonian fluid, constant properties",
+    "status": "standard",
+    "check": "Water is Newtonian (stress proportional to strain rate); constant temperature, so \\(\\rho\\) and \\(\\nu\\) are constant."
+   },
+   {
+    "name": "Gravity does not affect the flow",
+    "status": "standard",
+    "check": "Gravity acts across the gap; it only adds a hydrostatic pressure variation in \\(y\\) and does not change \\(u\\)."
+   },
+   {
+    "name": "No slip at both plates",
+    "status": "standard",
+    "check": "A viscous fluid in contact with a solid wall moves with the wall: \\(u = 0\\)."
+   }
+  ]
+ },
+ "theory": {
+  "intro": "This problem has an exact solution. It is derived and solved symbolically by SymPy, not in the agent's reasoning, and checked automatically against the equation and both boundary conditions.",
+  "steps": [
+   {
+    "label": "Governing equation: x-momentum for steady, fully developed flow",
+    "latex": "0 = -\\frac{dp}{dx} + \\mu \\frac{d^2u}{dy^2}\\quad\\Longrightarrow\\quad \\mu \\frac{d^{2}}{d y^{2}} u{\\left(y \\right)} = - G,\\qquad G \\equiv -\\frac{dp}{dx}",
+    "note": "The pressure force pushing the fluid forward is balanced by viscous friction between layers."
+   },
+   {
+    "label": "Boundary conditions: no slip at both plates",
+    "latex": "u(0) = 0, \\qquad u(H) = 0",
+    "note": "Fluid touching a stationary wall does not move."
+   },
+   {
+    "label": "Solution: integrate twice, apply both conditions",
+    "latex": "u(y) = \\frac{G}{2\\mu}\\, y\\,(H - y)",
+    "note": "A parabola: zero at the walls, fastest in the middle."
+   }
+  ],
+  "derived": [
+   {
+    "key": "u_max",
+    "label": "Maximum velocity",
+    "symbol": "u_{\\max}",
+    "value": 0.0748358998388334,
+    "value_tex": "0.07484",
+    "unit": "m/s",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "u_{\\max} = u\\!\\left(\\tfrac{H}{2}\\right) = \\frac{G H^{2}}{8 \\mu}",
+    "check": "u_{\\max} = \\frac{\\left(6\\,\\mathrm{Pa/m}\\right) \\left(0.01\\,\\mathrm{m}\\right)^{2}}{8 \\left(0.001002\\,\\mathrm{Pa\\,s}\\right)} = 0.07484\\,\\mathrm{m/s}",
+    "why": "The fastest fluid, on the centreline (y = H/2). It is what a velocity probe in the middle of the gap would read.",
+    "params": [
+     {
+      "tex": "G",
+      "meaning": "driving pressure gradient, \\(G = -\\,dp/dx\\) (pressure falls along the flow)",
+      "value": 6.0,
+      "unit": "\\mathrm{Pa/m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "gap between the plates",
+      "value": 0.01,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\mu",
+      "meaning": "dynamic viscosity of water, \\(\\mu = \\rho\\nu = 998.2 \\times 1.004 \\times 10^{-6}\\)",
+      "value": 0.0010021928000000001,
+      "unit": "\\mathrm{Pa\\,s}"
+     }
+    ]
+   },
+   {
+    "key": "q",
+    "label": "Flow rate per unit width",
+    "symbol": "q",
+    "value": 0.0004989059989255561,
+    "value_tex": "4.989 \\times 10^{-4}",
+    "unit": "m²/s",
+    "unit_tex": "\\mathrm{m^2/s}",
+    "formula": "q = \\int_0^H u\\,dy = \\frac{G H^{3}}{12 \\mu}",
+    "check": "q = \\frac{\\left(6\\,\\mathrm{Pa/m}\\right) \\left(0.01\\,\\mathrm{m}\\right)^{3}}{12 \\left(0.001002\\,\\mathrm{Pa\\,s}\\right)} = 4.989 \\times 10^{-4}\\,\\mathrm{m^2/s}",
+    "why": "Volume of fluid passing per second, per metre of plate width. This is what a pump must deliver, and in design it is usually the requirement.",
+    "params": [
+     {
+      "tex": "G",
+      "meaning": "driving pressure gradient, \\(G = -\\,dp/dx\\) (pressure falls along the flow)",
+      "value": 6.0,
+      "unit": "\\mathrm{Pa/m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "gap between the plates",
+      "value": 0.01,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\mu",
+      "meaning": "dynamic viscosity of water, \\(\\mu = \\rho\\nu = 998.2 \\times 1.004 \\times 10^{-6}\\)",
+      "value": 0.0010021928000000001,
+      "unit": "\\mathrm{Pa\\,s}"
+     }
+    ]
+   },
+   {
+    "key": "u_bulk",
+    "label": "Mean (bulk) velocity",
+    "symbol": "\\bar{u}",
+    "value": 0.0498905998925556,
+    "value_tex": "0.04989",
+    "unit": "m/s",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "\\bar{u} = \\frac{q}{H} = \\frac{G H^{2}}{12 \\mu}",
+    "check": "\\bar{u} = \\frac{\\left(6\\,\\mathrm{Pa/m}\\right) \\left(0.01\\,\\mathrm{m}\\right)^{2}}{12 \\left(0.001002\\,\\mathrm{Pa\\,s}\\right)} = 0.04989\\,\\mathrm{m/s}",
+    "why": "Average velocity over the gap, \\(\\bar u = q/H\\). It enters the Reynolds number and pressure-drop correlations. For this parabola \\(\\bar u = \\tfrac{2}{3}u_{\\max}\\).",
+    "params": [
+     {
+      "tex": "G",
+      "meaning": "driving pressure gradient, \\(G = -\\,dp/dx\\) (pressure falls along the flow)",
+      "value": 6.0,
+      "unit": "\\mathrm{Pa/m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "gap between the plates",
+      "value": 0.01,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\mu",
+      "meaning": "dynamic viscosity of water, \\(\\mu = \\rho\\nu = 998.2 \\times 1.004 \\times 10^{-6}\\)",
+      "value": 0.0010021928000000001,
+      "unit": "\\mathrm{Pa\\,s}"
+     }
+    ]
+   },
+   {
+    "key": "tau_w",
+    "label": "Wall shear stress",
+    "symbol": "\\tau_w",
+    "value": 0.03,
+    "value_tex": "0.03",
+    "unit": "Pa",
+    "unit_tex": "\\mathrm{Pa}",
+    "formula": "\\tau_w = \\mu \\left.\\frac{du}{dy}\\right|_{y=0} = \\frac{G H}{2}",
+    "check": "\\tau_w = \\frac{\\left(6\\,\\mathrm{Pa/m}\\right) \\left(0.01\\,\\mathrm{m}\\right)}{2} = 0.03\\,\\mathrm{Pa}",
+    "why": "Friction stress the fluid exerts on each plate; times the plate area it gives the drag force. It must balance the pressure force: \\(2\\tau_w = G H\\) (two walls, per unit area).",
+    "params": [
+     {
+      "tex": "G",
+      "meaning": "driving pressure gradient, \\(G = -\\,dp/dx\\) (pressure falls along the flow)",
+      "value": 6.0,
+      "unit": "\\mathrm{Pa/m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "gap between the plates",
+      "value": 0.01,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "Solution satisfies the momentum equation \\(\\mu\\, u'' = -G\\)",
+    "ok": true
+   },
+   {
+    "name": "Solution satisfies \\(u(0) = 0\\)",
+    "ok": true
+   },
+   {
+    "name": "Solution satisfies \\(u(H) = 0\\)",
+    "ok": true
+   },
+   {
+    "name": "Solution display form \\(\\frac{G}{2\\mu}\\, y\\,(H - y)\\) equals the derived solution",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "Steady, incompressible, laminar, Newtonian flow",
+   "settings": [
+    "constant/turbulenceProperties/simulationType",
+    "constant/transportProperties/*"
+   ],
+   "why": "Re is about 500 (laminar, see Assumptions); water is Newtonian; \\(Ma \\approx 5\\times10^{-5}\\).",
+   "affects": "Defines the equations solved. A turbulence model here would add viscosity that does not exist and give a flatter, wrong profile.",
+   "alternatives": "A transient solver would reach the same steady state, only slower."
+  },
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "<code>simpleFoam</code>: steady incompressible solver (SIMPLE algorithm)",
+   "settings": [
+    "system/controlDict/application",
+    "system/fvSchemes/ddtSchemes/*"
+   ],
+   "why": "The question asks for the steady state only; a steady solver gets there directly.",
+   "affects": "None on the converged answer; it decides how the answer is reached.",
+   "alternatives": "<code>pimpleFoam</code> (transient) run until steady; <code>icoFoam</code> has no body-force support."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "Short channel slice with periodic (cyclic) ends; length \\(L_x = 0.1\\,H\\), one cell thick in \\(z\\)",
+   "settings": [
+    "system/blockMeshDict/vertices",
+    "system/blockMeshDict/scale",
+    "system/blockMeshDict/boundary",
+    "0/*/boundaryField/#includeEtc*"
+   ],
+   "why": "Periodic ends make the slice behave like an infinitely long channel, which is the fully developed flow the problem describes. One cell in \\(z\\) with empty front/back makes it 2D.",
+   "affects": "Imposes \\(\\partial u/\\partial x = 0\\) exactly. Entrance effects of a real channel are excluded by construction.",
+   "alternatives": "A long channel with inlet and outlet: needs the entrance length (\\(\\sim 0.05\\,Re\\,H\\)) and gives a developing flow near the inlet."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "No slip on both plates: \\(\\mathbf{u} = 0\\); pressure zero-gradient at the walls",
+   "settings": [
+    "0/U/boundaryField/*",
+    "0/p/boundaryField/*"
+   ],
+   "why": "Stationary solid walls. Zero-gradient pressure is the standard partner of a fixed-velocity wall.",
+   "affects": "Sets the shape of the profile (zero at both walls).",
+   "alternatives": "None physically sensible for this problem."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "solver",
+   "choice": "Initial state: fluid at rest, \\(\\mathbf{u} = 0,\\ p = 0\\)",
+   "settings": [
+    "0/U/internalField",
+    "0/p/internalField"
+   ],
+   "why": "A steady, linear problem has one solution regardless of the starting guess.",
+   "affects": "None on the converged answer.",
+   "alternatives": "Start from the analytical profile (would hide solver problems, so not used)."
+  },
+  {
+   "area": "Driving force",
+   "kind": "physics",
+   "choice": "Pressure gradient applied as a uniform body force \\(a = -\\frac{1}{\\rho}\\frac{dp}{dx}\\)",
+   "settings": [
+    "constant/fvOptions/*"
+   ],
+   "why": "Periodic ends cannot carry a net pressure drop. A uniform force per unit mass has the identical effect on the fluid.",
+   "affects": "Drives the flow. Its magnitude sets every velocity linearly.",
+   "alternatives": "A fixed pressure jump across the periodic boundary, or fixing the mean velocity (meanVelocityForce) instead of the gradient."
+  },
+  {
+   "area": "Mesh",
+   "kind": "accuracy",
+   "choice": "Uniform meshes with \\(N_y = 8, 16, 32, 64, 128\\) cells across the gap; 1 cell along \\(x\\)",
+   "settings": [
+    "system/blockMeshDict/blocks"
+   ],
+   "why": "Refinement ratio 2 between meshes lets the observed order of accuracy and the mesh error be measured. Nothing varies along \\(x\\), so one cell suffices.",
+   "affects": "Discretisation error; measured in the Comparison section.",
+   "alternatives": "Cells clustered toward the walls (grading): more accurate near the walls for the same cell count, but a uniform mesh keeps the order-of-accuracy test clean."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "accuracy",
+   "choice": "Second-order central schemes: <code>Gauss linear</code> for gradients, Laplacian and interpolation; <code>corrected</code> surface-normal gradients",
+   "settings": [
+    "system/fvSchemes/gradSchemes/*",
+    "system/fvSchemes/laplacianSchemes/*",
+    "system/fvSchemes/interpolationSchemes/*",
+    "system/fvSchemes/snGradSchemes/*",
+    "system/fvSchemes/divSchemes/*"
+   ],
+   "why": "Second order is the standard for accuracy; the mesh is orthogonal so no limiting or correction is needed. Convection is zero here, so the convection scheme (<code>div(phi,U)</code>) has no effect.",
+   "affects": "Sets the order of accuracy (expected 2).",
+   "alternatives": "First-order upwind for convection would add numerical diffusion in problems where convection matters."
+  },
+  {
+   "area": "Algorithm and linear solvers",
+   "kind": "solver",
+   "choice": "SIMPLE with NO under-relaxation (factors 1); plain SIMPLE, not SIMPLEC",
+   "settings": [
+    "system/fvSolution/SIMPLE/*",
+    "system/fvSolution/relaxationFactors/*"
+   ],
+   "why": "The problem is linear (no convection), so one undamped iteration gives the answer. Relaxation 0.9 acted as a pseudo time step and needed thousands of iterations at 128 cells; SIMPLEC without relaxation divides by zero for pure diffusion (see Insights).",
+   "affects": "Only how fast the answer is reached. Nonlinear problems DO need relaxation.",
+   "alternatives": "Standard relaxation (U 0.7, p 0.3) converges slowly here."
+  },
+  {
+   "area": "Algorithm and linear solvers",
+   "kind": "solver",
+   "choice": "GAMG (multigrid) for \\(p\\) and \\(\\mathbf{u}\\), solved to \\(10^{-12}\\) every iteration",
+   "settings": [
+    "system/fvSolution/solvers/*"
+   ],
+   "why": "Multigrid removes smooth, domain-wide errors quickly; a tight tolerance makes the iteration error negligible against the mesh error.",
+   "affects": "Iteration error (made negligible).",
+   "alternatives": "PCG/DIC for p and smoothSolver for U: correct but slower on fine meshes."
+  },
+  {
+   "area": "Run control",
+   "kind": "accuracy",
+   "choice": "5 SIMPLE iterations; results written at the end with 12 significant digits",
+   "settings": [
+    "system/controlDict/endTime",
+    "system/controlDict/deltaT",
+    "system/controlDict/startTime",
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/writePrecision",
+    "system/controlDict/timePrecision"
+   ],
+   "why": "Converges in 1 iteration; the rest confirm it stays put. More is worse: undamped round-off noise in \\(p\\) slowly grows. 12 digits avoid round-off in the error analysis (the default 6 digits broke an earlier analysis).",
+   "affects": "Iteration error and output precision.",
+   "alternatives": "A residual-based stop (residualControl): unusable here, see Insights."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Wall shear stress on both plates; flow rate as the flux through the periodic boundary",
+   "settings": [
+    "system/controlDict/functions/*"
+   ],
+   "why": "These are requested outputs (c, d) and the momentum-balance convergence check needs the wall shear stress.",
+   "affects": "How the reported quantities are measured.",
+   "alternatives": "Integrating the velocity profile for q (adds its own quadrature error)."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before the production runs, short runs on the coarsest and finest meshes check that the setup runs, stays stable and gives a run-time estimate. A failure here stops the workflow before any long run.",
+  "runs": [
+   {
+    "name": "8-cell mesh",
+    "setup": "2 iterations instead of 5",
+    "outcome": "✓ healthy; 0.01 s"
+   },
+   {
+    "name": "128-cell mesh",
+    "setup": "2 iterations instead of 5",
+    "outcome": "✓ healthy; 0.02 s"
+   }
+  ],
+  "checks": [
+   {
+    "name": "Solver finished without errors (8 cells)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (8 cells)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Solver finished without errors (128 cells)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (128 cells)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   }
+  ],
+  "conclusion": "All pre-flight checks passed; projected run time of the longest production run ≈ 0.0 s."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Length of the channel",
+    "real": "Very long plates",
+    "model": "A short slice, length \\(L_x = 0.1\\,H\\), with <b>periodic ends</b>: fluid leaving on the right re-enters on the left, so the slice behaves like an infinitely long channel."
+   },
+   {
+    "aspect": "Width",
+    "real": "Very wide plates",
+    "model": "2D: one cell thick in \\(z\\); nothing varies across the width."
+   },
+   {
+    "aspect": "What drives the flow",
+    "real": "Pressure gradient \\(dp/dx = -6\\ \\mathrm{Pa/m}\\)",
+    "model": "An equivalent push on every fluid parcel, \\(a = -\\frac{1}{\\rho}\\frac{dp}{dx} = 0.006011\\ \\mathrm{m/s^2}\\). Periodic ends cannot carry a pressure drop, so the gradient is applied as this body force; the effect on the fluid is identical."
+   },
+   {
+    "aspect": "Fluid",
+    "real": "Water, 20 °C",
+    "model": "\\(\\nu = 1.004 \\times 10^{-6}\\ \\mathrm{m^2/s}\\), constant (OpenFOAM works with \\(p/\\rho\\) and \\(\\nu\\))."
+   },
+   {
+    "aspect": "Walls",
+    "real": "Stationary plates",
+    "model": "No slip, \\(\\mathbf{u} = 0\\)."
+   }
+  ],
+  "meshes": {
+   "intro": "The same problem is solved on 5 meshes. Each has cells half the size of the previous one, so the change in the answer measures the error caused by the mesh.",
+   "head": [
+    "Mesh",
+    "\\(N_y\\) (cells across the gap)",
+    "Cell size \\(h = H/N_y\\)"
+   ],
+   "rows": [
+    [
+     "M1",
+     8,
+     "\\(0.00125\\ \\mathrm{m}\\)"
+    ],
+    [
+     "M2",
+     16,
+     "\\(6.25 \\times 10^{-4}\\ \\mathrm{m}\\)"
+    ],
+    [
+     "M3",
+     32,
+     "\\(3.13 \\times 10^{-4}\\ \\mathrm{m}\\)"
+    ],
+    [
+     "M4",
+     64,
+     "\\(1.56 \\times 10^{-4}\\ \\mathrm{m}\\)"
+    ],
+    [
+     "M5",
+     128,
+     "\\(7.81 \\times 10^{-5}\\ \\mathrm{m}\\)"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Mesh",
+    "\\(N_y\\)",
+    "\\(u_{\\mathrm{centre}}\\) (m/s)",
+    "\\(q\\) (m²/s)",
+    "\\(\\tau_w\\) (Pa)"
+   ],
+   "rows": [
+    [
+     "M1",
+     8,
+     "\\(0.0748359\\)",
+     "\\(5.14497 \\times 10^{-4}\\)",
+     "\\(0.03\\)"
+    ],
+    [
+     "M2",
+     16,
+     "\\(0.0748359\\)",
+     "\\(5.02804 \\times 10^{-4}\\)",
+     "\\(0.03\\)"
+    ],
+    [
+     "M3",
+     32,
+     "\\(0.0748359\\)",
+     "\\(4.9988 \\times 10^{-4}\\)",
+     "\\(0.03\\)"
+    ],
+    [
+     "M4",
+     64,
+     "\\(0.0748359\\)",
+     "\\(4.9915 \\times 10^{-4}\\)",
+     "\\(0.03\\)"
+    ],
+    [
+     "M5",
+     128,
+     "\\(0.0748359\\)",
+     "\\(4.98967 \\times 10^{-4}\\)",
+     "\\(0.03\\)"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Mesh",
+    "Iterations",
+    "Flow-rate change, last iterations",
+    "Momentum balance",
+    "Log checks",
+    "Converged",
+    "Time (s)"
+   ],
+   "rows": [
+    [
+     "M1",
+     5,
+     "\\(0\\)",
+     "\\(5.2 \\times 10^{-13}\\)",
+     "✓ OK",
+     "✓",
+     "0.33"
+    ],
+    [
+     "M2",
+     5,
+     "\\(0\\)",
+     "\\(5.2 \\times 10^{-13}\\)",
+     "✓ OK",
+     "✓",
+     "0.33"
+    ],
+    [
+     "M3",
+     5,
+     "\\(0\\)",
+     "\\(5.2 \\times 10^{-13}\\)",
+     "✓ OK",
+     "✓",
+     "0.33"
+    ],
+    [
+     "M4",
+     5,
+     "\\(0\\)",
+     "\\(5.2 \\times 10^{-13}\\)",
+     "✓ OK",
+     "✓",
+     "0.33"
+    ],
+    [
+     "M5",
+     5,
+     "\\(0\\)",
+     "\\(6.8 \\times 10^{-13}\\)",
+     "✓ OK",
+     "✓",
+     "0.34"
+    ]
+   ],
+   "notes": [
+    "A residual measures how far the current solution is from satisfying the discretised equations. It drops to round-off (\\(\\sim 10^{-15}\\)) after the first iteration, because the problem is linear.",
+    "Pressure is not plotted: it is zero everywhere in this problem, so its normalised residual is only round-off noise. Convergence is judged physically: the flow rate must stop changing (\\(< 1 \\times 10^{-10}\\)) and the wall friction must balance the driving force (\\(< 1 \\times 10^{-8}\\)).",
+    "Log checks: no crash, no NaN, no growing residuals or Courant number (automatic, cfdlib.monitor)."
+   ]
+  }
+ },
+ "comparison": {
+  "kind": "Verification: the simulation is compared with the exact solution of the same equations.",
+  "definitions": [
+   {
+    "name": "Velocity-profile error",
+    "latex": "\\varepsilon_u = \\frac{1}{u_{\\max}}\\sqrt{\\frac{1}{N_y}\\sum_{i=1}^{N_y}\\big(u_i - u_{\\mathrm{exact}}(y_i)\\big)^2}",
+    "meaning": "Typical (root-mean-square) difference over all cells, as a fraction of the peak velocity."
+   },
+   {
+    "name": "Flow-rate error",
+    "latex": "\\varepsilon_q = \\frac{|q_{\\mathrm{sim}} - q_{\\mathrm{exact}}|}{q_{\\mathrm{exact}}}",
+    "meaning": "Relative error of the flow rate computed by OpenFOAM."
+   },
+   {
+    "name": "Observed order",
+    "latex": "p = \\frac{\\ln(\\varepsilon_{\\mathrm{coarse}}/\\varepsilon_{\\mathrm{fine}})}{\\ln 2}",
+    "meaning": "\\(\\varepsilon \\propto h^p\\). \\(p = 2\\) means halving the cells cuts the error by 4."
+   },
+   {
+    "name": "Momentum balance",
+    "latex": "\\frac{|\\tau_{w,\\mathrm{lower}} + \\tau_{w,\\mathrm{upper}} - G H|}{G H}",
+    "meaning": "Must be zero on any mesh: friction on both walls balances the driving force."
+   }
+  ],
+  "head": [
+   "Mesh",
+   "\\(N_y\\)",
+   "\\(\\varepsilon_u\\)",
+   "\\(p\\)",
+   "\\(\\varepsilon_q\\)",
+   "\\(p\\)",
+   "\\(\\varepsilon_{\\tau_w}\\)"
+  ],
+  "rows": [
+   [
+    "M1",
+    8,
+    "\\(1.56\\,\\%\\)",
+    "–",
+    "\\(3.12\\,\\%\\)",
+    "–",
+    "\\(5.16 \\times 10^{-11}\\,\\%\\)"
+   ],
+   [
+    "M2",
+    16,
+    "\\(0.391\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.781\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(5.16 \\times 10^{-11}\\,\\%\\)"
+   ],
+   [
+    "M3",
+    32,
+    "\\(0.0977\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.195\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(5.15 \\times 10^{-11}\\,\\%\\)"
+   ],
+   [
+    "M4",
+    64,
+    "\\(0.0244\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.0488\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(5.16 \\times 10^{-11}\\,\\%\\)"
+   ],
+   [
+    "M5",
+    128,
+    "\\(0.0061\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(0.0122\\,\\%\\)",
+    "\\(2.00\\)",
+    "\\(6.82 \\times 10^{-11}\\,\\%\\)"
+   ]
+  ],
+  "findings": [
+   "<b>Where the error comes from.</b> On every mesh the simulated profile is the exact parabola shifted up by a constant, \\(\\Delta u = \\dfrac{G h^2}{8\\mu}\\) (cell-to-cell variation of the shift \\(\\le 1.3 \\times 10^{-13}\\ \\mathrm{m/s}\\), round-off). Inside the channel the method is exact for a parabola; the error enters at the walls, where the slope \\(du/dy\\) is estimated over the half cell between the wall and the first cell centre. Averaging the two middle cells cancels the shift, so the centreline velocity is exact on every mesh."
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "production",
+   "logged": "2026-11-10 (time not recorded)",
+   "status": "resolved",
+   "problem": "All runs stopped at the 5000-iteration limit, \"not converged\"; wall shear stress 0.4 % off on the finest mesh although it must be exact.",
+   "diagnosis": "Two causes. (1) The stopping rule used normalised residuals of \\(v\\) and \\(p\\), which are zero in this flow, so their normalised residuals are pure round-off noise and never fall. (2) Under-relaxation (U 0.9) acts like a pseudo time step: for diffusion-dominated problems each iteration removes only \\(\\sim 1/N^2\\) of the smooth error, about 0.3 % per iteration at 128 cells.",
+   "fix": "Judge convergence physically (flow rate stops changing, wall friction balances the driving force). Linear problem: remove relaxation; it converges in 1 iteration.",
+   "lesson": "Normalised residuals are meaningless for fields that are ~0. Under-relaxation cost grows like \\(N^2\\) on diffusion-dominated problems.",
+   "guideline": "Always define a physical convergence check (a conserved quantity or balance). For linear problems use relaxation 1."
+  },
+  {
+   "id": 2,
+   "stage": "production",
+   "logged": "2026-11-10 (time not recorded)",
+   "status": "resolved",
+   "problem": "Removing relaxation crashed the solver with a floating-point exception on the first iteration.",
+   "diagnosis": "SIMPLEC (<code>consistent yes</code>) divides by \\(A_P - \\sum A_{nb}\\), which is exactly zero for pure diffusion without relaxation.",
+   "fix": "Plain SIMPLE (<code>consistent no</code>) with relaxation factors 1.",
+   "lesson": "SIMPLEC needs either relaxation or a convection/time term.",
+   "guideline": "Do not combine SIMPLEC with relaxation factor 1."
+  },
+  {
+   "id": 3,
+   "stage": "production",
+   "logged": "2026-11-10 (time not recorded)",
+   "status": "resolved",
+   "problem": "With 20 undamped iterations the 128-cell run drifted after converging (flow rate changing by \\(10^{-9}\\)).",
+   "diagnosis": "Round-off noise in the (zero) pressure field grows a little each undamped iteration and feeds back into \\(\\mathbf{u}\\).",
+   "fix": "Stop after 5 iterations; the answer is exact after the first.",
+   "lesson": "More iterations is not always safer when nothing damps round-off.",
+   "guideline": "For linear problems run a handful of iterations and confirm with the physical check."
+  },
+  {
+   "id": 4,
+   "stage": "analysis",
+   "logged": "2026-11-10 (time not recorded)",
+   "status": "resolved",
+   "problem": "An earlier analysis matched cells by their \\(x\\)-coordinate and got a wrong result on the finest mesh.",
+   "diagnosis": "OpenFOAM writes coordinates with 6 significant digits by default, so exact-coordinate matching is fragile.",
+   "fix": "Locate cells by grid index; write results with <code>writePrecision 12</code>.",
+   "lesson": "Never match cells by exact floating-point coordinates.",
+   "guideline": "Set writePrecision 12 and sample by index or with OpenFOAM sampling functions."
+  },
+  {
+   "id": 5,
+   "stage": "tooling",
+   "logged": "2026-11-10 (time not recorded)",
+   "status": "resolved",
+   "problem": "Shell commands passed from PowerShell to WSL lost quotes and parentheses.",
+   "diagnosis": "PowerShell re-parses the command line before WSL receives it.",
+   "fix": "Put every Linux command in a script file and run it with <code>wsl ... -- bash script.sh</code>.",
+   "lesson": "Never pass complex inline bash through PowerShell.",
+   "guideline": "Already in the skill: run Linux work from script files or the Python pipeline."
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The flow and the coordinates. The drawing is not to scale."
+  },
+  {
+   "key": "profile",
+   "section": "simulation",
+   "caption": "Velocity across the gap. The line is the exact solution; dots are the simulated cell values on a coarse and a medium mesh. Even 8 cells capture the parabola closely."
+  },
+  {
+   "key": "residuals",
+   "section": "convergence",
+   "caption": "Residual of the velocity equation per iteration, finest mesh."
+  },
+  {
+   "key": "convergence",
+   "section": "comparison",
+   "caption": "Error against cell size, log–log. Both errors follow the dashed slope-2 line: halving the cell size cuts the error by 4, as a second-order method should."
+  }
+ ],
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.plane_poiseuille.run",
+    "what": "Builds every mesh, runs the pre-flight test, then the production runs; writes raw.json"
+   },
+   {
+    "cmd": "python -m cases.plane_poiseuille.analyze",
+    "what": "Theory, comparison, figures and this report (checks the report contract first)"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/plane_poiseuille/problem.yaml",
+    "what": "The problem as given: physics and requested outputs"
+   },
+   {
+    "path": "cases/plane_poiseuille/numerics.yaml",
+    "what": "Meshes, solver and convergence settings"
+   },
+   {
+    "path": "cases/plane_poiseuille/decisions.yaml",
+    "what": "Every choice, with the OpenFOAM settings it controls"
+   },
+   {
+    "path": "cases/plane_poiseuille/insights.yaml",
+    "what": "Workflow insights logged during the work"
+   },
+   {
+    "path": "cases/plane_poiseuille/template/",
+    "what": "OpenFOAM case with {{ placeholders }} filled per mesh"
+   },
+   {
+    "path": "cases/plane_poiseuille/analytical.py",
+    "what": "Exact solution derived with SymPy, with self-checks"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/plane_poiseuille/Ny<N>",
+    "what": "Production run for each mesh"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/plane_poiseuille/pf<N>_preflight",
+    "what": "Short pre-flight test runs"
+   },
+   {
+    "path": "results/plane_poiseuille/",
+    "what": "raw.json, results.json and this report"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "15 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "One CPU core per run; runs are executed one after another."
+  ]
+ },
+ "data": {
+  "rows": [
+   {
+    "Ny": 8,
+    "h": 0.00125,
+    "iterations": 5,
+    "converged": true,
+    "mesh_ok": true,
+    "wall": 0.3328176459999952,
+    "health": "ok",
+    "q_change": 0.0,
+    "err_profile": 0.015624999999358135,
+    "u_c": 0.0748358998388,
+    "err_umax": 4.463611091113743e-13,
+    "q": 0.0005144968113917,
+    "err_q": 0.03124999999943921,
+    "tau": 0.029999999999984532,
+    "err_tau": 5.155598170603071e-13,
+    "force_balance": 5.155598170603071e-13,
+    "offset_mean": 0.0011693109349337374,
+    "offset_spread": 7.094672072049946e-14,
+    "offset_predicted": 0.001169310934981772
+   },
+   {
+    "Ny": 16,
+    "h": 0.000625,
+    "iterations": 5,
+    "converged": true,
+    "mesh_ok": true,
+    "wall": 0.3323876090000084,
+    "health": "ok",
+    "q_change": 0.0,
+    "err_profile": 0.0039062499996992375,
+    "u_c": 0.0748358998388,
+    "err_umax": 4.463611091113743e-13,
+    "q": 0.0005028037020419,
+    "err_q": 0.007812499999474827,
+    "tau": 0.029999999999984532,
+    "err_tau": 5.155598170603071e-13,
+    "force_balance": 5.155598170603071e-13,
+    "offset_mean": 0.00029232773372293516,
+    "offset_spread": 8.96643870262892e-14,
+    "offset_predicted": 0.000292327733745443
+   },
+   {
+    "Ny": 32,
+    "h": 0.0003125,
+    "iterations": 5,
+    "converged": true,
+    "mesh_ok": true,
+    "wall": 0.3338799659999978,
+    "health": "ok",
+    "q_change": 0.0,
+    "err_profile": 0.0009765624994921573,
+    "u_c": 0.0748358998388,
+    "err_umax": 4.463611091113743e-13,
+    "q": 0.0004998804247044,
+    "err_q": 0.0019531249993834402,
+    "tau": 0.029999999999984536,
+    "err_tau": 5.154441688285753e-13,
+    "force_balance": 5.154441688285753e-13,
+    "offset_mean": 7.308193339835588e-05,
+    "offset_spread": 1.2584031039430954e-13,
+    "offset_predicted": 7.308193343636075e-05
+   },
+   {
+    "Ny": 64,
+    "h": 0.00015625,
+    "iterations": 5,
+    "converged": true,
+    "mesh_ok": true,
+    "wall": 0.33373184200000594,
+    "health": "ok",
+    "q_change": 0.0,
+    "err_profile": 0.00024414062452705608,
+    "u_c": 0.0748358998388,
+    "err_umax": 4.463611091113743e-13,
+    "q": 0.0004991496053700001,
+    "err_q": 0.0004882812493106653,
+    "tau": 0.029999999999984532,
+    "err_tau": 5.155598170603071e-13,
+    "force_balance": 5.155598170603071e-13,
+    "offset_mean": 1.8270483323697003e-05,
+    "offset_spread": 1.0862838406566766e-13,
+    "offset_predicted": 1.8270483359090186e-05
+   },
+   {
+    "Ny": 128,
+    "h": 7.8125e-05,
+    "iterations": 5,
+    "converged": true,
+    "mesh_ok": true,
+    "wall": 0.33987448599999937,
+    "health": "ok",
+    "q_change": 0.0,
+    "err_profile": 6.1035155704359536e-05,
+    "u_c": 0.0748358998388,
+    "err_umax": 4.463611091113743e-13,
+    "q": 0.0004989669005362999,
+    "err_q": 0.00012207031159172596,
+    "tau": 0.029999999999979543,
+    "err_tau": 6.81861974290617e-13,
+    "force_balance": 6.81861974290617e-13,
+    "offset_mean": 4.567620798939052e-06,
+    "offset_spread": 1.3495454753709168e-13,
+    "offset_predicted": 4.5676208397725466e-06
+   }
+  ],
+  "order_profile": [
+   2.000000000051816,
+   2.0000000006391656,
+   2.0000000020445117,
+   2.0000000101026094
+  ],
+  "order_q": [
+   2.0000000000710916,
+   2.000000000358447,
+   2.0000000015813075,
+   2.0000000086977536
+  ],
+  "Re_H": 496.9183256230637,
+  "Re_c": 372.68874421729777,
+  "Ma": 5.049655859570405e-05,
+  "exact": {
+   "u_max": 0.0748358998388334,
+   "q": 0.0004989059989255561,
+   "u_bulk": 0.0498905998925556,
+   "tau_w": 0.03
+  },
+  "uniform_shift": true
+ }
+}

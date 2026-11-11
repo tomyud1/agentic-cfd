@@ -1,0 +1,52 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+solvers
+{
+    p
+    {
+{% if p_solver == "GAMG" %}        solver          GAMG;
+        smoother        DICGaussSeidel;
+{% else %}        solver          PCG;
+        preconditioner  DIC;
+{% endif %}        tolerance       {{ p_tol }};
+        relTol          {{ p_relTol }};
+    }
+    pFinal
+    {
+{% if p_solver == "GAMG" %}        solver          GAMG;
+        smoother        DICGaussSeidel;
+{% else %}        solver          PCG;
+        preconditioner  DIC;
+{% endif %}        tolerance       {{ p_tol }};
+        relTol          0;
+    }
+    "(U|UFinal)"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       {{ U_tol }};
+        relTol          0;
+    }
+}
+
+PIMPLE
+{
+    momentumPredictor   yes;
+    nOuterCorrectors    {{ n_outer }};
+    nCorrectors         {{ n_corr }};
+    nNonOrthogonalCorrectors {{ n_nonorth }};
+}
+
+relaxationFactors
+{
+    equations
+    {
+        ".*"            1;
+    }
+}

@@ -1,0 +1,121 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     pimpleFoam;
+startFrom       startTime;
+startTime       {{ start_time }};
+stopAt          endTime;
+endTime         {{ end_time }};
+deltaT          {{ dt }};
+adjustTimeStep  no;
+writeControl    runTime;
+writeInterval   {{ write_interval }};
+purgeWrite      {{ purge_write }};
+writeFormat     ascii;
+writePrecision  12;
+writeCompression off;
+timeFormat      general;
+timePrecision   10;
+runTimeModifiable false;
+
+functions
+{
+    // Force on the cylinder (pressure + viscous), every time step: drag (x) and lift (y), outputs (a)-(c).
+    forcesCyl
+    {
+        type            forces;
+        libs            (forces);
+        patches         (cylinder);
+        rho             rhoInf;
+        rhoInf          {{ rho }};
+        CofR            ({{ xc }} {{ yc }} 0);
+        executeControl  timeStep;
+        executeInterval 1;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Friction on the channel walls: enters the x-momentum balance of the channel (physical check).
+    forcesWalls
+    {
+        type            forces;
+        libs            (forces);
+        patches         (walls);
+        rho             rhoInf;
+        rhoInf          {{ rho }};
+        CofR            ({{ xc }} {{ yc }} 0);
+        executeControl  timeStep;
+        executeInterval 1;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Momentum flux and pressure force through inlet and outlet (x-momentum balance).
+{% for pat in ["inlet", "outlet"] %}
+    momFlux_{{ pat }}
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            {{ pat }};
+        operation       weightedSum;
+        weightField     phi;
+        fields          (U);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    pForce_{{ pat }}
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            {{ pat }};
+        operation       areaIntegrate;
+        fields          (p);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    flow_{{ pat }}
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            {{ pat }};
+        operation       sum;
+        fields          (phi);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+{% endfor %}
+    // Total x-momentum in the channel (its change over the measured cycles enters the balance).
+    momentum
+    {
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      all;
+        operation       volIntegrate;
+        fields          (U);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Velocity in the wake: an independent record of the shedding frequency.
+    probes
+    {
+        type            probes;
+        libs            (sampling);
+        fields          (U);
+        writeControl    timeStep;
+        writeInterval   1;
+        probeLocations
+        (
+{% for pt in probes %}            ({{ pt[0] }} {{ pt[1] }} {{ dz / 2 }})
+{% endfor %}        );
+    }
+}

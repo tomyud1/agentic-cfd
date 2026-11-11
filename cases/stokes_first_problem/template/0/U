@@ -1,0 +1,26 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+
+dimensions      [0 1 -1 0 0 0 0];
+
+// Water at rest at t = 0; the plate moves at U from the first time step on (impulsive start).
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    plate
+    {
+        type            fixedValue;
+        value           uniform ({{ U }} 0 0);
+    }
+    top
+    {
+        type            symmetryPlane;
+    }
+    #includeEtc "caseDicts/setConstraintTypes"
+}

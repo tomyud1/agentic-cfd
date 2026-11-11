@@ -1,0 +1,28 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: lid_driven_cavity_re100
+title: Lid-driven cavity flow at Re = 100
+description: >
+  A square cavity full of fluid is driven by its sliding top wall (the lid). Find the steady flow
+  inside the cavity and compare it with the published benchmark solution of Ghia, Ghia & Shin (1982).
+setup:
+  - 'Square cavity of side \(L\), completely filled with an incompressible Newtonian fluid.'
+  - 'The top wall (the lid) slides to the right at constant speed \(U\); the other three walls are stationary. All walls are no-slip.'
+  - 'The cavity is very long in the third direction, so the flow is two-dimensional.'
+  - 'Positions are scaled by \(L\), velocities by \(U\) and the stream function by \(U L\), as in the benchmark.'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  L:   {value: 0.1,   unit: m,    symbol: '\(L\)',  label: "Side of the square cavity"}
+  U:   {value: 1.0,   unit: m/s,  symbol: '\(U\)',  label: "Lid speed (to the right, +x)"}
+  nu:  {value: 0.001, unit: m²/s, symbol: '\(\nu\)', label: "Kinematic viscosity of the fluid"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: u_vertical,   text: 'Horizontal velocity \(u\) along the vertical centreline \(x = L/2\), compared with Ghia Table I'}
+  - {key: v_horizontal, text: 'Vertical velocity \(v\) along the horizontal centreline \(y = L/2\), compared with Ghia Table II'}
+  - {key: u_min,        text: 'Strongest return flow: minimum of \(u\) on the vertical centreline, and where it occurs'}
+  - {key: vortex,       text: 'Centre of the primary vortex \((x, y)\) and its strength (minimum stream function)'}
+
+reference:
+  file: reference/ghia1982_re100.yaml
+  description: >
+    Benchmark numerical solution (129 x 129 grid) by Ghia, Ghia & Shin (1982), J. Comput. Phys. 48,
+    387-411: Tables I, II and V for Re = 100, transcribed from the paper.

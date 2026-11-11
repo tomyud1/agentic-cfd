@@ -1,0 +1,239 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling
+
+- id: 1
+  stage: tooling
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: 'The first <code>wsl ... -- bash /mnt/d/.../probe.sh</code> call failed with "No such file or directory:
+    C:/Program Files/Git/mnt/d/...", and a later call made <code>grep</code> report "Binary file (standard input)
+    matches" instead of printing.'
+  diagnosis: The agent's shell tool on this machine is Git Bash (MSYS), not PowerShell. MSYS rewrites any argument
+    that looks like a POSIX path (<code>/mnt/d/...</code>) into a Windows path before WSL sees it. Separately, <code>wsl.exe</code>
+    prints its own warning in UTF-16, so the output contains NUL bytes.
+  fix: Prefix the call with <code>MSYS_NO_PATHCONV=1</code> and pipe the output through <code>tr -d "\000"</code>.
+  lesson: environment.md only describes PowerShell quoting; the Git Bash path conversion is a second, different
+    trap on the same machine.
+  guideline: 'environment.md: add a "From Git Bash" block: <code>MSYS_NO_PATHCONV=1 wsl -d Ubuntu-24.04 --cd "/mnt/d/Projects/Agentic
+    CFD" -- /home/tomyud/venvs/cfd/bin/python -m ...</code>, and note the NUL bytes in wsl.exe output.'
+- id: 2
+  stage: tooling
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: SKILL.md says "run <code>python -m cfdlib.contract</code> early to see uncovered settings", but the CLI
+    needs a <code>results.json</code>, which does not exist during setup.
+  diagnosis: The contract CLI checks a whole report; the decisions-coverage part (<code>contract.uncovered_settings</code>)
+    is only reachable from Python.
+  fix: A 15-line case-local script (<code>scratch/check_decisions.py</code>) renders the template once and calls
+    <code>contract.uncovered_settings(decisions, case)</code>. All settings were covered at the first attempt, because
+    the worked example's decisions.yaml showed which patterns are needed.
+  lesson: The early check is valuable (it costs seconds) but needs its own entry point.
+  guideline: 'cfdlib.contract: add <code>python -m cfdlib.contract --decisions cases/&lt;name&gt;/decisions.yaml
+    &lt;case dir&gt;</code> that only checks settings coverage; reference that exact command in SKILL.md stage 2.'
+- id: 3
+  stage: preflight
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: <code>monitor.preflight</code> projects the full run time as (seconds per iteration) x <code>end_time_full</code>.
+    For a steady run that stops on <code>residualControl</code>, the end time is only a safety cap (20 000 iterations
+    here), so the projection is meaningless.
+  diagnosis: The tool assumes a fixed run length (transient runs, or the linear Poiseuille case). Steady nonlinear
+    runs stop when residuals reach a target; the useful projection is the number of iterations needed at the observed
+    residual decay rate.
+  fix: 'Case-local code in <code>run.py</code> fits the residual decay rate (decades per iteration) over the second
+    half of the short run and extrapolates to the residual targets: 256 x 256 mesh, 0.054 s per iteration, projected
+    about 3000 iterations (about 160 s).'
+  lesson: For steady runs, project from the convergence rate, not from the iteration cap.
+  guideline: 'cfdlib.monitor.preflight: add an optional <code>residual_targets</code> argument that returns the
+    decay rate per field and the projected iterations and time to reach the targets.'
+- id: 4
+  stage: preflight
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: Pitfall 2 of the primer (GAMG with relTol 0.05 diverged) made it unclear whether GAMG with relTol 0.05
+    for p was safe here.
+  diagnosis: The primer's pitfall was met in transient PISO (icoFoam), where every pressure solve within a time
+    step must be accurate. In steady SIMPLEC the outer iterations remove the partial-solve error.
+  fix: 'Kept GAMG relTol 0.05 and let the pre-flight decide: both meshes healthy, residuals falling steadily (x0.12
+    over the 300-iteration test on 256 x 256).'
+  lesson: The mandatory pre-flight turned an uncertain choice into a checked one in two minutes.
+  guideline: 'openfoam-primer.md pitfall 2: say explicitly that it applies to transient PISO/PIMPLE final pressure
+    solves, and that relTol 0.05-0.1 is the norm for steady SIMPLE(C).'
+- id: 5
+  stage: production
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: With residual targets \(10^{-9}\) (U) and \(10^{-8}\) (p) the 128 x 128 run stopped after 2288 iterations,
+    but the probed velocities still changed by \(3\times10^{-7}\,U\) over the last 10 % of iterations, failing the
+    physical steadiness criterion (\(10^{-7}\,U\)) fixed beforehand. The coarser meshes passed or were marginal.
+  diagnosis: 'SIMPLE converges more slowly on finer meshes (iterations grow roughly like \(N^2\): 211, 660, 2288
+    for N = 32, 64, 128), so a fixed normalised-residual target leaves a larger change per iteration on fine meshes.
+    A 10 % window on a slow, geometric approach to convergence then shows a larger change. Normalised residuals
+    do not translate into a known solution error.'
+  fix: Kept the physical criterion unchanged (no moving the goalposts after seeing results) and tightened the residual
+    targets by one decade (U \(10^{-10}\), p \(10^{-9}\)). That fixed 32²–128², but the 256² run (9481 iterations,
+    about 10 min) then missed the criterion again (\(1.4\times10^{-7}\,U\) over its last 948 iterations), so the
+    targets were tightened by one more decade (U \(10^{-11}\), p \(10^{-10}\)) and every mesh was re-run with identical
+    settings. Two re-runs of the finest mesh cost about 20 minutes of wall time.
+  lesson: Choose residual targets from the physical criterion, not the other way round; expect each refinement to
+    need roughly one more decade of residual for the same solution change (the change per iteration falls more slowly
+    on finer meshes). Check the criterion on the coarse meshes and extrapolate BEFORE starting the expensive finest
+    run.
+  guideline: 'SKILL.md stage 4: for steady runs, state that the stopping rule should be a physical quantity (probe
+    change over a window) and that residual targets must be checked against it per mesh; ideally a function-object-based
+    stop (e.g. <code>runTimeControl</code> on probe values) so the stop itself is physical.'
+- id: 6
+  stage: tooling
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: Stopping an outdated background run (the Claude Code background task) killed only the Python wrapper;
+    <code>simpleFoam</code> kept running as an orphan and would have kept writing into the case directory the restarted
+    run uses.
+  diagnosis: <code>cfdlib.foam.run</code> starts the solver with <code>start_new_session=True</code> (so a timeout
+    can kill its whole process group). Killing the parent therefore does not reach the solver.
+  fix: Found the orphan with <code>ps</code>, confirmed its working directory with <code>readlink /proc/PID/cwd</code>,
+    and killed that one PID before restarting.
+  lesson: Background OpenFOAM runs outlive their wrapper; check for orphans before restarting a case.
+  guideline: 'cfdlib.foam.run: write the solver PID to <code>&lt;case&gt;/solver.pid</code> and install a SIGTERM
+    handler that kills the process group; add a <code>foam.stop(case_dir)</code> helper and mention it in environment.md
+    ("Long runs").'
+- id: 7
+  stage: preflight
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: 'The pre-flight projection for the 256 x 256 mesh (about 3000 iterations, from the residual decay in
+    a 300-iteration test) was far too optimistic: the 128 x 128 mesh alone needed 2643 iterations, and iteration
+    counts grew about 3.5x per refinement (239, 755, 2643).'
+  diagnosis: 'SIMPLE convergence is not geometric at one rate: the first few hundred iterations remove fast, local
+    errors; the slow, cavity-wide modes dominate later and decay at a rate that falls roughly like \(1/N^2\). Extrapolating
+    the early decay rate underestimates the run.'
+  fix: Used the measured iteration counts of the coarser production meshes to project the finest run instead (factor
+    ~3.5 per refinement).
+  lesson: For steady runs, run the coarse meshes first and extrapolate the iteration count across meshes; the short
+    pre-flight is good for stability, not for run length.
+  guideline: 'SKILL.md stage 3: "For steady solvers, the run-length projection from a short pre-flight is a lower
+    bound; run the meshes coarse to fine and extrapolate iterations with mesh size before starting the finest."'
+- id: 8
+  stage: production
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: 'Re-running the pre-flight after production would have deleted production cases: the worked example''s
+    <code>build()</code> renders pre-flight and production into the same <code>N&lt;N&gt;</code> directory (render_case
+    deletes it first).'
+  diagnosis: Fine in a single sequential script (example), but not when pre-flight and production are separate commands
+    that may be repeated.
+  fix: Pre-flight now builds into <code>pf&lt;N&gt;</code> directories.
+  lesson: Give each stage its own run directory.
+  guideline: 'Worked example run.py: use separate directories for pre-flight and production runs.'
+- id: 9
+  stage: analysis
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: 'The mass-conservation check I fixed beforehand ("max |ψ| on the lid below \(10^{-4}\,UL\)") failed with
+    my own stream function: about \(7\times10^{-4}\,UL\) on the 128 mesh, halving with each refinement, although
+    the solver''s continuity errors are \(\sim10^{-8}\).'
+  diagnosis: My ψ integrates face-averaged cell-centre velocities up each vertical grid line. OpenFOAM's face fluxes
+    differ from that average by the Rhie–Chow pressure term, which is large only next to the singular top-right
+    corner (all of the discrepancy sits in the last cell under the lid at \(x \to L\); in the interior the two agree
+    to \(\sim10^{-7}\)). So the check measured a post-processing reconstruction error, not a mass error. OpenFOAM's
+    <code>streamFunction</code> utility, built from the conservative fluxes, is exactly 0 on all four walls (and
+    the same sign and scale as Ghia's ψ, in m²/s).
+  fix: Use OpenFOAM's flux-based ψ for output (d) and keep my reconstruction as an independent cross-check of \(\psi_{\min}\).
+    The mass check is redefined (after seeing data, stated openly in the report) as the net flow through the vertical
+    centreline, \(\int_0^L u\,dy\), from the same centreline profile used for output (a), which is far from the
+    corners. The original lid-residual number is still reported.
+  lesson: A conservation check must use the conservative quantities (face fluxes), or be evaluated away from singularities;
+    otherwise it tests the post-processing.
+  guideline: 'cfdlib.foam: add <code>read_point_field</code> and a structured-grid helper (cells and points by (i,
+    j) index for a single-block blockMesh), and note in the primer that <code>postProcess -func streamFunction</code>
+    gives a flux-based ψ in m²/s, zero on walls, same sign as Ghia.'
+- id: 10
+  stage: analysis
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: A scratch script named <code>inspect.py</code> crashed with "partially initialized module numpy".
+  diagnosis: It shadowed the standard-library module <code>inspect</code>, which numpy imports, because Python puts
+    the script's folder first on the path.
+  fix: Renamed it.
+  lesson: Never name scratch scripts after standard-library modules (inspect, test, types, io...).
+  guideline: 'environment.md: one-line warning; prefer running scratch code as modules with descriptive names.'
+- id: 11
+  stage: analysis
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: 'The differences from Ghia did not shrink with refinement: for \(v\) near the downstream wall they grew
+    from the 32² to the 128² mesh and levelled off at about \(0.009\,U\), above the \(0.005\,U\) pass tolerance
+    I had set. The self-convergence of the simulation was clean (observed order about 2.1, finest-mesh uncertainty
+    band about \(5\times10^{-4}\,U\)).'
+  diagnosis: Once the simulation is mesh-converged, the remaining difference is the benchmark's own error (a 129-point
+    grid, printed to 4–5 digits) plus any systematic error of this simulation that refinement cannot remove. The
+    coarse mesh agreed BETTER only by error cancellation. My tolerance assumed, without evidence, that the benchmark
+    is accurate to \(0.005\,U\) everywhere.
+  fix: 'Kept the pre-set rule (it gives WARN, not PASS). Added evidence instead of loosening it: a Richardson-extrapolated
+    profile with its uncertainty band, and a sensitivity run with a different convection scheme to show that the
+    converged answer does not depend on the scheme.'
+  lesson: With a benchmark, judge agreement against the benchmark's own accuracy, and test that the simulation's
+    converged answer is robust (scheme, iteration error) before blaming either side. A coarse-mesh match can be
+    luck.
+  guideline: 'SKILL.md stage 5 / problem files: ask for (or estimate) the reference''s own uncertainty and put it
+    in the reference YAML; define benchmark tolerances as "extrapolated value within GCI band + reference uncertainty",
+    and recommend a second independent benchmark when the first one disagrees beyond the mesh error.'
+- id: 12
+  stage: report
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: My first draft referred to the velocity-profile figure as "Figure 3"; it is rendered as Figure 4.
+  diagnosis: <code>report.render</code> numbers figures by section order (problem, theory, preflight, simulation,
+    convergence, comparison), not in the order they are listed in <code>results["figures"]</code>, and does not
+    expose the numbers to the code that writes the text. Text written before rendering has to guess.
+  fix: A case-local <code>fig_no(key)</code> repeats render's ordering rule (stable sort by <code>contract.FIGURE_SECTIONS</code>)
+    and every figure reference is computed from it.
+  lesson: 'Cross-references are numbers too: compute them.'
+  guideline: 'cfdlib.report: support a placeholder such as <code>{fig:u_profile}</code> in any text field, replaced
+    by the figure number at render time (and have the contract fail on unknown keys).'
+- id: 13
+  stage: tooling
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: The built-in browser cannot open local <code>file://</code> pages, so the rendered report could not be
+    looked at directly to check the figures.
+  diagnosis: Environment limitation; figures are inline SVG strings inside the HTML.
+  fix: A scratch wrapper patches <code>plots.to_svg</code> to also save each figure as a PNG, then runs the analysis;
+    the PNGs were inspected (this caught cluttered log-axis tick labels on the mesh-study plot).
+  lesson: Look at every figure before finalising; a cheap PNG dump is enough.
+  guideline: 'cfdlib.plots: add an environment variable (e.g. <code>CFD_FIG_PNG_DIR</code>) that makes <code>to_svg</code>
+    also write PNGs, and mention in SKILL.md stage 6 that figures must be inspected visually.'
+- id: 14
+  stage: report
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: Nothing failed here; recorded because it worked first time thanks to the guidelines. The first full <code>report.render</code>
+    call passed the contract with no errors, and decisions covered every OpenFOAM setting at the first check.
+  diagnosis: The worked example's <code>analyze.py</code> is a complete, passing template of the results.json structure,
+    and its decisions.yaml shows the needed setting patterns (e.g. <code>0/*/boundaryField/*</code>, <code>system/fvSchemes/divSchemes/*</code>).
+  fix: Copied the structure, not the numerics (the example is linear and uses no relaxation; this case needs SIMPLEC
+    with relaxation 0.9).
+  lesson: A complete worked example is worth more than a long specification; SKILL.md's warning "copy the structure,
+    not the numerical settings" was the right emphasis.
+  guideline: Keep the worked example passing and add a second one for a nonlinear steady benchmark case (this one),
+    so agents can copy a residual-stopped, relaxed SIMPLE setup and a benchmark-style comparison.
+- id: 15
+  stage: report
+  logged: 2026-11-10 (time not recorded)
+  status: resolved
+  problem: Unclear how strictly "every number is computed by code" applies to free text that the agent writes in
+    decisions.yaml and insights.yaml (e.g. "9481 iterations, about 10 min" in an insight, residual targets in a
+    decision), and to hand-written cross-references and captions. A caption saying "the gap shrinks with each refinement"
+    was also written before the final data and turned out FALSE.
+  diagnosis: The contract checks structure, not provenance. Prose written early (decisions, captions) can go stale
+    or contradict the data.
+  fix: Captions and findings in analyze.py were rewritten so every quantitative statement is computed (figure numbers,
+    contour spacing, tolerances, "settles rather than shrinks" with the measured numbers). Insights keep a few hand-written
+    numbers as a historical log; decisions quote the settings themselves.
+  lesson: Qualitative claims in captions ("shrinks", "agrees") are results too; compute them or condition them on
+    the data.
+  guideline: 'report-contract.md: state that decisions/insights are the only free-text fields allowed to contain
+    typed numbers (as a log of settings and events), and that captions/findings must be generated from data; consider
+    a contract warning when a caption contains digits not produced by tex_num.'

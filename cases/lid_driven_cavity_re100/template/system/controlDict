@@ -1,0 +1,41 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     simpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ max_iterations }};   // steady solver: "time" = iteration count
+deltaT          1;
+writeControl    timeStep;
+writeInterval   {{ write_every }};
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  12;
+writeCompression off;
+timeFormat      general;
+timePrecision   6;
+runTimeModifiable false;
+
+functions
+{
+    // Velocity at a few points inside the cavity, every iteration: the physical
+    // steadiness check (these values must stop changing).
+    probes
+    {
+        type            probes;
+        libs            (sampling);
+        writeControl    timeStep;
+        writeInterval   1;
+        fields          (U p);
+        probeLocations
+        (
+{% for pt in probes %}            ({{ pt[0] }} {{ pt[1] }} {{ dz / 2 }})
+{% endfor %}        );
+    }
+}

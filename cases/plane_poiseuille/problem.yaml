@@ -1,0 +1,22 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: plane_poiseuille
+title: Pressure-driven laminar flow between two parallel plates
+description: >
+  Water flows between two very large parallel plates, driven by a constant pressure gradient.
+  Find the steady flow and compare the simulation with the exact solution.
+setup:
+  - 'Two stationary plates a distance \(H\) apart, so large that the flow depends only on the position \(y\) across the gap.'
+  - 'A constant pressure gradient \(dp/dx\) along the plates drives the flow.'
+  - 'Both plates are no-slip (the water sticks to them).'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  H:     {value: 0.01,     unit: m,      symbol: '\(H\)',            label: "Gap between the plates"}
+  rho:   {value: 998.2,    unit: kg/m³,  symbol: '\(\rho\)',         label: "Density (water, 20 °C)"}
+  nu:    {value: 1.004e-6, unit: m²/s,   symbol: '\(\nu\)',          label: "Kinematic viscosity (water, 20 °C)"}
+  dpdx:  {value: -6.0,     unit: Pa/m,   symbol: '\(dp/dx\)',        label: "Pressure gradient along the plates"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: u_profile, text: 'Velocity profile across the gap, \(u(y)\)'}
+  - {key: u_max,     text: "Maximum velocity"}
+  - {key: q,         text: "Flow rate per unit width"}
+  - {key: tau_w,     text: "Wall shear stress"}

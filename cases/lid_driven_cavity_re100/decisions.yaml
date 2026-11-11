@@ -1,0 +1,94 @@
+# Every modelling and numerical choice for this case. Written WHILE setting up the case.
+# `settings`: OpenFOAM settings (path patterns, * = wildcard) each decision controls. The report
+# contract fails if any setting in the case files is not covered by some decision.
+
+- area: Physical model
+  kind: physics
+  choice: 'Steady, incompressible, laminar, Newtonian flow with \(\nu = 10^{-3}\ \mathrm{m^2/s}\)'
+  settings: [constant/turbulenceProperties/simulationType, constant/transportProperties/*]
+  why: '\(Re = UL/\nu = 100\): the cavity flow is steady and laminar at this Reynolds number (the benchmark itself is a steady laminar solution). The given viscosity is used directly; only \(\nu\) matters for incompressible flow, not the density.'
+  affects: 'Defines the equations solved. A turbulence model would add viscosity that does not exist.'
+  alternatives: 'A transient laminar solver run until the flow stops changing (same answer, slower).'
+
+- area: Solver
+  kind: solver
+  choice: '<code>simpleFoam</code>: steady incompressible solver (SIMPLE family), started from the <code>icoFoam/cavity</code> tutorial geometry'
+  settings: [system/controlDict/application, system/fvSchemes/ddtSchemes/*]
+  why: 'The problem asks for the steady flow; a steady solver goes there directly instead of following the physical start-up. The closest tutorial (<code>icoFoam/cavity</code>) is transient and at \(Re = 10\); its geometry, patch names and boundary conditions were kept.'
+  affects: 'None on the converged answer if the steady solution is unique and stable (true at \(Re = 100\)); it decides only how the answer is reached.'
+  alternatives: '<code>icoFoam</code> or <code>pimpleFoam</code> run to steady state: they must follow the whole physical start-up (many lid transit times \(L/U\)) with a time step limited by the Courant number on the finest mesh, which is much slower.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Square \(L \times L\) cavity, one cell thick in \(z\) with <code>empty</code> front and back (2D)'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/boundary]
+  why: 'The cavity is very long in \(z\), so the flow is 2D; <code>empty</code> patches make OpenFOAM solve the 2D equations. Origin at the bottom-left corner as in Ghia et al.'
+  affects: 'Geometry exactly as in the problem; 3D end-wall effects are excluded by construction.'
+  alternatives: 'A 3D cavity with end walls (a different problem; the benchmark is 2D).'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Lid: \(\mathbf{u} = (U, 0)\) on the top wall; no slip \(\mathbf{u} = 0\) on the other three walls; pressure zero-gradient on all walls'
+  settings: [0/U/boundaryField/*, 0/p/boundaryField/*]
+  why: 'The fluid sticks to each wall (no slip), so it moves with the lid at the top and is at rest at the fixed walls. Zero-gradient pressure is the standard partner of a fixed velocity at a wall.'
+  affects: 'Defines the problem. The two top corners carry a velocity jump (from \(U\) to 0), a singularity shared with the benchmark.'
+  alternatives: 'Regularised lid velocity that falls smoothly to zero at the corners: a different problem from the benchmark.'
+
+- area: Domain and boundary conditions
+  kind: solver
+  choice: 'Initial state: fluid at rest, \(\mathbf{u} = 0,\ p = 0\); pressure fixed to 0 in cell 0 (<code>pRefCell 0</code>, <code>pRefValue 0</code>)'
+  settings: [0/U/internalField, 0/p/internalField, system/fvSolution/SIMPLE/pRefCell, system/fvSolution/SIMPLE/pRefValue]
+  why: 'A steady solution does not depend on the starting guess. In a closed cavity only pressure differences are defined, so one cell must fix the pressure level.'
+  affects: 'None on velocities or on the stream function; it sets only the (arbitrary) pressure level.'
+  alternatives: 'Starting from a coarse-mesh solution (faster on fine meshes, but couples the runs).'
+
+- area: Mesh
+  kind: accuracy
+  choice: 'Uniform \(N \times N\) meshes, \(N = 32, 64, 128, 256\) (refinement ratio 2)'
+  settings: [system/blockMeshDict/blocks]
+  why: 'Four meshes with ratio 2 give two independent estimates of the observed order of accuracy and allow Richardson extrapolation and a GCI from the three finest. The finest (256) is twice as fine as the benchmark grid (128 intervals). Uniform cells keep the order-of-accuracy test clean.'
+  affects: 'Discretisation error; measured in the Comparison section.'
+  alternatives: 'Cells clustered towards the walls (grading): more accurate in the wall layers for the same cell count, but complicates Richardson extrapolation.'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Second-order schemes: <code>bounded Gauss linearUpwind grad(U)</code> for convection; <code>Gauss linear</code> gradients; <code>Gauss linear corrected</code> Laplacian; linear interpolation'
+  settings: [system/fvSchemes/divSchemes/*, system/fvSchemes/gradSchemes/*, system/fvSchemes/laplacianSchemes/*,
+             system/fvSchemes/interpolationSchemes/*, system/fvSchemes/snGradSchemes/*]
+  why: 'Convection matters at \(Re = 100\), so its scheme sets the accuracy. Linear-upwind is second order and stays well behaved on the coarsest mesh, where the cell Péclet number \(U h/\nu\) exceeds 2 and pure central differencing can wiggle. <code>bounded</code> removes the \(\nabla\cdot\mathbf{u}\) part that is non-zero before convergence (standard for steady solvers). The mesh is orthogonal, so <code>corrected</code> adds nothing.'
+  affects: 'Order of accuracy (expected 2) and the size of the mesh error.'
+  alternatives: 'First-order upwind (robust but adds numerical viscosity, roughly an error of order \(Uh/2\) in \(\nu\)); central <code>Gauss linear</code> (second order, can oscillate at cell Péclet > 2).'
+
+- area: Algorithm and linear solvers
+  kind: solver
+  choice: 'SIMPLEC (<code>consistent yes</code>), velocity relaxed by 0.9, pressure not relaxed'
+  settings: [system/fvSolution/SIMPLE/consistent, system/fvSolution/SIMPLE/nNonOrthogonalCorrectors, system/fvSolution/relaxationFactors/*]
+  why: 'The momentum equation is nonlinear (convection), so the velocity update must be damped. SIMPLEC tolerates weak damping (0.9) without pressure relaxation, which converges much faster than plain SIMPLE (U 0.7, p 0.3). Orthogonal mesh: no non-orthogonal correctors needed.'
+  affects: 'Only how quickly the answer is reached, provided the run is converged.'
+  alternatives: 'Plain SIMPLE with U 0.7 / p 0.3 (slower); a transient solver (see Solver).'
+
+- area: Algorithm and linear solvers
+  kind: solver
+  choice: 'GAMG (multigrid) for \(p\), each solve reducing its residual 20-fold (<code>relTol 0.05</code>); Gauss–Seidel smoother for \(\mathbf{u}\) (<code>relTol 0.1</code>)'
+  settings: [system/fvSolution/solvers/*]
+  why: 'Each SIMPLE iteration only needs an improved, not an exact, pressure; the outer iterations remove what is left. Multigrid handles the domain-wide pressure field efficiently on fine meshes.'
+  affects: 'Speed only; the converged answer does not depend on these once the outer iterations converge.'
+  alternatives: 'PCG/DIC for \(p\) (as in the tutorial; slower on fine meshes); tighter relTol (more work per iteration).'
+
+- area: Run control and convergence
+  kind: accuracy
+  choice: 'Stop when the normalised residuals fall below \(10^{-11}\) (velocity) and \(10^{-10}\) (pressure), cap of 20 000 iterations; fields written every 1000 iterations with 12 significant digits'
+  settings: [system/fvSolution/SIMPLE/residualControl/*, system/controlDict/endTime, system/controlDict/deltaT,
+             system/controlDict/startTime, system/controlDict/writeControl, system/controlDict/writeInterval,
+             system/controlDict/writePrecision, system/controlDict/timePrecision]
+  why: 'Residuals here are meaningful (no field is zero), but they are only a proxy. Convergence is confirmed physically: the probed velocities must stop changing (see Run health). 12 digits keep round-off out of the error analysis.'
+  affects: 'Iteration error (made negligible against the mesh error) and output precision.'
+  alternatives: 'A fixed iteration count (wasteful on coarse meshes, possibly too short on fine ones).'
+
+- area: Outputs
+  kind: output
+  choice: 'Probes of \(\mathbf{u}\) and \(p\) at four interior points, every iteration'
+  settings: [system/controlDict/functions/*]
+  why: 'The physical steadiness check: these velocities must stop changing. Centreline profiles and the stream function are computed afterwards from the cell-centre velocities (by cell index, never by exact coordinates); OpenFOAM''s <code>streamFunction</code> utility is used as an independent cross-check of the vortex strength.'
+  affects: 'How convergence is judged and how the requested quantities are measured.'
+  alternatives: 'OpenFOAM line sampling (<code>sets</code>) at the benchmark points: equivalent, but interpolates with its own scheme.'

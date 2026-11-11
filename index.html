@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentic CFD reports</title>
+<style>
+  :root { --ink: #1d2733; --ink2: #556270; --line: #dde3ea; --accent: #2563b0; --bg: #f6f8fb; --card: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #e6ebf1; --ink2: #9aa7b5; --line: #2c3540; --accent: #6ea8f0; --bg: #12161b; --card: #1a2027; } }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 40px 16px 60px; }
+  h1 { margin: 0 0 6px; font-size: 30px; } p.sub { color: var(--ink2); margin: 0 0 28px; }
+  a.card { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px;
+           margin: 0 0 12px; color: inherit; text-decoration: none; }
+  a.card:hover { border-color: var(--accent); }
+  .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  .t { font-weight: 650; font-size: 17px; } .v { font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+  .pass { background: #dcf3e3; color: #17663a; } .warn { background: #fdf0d5; color: #8a5a00; }
+  .d { color: var(--ink2); font-size: 14px; margin-top: 4px; }
+  footer { color: var(--ink2); font-size: 14px; margin-top: 28px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Agentic CFD</h1>
+  <p class="sub">Reports written by an AI agent that solved each problem with OpenFOAM, given only the problem statement.
+    Technion final project, supervised by Prof. Steven Frankel.</p>
+  <a class="card" href="results/plane_poiseuille/report.html"><div class="row"><span class="t">1. Plane Poiseuille flow</span><span class="v pass">PASS</span></div>
+    <div class="d">Steady, linear, exact solution. Velocity profile within 0.0061 % of the exact solution.</div></a>
+  <a class="card" href="results/lid_driven_cavity_re100/report.html"><div class="row"><span class="t">2. Lid-driven cavity, Re = 100</span><span class="v warn">WARN</span></div>
+    <div class="d">Steady, nonlinear, benchmark of Ghia et al. (1982). Velocity profiles within 0.009 U of the benchmark.</div></a>
+  <a class="card" href="results/stokes_first_problem/report.html"><div class="row"><span class="t">3. Stokes' first problem</span><span class="v pass">PASS</span></div>
+    <div class="d">Transient, linear, exact solution. Velocity within 0.002 % of the plate speed.</div></a>
+  <a class="card" href="results/dfg_cylinder_re100/report.html"><div class="row"><span class="t">4. Cylinder in a channel, Re = 100 (DFG 2D-2)</span><span class="v warn">WARN</span></div>
+    <div class="d">Transient, nonlinear vortex shedding, FeatFlow benchmark. Drag, lift and Strouhal number inside their uncertainty bands; MPI scaling study.</div></a>
+  <footer>Code, workflow and how to reproduce: <a href="https://github.com/tomyud1/agentic-cfd">github.com/tomyud1/agentic-cfd</a></footer>
+</main>
+</body>
+</html>

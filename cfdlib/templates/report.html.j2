@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ r.title }}</title>
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] },
+    chtml: { scale: 1.08, matchFontHeight: false },
+    options: { enableMenu: false }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-chtml.js" async></script>
+<style>
+  :root {
+    --page: #f4f4f1; --surface: #ffffff; --ink: #121211; --ink2: #4a4945; --muted: #85837d;
+    --line: #e4e3dc; --line-strong: #cfcdc4; --tint: #f7f7f4;
+    --accent: #2a78d6; --accent-tint: #edf4fd; --accent-ink: #184f95;
+    --good: #0ca30c; --good-ink: #0b6b0b; --good-tint: #e9f6e9;
+    --warn: #c98500; --warn-ink: #7a5200; --warn-tint: #fdf4e1;
+    --bad: #d03b3b; --bad-ink: #a02828; --bad-tint: #fbeaea;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+         font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 36px 16px 72px; }
+  code { font: 12.5px/1.4 ui-monospace, Consolas, monospace; background: var(--tint); padding: 1px 5px;
+         border-radius: 4px; border: 1px solid var(--line); }
+  b { font-weight: 650; }
+
+  header { margin-bottom: 20px; }
+  .kicker { color: var(--muted); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+  h1 { font-size: 30px; line-height: 1.2; margin: 6px 0 14px; letter-spacing: -.01em; }
+  nav.toc { display: flex; flex-wrap: wrap; gap: 6px; }
+  nav.toc a { font-size: 13px; color: var(--ink2); text-decoration: none; background: var(--surface);
+              border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; }
+  nav.toc a:hover { border-color: var(--accent); color: var(--accent-ink); }
+
+  section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+            padding: 26px 30px; margin: 0 0 18px; }
+  h2 { font-size: 22px; margin: 0 0 6px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  h2 .num { display: inline-grid; place-items: center; min-width: 30px; height: 30px; border-radius: 8px;
+            background: var(--ink); color: #fff; font-size: 15px; font-weight: 650; padding: 0 6px; }
+  h3 { font-size: 17px; margin: 28px 0 10px; padding-top: 18px; border-top: 1px solid var(--line); }
+  h3 .num { color: var(--muted); font-weight: 500; margin-right: 6px; }
+  h4 { font-size: 15px; margin: 18px 0 8px; }
+  .lead { color: var(--ink2); margin: 0 0 16px; }
+
+  .summary { border: 2px solid var(--good); }
+  .summary.WARN { border-color: var(--warn); } .summary.FAIL { border-color: var(--bad); }
+  .verdict { font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+             background: var(--good-tint); color: var(--good-ink); letter-spacing: .03em; }
+  .WARN .verdict { background: var(--warn-tint); color: var(--warn-ink); }
+  .FAIL .verdict { background: var(--bad-tint); color: var(--bad-ink); }
+  .ctype { font-size: 13px; color: var(--ink2); font-weight: 500; }
+  .headline { font-size: 17px; margin: 10px 0 18px; }
+  ul.points { margin: 8px 0 0; padding-left: 20px; } ul.points li { margin: 6px 0; }
+  .callout { border-radius: 10px; padding: 12px 16px; margin: 14px 0 0; font-size: 15px; }
+  .callout.warn { background: var(--warn-tint); color: #4d3800; }
+  .callout.info { background: var(--accent-tint); color: #12355f; }
+  .callout.good { background: var(--good-tint); color: #0c3f0c; }
+  .callout .tag { font-weight: 700; margin-right: 6px; }
+
+  .letter { display: inline-grid; place-items: center; min-width: 24px; height: 24px; border-radius: 6px;
+            background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; margin-right: 8px; }
+
+  .table-wrap { overflow-x: auto; margin: 10px 0; }
+  table { border-collapse: collapse; font-size: 15px; }
+  table.full { width: 100%; }
+  th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--ink2); font-weight: 600; font-size: 13px; background: var(--tint); border-bottom: 1px solid var(--line-strong); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th, th.num { white-space: normal; } table th, table td { padding-left: 10px; padding-right: 10px; }
+  td .sub { color: var(--muted); font-size: 12px; }
+  tr:last-child td { border-bottom: none; }
+  table.answers td { vertical-align: middle; }
+  table.answers td:first-child { font-weight: 600; min-width: 220px; }
+  table.answers .req { display: flex; align-items: flex-start; gap: 0; }
+  table.answers .req .letter { flex: none; margin-top: 1px; }
+
+  .wanted { background: var(--accent-tint); border: 1px solid #c9ddf6; border-radius: 12px; padding: 16px 20px; margin: 4px 0 18px; }
+  .wanted h4 { margin: 0 0 10px; font-size: 16px; color: var(--accent-ink); }
+  .wanted ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .wanted li { display: flex; align-items: center; font-size: 16px; font-weight: 550; }
+
+  .chips { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin: 0 0 14px; }
+  .chip { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px; color: var(--ink2); }
+  .status { font-weight: 700; white-space: nowrap; font-size: 13px; }
+  .status.ok { color: var(--good-ink); } .status.standard { color: var(--ink2); }
+  .status.imposed { color: var(--accent-ink); } .status.violated, .status.fail { color: var(--bad-ink); }
+  .status.warn { color: var(--warn-ink); }
+
+  .step { border-left: 3px solid var(--line-strong); padding: 4px 0 4px 16px; margin: 14px 0; }
+  .step .label { font-weight: 600; font-size: 15px; }
+  .step .note { color: var(--ink2); font-size: 14px; }
+  .eq { overflow-x: auto; overflow-y: hidden; padding: 4px 0; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; margin-top: 12px; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; background: var(--surface); }
+  .card .title { font-weight: 600; color: var(--ink2); font-size: 14px; }
+  .card .value { font-size: 22px; font-weight: 650; margin: 2px 0 4px; }
+  details.hint { margin-top: 8px; }
+  details.hint summary { cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
+                         font-size: 13px; color: var(--accent-ink); font-weight: 600; }
+  details.hint summary::-webkit-details-marker { display: none; }
+  details.hint summary .i { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+                            border: 1.5px solid var(--accent); font: italic 700 12px Georgia, serif; }
+  details.hint[open] summary { margin-bottom: 8px; }
+  details.hint .body { background: var(--tint); border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+  details.hint .body table { font-size: 14px; margin: 8px 0; }
+  details.hint .body th, details.hint .body td { padding: 5px 10px; background: transparent; }
+  .checks { list-style: none; padding: 0; margin: 16px 0 0; font-size: 15px; display: grid; gap: 4px; }
+  .checks li::before { content: "✓"; color: var(--good); font-weight: 700; margin-right: 8px; }
+  .checks li.bad::before { content: "✗"; color: var(--bad); }
+
+  /* Decisions */
+  :root { --k-physics: #2a78d6; --k-accuracy: #eb6834; --k-solver: #85837d; --k-output: #1baf7a; }
+  .kind { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 650; white-space: nowrap;
+          padding: 2px 10px; border-radius: 999px; background: var(--tint); border: 1px solid var(--line); color: var(--ink2); }
+  .kind::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--kc); }
+  .kind.physics { --kc: var(--k-physics); } .kind.accuracy { --kc: var(--k-accuracy); }
+  .kind.solver { --kc: var(--k-solver); } .kind.output { --kc: var(--k-output); }
+  .kinds { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin: 0 0 18px; }
+  .kinds .chip .kind { margin-bottom: 4px; }
+  table.glance td { vertical-align: middle; padding: 7px 12px; }
+  table.glance td.n { width: 44px; } table.glance td.k { width: 1%; }
+  table.glance a { color: var(--ink); text-decoration: none; } table.glance a:hover { color: var(--accent-ink); text-decoration: underline; }
+  table.glance .areaname { color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .dnum { display: inline-grid; place-items: center; min-width: 34px; height: 24px; border-radius: 6px; padding: 0 6px;
+          background: var(--ink); color: #fff; font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .area { margin: 30px 0 10px; font-size: 13px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ink2);
+          display: flex; align-items: center; gap: 10px; }
+  .area::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .dcard { border: 1px solid var(--line); border-left: 4px solid var(--kc); border-radius: 10px; margin: 10px 0; overflow: hidden;
+           scroll-margin-top: 16px; }
+  .dcard.physics { --kc: var(--k-physics); } .dcard.accuracy { --kc: var(--k-accuracy); }
+  .dcard.solver { --kc: var(--k-solver); } .dcard.output { --kc: var(--k-output); }
+  .dcard > header { display: flex; align-items: flex-start; gap: 12px; padding: 12px 16px 10px; }
+  .dcard .choice { flex: 1; font-weight: 650; font-size: 16px; line-height: 1.45; }
+  .dcard .dbody { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0; border-top: 1px solid var(--line); }
+  .dcard .why { padding: 12px 16px; font-size: 14.5px; }
+  .dcard .side { padding: 12px 16px; background: var(--tint); font-size: 14px; display: grid; gap: 10px; align-content: start; }
+  .lbl { font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+  .dcard > footer { border-top: 1px solid var(--line); padding: 8px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+  .dcard > footer .lbl { margin: 0 6px 0 0; }
+  .dcard > footer code { font-size: 11.5px; color: var(--ink2); }
+
+  .defs { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 12px; margin: 10px 0 18px; }
+  .def { background: var(--tint); border-radius: 10px; padding: 10px 14px; }
+  .def .name { font-weight: 600; font-size: 14px; }
+  .def .meaning { color: var(--ink2); font-size: 14px; }
+
+  /* Insights */
+  .insight { border-left: 4px solid var(--warn); background: var(--tint); border-radius: 0 10px 10px 0; padding: 12px 16px; margin: 10px 0; }
+  .insight.open { border-left-color: var(--bad); background: var(--bad-tint); }
+  .insight .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .insight .stage { font-size: 12px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--warn-ink); }
+  .insight .when { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .insight .open-tag { font-size: 12px; font-weight: 700; color: var(--bad-ink); }
+  .insight dl { display: grid; grid-template-columns: 120px 1fr; gap: 4px 14px; margin: 6px 0 0; font-size: 14.5px; }
+  .insight dt { color: var(--ink2); font-weight: 600; } .insight dd { margin: 0; }
+
+  dl.kv { display: grid; grid-template-columns: 170px 1fr; gap: 10px 18px; margin: 0; font-size: 15px; }
+  dl.kv dt { color: var(--ink2); font-weight: 600; } dl.kv dd { margin: 0; }
+
+  /* Reproducibility */
+  .rerun { background: #1d1d1b; color: #ecebe6; border-radius: 10px; padding: 14px 18px; margin: 10px 0 18px; overflow-x: auto; }
+  .rerun ol { margin: 0; padding: 0; list-style: none; counter-reset: c; display: grid; gap: 10px; }
+  .rerun li { counter-increment: c; display: grid; grid-template-columns: 26px 1fr; column-gap: 8px; }
+  .rerun li::before { content: counter(c); grid-row: span 2; display: grid; place-items: center; width: 22px; height: 22px;
+                      border-radius: 50%; background: #3a3a37; color: #fff; font: 700 12px system-ui, sans-serif; }
+  .rerun .what { color: #a9a8a1; font-size: 13px; }
+  .rerun code { background: none; border: none; padding: 0; color: #fff; font-size: 13px; white-space: pre; }
+  .repro-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 14px; }
+  .panel { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+  .panel h4 { margin: 0 0 8px; font-size: 14px; color: var(--ink2); }
+  .panel ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 14px; }
+  .panel li code { font-size: 12px; word-break: break-all; }
+  .panel li .what { color: var(--ink2); display: block; margin-top: 1px; }
+  .panel table { font-size: 14px; width: 100%; } .panel td { padding: 5px 0; border: none; }
+  .panel td:first-child { color: var(--ink2); width: 130px; }
+
+  figure { margin: 16px 0; display: flex; flex-direction: column; align-items: center; }
+  figure svg { width: 100%; max-width: var(--w, 640px); height: auto; display: block; }
+  figcaption { color: var(--ink2); font-size: 14px; margin-top: 6px; max-width: 660px; text-align: center; }
+  figcaption b { color: var(--ink); }
+  .notes { color: var(--ink2); font-size: 14px; padding-left: 18px; }
+
+  footer { color: var(--muted); font-size: 13px; text-align: center; margin-top: 28px; }
+
+  @media (max-width: 640px) {
+    section { padding: 18px 16px; } h1 { font-size: 24px; }
+    .cards, .defs { grid-template-columns: 1fr; }
+    dl.kv, .insight dl { grid-template-columns: 1fr; gap: 2px 0; }
+    .dcard .dbody { grid-template-columns: 1fr; } .repro-grid { grid-template-columns: 1fr; }
+    table.glance .areaname { display: none; }
+    dl.kv dd { margin-bottom: 10px; }
+  }
+  @media print {
+    body { background: #fff; } nav.toc { display: none; }
+    section { break-inside: avoid-page; border-color: #ccc; }
+  }
+</style>
+</head>
+<body>
+<main>
+{% macro figures(section) -%}
+  {% for f in figs if f.section == section %}
+  <figure class="{{ section }}" style="--w: {{ f.width_px }}px">{{ f.svg }}
+    <figcaption><b>Figure {{ f.number }}.</b> {{ f.caption }}</figcaption></figure>
+  {% endfor %}
+{%- endmacro %}
+{% macro table(t, full=false) -%}
+  <div class="table-wrap"><table class="{{ 'full' if full else '' }}">
+    <tr>{% for h in t.head %}<th class="{{ '' if loop.first else 'num' }}">{{ h }}</th>{% endfor %}</tr>
+    {% for row in t.rows %}
+    <tr>{% for c in row %}<td class="{{ '' if loop.first else 'num' }}">{{ c }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </table></div>
+{%- endmacro %}
+{% macro checks_table(rows) -%}
+  <div class="table-wrap"><table class="full">
+    <tr><th>Check</th><th>Result</th><th>Status</th><th>What it means</th></tr>
+    {% for c in rows %}
+    <tr><td><b>{{ c.name }}</b></td><td>{{ c.value }}</td><td><span class="status {{ c.status }}">{{ check_legend[c.status] }}</span></td>
+        <td>{{ c.meaning }}</td></tr>
+    {% endfor %}
+  </table></div>
+{%- endmacro %}
+
+<header>
+  <div class="kicker">Agentic CFD report · {{ r.date }}</div>
+  <h1>{{ r.title }}</h1>
+  <nav class="toc">
+    <a href="#summary">Summary</a><a href="#problem">1 Problem</a><a href="#assumptions">2 Assumptions</a>
+    <a href="#theory">3 Theory</a><a href="#decisions">4 Decisions</a><a href="#preflight">5 Pre-flight test</a>
+    <a href="#simulation">6 Simulation</a><a href="#comparison">7 Comparison</a><a href="#insights">8 Workflow insights</a>
+    <a href="#repro">A Reproducibility</a>{% if r.performance is defined %}<a href="#performance">B Performance</a>{% endif %}
+  </nav>
+</header>
+
+<!-- ============================== SUMMARY ============================== -->
+<section id="summary" class="summary {{ r.verdict }}">
+  <h2>Summary <span class="verdict">{{ {'PASS': '✓', 'WARN': '⚠', 'FAIL': '✗'}[r.verdict] }} {{ r.verdict }}</span>
+      <span class="ctype">{{ r.comparison_type | capitalize }}</span></h2>
+  <p class="headline">{{ r.summary.headline }}</p>
+  <h4>Answers to the request</h4>
+  <div class="table-wrap"><table class="answers full">
+    <tr>{% for h in r.summary.answer_columns %}<th class="{{ 'num' if loop.last else '' }}">{{ h }}</th>{% endfor %}</tr>
+    {% for a in r.summary.answers %}
+    <tr><td><div class="req"><span class="letter">{{ a.letter }}</span><span>{{ a.label }}</span></div></td><td>{{ a.theory }}</td><td>{{ a.sim }}</td>
+        <td class="num">{{ a.diff }}</td></tr>
+    {% endfor %}
+  </table></div>
+  <h4>Key findings</h4>
+  <ul class="points">{% for b in r.summary.findings %}<li>{{ b }}</li>{% endfor %}</ul>
+  {% for l in r.summary.limitations %}<div class="callout warn"><span class="tag">Limitation</span>{{ l }}</div>{% endfor %}
+</section>
+
+<!-- ============================== 1 PROBLEM ============================== -->
+<section id="problem">
+  <h2><span class="num">1</span> Problem</h2>
+  <p class="lead">{{ r.problem.description }}</p>
+  <div class="wanted">
+    <h4>What we want to find</h4>
+    <ol>{% for w in r.problem.wanted %}<li><span class="letter">{{ w.letter }}</span>{{ w.text }}</li>{% endfor %}</ol>
+  </div>
+  {% if r.problem.setup is defined and r.problem.setup %}
+  <h4>Setup</h4>
+  <ul class="points">{% for s in r.problem.setup %}<li>{{ s }}</li>{% endfor %}</ul>
+  {% endif %}
+  {{ figures('problem') }}
+  <h4>Given data</h4>
+  <div class="table-wrap"><table>
+    <tr><th>Quantity</th><th>Symbol</th><th class="num">Value</th><th>Unit</th></tr>
+    {% for x in r.problem.given %}
+    <tr><td>{{ x.label }}</td><td>{{ x.symbol }}</td><td class="num">{{ x.value }}</td><td>{{ x.unit }}</td></tr>
+    {% endfor %}
+  </table></div>
+  {% if r.problem.reference is defined and r.problem.reference %}
+  <div class="callout info"><span class="tag">Reference data supplied</span>{{ r.problem.reference }}</div>
+  {% endif %}
+</section>
+
+<!-- ============================== 2 ASSUMPTIONS ============================== -->
+<section id="assumptions">
+  <h2><span class="num">2</span> Assumptions</h2>
+  <p class="lead">Both the theory and the simulation rely on these. The status column says how each one was established:</p>
+  <div class="chips">
+    {% for s in assumption_legend %}<div class="chip"><span class="status {{ s.status }}">{{ s.label }}</span><br>{{ s.meaning }}</div>{% endfor %}
+  </div>
+  {% set labels = {} %}{% for s in assumption_legend %}{% set _ = labels.update({s.status: s.label}) %}{% endfor %}
+  <div class="table-wrap"><table class="full">
+    <tr><th>Assumption</th><th>Justification</th><th>Status</th></tr>
+    {% for a in r.assumptions.rows %}
+    <tr><td><b>{{ a.name }}</b></td><td>{{ a.check }}</td><td><span class="status {{ a.status }}">{{ labels[a.status] }}</span></td></tr>
+    {% endfor %}
+  </table></div>
+</section>
+
+<!-- ============================== 3 THEORY ============================== -->
+<section id="theory">
+  <h2><span class="num">3</span> Theory</h2>
+  <p class="lead">{{ r.theory.intro }}</p>
+  {% for s in r.theory.steps %}
+  <div class="step"><div class="label">{{ s.label }}</div><div class="eq">\[ {{ s.latex }} \]</div><div class="note">{{ s.note }}</div></div>
+  {% endfor %}
+  {% if r.theory.self_checks %}
+  <ul class="checks">{% for c in r.theory.self_checks %}<li class="{{ '' if c.ok else 'bad' }}">{{ c.name }}</li>{% endfor %}</ul>
+  {% endif %}
+  {{ figures('theory') }}
+  {% if r.theory.derived %}
+  <h3>Derived quantities</h3>
+  <p class="lead">Evaluated with the given data. Open ⓘ for what each quantity means and the formula with the numbers plugged in, to check it by hand.</p>
+  <div class="cards">
+    {% for d in r.theory.derived %}
+    <div class="card">
+      <div class="title">{{ d.label }}</div>
+      <div class="value">\( {{ d.symbol }} = {{ d.value_tex }}\ {{ d.unit_tex }} \)</div>
+      <div class="eq">\( \displaystyle {{ d.formula }} \)</div>
+      <details class="hint">
+        <summary><span class="i">i</span>Why it matters · check it by hand</summary>
+        <div class="body">
+          <div>{{ d.why }}</div>
+          {% if d.params %}
+          <table>
+            <tr><th>Symbol</th><th>Meaning here</th><th class="num">Value</th></tr>
+            {% for p in d.params %}<tr><td>\( {{ p.tex }} \)</td><td>{{ p.meaning }}</td><td class="num">\( {{ p.value | tnum }}\ {{ p.unit }} \)</td></tr>{% endfor %}
+          </table>
+          {% endif %}
+          <div class="eq">\[ {{ d.check }} \]</div>
+        </div>
+      </details>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+<!-- ============================== 4 DECISIONS ============================== -->
+<section id="decisions">
+  <h2><span class="num">4</span> Decisions</h2>
+  <p class="lead">Every modelling and numerical choice that can change the result. Each one is tagged with the kind of influence
+    it has on the answer; a checker verifies that every OpenFOAM setting in the case files belongs to one of them.</p>
+  <div class="kinds">
+    {% for k, meaning in decision_kinds.items() %}<div class="chip"><span class="kind {{ k }}">{{ k | capitalize }}</span><br>{{ meaning }}</div>{% endfor %}
+  </div>
+  <h4>At a glance</h4>
+  <div class="table-wrap"><table class="glance full">
+    {% for area, items in decision_groups %}{% for d in items %}
+    <tr><td class="n"><span class="dnum">D{{ d.num }}</span></td><td><a href="#d{{ d.num }}">{{ d.choice }}</a></td>
+        <td class="areaname">{{ area }}</td><td class="k"><span class="kind {{ d.kind }}">{{ d.kind | capitalize }}</span></td></tr>
+    {% endfor %}{% endfor %}
+  </table></div>
+  {% for area, items in decision_groups %}
+  <div class="area">{{ area }}</div>
+  {% for d in items %}
+  <article class="dcard {{ d.kind }}" id="d{{ d.num }}">
+    <header><span class="dnum">D{{ d.num }}</span><div class="choice">{{ d.choice }}</div><span class="kind {{ d.kind }}">{{ d.kind | capitalize }}</span></header>
+    <div class="dbody">
+      <div class="why"><div class="lbl">Why this choice</div>{{ d.why }}</div>
+      <div class="side">
+        <div><div class="lbl">Effect on the result</div>{{ d.affects }}</div>
+        <div><div class="lbl">Alternatives</div>{{ d.alternatives }}</div>
+      </div>
+    </div>
+    <footer><span class="lbl">OpenFOAM settings</span>{% for x in d.settings %}<code>{{ x }}</code>{% endfor %}</footer>
+  </article>
+  {% endfor %}
+  {% endfor %}
+</section>
+
+<!-- ============================== 5 PREFLIGHT ============================== -->
+<section id="preflight">
+  <h2><span class="num">5</span> Pre-flight test</h2>
+  <p class="lead">{{ r.preflight.purpose }}</p>
+  <div class="table-wrap"><table class="full">
+    <tr><th>Test run</th><th>Setup</th><th>Outcome</th></tr>
+    {% for x in r.preflight.runs %}<tr><td><b>{{ x.name }}</b></td><td>{{ x.setup }}</td><td>{{ x.outcome }}</td></tr>{% endfor %}
+  </table></div>
+  {{ checks_table(r.preflight.checks) }}
+  {{ figures('preflight') }}
+  <div class="callout {{ 'good' if 'fail' not in r.preflight.checks | map(attribute='status') else 'warn' }}"><span class="tag">Conclusion</span>{{ r.preflight.conclusion }}</div>
+</section>
+
+<!-- ============================== 6 SIMULATION ============================== -->
+<section id="simulation">
+  <h2><span class="num">6</span> Simulation</h2>
+  <h3><span class="num">6.1</span>From the real problem to the simulation model</h3>
+  <div class="table-wrap"><table class="full">
+    <tr><th>Aspect</th><th>Real problem</th><th>Simulation model</th></tr>
+    {% for x in r.simulation.model %}<tr><td><b>{{ x.aspect }}</b></td><td>{{ x.real }}</td><td>{{ x.model }}</td></tr>{% endfor %}
+  </table></div>
+  <h3><span class="num">6.2</span>Meshes</h3>
+  <p class="lead">{{ r.simulation.meshes.intro }}</p>
+  {{ table(r.simulation.meshes) }}
+  <h3><span class="num">6.3</span>Results</h3>
+  {{ figures('simulation') }}
+  {{ table(r.simulation.results) }}
+  <h3><span class="num">6.4</span>Run health</h3>
+  {{ figures('convergence') }}
+  {{ table(r.simulation.health) }}
+  <ul class="notes">{% for n in r.simulation.health.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+</section>
+
+<!-- ============================== 7 COMPARISON ============================== -->
+<section id="comparison">
+  <h2><span class="num">7</span> Comparison</h2>
+  <p class="lead">{{ r.comparison.kind }}</p>
+  <h4>How the differences are measured</h4>
+  <div class="defs">
+    {% for d in r.comparison.definitions %}
+    <div class="def"><div class="name">{{ d.name }}</div><div class="eq">\[ {{ d.latex }} \]</div><div class="meaning">{{ d.meaning }}</div></div>
+    {% endfor %}
+  </div>
+  {{ figures('comparison') }}
+  {{ table(r.comparison) }}
+  {% for f in r.comparison.findings %}<div class="callout info">{{ f }}</div>{% endfor %}
+</section>
+
+<!-- ============================== 8 INSIGHTS ============================== -->
+<section id="insights">
+  <h2><span class="num">8</span> Workflow insights</h2>
+  <p class="lead">Problems met while producing this report, logged at the moment they happened, with how they were solved and what
+    future agents should do differently. These feed back into the workflow guidelines.</p>
+  {% for it in insights %}
+  <div class="insight {{ it.status | default('resolved') }}">
+    <div class="meta"><span class="stage">{{ it.stage }}</span><span class="when">logged {{ it.logged }}</span>
+      {% if it.status | default('resolved') == 'open' %}<span class="open-tag">✗ Unresolved</span>{% endif %}</div>
+    <dl><dt>Problem</dt><dd>{{ it.problem }}</dd>
+      {% for k, lab in [('diagnosis', 'Diagnosis'), ('fix', 'Fix'), ('lesson', 'Lesson'), ('guideline', 'Guideline')] %}
+      {% if it[k] is defined and it[k] %}<dt>{{ lab }}</dt><dd>{{ it[k] }}</dd>{% endif %}{% endfor %}</dl>
+  </div>
+  {% endfor %}
+</section>
+
+<!-- ============================== APPENDIX ============================== -->
+<section id="repro">
+  <h2><span class="num">A</span> Reproducibility</h2>
+  <p class="lead">Everything needed to produce this report again. Commands run inside WSL from the project folder.</p>
+  <h4>Re-run it</h4>
+  <div class="rerun"><ol>
+    {% for c in r.reproducibility.commands %}<li><code>{{ c.cmd | e }}</code><span class="what">{{ c.what }}</span></li>{% endfor %}
+  </ol></div>
+  <div class="repro-grid">
+    <div class="panel"><h4>Case files</h4><ul>
+      {% for f in r.reproducibility.files %}<li><code>{{ f.path | e }}</code><span class="what">{{ f.what }}</span></li>{% endfor %}
+    </ul></div>
+    <div class="panel"><h4>Run directories</h4><ul>
+      {% for f in r.reproducibility.run_dirs %}<li><code>{{ f.path | e }}</code><span class="what">{{ f.what }}</span></li>{% endfor %}
+    </ul>
+    <h4 style="margin-top:16px">Environment</h4>
+    <table>{% for k, v in r.reproducibility.environment %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
+  </div>
+  {% if r.reproducibility.notes is defined and r.reproducibility.notes %}
+  <ul class="notes">{% for n in r.reproducibility.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+  {% endif %}
+</section>
+
+{% if r.performance is defined %}
+<!-- ============================== APPENDIX B ============================== -->
+<section id="performance">
+  <h2><span class="num">B</span> Performance</h2>
+  <p class="lead">{{ r.performance.intro }}</p>
+  {{ figures('performance') }}
+  {{ table(r.performance, full=true) }}
+  <ul class="notes">{% for n in r.performance.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+<footer>Every number in this report was computed by code (results.json); none was typed by the agent.
+  The report passed the automatic contract check.</footer>
+</main>
+</body>
+</html>

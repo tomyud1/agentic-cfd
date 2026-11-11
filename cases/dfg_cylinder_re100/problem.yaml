@@ -1,0 +1,40 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: dfg_cylinder_re100
+title: Flow past a cylinder in a channel at Re = 100 (DFG benchmark 2D-2)
+description: >
+  Fluid flows through a two-dimensional channel past a fixed circular cylinder. At this Reynolds
+  number the flow never settles: vortices are shed alternately from the two sides of the cylinder and
+  the forces on it oscillate periodically. Find the fully developed periodic flow and compare the
+  forces and the shedding frequency with the published benchmark.
+setup:
+  - 'Channel of height \(H\) and length \(L\). A cylinder of diameter \(D\) is centred at \((x_c, y_c)\), slightly below the centreline.'
+  - 'Coordinates: \(x\) along the channel from the inlet, \(y\) across it from the lower wall.'
+  - 'Inlet (\(x = 0\)): parabolic velocity profile \(u = 4 U_m\, y (H - y) / H^2\), \(v = 0\).'
+  - 'Outlet (\(x = L\)): free outflow, no stress imposed.'
+  - 'Channel walls and cylinder: no-slip (the fluid sticks to them).'
+  - 'Force coefficients use the mean inflow velocity \(\bar U = \tfrac{2}{3} U_m\) and the diameter: \(c = 2F / (\rho \bar U^2 D)\) per unit depth, with the drag \(F_D\) along \(x\) and the lift \(F_L\) along \(y\).'
+  - 'Strouhal number: \(St = f D / \bar U\), where \(f\) is the frequency of the lift.'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  H:     {value: 0.41,  unit: m,     symbol: '\(H\)',            label: "Channel height"}
+  L:     {value: 2.2,   unit: m,     symbol: '\(L\)',            label: "Channel length (inlet to outlet)"}
+  D:     {value: 0.1,   unit: m,     symbol: '\(D\)',            label: "Cylinder diameter"}
+  xc:    {value: 0.2,   unit: m,     symbol: '\(x_c\)',          label: "Cylinder centre, distance from the inlet"}
+  yc:    {value: 0.2,   unit: m,     symbol: '\(y_c\)',          label: "Cylinder centre, height above the lower wall"}
+  Um:    {value: 1.5,   unit: m/s,   symbol: '\(U_m\)',          label: "Maximum inflow velocity (centre of the parabola)"}
+  nu:    {value: 0.001, unit: m²/s,  symbol: '\(\nu\)',          label: "Kinematic viscosity"}
+  rho:   {value: 1.0,   unit: kg/m³, symbol: '\(\rho\)',         label: "Density"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: drag,     text: "Drag coefficient over one shedding cycle of the fully developed flow: maximum, minimum, mean and amplitude"}
+  - {key: lift,     text: "Lift coefficient over one shedding cycle: maximum, minimum, mean and amplitude"}
+  - {key: strouhal, text: 'Shedding frequency \(f\) and Strouhal number \(St\)'}
+  - {key: wake,     text: "A picture of the flow (vorticity or velocity) at the moment of maximum lift, showing the vortex street"}
+
+reference:
+  file: reference/featflow_dfg2d2_re100.yaml
+  description: >
+    Benchmark numerical solutions by the FeatFlow group (TU Dortmund) for the DFG benchmark 2D-2 defined by
+    Schäfer and Turek (1996): drag, lift and Strouhal number for four mesh levels and three time steps,
+    parsed by code from the benchmark web page (setup/fetch_featflow.sh downloads the page,
+    setup/parse_featflow.py turns it into the YAML file).

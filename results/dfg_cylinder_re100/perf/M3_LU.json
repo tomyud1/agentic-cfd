@@ -1,0 +1,24 @@
+{
+ "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/M3_LU",
+ "solver": "pimpleFoam",
+ "cells": 53728,
+ "cores": 4,
+ "steps": 3000,
+ "wall_s": 280.4158294130002,
+ "cpu_s": 1122.253813,
+ "solver_cpu_s": 279.76,
+ "peak_mem_mb": 105.30078125,
+ "us_per_cell_step": 1.739724969060206,
+ "cpu_efficiency": 1.000526446161434,
+ "write_share": 0.0014829027800273842,
+ "lin_iters": {
+  "Ux": 4.152,
+  "Uy": 4.407166666666667,
+  "p": 4.868041666666667
+ },
+ "lin_solves_per_step": {
+  "Ux": 2.0,
+  "Uy": 2.0,
+  "p": 8.0
+ }
+}

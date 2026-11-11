@@ -1,0 +1,85 @@
+{
+ "name": "N2000_dt5ms",
+ "Ny": 2000,
+ "dt": 0.005,
+ "h": 2.5e-05,
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/stokes_first_problem/N2000_dt5ms",
+ "wall_time": 23.365770655000006,
+ "total_time": 24.835859060287476,
+ "steps": 4000,
+ "mesh_ok": true,
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "0.0499",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.176\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,3.49\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,2.35\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,5\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Round-off level of zero quantities",
+    "status": "ok",
+    "value": "continuity \\(1.2 \\times 10^{-19}\\), \\(|v|/U = 5.4 \\times 10^{-17}\\)",
+    "meaning": "Mass conservation error and cross-flow velocity must stay at round-off: v = 0 exactly in this flow."
+   }
+  ],
+  "steps": 4000,
+  "last_time": 20.0,
+  "wall_time": 23.01,
+  "est_full_runtime": null,
+  "est_kind": null,
+  "cont_max": 1.24077091889e-19,
+  "v_max": 5.4321616383499996e-17
+ },
+ "final_residuals": {
+  "Ux": 4.08065557846e-05,
+  "p": 0.00401943748542
+ },
+ "max_Ux_residual": 0.999999999998,
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/stokes_first_problem"
+}

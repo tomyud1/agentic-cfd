@@ -1,0 +1,74 @@
+# Benchmark reference data for the lid-driven cavity at Re = 100.
+# Source: U. Ghia, K. N. Ghia, C. T. Shin (1982), "High-Re solutions for incompressible flow
+#         using the Navier-Stokes equations and a multigrid method",
+#         Journal of Computational Physics 48, 387-411.
+# Transcribed 2026-11-10 from a scan of the paper (Tables I, II, V, Re = 100 column).
+# Cross-checked against a secondary copy (github.com/amikkonen/lidDrivenCavityCompressibleFlowPython,
+# ldc.py, 4-decimal values): all values agree.
+# Nature of the data: a very fine numerical solution (129 x 129 uniform grid, stream function-
+# vorticity formulation, multigrid), NOT an experiment. Coordinates are scaled by the cavity side L
+# (origin at the bottom-left corner, lid at y = 1 moving in +x); velocities by the lid speed U.
+
+source:
+  citation: "Ghia, Ghia & Shin (1982), J. Comput. Phys. 48, 387-411"
+  kind: benchmark numerical solution (129 x 129 grid)
+  tables: "Table I (u), Table II (v), Table V (vortex properties)"
+
+# Table I: u/U along the vertical line through the geometric centre (x/L = 0.5)
+u_vertical_centreline:
+  columns: [y, u]
+  rows:
+    - [1.00000, 1.00000]
+    - [0.9766, 0.84123]
+    - [0.9688, 0.78871]
+    - [0.9609, 0.73722]
+    - [0.9531, 0.68717]
+    - [0.8516, 0.23151]
+    - [0.7344, 0.00332]
+    - [0.6172, -0.13641]
+    - [0.5000, -0.20581]
+    - [0.4531, -0.21090]     # local minimum (underscored in the paper)
+    - [0.2813, -0.15662]
+    - [0.1719, -0.10150]
+    - [0.1016, -0.06434]
+    - [0.0703, -0.04775]
+    - [0.0625, -0.04192]
+    - [0.0547, -0.03717]
+    - [0.0000, 0.00000]
+
+# Table II: v/U along the horizontal line through the geometric centre (y/L = 0.5)
+v_horizontal_centreline:
+  columns: [x, v]
+  rows:
+    - [1.0000, 0.00000]
+    - [0.9688, -0.05906]
+    - [0.9609, -0.07391]
+    - [0.9531, -0.08864]
+    - [0.9453, -0.10313]
+    - [0.9063, -0.16914]
+    - [0.8594, -0.22445]
+    - [0.8047, -0.24533]     # local minimum (underscored in the paper)
+    - [0.5000, 0.05454]
+    - [0.2344, 0.17527]     # local maximum (underscored in the paper)
+    - [0.2266, 0.17507]
+    - [0.1563, 0.16077]
+    - [0.0938, 0.12317]
+    - [0.0781, 0.10890]
+    - [0.0703, 0.10091]
+    - [0.0625, 0.09233]
+    - [0.0000, 0.00000]
+
+# Table V: vortex properties, Re = 100 (stream function psi scaled by U*L; psi = 0 on the walls)
+vortices:
+  primary:
+    psi_min: -0.103423
+    omega_centre: 3.16646
+    centre: [0.6172, 0.7344]
+  bottom_left_secondary:
+    psi_max: 1.74877e-6
+    centre: [0.0313, 0.0391]
+  bottom_right_secondary:
+    psi_max: 1.25374e-5
+    centre: [0.9453, 0.0625]
+# Note: Ghia's grid spacing is 1/128 = 0.0078, so tabulated vortex-centre locations are grid
+# points: their own resolution is about +/- 0.004 in x and y.

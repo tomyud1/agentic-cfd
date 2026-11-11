@@ -1,0 +1,189 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling
+
+- id: 1
+  stage: tooling
+  logged: 2026-11-11 00:06
+  status: resolved
+  problem: 'Skill tool call ''agentic-cfd'' failed with ''Unknown skill'': the skill exists at .claude/skills/agentic-cfd/SKILL.md
+    but is not registered in this (sub-agent) session, so I had to find and read SKILL.md by hand.'
+  diagnosis: The skill lives in the project .claude/skills folder, but this session (an agent launched by another
+    agent) did not list it among available skills; the Skill tool only knows registered skills.
+  fix: Found it with a file search and read SKILL.md and its three references directly (about 1 minute).
+  lesson: Do not rely on the Skill tool alone; the files are the source of truth.
+  guideline: In the launching prompt, give the path .claude/skills/agentic-cfd/SKILL.md as a fallback, or make sure
+    sub-agents load project skills.
+  resolved: 2026-11-11 00:23
+- id: 2
+  stage: setup
+  logged: 2026-11-11 00:12
+  status: resolved
+  problem: 'The closest tutorial (pimpleFoam/laminar/planarPoiseuille: 1D, wall + symmetryPlane, cyclic x, backward)
+    uses momentumPredictor off with 15 outer correctors. For a linear diffusion problem that is a slow Jacobi-like
+    iteration; unclear from the primer whether to keep it.'
+  diagnosis: The tutorial is built for viscoelastic (Maxwell) cases where the stress equation is coupled; for a
+    linear Newtonian diffusion problem one implicit momentum solve per step is the exact discrete answer.
+  fix: Momentum predictor on, 1 outer corrector, velocity solved to \(10^{-12}\). Confirmed afterwards by the per-step
+    momentum balance (round-off level on every run) rather than by assumption.
+  lesson: Start from the closest tutorial for structure (patches, 1D layout, schemes), but re-derive the algorithm
+    settings from the physics, as SKILL.md says (copy structure, not numerics).
+  guideline: 'openfoam-primer.md: add planarPoiseuille as the template for 1D transient wall-bounded flows and a
+    note that linear problems need only momentumPredictor yes + nOuterCorrectors 1.'
+  resolved: 2026-11-11 00:23
+- id: 3
+  stage: setup
+  logged: 2026-11-11 00:15
+  status: resolved
+  problem: 'Worked first time: decisions.yaml covered every OpenFOAM setting at the first --decisions check, and
+    checkMesh passed.'
+  diagnosis: Patterns copied from <code>plane_poiseuille/decisions.yaml</code> (<code>0/*/boundaryField/#includeEtc*</code>,
+    <code>system/controlDict/functions/*</code>, <code>system/fvSchemes/...</code>) already matched a structurally
+    similar 1D case.
+  fix: None needed; the cyclic-x + empty-z 1D layout was also copied from the Poiseuille template.
+  lesson: A structurally close worked example (1D, cyclic x, empty z) makes setup almost mechanical; the <code>--decisions</code>
+    CLI gives a 5-second check.
+  guideline: Keep the <code>--decisions</code> command in SKILL.md stage 2; consider a short list of common setting
+    patterns per file in the primer so cases unlike the examples are equally easy.
+- id: 4
+  stage: preflight
+  logged: 2026-11-11 00:16
+  status: resolved
+  problem: 'Pre-flight FAILED on the coarse level: "Continuity-error trend \(\times 1.9\times10^{8}\)", and warned
+    on the fine level: "Residual trend Uy \(\times 16.6\)". The physics looked right (wall stress and momentum at
+    1 s within 1 % of exact).'
+  diagnosis: 'False alarms. The continuity error (sum local) went from \(10^{-28}\) to \(7\times10^{-19}\) and \(|v|/U\)
+    is \(10^{-17}\): both are round-off, because this flow has \(v = 0\) and \(\nabla\cdot\mathbf{u} = 0\) exactly.
+    <code>monitor.assess</code> judges continuity and residuals only by their late/early RATIO, and a ratio of round-off
+    noise can be anything (\(1.9\times10^{8}\) here). This is pitfall 3 of the primer (residuals of ~zero fields),
+    but for the continuity check, which <code>assess()</code> treats as FAIL (ratio above 100), not just warn.'
+  fix: 'Case-local <code>health()</code> wrapper in run.py: keeps the <code>assess()</code> output but downgrades
+    the continuity-trend and Uy-trend checks to ok ONLY if the absolute level is round-off (sum local below \(10^{-12}\),
+    \(\max|v|/U\) below \(10^{-10}\)), keeps the original verdict in the text, and adds an explicit absolute-level
+    check. Cost about 10 minutes.'
+  lesson: 'Trend checks need an absolute floor: a growing ratio of numbers at machine precision is not divergence.'
+  guideline: '<code>cfdlib.monitor.assess</code>: skip (or mark ok) the continuity-error trend when its maximum
+    is below an absolute floor (e.g. \(10^{-12}\)), and the residual trend of a field whose normalised residual
+    is noise; report the absolute maximum next to the ratio. Primer pitfall 3: extend it to continuity errors.'
+  resolved: 2026-11-11 00:17
+- id: 5
+  stage: analysis
+  logged: 2026-11-11 00:19
+  status: resolved
+  problem: 'Surprise in the momentum-balance check: to close the discrete balance \(dP/dt = |\tau_w|\) at the first
+    step, the Euler formula is needed, not BDF2 (with BDF2 there the balance error is of order 1). OpenFOAM backward
+    uses Euler for the first step (no old-old field yet).'
+  diagnosis: <code>backwardDdtScheme</code> falls back to Euler when only one old time level exists. With the matching
+    formula per step (Euler at step 1, BDF2 after) the balance holds to \(10^{-8}\) of the final wall stress on
+    every run (accumulated round-off over 8000 steps).
+  fix: 'The check uses the scheme the solver actually applied: Euler for step 1, BDF2 coefficients (3/2, -2, 1/2)
+    after.'
+  lesson: A discrete conservation check must mirror the exact discrete operator, including start-up special cases;
+    this check then verifies the solver to round-off and is far stronger than residuals.
+  guideline: 'openfoam-primer.md: note that backward (BDF2) starts with one Euler step, and suggest the per-step
+    integral balance (volFieldValue volIntegrate + wall flux) as the physical convergence check for transient runs.'
+- id: 6
+  stage: analysis
+  logged: 2026-11-11 00:19
+  status: resolved
+  problem: The acceptance tolerances I fixed before seeing results (0.2 % for profile, wall stress and momentum;
+    0.5 % for depth) turned out about 100 times looser than what the finest run achieved (profile \(2\times10^{-5}\,U\),
+    wall stress \(2\times10^{-6}\)). The verdict is PASS, but the rule was not discriminating.
+  diagnosis: SKILL.md asks to fix checks before results but gives no way to size a verification tolerance; I guessed
+    from engineering habit. Here the coarsest run already met every tolerance, so the rules could not catch a moderately
+    wrong finest run.
+  fix: 'Kept the pre-set rules (no moving goalposts) and added the stronger, physics-based evidence alongside: observed
+    order 2.00 on the combined family, a wall-stress error that follows the predicted \(h^2/(\nu t)\) law, and the
+    momentum balance to \(10^{-8}\).'
+  lesson: For verification, the strongest acceptance rule is the observed order plus agreement with a predicted
+    error law; absolute tolerances should be sized from a pre-flight coarse-run error and the expected order.
+  guideline: 'SKILL.md stage 2: for verification cases, size tolerances from the pre-flight (coarse) error divided
+    by \(r^p\) per refinement, and make the observed order (within 0.3 of the design order) a pass rule, not only
+    a warn rule.'
+- id: 7
+  stage: report
+  logged: 2026-11-11 00:22
+  status: resolved
+  problem: 'First report.render failed on 13 typesetting errors, all inside my own live insight entries (e-notation
+    such as <code>1e-12</code>, ASCII math such as <code>h^2</code>): insights.log() accepts plain text, but the
+    report contract lints insights like any other text.'
+  diagnosis: The insight log is a free-text notebook, but its entries are rendered into the report and linted like
+    every other text field (e-notation and ASCII math are errors). Writing live in plain text is natural; the error
+    only appears at the end.
+  fix: Rewrote the affected entries with \(\) LaTeX (one-off script scratch/fix_insights.py). About 5 minutes.
+  lesson: Anything that ends up in the report must be typeset from the start, including the lab notebook.
+  guideline: 'cfdlib.insights.log/resolve: run contract.lint on the new text and print a warning immediately (or
+    auto-wrap e-notation as \(a\times10^{b}\)); mention in SKILL.md rule 4 that insight text is report text.'
+  resolved: 2026-11-11 00:23
+- id: 8
+  stage: tooling
+  logged: 2026-11-11 00:23
+  status: resolved
+  problem: 'I resolved the WRONG insight: insights.resolve(case, 3, ...) overwrote the diagnosis/fix/lesson/guideline
+    of entry 3 (a resolved "worked first time" entry) with the text meant for entry 4, because I assumed the id
+    instead of reading the id that log() returned.'
+  diagnosis: log() returns the id but the CLI/Python call I used did not show it clearly (it printed a bare number
+    among other output), and resolve() silently overwrites fields of an already-resolved entry.
+  fix: Restored entry 3 from my transcript and moved the text to entry 4 (scratch/fix_insights.py). Caught only
+    because the typesetting error forced me to read insights.yaml.
+  lesson: Keep the id returned by log() in a variable or print it labelled; check the entry problem before resolving.
+  guideline: 'cfdlib.insights.resolve: refuse to overwrite an already-resolved field unless overwrite=True, and
+    echo the entry problem (first 60 characters) so the caller sees which entry was changed.'
+- id: 9
+  stage: report
+  logged: 2026-11-11 00:26
+  status: resolved
+  problem: 'Visual review of the first passing report found 5 things the contract did not: (1) a definition card
+    whose formula is too wide (horizontal scrollbar inside the card; the table-wrap overflow check does not cover
+    definition cards); (2) table numbers with stripped trailing zeros (tex_num uses g-format: 0.10074 next to 0.100743),
+    so columns look ragged; (3) plain-text math in theory notes (sqrt, tau_w, Unicode) that the lint does not catch;
+    (4) a comparison finding of mine that attributed the wall-stress error to the two-point wall gradient, while
+    the data show the opposite SIGN and 3x the size; (5) a hand-typed claim in the reproducibility notes ("under
+    a minute").'
+  diagnosis: 'The contract checks structure and typesetting patterns, not meaning or appearance: it cannot see a
+    scrollbar inside a definition card, ragged digits, Unicode math, a physically wrong attribution, or a typed
+    claim in free text. Item 4 was the important one: I wrote the explanation from the theory before comparing the
+    SIGN of the measured error with the prediction.'
+  fix: Split the definition; a fixed-significant-digit formatter for tables; LaTeX in all theory notes; the wall-stress
+    finding is now conditional on the measured sign and says the error follows the \(h^2/(\nu t)\) law but is dominated
+    by the near-wall cell values; the run-time note is computed. About 15 minutes.
+  lesson: Compare a predicted error term with the data in sign as well as size before writing "where the error comes
+    from".
+  guideline: 'cfdlib.report: offer a fixed-digit number formatter for tables; contract.lint: flag Unicode math (√,
+    τ, ∂, η) outside math delimiters; report template: wrap definition formulas or let the overflow check cover
+    .def cards; SKILL.md stage 6: an explanatory finding must be checked against the data (sign, magnitude) in code.'
+  resolved: 2026-11-11 00:28
+- id: 10
+  stage: report
+  logged: 2026-11-11 00:28
+  status: resolved
+  problem: 'A Python patch script fed through a bash heredoc corrupted LaTeX in analytical.py: backslash sequences
+    such as <code>\nu</code> and <code>\rho</code> became a newline and a control character inside raw strings,
+    breaking two theory notes. Found only by re-reading the file.'
+  diagnosis: Two layers of escaping (heredoc + Python string literal) for LaTeX-heavy replacement text; the assert
+    on the OLD text passed, so nothing flagged the broken NEW text.
+  fix: Repaired the three lines with the Edit tool and checked the file parses; used the Edit tool for all further
+    changes.
+  lesson: For LaTeX-heavy source edits use the editor tool, never generated patch scripts.
+  guideline: 'SKILL.md / environment.md: one line - edit LaTeX-containing Python with the Edit tool; if a script
+    must do it, read the replacement from a file, not a string literal.'
+- id: 11
+  stage: report
+  logged: 2026-11-11 00:29
+  status: resolved
+  problem: 'Second visual pass: three hand-check formulas (numbers with units substituted) are wider than the half-width
+    derived-quantity cards and scroll sideways inside the collapsed panels. The SKILL overflow check only looks
+    at .table-wrap, and collapsed panels are invisible to a top-to-bottom screenshot pass unless opened.'
+  diagnosis: The derived-quantity cards are half the column wide; a hand-check with every number AND its unit substituted
+    (as in the worked example) does not fit. The overflow sits inside closed details panels, so neither the SKILL
+    table-wrap check nor a scroll-through screenshot sees it.
+  fix: 'Hand-checks now substitute numbers only (units are in the symbol table right above) and break into two aligned
+    lines. Verified with a page script that opens every details panel and lists any element whose scrollWidth exceeds
+    its width: none left.'
+  lesson: Visual review must open collapsed panels; a generic overflow scan over all elements is more reliable than
+    a list of known containers.
+  guideline: 'SKILL.md stage 7: replace the table-wrap snippet with one that first opens all details elements and
+    scans .eq, .table-wrap and mjx-container for scrollWidth > clientWidth; report.html template: let .eq wrap or
+    use aligned two-line hand-checks by default.'
+  resolved: 2026-11-11 00:30

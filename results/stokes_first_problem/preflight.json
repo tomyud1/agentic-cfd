@@ -1,0 +1,244 @@
+[
+ {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "0.353",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.27\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.14\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,7.09\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,4.25\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.94 \\times 10^{8}\\) (late vs early) of round-off; largest value \\(6.6 \\times 10^{-19}\\)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading. Here the error itself is round-off (below \\(1 \\times 10^{-12}\\)), so its trend carries no information (automatic trend check said: fail)."
+   },
+   {
+    "name": "Round-off level of zero quantities",
+    "status": "ok",
+    "value": "continuity \\(6.6 \\times 10^{-19}\\), \\(|v|/U = 2.9 \\times 10^{-17}\\)",
+    "meaning": "Mass conservation error and cross-flow velocity must stay at round-off: v = 0 exactly in this flow."
+   },
+   {
+    "name": "Outputs recorded every time step",
+    "status": "ok",
+    "value": "25 wall-stress rows, 25 momentum rows for 25 steps",
+    "meaning": "The wall shear stress and the momentum integral must be written at every step: they are requested outputs and the momentum-balance check needs them."
+   }
+  ],
+  "steps": 25,
+  "last_time": 1.0,
+  "wall_time": 0.05,
+  "est_full_runtime": 0.4458333333333334,
+  "est_kind": "fixed run length",
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/stokes_first_problem/pf_N125_dt40ms_preflight",
+  "end_time_short": 1.0,
+  "timed_out": false,
+  "cont_max": 6.61744490309e-19,
+  "v_max": 2.88539690629e-17,
+  "Ny": 125,
+  "dt": 0.04,
+  "name": "N125_dt40ms",
+  "n_steps": 25,
+  "tau_first": [
+   [
+    0.04,
+    [
+     7.071067811865e-05,
+     9.112370492321e-23,
+     0.0
+    ]
+   ],
+   [
+    0.08,
+    [
+     5.046371170217e-05,
+     2.741633480417e-22,
+     0.0
+    ]
+   ],
+   [
+    0.12,
+    [
+     3.819256838106e-05,
+     2.151969734486e-22,
+     0.0
+    ]
+   ]
+  ],
+  "tau_last": [
+   1.0,
+   [
+    1.140010659489e-05,
+    2.957808670186e-21,
+    0.0
+   ]
+  ],
+  "mom_last": [
+   1.0,
+   [
+    8.934475155503e-11,
+    -1.948153060242e-27,
+    0.0
+   ]
+  ]
+ },
+ {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "0.0248",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.01\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.163\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,16.6\\) (late vs early); but \\(\\max|v|/U = 1.2 \\times 10^{-17}\\)",
+    "meaning": "v is exactly zero in this flow; its normalised residual is round-off noise and its trend means nothing. The absolute level \\(|v|/U < 1 \\times 10^{-10}\\) is checked instead (automatic trend check said: warn)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,8.08\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Round-off level of zero quantities",
+    "status": "ok",
+    "value": "continuity \\(1.3 \\times 10^{-20}\\), \\(|v|/U = 1.2 \\times 10^{-17}\\)",
+    "meaning": "Mass conservation error and cross-flow velocity must stay at round-off: v = 0 exactly in this flow."
+   },
+   {
+    "name": "Outputs recorded every time step",
+    "status": "ok",
+    "value": "400 wall-stress rows, 400 momentum rows for 400 steps",
+    "meaning": "The wall shear stress and the momentum integral must be written at every step: they are requested outputs and the momentum-balance check needs them."
+   }
+  ],
+  "steps": 400,
+  "last_time": 1.0,
+  "wall_time": 2.34,
+  "est_full_runtime": 47.02341708542713,
+  "est_kind": "fixed run length",
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/stokes_first_problem/pf_N2000_dt2.5ms_preflight",
+  "end_time_short": 1.0,
+  "timed_out": false,
+  "cont_max": 1.29246970872e-20,
+  "v_max": 1.1528140542099999e-17,
+  "Ny": 2000,
+  "dt": 0.0025,
+  "name": "N2000_dt2.5ms",
+  "n_steps": 400,
+  "tau_first": [
+   [
+    0.0025,
+    [
+     0.0003880570000581,
+     1.378689510618e-21,
+     0.0
+    ]
+   ],
+   [
+    0.005,
+    [
+     0.0001469318951866,
+     1.330882411791e-21,
+     0.0
+    ]
+   ],
+   [
+    0.0075,
+    [
+     0.0001193679461144,
+     8.945114491267e-22,
+     0.0
+    ]
+   ]
+  ],
+  "tau_last": [
+   1.0,
+   [
+    1.128422798536e-05,
+    7.534639673328e-23,
+    0.0
+   ]
+  ],
+  "mom_last": [
+   1.0,
+   [
+    9.026677178019e-11,
+    1.227177482648e-27,
+    0.0
+   ]
+  ]
+ }
+]

@@ -1,0 +1,46 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+solvers
+{
+    "(p|pFinal)"
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       {{ p_tol }};
+        relTol          0;
+    }
+    "(U|UFinal)"
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       {{ U_tol }};
+        relTol          0;
+    }
+}
+
+// The problem is LINEAR (u = u(y, t), v = 0: no convection), so one implicit momentum solve per
+// time step is exact: momentum predictor on, one outer corrector (PISO mode), no relaxation.
+// (The planarPoiseuille tutorial uses momentumPredictor off + 15 outer correctors instead.)
+PIMPLE
+{
+    momentumPredictor   yes;
+    nOuterCorrectors    1;
+    nCorrectors         2;
+    nNonOrthogonalCorrectors 0;
+    pRefCell            0;
+    pRefValue           0;
+}
+
+relaxationFactors
+{
+    equations
+    {
+        ".*"            1;
+    }
+}

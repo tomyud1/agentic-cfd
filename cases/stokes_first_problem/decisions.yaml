@@ -1,0 +1,86 @@
+# Every modelling and numerical choice for this case. Written by the agent WHILE setting up the case.
+# `settings`: the OpenFOAM settings (path patterns, * = wildcard) this decision controls.
+
+- area: Physical model
+  kind: physics
+  choice: Transient, incompressible, laminar, Newtonian flow
+  settings: [constant/turbulenceProperties/simulationType, constant/transportProperties/*]
+  why: 'The flow is parallel (\(u = u(y, t)\), \(v = 0\)), so convection vanishes and the equations are those of the exact solution; water is Newtonian; \(Ma \sim 10^{-5}\). Laminar is what the problem and the exact solution describe (see Assumptions for the Reynolds number).'
+  affects: 'Defines the equations solved: a turbulence model would add an eddy viscosity the exact solution does not have.'
+  alternatives: 'None sensible for a verification against the exact laminar solution.'
+
+- area: Solver
+  kind: solver
+  choice: '<code>pimpleFoam</code> (transient, PIMPLE) starting from the <code>pimpleFoam/laminar/planarPoiseuille</code> tutorial (a 1D wall-bounded start-up flow)'
+  settings: [system/controlDict/application]
+  why: 'The question is about the time history, so a transient solver is required. <code>pimpleFoam</code> carries the laminar momentum-transport model that the <code>wallShearStress</code> function object needs (<code>icoFoam</code> has none).'
+  affects: 'None on the converged answer of each time step; it decides how each step is solved.'
+  alternatives: '<code>icoFoam</code> (same PISO algorithm, but no wall-shear-stress function object: the gradient would have to be evaluated by hand).'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'A water layer of depth \(H = 0.05\,\mathrm{m}\) above the plate; one cell in \(x\) with periodic (cyclic) ends, one cell in \(z\) with empty faces: a 1D model in \(y\)'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/boundary,
+             0/*/boundaryField/#includeEtc*]
+  why: 'The plate is very large, so nothing varies along \(x\) or \(z\): periodic ends in \(x\) model an infinite plate, the empty direction removes \(z\). \(x\) must stay a real (cyclic) direction, because OpenFOAM does not solve velocity components in empty directions. \(H\) is about three times the 1 % depth at 20 s: the exact solution has \(u(H)/U \approx 3\times10^{-15}\) there (Theory), so the finite depth cannot be seen.'
+  affects: 'Replaces the very deep water by a finite layer; the error this causes is the size of \(u(H)/U\), negligible.'
+  alternatives: 'A shallower layer (fewer cells for the same resolution, but closer to the edge of the motion); a graded mesh (fine at the plate, coarse above) for fewer cells.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Plate: velocity fixed at \((U, 0, 0)\) from the first time step (impulsive start). Top of the layer: <code>symmetryPlane</code> (no shear, no flow through it). Pressure: zero gradient at the plate.'
+  settings: [0/U/boundaryField/*, 0/p/boundaryField/*]
+  why: 'No slip on the moving plate is the problem statement. The top is a numerical stand-in for "water at rest far above": a shear-free top lets no momentum leave, so the momentum integral must equal the impulse of the wall stress exactly, which is used as a check. The velocity there is \(\sim 10^{-15}\,U\) anyway.'
+  affects: 'Sets the solution. With a deep enough layer the choice at the top has no visible effect.'
+  alternatives: 'A no-slip top (fixed \(u = 0\)): equally good with this depth, but it would let a tiny amount of momentum leave and spoil the exact momentum balance.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Initial state: water at rest, \(\mathbf{u} = 0,\ p = 0\)'
+  settings: [0/U/internalField, 0/p/internalField]
+  why: 'Given in the problem: the water is initially at rest.'
+  affects: 'Defines the initial-value problem. The jump at the plate at \(t = 0\) is what makes the early wall stress infinite.'
+  alternatives: 'None (it is part of the problem).'
+
+- area: Mesh
+  kind: accuracy
+  choice: 'Uniform cells in \(y\), \(N_y = 125\) to \(2000\) cells across the layer (cell size \(0.4\) to \(0.025\,\mathrm{mm}\)), refinement ratio 2'
+  settings: [system/blockMeshDict/blocks]
+  why: 'Ratio-2 refinement gives the observed order of accuracy. Uniform cells keep the order test clean. On the finest mesh the diffusion length \(\sqrt{\nu t}\) spans 40 cells already at \(t = 1\,\mathrm{s}\).'
+  affects: 'Spatial discretisation error; measured in the Comparison section.'
+  alternatives: 'Cells clustered at the plate (grading): fewer cells for the same accuracy but a less clean order test.'
+
+- area: Time stepping
+  kind: accuracy
+  choice: 'Fixed time step, halved with the cell size: \(\Delta t = 0.04\) to \(0.0025\,\mathrm{s}\); second-order implicit <code>backward</code> (BDF2) time scheme. Separate studies vary only \(\Delta t\) (finest mesh) or only the mesh (finest \(\Delta t\)).'
+  settings: [system/controlDict/deltaT, system/controlDict/adjustTimeStep, system/controlDict/endTime,
+             system/controlDict/startTime, system/fvSchemes/ddtSchemes/*]
+  why: 'Both space and time schemes are second order, so halving both should cut the total error by 4. BDF2 is implicit and strongly damping, so the jump at \(t = 0\) does not make it ring; the time step is not limited by stability (implicit diffusion). Fixed steps hit the output times 1, 5 and 20 s exactly.'
+  affects: 'Time discretisation error (measured by the time-step study).'
+  alternatives: '<code>CrankNicolson</code> (second order, but it rings after a sudden start); <code>Euler</code> (first order, robust).'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Second-order central schemes in space: <code>Gauss linear</code> for gradients, Laplacian, interpolation and convection; <code>corrected</code> surface-normal gradients'
+  settings: [system/fvSchemes/gradSchemes/*, system/fvSchemes/laplacianSchemes/*, system/fvSchemes/interpolationSchemes/*,
+             system/fvSchemes/snGradSchemes/*, system/fvSchemes/divSchemes/*]
+  why: 'Diffusion is the only physics, discretised to second order. Convection is identically zero (\(u\) does not vary along \(x\), \(v = 0\)), so the convection scheme has no effect. The mesh is orthogonal, so no correction is active.'
+  affects: 'Spatial order of accuracy (expected 2).'
+  alternatives: 'Upwind convection: irrelevant here since convection is zero.'
+
+- area: Algorithm and linear solvers
+  kind: solver
+  choice: 'PIMPLE in PISO mode: momentum predictor on, 1 outer corrector, 2 pressure correctors, no under-relaxation; U solved by PBiCGStab, p by PCG, both to \(10^{-12}\) every step'
+  settings: [system/fvSolution/PIMPLE/*, system/fvSolution/relaxationFactors/*, system/fvSolution/solvers/*]
+  why: 'The problem is linear, so one implicit momentum solve per time step to round-off is the exact discrete answer; the tutorial''s 15 outer correctors with the predictor off would only iterate towards the same answer. The tight tolerance makes iteration error negligible, which the momentum-balance check confirms.'
+  affects: 'Iteration error only (made negligible); no effect on the converged answer.'
+  alternatives: 'The tutorial''s <code>momentumPredictor off</code> with outer correctors; GAMG solvers (no advantage in 1D).'
+
+- area: Outputs
+  kind: output
+  choice: 'Fields written every \(1\,\mathrm{s}\) with 12 significant digits; plate-averaged wall shear stress and the integral of \(u\) over the layer recorded every time step'
+  settings: [system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision,
+             system/controlDict/timePrecision, system/controlDict/functions/*]
+  why: 'Profiles at 1, 5 and 20 s (a) and penetration depths (c) come from the written fields; \(\tau_w(t)\) (b) and the momentum (d) need every step, and their pair is the momentum-balance check. 12 digits avoid round-off in the error analysis.'
+  affects: 'What is measured and how precisely; not the solution.'
+  alternatives: 'Wall stress from the near-wall cell value by hand (same formula as OpenFOAM uses); momentum by integrating the written profiles (only once per second).'

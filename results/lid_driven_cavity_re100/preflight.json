@@ -1,0 +1,136 @@
+[
+ {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\u00d77.46e-08 (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\u00d77.17e-08 (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\u00d77.22e-08 (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\u00d77.18e-08 (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 267,
+  "last_time": 267.0,
+  "wall_time": 0.31,
+  "est_full_runtime": 22.565263157894734,
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/lid_driven_cavity_re100/pf32_preflight",
+  "end_time_short": 300,
+  "timed_out": false,
+  "N": 32,
+  "cells": 1024,
+  "decay": {
+   "Ux": {
+    "slope": -0.03569587568981079,
+    "last": 5.84994308351e-12
+   },
+   "Uy": {
+    "slope": -0.03571841079378513,
+    "last": 9.73865901051e-12
+   },
+   "p": {
+    "slope": -0.035709889105975154,
+    "last": 1.21678714321e-11
+   }
+  },
+  "iterations_to_converge": 299.6780136619955,
+  "seconds_per_iteration": 0.0010333333333333334,
+  "est_converged_runtime": 0.309667280784062
+ },
+ {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\u00d70.121 (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\u00d70.13 (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\u00d70.117 (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\u00d70.228 (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 300,
+  "last_time": 300.0,
+  "wall_time": 15.61,
+  "est_full_runtime": 1020.4422147651006,
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/lid_driven_cavity_re100/pf256_preflight",
+  "end_time_short": 300,
+  "timed_out": false,
+  "N": 256,
+  "cells": 65536,
+  "decay": {
+   "Ux": {
+    "slope": -0.002291299278215758,
+    "last": 0.000501964402183
+   },
+   "Uy": {
+    "slope": -0.002159299370659933,
+    "last": 0.000752725768719
+   },
+   "p": {
+    "slope": -0.001970700113173307,
+    "last": 0.000163169891682
+   }
+  },
+  "iterations_to_converge": 3947.7743155475387,
+  "seconds_per_iteration": 0.052033333333333334,
+  "est_converged_runtime": 205.41585688565692
+ }
+]

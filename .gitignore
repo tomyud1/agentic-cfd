@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Local-only material (copyrighted papers, private notes, email attachments)
+*.pdf
+HANDOFF_for_Claude.txt
+*_sig.webp
+
+# Agents' scratch work (one-off scripts and logs; the results are in results/)
+cases/*/scratch/
+
+# Copy of a third-party web page (re-download with setup/fetch_featflow.sh)
+cases/dfg_cylinder_re100/reference/featflow_dfg2d2_page.html
+
+# Figure PNGs written for visual checks (CFD_FIG_PNG_DIR)
+**/png/
+
+# Claude Code local settings
+.claude/settings.local.json

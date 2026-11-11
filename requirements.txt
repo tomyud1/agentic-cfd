@@ -1,0 +1,7 @@
+# Versions used for the reports in results/ (Python 3.12, Ubuntu 24.04 in WSL2)
+numpy==2.5.4
+scipy==1.18.1
+sympy==1.14.0
+matplotlib==3.11.2
+PyYAML==6.0.3
+Jinja2==3.1.6

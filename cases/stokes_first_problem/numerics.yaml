@@ -1,0 +1,29 @@
+# Numerical choices (made by the agent, not given by the user).
+solver: pimpleFoam            # transient incompressible laminar solver (wallShearStress needs its laminar model)
+domain:
+  H: 0.05                     # depth of the simulated water layer [m]; exact u(H, t_end)/U ~ 3e-15 (theory.far)
+  Lx: 0.002                   # cell size in x and z (1 cell, cyclic in x, empty in z): any value; sets Co = U dt / Lx
+  Lz: 0.002
+# Combined refinement: cell size AND time step halved together (both schemes are second order,
+# so the total error should fall ~4x per level). Plus one-factor studies on the finest level.
+runs:
+  family:   [[125, 0.04], [250, 0.02], [500, 0.01], [1000, 0.005], [2000, 0.0025]]   # [Ny, dt]
+  mesh:     [[250, 0.0025], [500, 0.0025], [1000, 0.0025]]     # + [2000, 0.0025]: dt fixed, h halved
+  timestep: [[2000, 0.02], [2000, 0.01], [2000, 0.005]]        # + [2000, 0.0025]: h fixed, dt halved
+write_interval: 1.0           # fields written every 1 s (profiles at 1, 5, 20 s and the momentum check)
+profile_times: [1.0, 5.0, 20.0]
+linear_solvers:
+  U_tol: 1.0e-12              # every step solved to round-off: the problem is linear, one solve is exact
+  p_tol: 1.0e-12
+preflight:
+  end_time: 1.0               # 5 % of the full 20 s, on the coarsest and finest levels
+# Acceptance rules for the verdict, fixed BEFORE looking at the production results.
+acceptance:
+  profile_max_err: 0.002      # max |u_sim - u_exact| / U over all cells at t = 1, 5, 20 s, finest run
+  tau_err_tend: 0.002         # |tau_sim - tau_exact| / tau_exact at t = 20 s, finest run
+  delta_err: 0.005            # relative error of delta_1% at 1, 5, 20 s, finest run
+  momentum_err: 0.002         # relative error of P(20 s), finest run
+  order_range: [1.5, 2.5]     # observed order of the combined family (profile error at 20 s) -> else WARN
+  momentum_balance_max: 1.0e-6  # PHYSICAL check per step: |BDF2 dP/dt - |tau_w|| / |tau_w(t_end)|, steps 3..end
+  far_field_max: 1.0e-6       # PHYSICAL check: |u| in the top cell / U at t_end (layer deep enough)
+  tau_tol_early: 0.01         # report the earliest time after which the finest-run tau stays within 1 %

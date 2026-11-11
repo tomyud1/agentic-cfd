@@ -1,0 +1,94 @@
+# Every modelling and numerical choice for this case. Written by the agent WHILE setting up the case.
+# `settings`: the OpenFOAM settings (path patterns, * = wildcard) this decision controls.
+
+- area: Physical model
+  kind: physics
+  choice: Transient, incompressible, laminar, Newtonian flow in two dimensions
+  settings: [constant/turbulenceProperties/simulationType, constant/transportProperties/*]
+  why: 'The benchmark is defined for the 2D incompressible Navier-Stokes equations with constant viscosity \(\nu = 10^{-3}\,\mathrm{m^2/s}\) at \(Re = 100\), where the wake is laminar but unsteady (periodic shedding). Density is constant (\(\rho = 1\)), so OpenFOAM''s kinematic pressure \(p/\rho\) equals the pressure.'
+  affects: 'Defines the equations solved. A turbulence model would add an eddy viscosity the benchmark does not have.'
+  alternatives: 'None sensible for this benchmark (a 3D cylinder at \(Re = 100\) would also be 2D in its wake, but is not the problem posed).'
+
+- area: Solver
+  kind: solver
+  choice: '<code>pimpleFoam</code> (transient PIMPLE algorithm, here with two outer correctors per step), as in the <code>pimpleFoam/laminar/cylinder2D</code> tutorial'
+  settings: [system/controlDict/application]
+  why: 'A transient solver is required: the requested outputs are a periodic time history. <code>pimpleFoam</code> carries the laminar momentum-transport model used by the <code>forces</code> function object for the viscous part of the force.'
+  affects: 'None on the converged answer of each time step; it decides how each step is solved.'
+  alternatives: '<code>icoFoam</code> (PISO only, which is first order in time for this flow (Insights); also the <code>forces</code> function object needs a viscosity model it can find; pimpleFoam is the tutorial''s choice).'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Channel \(L \times H = 2.2 \times 0.41\,\mathrm{m}\) with the cylinder of diameter \(0.1\,\mathrm{m}\) centred at \((0.2, 0.2)\,\mathrm{m}\); one cell in \(z\) (thickness \(\Delta z = 0.01\,\mathrm{m}\)) with <code>empty</code> front and back'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/boundary,
+             0/*/boundaryField/frontAndBack/*]
+  why: 'The geometry is given. The empty front/back make OpenFOAM solve the 2D equations; forces per unit depth are the patch forces divided by \(\Delta z\) (any thickness gives the same coefficients).'
+  affects: 'Defines the problem. The cylinder surface is represented by straight faces between points on the exact circle (blockMesh arcs), a geometric error that shrinks with the square of the surface cell size.'
+  alternatives: 'A curved-boundary (higher-order) representation, as finite-element codes such as FeatFlow can use; not available in standard finite-volume OpenFOAM.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Inlet: parabolic velocity \(u = 4U_m y(H - y)/H^2\), \(v = 0\), evaluated at each inlet face centre (<code>exprFixedValue</code>), zero normal pressure gradient. Outlet: zero normal velocity gradient, \(p = 0\). Walls and cylinder: no slip, zero normal pressure gradient.'
+  settings: [0/U/boundaryField/inlet/*, 0/U/boundaryField/outlet/*, 0/U/boundaryField/walls/*, 0/U/boundaryField/cylinder/*,
+             0/p/boundaryField/inlet/*, 0/p/boundaryField/outlet/*, 0/p/boundaryField/walls/*, 0/p/boundaryField/cylinder/*]
+  why: 'The inflow and no-slip conditions are given. The benchmark''s free (stress-free, "do-nothing") outflow \(\nu\,\partial\mathbf{u}/\partial n - p\,\mathbf{n} = 0\) is modelled by the standard OpenFOAM pair zero-gradient velocity / fixed zero pressure; both are the same for flow leaving parallel to the axis. Face-centre values of the parabola give an inflow rate too large by \(\Delta y^2/(2H^2)\) (\(4.6 \times 10^{-4}\) on M1, 64 times less on M4, measured in the pre-flight), a second-order error that the mesh study includes.'
+  affects: 'Defines the problem. The outflow model can differ from the benchmark''s near the outlet only; the cylinder is \(20\,D\) upstream of it.'
+  alternatives: 'Exact face-averaged inflow values written as a list (removes the small inflow excess); <code>inletOutlet</code> at the outlet (prevents backflow, not needed: none occurs).'
+
+- area: Domain and boundary conditions
+  kind: solver
+  choice: 'Initial field: fluid at rest on M1 (shedding develops on its own over \(15\,\mathrm{s}\)); every finer mesh starts from the developed flow of the next coarser mesh, interpolated with <code>mapFields</code>; the time-step study and the scheme test start from the developed M2 flow or the same M2 field as M3.'
+  settings: [0/U/internalField, 0/p/internalField, system/controlDict/startTime]
+  why: 'The periodic state does not depend on how it was reached, but starting from rest costs about 10-15 s of simulated time on every mesh (more than the whole measured window). Starting from a developed coarse flow leaves only the adjustment to the finer mesh, which is checked by the periodicity test of each run.'
+  affects: 'How fast the periodic state is reached, not the state itself (checked: periodicity over the measured cycles).'
+  alternatives: 'Start every mesh from rest (3-5 times more simulated time on the expensive meshes); a small perturbation to trigger shedding (not needed: the offset of the cylinder breaks the symmetry).'
+
+- area: Mesh
+  kind: accuracy
+  choice: 'Block-structured O-grid: 4 blocks around the cylinder inside the square box \([0.1, 0.3]^2\,\mathrm{m}\) (cells shrinking 4 times towards the cylinder), 8 rectangular blocks filling the channel (downstream cells growing 4 times towards the outlet). Four levels M1-M4 with 64 to 512 cells around the cylinder (3358 to 214912 cells); every cell count doubles per level (refinement ratio 2).'
+  settings: [system/blockMeshDict/blocks]
+  why: 'A body-fitted O-grid gives orthogonal, smoothly graded cells at the cylinder, where the forces are decided; refinement ratio 2 in every block gives the observed order and the GCI. The mesh table gives, per level, the ratio of the boundary-layer scale \(\delta = D/\sqrt{Re}\) to the wall-cell size.'
+  affects: 'Spatial discretisation error, measured by the mesh study (observed order, Richardson extrapolation, GCI).'
+  alternatives: 'snappyHexMesh around an STL cylinder (as the tutorial; less regular cells at the wall); an unstructured triangle mesh (not native to OpenFOAM).'
+
+- area: Time stepping
+  kind: accuracy
+  choice: 'Fixed time step, halved with the cell size: \(\Delta t = 4 \times 10^{-3}\,\mathrm{s}\) on M1 to \(5 \times 10^{-4}\,\mathrm{s}\) on M4 (maximum Courant number 1.5 to 1.8 on every level, mesh table); second-order implicit <code>backward</code> (BDF2) time scheme. Time-step study on M2 with \(\Delta t\) halved twice.'
+  settings: [system/controlDict/deltaT, system/controlDict/adjustTimeStep, system/controlDict/endTime, system/fvSchemes/ddtSchemes/*]
+  why: 'With both time and space second order and \(\Delta t \propto h\), the combined error should fall about 4 times per level. A fixed step samples the force signal evenly for the frequency analysis. The first plan (half this step, PISO) turned out first order in time (Insights, the piso runs in the Comparison); with two outer correctors the M2 answers did not change measurably between \(\Delta t = 2\), 1 and \(0.5\,\mathrm{ms}\), so the larger step is accurate and keeps the cost of the finest run within the budget.'
+  affects: 'Time discretisation error (about 80 steps per shedding period on M1, 670 on M4), measured by the time-step study.'
+  alternatives: 'Courant number below 1 (twice the cost, no measurable gain here); adaptive time step (uneven sampling); <code>CrankNicolson 0.9</code> (FeatFlow uses Crank-Nicolson; OpenFOAM''s version is off-centred).'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Second-order central schemes in space: <code>Gauss linear</code> for convection, gradients, interpolation and the Laplacian, with explicit non-orthogonal correction (<code>corrected</code>)'
+  settings: [system/fvSchemes/gradSchemes/*, system/fvSchemes/laplacianSchemes/*, system/fvSchemes/interpolationSchemes/*,
+             system/fvSchemes/snGradSchemes/*, system/fvSchemes/divSchemes/*]
+  why: 'Central convection adds no numerical damping, which matters for the amplitude of the shed vortices and of the lift. The flow is smooth and laminar, and the cell Péclet number near the cylinder is small on the fine meshes. The O-grid corners are up to 44 degrees non-orthogonal, so the Laplacian needs the correction. A run with linear-upwind convection on M3 tests the sensitivity.'
+  affects: 'Spatial order of accuracy (2) and the size of the error constant.'
+  alternatives: '<code>linearUpwind</code> (also second order, more dissipative, more robust on coarse meshes); <code>LUST</code> (a blend of the two).'
+
+- area: Algorithm and linear solvers
+  kind: accuracy
+  choice: 'PIMPLE with 2 outer correctors per time step, momentum predictor on, 2 pressure correctors, 1 non-orthogonal corrector, no under-relaxation. Pressure: GAMG (DIC-Gauss-Seidel smoother) to an absolute tolerance \(10^{-7}\) with \(relTol\ 0.01\), and 0 in the final corrector. Velocity: symmetric Gauss-Seidel to \(10^{-8}\).'
+  settings: [system/fvSolution/PIMPLE/*, system/fvSolution/relaxationFactors/*, system/fvSolution/solvers/*]
+  why: 'With one outer corrector (PISO, the tutorial''s setting) the convecting face flux lags one step behind, a first-order splitting error: on M2 the lift amplitude changed by 0.24 when the time step was halved (Insights). The second outer corrector re-solves the step with the updated flux and removes this; a third changed the lift amplitude by only 0.001. The non-orthogonal corrector handles the O-grid corners. Linear-solver tolerances are several decades below the force differences studied; the pressure solver and tolerance were tested on M3 (Performance appendix): the drag changes by less than \(2 \times 10^{-6}\) (relative).'
+  affects: 'Time accuracy (the outer correctors) and run time; the linear-solver settings only change the iteration error, shown to be negligible.'
+  alternatives: 'PISO (one outer corrector; first order in time here); more outer correctors or residual-controlled outer loops (no measurable gain); PCG for pressure (4 times slower on M3).'
+
+- area: Outputs
+  kind: output
+  choice: 'Forces on the cylinder and the channel walls, momentum and pressure fluxes and volume flow at inlet and outlet, the total momentum and a wake probe at \((0.5, 0.2)\,\mathrm{m}\), all every time step; fields written only at the end of a run, on the finest run every \(0.01\,\mathrm{s}\) keeping the last 40 (one and a bit cycles) for the wake picture; 12 significant digits.'
+  settings: [system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision,
+             system/controlDict/timePrecision, system/controlDict/functions/*]
+  why: 'Drag and lift every step give the requested cycle values (a), (b) and the frequency (c); the probe gives an independent frequency; the fluxes and wall friction close the momentum balance (physical check). The picture at maximum lift (d) needs fields within a small fraction of a period of that moment: \(0.01\,\mathrm{s}\) is about 3 % of a period.'
+  affects: 'What is measured and how precisely; not the solution.'
+  alternatives: 'The <code>forceCoeffs</code> function object (same numbers, but the coefficient definition would be hidden in its settings; here the coefficients are computed in the analysis from the raw forces).'
+
+- area: Parallel runs
+  kind: solver
+  choice: 'M1 and M2 on one core; M3 on 4 MPI ranks; M4 on 16 ranks, one per hardware thread (<code>mpirun --use-hwthread-cpus</code>, scotch decomposition); independent runs at the same time where cores allow'
+  settings: []
+  why: 'Chosen from the measured scaling on the finest mesh (Performance appendix). Domain decomposition changes the order of floating-point operations and the GAMG coarsening, so results differ at the level of the solver tolerance only (checked).'
+  affects: 'Run time only.'
+  alternatives: 'Everything serial (M4 would take about 1.5 hours); 8 ranks on the 8 physical cores (tested: 1.36 times slower than 16 on M4).'
