@@ -181,10 +181,14 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
 
 ## Roadmap
 
-- **Speed beyond the GPU linear solver**: case 5 showed that offloading only the pressure solve is
-  capped near 1.5 times. Next: smarter studies (start each finer mesh from the coarser solution,
-  stop when the extrapolated answer settles) and faster algorithms for steady problems, then
-  possibly a GPU-resident solver for a narrow class of problems, verified against cases 1-5.
+- **A GPU-resident solver** ([`gpucfd/`](gpucfd), in progress): case 5 showed that offloading only
+  OpenFOAM's pressure solve is capped near 1.5 times, so this solver keeps the whole time step on the
+  GPU (staggered grid, projection method, geometric multigrid, mixed precision). It is built rung by
+  rung against a verification ladder (exact solutions, independent reference code, order of
+  accuracy); see [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md) for the plan and current status. Periodic
+  2D/3D flows pass; walls and a like-for-like comparison with OpenFOAM are next.
+- **Smarter studies**: start each finer mesh from the coarser solution, stop when the extrapolated
+  answer settles, faster algorithms for steady problems.
 - **GPU setup instructions** for OGL are in [`setup/gpu/`](setup/gpu) (CUDA check, build script,
   smoke test).
 - More problem types: heat transfer, turbulence models, problems without a benchmark.
