@@ -1,0 +1,226 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling | performance
+
+- id: 1
+  stage: gpu
+  logged: 2026-11-11 17:27
+  status: resolved
+  problem: environment.md lists the GPU multigrid options to explore as MaxLevels, MinCoarseRows and ZeroGuess.
+    The OGL source (include/OGL/Preconditioner/Multigrid.hpp, CoarseSolver.cpp) reads them in lower camel case (maxLevels,
+    minCoarseRows, smoother, maxIterSmoother, coarseSolver, maxIterCoarse, cycle, reuseHierarchy) and only from
+    a preconditioner SUB-dictionary; there is no ZeroGuess option. Written as top-level keys they would be ignored
+    silently.
+  diagnosis: 'The option names in the guidance were guessed, not read from the plugin. OGL looks the preconditioner
+    options up in the dictionary of the preconditioner entry (preconditioner { preconditioner Multigrid; minCoarseRows
+    1000; ... }). Its defaults are weak for a large 3D problem: the coarsest level keeps 64000 rows and is ''solved''
+    by ONE Jacobi sweep (coarseSolver Jacobi, maxIterCoarse 1), with one Jacobi smoothing sweep per level.'
+  fix: Read the option names and defaults from ~/src/OGL before tuning; write them in a preconditioner sub-dictionary
+    (run.py CONFIGS).
+  lesson: Read the plugin's source for option names and defaults before tuning; a misspelt option in an OpenFOAM
+    dictionary is ignored without a warning.
+  guideline: 'environment.md, OGL section: replace ''MaxLevels, MinCoarseRows, ZeroGuess'' by the real names, show
+    the sub-dictionary form and the defaults (minCoarseRows 64000, coarse solver = 1 Jacobi sweep).'
+  resolved: 2026-11-11 17:27
+- id: 2
+  stage: tooling
+  logged: 2026-11-11 17:27
+  status: resolved
+  problem: The task brief said to log insights with 'python -m cfdlib.insights <case> add ...'; the CLI verb is
+    'new' ('add' is rejected by argparse).
+  diagnosis: Mismatch between the brief and cfdlib/insights.py.
+  fix: Use 'new' (or the Python API insights.log).
+  lesson: Check the CLI help (python -m cfdlib.insights -h) instead of trusting a quoted command.
+  guideline: Either accept 'add' as an alias in cfdlib/insights.py or quote 'new' everywhere (SKILL.md already does).
+  resolved: 2026-11-11 17:27
+- id: 3
+  stage: performance
+  logged: 2026-11-11 17:33
+  status: resolved
+  problem: 'The study needs the pressure-solve time of CPU runs, but GAMG prints no timings and cfdlib.perf only
+    counts iterations. OpenFOAM''s built-in profiling (controlDict: profiling { active true; }) writes <time>/uniform/profiling
+    with the wall time and call count of every section: fvMatrix::solve.p, fvMatrix::solve.U, each function object,
+    for CPU and GPU runs alike (processor0/... in parallel runs).'
+  diagnosis: 'Profiling is off by default and not mentioned in the guidelines. One quirk: its GAMG entry ''lduMatrix::solver.coarsestLevelCorr''
+    reports almost the whole pressure solve (a nesting artefact), so only fvMatrix::solve.p is used.'
+  fix: Profiling on in every run of this case (an output decision); run.py reads the totals per section from processor0.
+  lesson: Before writing log parsers for timings, check what the solver can already measure about itself.
+  guideline: 'SKILL.md performance section: switch on controlDict profiling for any performance study and read fvMatrix::solve.<field>;
+    cfdlib.perf.summarize could parse uniform/profiling itself.'
+  resolved: 2026-11-11 17:33
+- id: 4
+  stage: gpu
+  logged: 2026-11-11 17:33
+  status: resolved
+  problem: 'OGL''s stopping criterion has adaptMinIter (default true): every pressure solve must do at least 0.6
+    times the iterations of the previous one (log: ''Creating stopping criterion with minIter 421 frequency 6''),
+    and the residual is checked only every few iterations. In a steady SIMPLE run with partial solves (relTol 0.05)
+    this can force far more iterations than the tolerance needs.'
+  diagnosis: 'Measured on the 1-million-cell mesh (4 ranks): with OGL''s default multigrid, switching adaptMinIter
+    off cut the CG iterations per pressure solve from 132 to 97. With the tuned preconditioner the effect is small
+    (16 with it, 15 without), because the iteration count no longer varies much between solves.'
+  fix: adaptMinIter false in every tuned GPU configuration (run.py _gpu_mg).
+  lesson: Library defaults tuned for transient runs with full solves can waste work in steady runs with partial
+    solves.
+  guideline: 'environment.md OGL section: mention adaptMinIter (default on) and set it off for partial (relTol)
+    solves.'
+  resolved: 2026-11-11 18:06
+- id: 5
+  stage: performance
+  logged: 2026-11-11 17:33
+  status: resolved
+  problem: 'The forces function object costs about 6 % of each iteration on the 2.43 million cell mesh (two calls,
+    cylinder and walls, 0.064 s each per iteration on 16 ranks; profiling): it evaluates the stress tensor on the
+    whole mesh, not only on the patch.'
+  diagnosis: forces builds devRhoReff (needs grad U everywhere) every call; at 2.4 million cells that is not free.
+  fix: Kept every iteration (identical on CPU and GPU runs, so the comparison stays fair) and reported as part of
+    the time outside the pressure solve.
+  lesson: Every-iteration function objects are a measurable cost on large meshes and dilute any linear-solver speed-up.
+  guideline: For long steady runs, evaluate forces every few iterations (executeInterval) once the stopping rule
+    allows it.
+  resolved: 2026-11-11 17:33
+- id: 6
+  stage: production
+  logged: 2026-11-11 17:33
+  status: resolved
+  problem: 'The steady x-momentum balance of the channel closes only to 0.41, 0.28 and 0.23 % of the drag on L1,
+    L2, L3: inside the 0.5 % rule set beforehand, but the imbalance shrinks slowly with refinement, not like a second-order
+    error.'
+  diagnosis: 'The balance neglects the viscous normal stress at inlet and outlet. In the continuous problem its
+    integral over the inlet is zero (continuity: the integral of du/dx over a section with no-slip edges vanishes).
+    The discrete one is not: the solver''s one-sided face gradient at an inlet whose profile is not the developed
+    duct flow leaves a first-order remainder. Computed from the fields (run.py inletvisc), it is about three quarters
+    of the imbalance on L1-L3; with it, the imbalance falls to about 0.1, 0.07 and 0.055 % of the drag.'
+  fix: Kept the pass rule fixed beforehand (balance without the term, 0.5 %); report the inlet viscous term and
+    the balance with it as a diagnostic.
+  lesson: 'A conservation check is only as exact as its list of terms: a term that vanishes in the continuum may
+    survive discretely at first order and look like a solver error.'
+  guideline: 'primer: for a momentum balance through an inlet with a non-developed profile, include (or measure)
+    the viscous flux through the inlet; it decays only like the first cell size.'
+  resolved: 2026-11-11 17:44
+- id: 7
+  stage: tooling
+  logged: 2026-11-11 17:47
+  status: resolved
+  problem: cfdlib.monitor.assess writes the projected iteration count of a steady run with a plain-text Unicode
+    greater-or-equal sign; copied into the report's pre-flight checks, the contract warns about a math character
+    in plain text.
+  diagnosis: monitor.py builds the value with the Unicode sign instead of LaTeX.
+  fix: analyze.py converts the value to \(\ge 112\) before passing it to the report.
+  lesson: Shared helpers that produce report text must follow the report's typesetting rules too.
+  guideline: 'cfdlib/monitor.py: write value=m(r''\ge '' + ...) for the projected iteration count.'
+  resolved: 2026-11-11 17:47
+- id: 8
+  stage: report
+  logged: 2026-11-11 17:47
+  status: resolved
+  problem: 'The mid-plane picture needs the velocity on the plane z = H/2, which is a face plane of the mesh (even
+    cell count in z). matplotlib''s Delaunay triangulation of the structured cell centres has degenerate triangles:
+    plotting works, but LinearTriInterpolator raises ''Triangulation is invalid''. Matching the two cell layers
+    next to the plane by sorted (x, y) also failed until the coordinates were rounded (round-off differences between
+    layers reordered the sort).'
+  diagnosis: Collinear points of a structured grid; floating-point ties in a lexicographic sort.
+  fix: Average the two layers with linear weights after sorting rounded coordinates; interpolate along lines with
+    scipy's LinearNDInterpolator.
+  lesson: Structured-grid data and Delaunay-based tools do not mix well; prefer scipy (Qhull) or sampling in OpenFOAM.
+  guideline: A helper in cfdlib to extract a plane of a structured mesh (or an OpenFOAM 'surfaces' sampling recipe
+    in the primer) would save every 3D case this detour.
+- id: 9
+  stage: analysis
+  logged: 2026-11-11 17:52
+  status: resolved
+  problem: 'The lift fails the rule fixed beforehand: on L4 it is 1.66 % above the reference, 2.5 times the band
+    (GCI of L4 plus reference uncertainty). Its observed order on L2-L4 is 2.73 (L1-L3: 2.31), so the GCI band is
+    narrow, and the Richardson value is still 1.16 % high. Drag passes (L4 -0.077 %, extrapolated +0.017 %).'
+  diagnosis: 'Robustness runs (one change each): convection scheme on L3 moves the lift by 0.8 %; the O-grid radial
+    cell distribution moves it from -3.0 % (ratio 2) through +4.4 % (ratio 4, production) to +9.8 % (ratio 8) of
+    the reference on L3, with the drag almost unchanged. On L4, ratio 2 gives -0.27 % against +1.66 % for ratio
+    4: the two mesh families approach the reference from opposite sides. The lift, a small difference of large pressure
+    and friction forces, depends on how the gap flow between cylinder and walls is resolved; the GCI of one family
+    (narrow because its observed order is high) does not see that.'
+  fix: Kept the FAIL verdict of the rule fixed beforehand; reported the sensitivity runs and the spread between
+    the two families as the honest lift uncertainty.
+  lesson: For a small force component, one mesh family's GCI can be far too optimistic; a second family (different
+    grading, same cell count) is a cheap and strong test.
+  guideline: 'SKILL.md stage 5: for small or sensitive outputs (lift of a nearly symmetric body), run a second mesh
+    family on at least two levels before trusting the GCI; budget for it in the plan.'
+  resolved: 2026-11-11 18:10
+- id: 10
+  stage: report
+  logged: 2026-11-11 17:56
+  status: resolved
+  problem: A Python patch of analyze.py passed through a Bash heredoc collapsed every double backslash to a single
+    one. It came out right only because none of the affected sequences formed a control character (TAB from times,
+    form feed from frac); the guideline to edit LaTeX-bearing files only with Edit/Write exists for exactly this.
+  diagnosis: The Bash tool processes backslashes before the heredoc reaches Python, whatever the quoting.
+  fix: Checked the file for control characters (none) and the edited lines by eye; later edits with the Edit tool.
+  lesson: The guideline also applies to small scripted patches, not only to whole files.
+  guideline: 'SKILL.md stage 2: say explicitly that Python one-off patch scripts through Bash count as Bash editing.'
+- id: 11
+  stage: performance
+  logged: 2026-11-11 17:58
+  status: resolved
+  problem: 'OpenFOAM''s per-iteration ClockTime in the log, which run.py and case 4 (_loop_us) use for time per
+    iteration, is printed in whole seconds: on a 0.05 s iteration it is useless, on a 0.6 s one it carries a 5-10
+    % error over 20 iterations. The timeInfo function object''s clockTime column has the same 1 s resolution.'
+  diagnosis: 'Time::elapsedClockTime returns whole seconds. ExecutionTime (CPU time of rank 0, 0.01 s resolution)
+    looked like wall time on the first checks, but on the 90 thousand cell mesh with 16 ranks it was half the wall
+    time (0.020 against 0.039 s per iteration): with 16 ranks on 16 hardware threads, MPI yields the core instead
+    of busy-waiting. That made 16 ranks look fastest on the small meshes. Profiling''s totals (time.run()) are high-resolution
+    wall times.'
+  fix: Time per iteration = profiled wall time of the iteration loop divided by the iteration count, on both sides
+    (includes the first iteration's one-off costs, the same for every run of a mesh up to the GPU's CUDA start-up).
+  lesson: Check the resolution AND the meaning (CPU or wall) of a clock before timing with it, on the smallest case
+    too.
+  guideline: 'cfdlib.perf: compute loop time from ExecutionTime differences (or profiling), never from ClockTime;
+    say in SKILL.md that ClockTime has 1 s resolution.'
+  resolved: 2026-11-11 18:39
+- id: 12
+  stage: gpu
+  logged: 2026-11-11 18:06
+  status: resolved
+  problem: After the coarse-level fix (CG coarse solve, coarsest level at most 1000 rows) the GPU needed only 15
+    CG iterations per pressure solve, but the multigrid set-up then cost about 0.9 s per solve on 1 million cells,
+    several times the solve itself, so the GPU was still slower than GAMG.
+  diagnosis: OGL rebuilds the multigrid hierarchy (PGM aggregation on the GPU) for every solve by default; a deeper
+    hierarchy costs more to build.
+  fix: 'Reuse the preconditioner for 20 solves (preconditioner { caching 20; }): the pressure matrix changes slowly
+    between SIMPLE iterations, so the stale preconditioner costs about 1-4 extra CG iterations and saves the set-up.
+    reuseHierarchy (recompute only the coarse matrices) helped less.'
+  lesson: On the GPU, preconditioner set-up can dominate; amortise it over solves.
+  guideline: 'environment.md OGL section: start GPU tuning from minCoarseRows ~1000, coarseSolver CG, maxIterSmoother
+    2, caching 20, adaptMinIter off (the settings found here), not from the defaults.'
+- id: 13
+  stage: performance
+  logged: 2026-11-11 18:39
+  status: resolved
+  problem: 'The CPU baseline is not ''GAMG on all cores'': on this steady 3D case GAMG with the DIC-Gauss-Seidel
+    smoother needs 5 instead of 13 iterations per pressure solve and is about 6 % faster per iteration than with
+    Gauss-Seidel, and 8 ranks beat 16 on every mesh from 0.3 to 4.75 million cells (L4: 1.72 s per iteration on
+    8 ranks, 1.90 on 16). Case 4 (2D, transient) had found 16 ranks fastest.'
+  diagnosis: A steady 3D SIMPLE iteration is memory-bandwidth bound; hyper-threads add MPI traffic and halo work
+    without adding bandwidth. DIC smoothing does more per sweep but converges GAMG in fewer cycles.
+  fix: The study's CPU baseline is the fastest of GAMG GS / GAMG DIC-GS on 8 or 16 ranks per mesh (4-16 on L4).
+  lesson: '''Best CPU setup'' must be measured for each case; smoother and rank count both matter by 5-15 %.'
+  guideline: 'primer, parallel section: add this case''s numbers (8 ranks best for steady 3D, DIC-GS smoother) next
+    to case 4''s.'
+- id: 14
+  stage: gpu
+  logged: 2026-11-11 19:15
+  status: resolved
+  problem: Even fully tuned, the GPU only breaks even at about 2 million cells and saves about 11 % of the time
+    per SIMPLE iteration at 4.75 million cells (a factor 1.13), although its pressure solve there is 1.65 times
+    faster than the best GAMG; on a converged L4 run both took about 11.5 minutes.
+  diagnosis: 'Three limits stack up. (1) Amdahl: the pressure solve is only about a third of a steady SIMPLE iteration
+    (momentum, assembly and the force output stay on the CPU), so even an infinitely fast solver gives at most about
+    1.5 times. (2) Each solve pays a fixed host path: the ranks'' matrices are gathered and copied through host
+    memory (no CUDA-aware MPI), tens of milliseconds outside OGL''s own timers. (3) The consumer GPU''s double precision
+    is slow, so CG with multigrid needs 3 times the iterations of GAMG with DIC smoothing and gains only from memory
+    bandwidth.'
+  fix: 'Reported as the answer: break-even and gains measured, with the same converged forces on both sides.'
+  lesson: For steady incompressible OpenFOAM runs, offloading only the pressure solve cannot give more than the
+    pressure share allows; measure that share first (profiling) before investing in GPU tuning.
+  guideline: 'SKILL.md performance study: start by measuring the pressure share with profiling and state the Amdahl
+    bound; it sets expectations before any GPU run.'
+  resolved: 2026-11-11 19:18

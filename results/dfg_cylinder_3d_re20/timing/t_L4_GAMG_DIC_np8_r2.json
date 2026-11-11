@@ -1,0 +1,303 @@
+{
+ "name": "t_L4_GAMG_DIC_np8_r2",
+ "mesh": "L4",
+ "cells": 2433024,
+ "h": {
+  "surface": 0.0016362461737446838,
+  "wall": 0.0009562415012186412,
+  "box": 0.004166666666666667,
+  "z_wall": 0.0029578159505922155,
+  "z_mid": 0.005915631901184431,
+  "outlet": 0.028319159601601723
+ },
+ "cores": 8,
+ "cfg": "GAMG_DIC",
+ "p_block": "        solver          GAMG;\n        smoother        DICGaussSeidel;\n        tolerance       1e-12;\n        relTol          0.05;",
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/t_L4_GAMG_DIC_np8_r2",
+ "wall_time": 56.636590642000556,
+ "iterations": 30,
+ "converged": false,
+ "mesh_ok": null,
+ "checkmesh": {
+  "max_nonorth": null,
+  "max_skew": null,
+  "max_aspect": null
+ },
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0856\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,0.143\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz",
+    "status": "ok",
+    "value": "\\(\\times\\,0.263\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0472\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.00923\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 30,
+  "last_time": 30.0,
+  "wall_time": 55.63,
+  "est_full_runtime": null,
+  "est_kind": null
+ },
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/t_L4_GAMG_DIC_np8_r2",
+  "solver": "simpleFoam",
+  "cells": 2433024,
+  "cores": 8,
+  "steps": 30,
+  "wall_s": 56.636590642000556,
+  "cpu_s": 447.573713,
+  "solver_cpu_s": 55.63,
+  "peak_mem_mb": 538.2265625,
+  "us_per_cell_step": 0.7759423477669566,
+  "cpu_efficiency": 0.9878192435459038,
+  "write_share": 0.08186563826393456,
+  "lin_iters": {
+   "Ux": 5.0,
+   "Uy": 5.666666666666667,
+   "Uz": 5.833333333333333,
+   "p": 5.033333333333333
+  },
+  "lin_solves_per_step": {
+   "Ux": 1.0,
+   "Uy": 1.0,
+   "Uz": 1.0,
+   "p": 1.0
+  },
+  "lin_iters_by_solve": {
+   "Ux": {
+    "solve 1": 5.0,
+    "last": 5.0
+   },
+   "Uy": {
+    "solve 1": 5.666666666666667,
+    "last": 5.666666666666667
+   },
+   "Uz": {
+    "solve 1": 5.833333333333333,
+    "last": 5.833333333333333
+   },
+   "p": {
+    "solve 1": 5.033333333333333,
+    "last": 5.033333333333333
+   }
+  },
+  "loop_s_per_iter": 1.6956521739130435,
+  "loop_cpu_s_per_iter": 1.7065217391304348,
+  "profiling": {
+   "application::main": {
+    "total": 55.637417023,
+    "calls": 1
+   },
+   "time.run() t_L4_GAMG_DIC_np8_r2processor0": {
+    "total": 51.857648543,
+    "calls": 30
+   },
+   "functionObjects.start()": {
+    "total": 0.03317516,
+    "calls": 1
+   },
+   "functionObjects::read": {
+    "total": 0.033122711,
+    "calls": 1
+   },
+   "functionObject::forcesCyl::new": {
+    "total": 0.000899746,
+    "calls": 1
+   },
+   "functionObject::forcesWalls::new": {
+    "total": 0.000207963,
+    "calls": 1
+   },
+   "functionObject::momFlux_inlet::new": {
+    "total": 0.01806938,
+    "calls": 1
+   },
+   "functionObject::pForce_inlet::new": {
+    "total": 0.000202134,
+    "calls": 1
+   },
+   "functionObject::flow_inlet::new": {
+    "total": 0.00019244,
+    "calls": 1
+   },
+   "functionObject::momFlux_outlet::new": {
+    "total": 0.000217037,
+    "calls": 1
+   },
+   "functionObject::pForce_outlet::new": {
+    "total": 0.000214223,
+    "calls": 1
+   },
+   "functionObject::flow_outlet::new": {
+    "total": 0.000201002,
+    "calls": 1
+   },
+   "mesh.update()": {
+    "total": 8.7488e-05,
+    "calls": 30
+   },
+   "fvMatrix::solve.U": {
+    "total": 12.245086164,
+    "calls": 30
+   },
+   "lduMatrix::solver.Ux": {
+    "total": 3.437243967,
+    "calls": 30
+   },
+   "lduMatrix::smoother.Ux": {
+    "total": 2.769305429,
+    "calls": 30
+   },
+   "lduMatrix::solver.Uy": {
+    "total": 3.800467314,
+    "calls": 30
+   },
+   "lduMatrix::smoother.Uy": {
+    "total": 3.147431286,
+    "calls": 30
+   },
+   "lduMatrix::solver.Uz": {
+    "total": 3.880333891,
+    "calls": 30
+   },
+   "lduMatrix::smoother.Uz": {
+    "total": 3.227865378,
+    "calls": 30
+   },
+   "fvMatrix::solve.p": {
+    "total": 16.520972921,
+    "calls": 30
+   },
+   "lduMatrix::solver.p": {
+    "total": 16.415983683,
+    "calls": 30
+   },
+   "lduMatrix::solver.coarsestLevelCorr": {
+    "total": 15.962258161,
+    "calls": 30
+   },
+   "functionObjects.execute()": {
+    "total": 3.423570476,
+    "calls": 29
+   },
+   "functionObject::forcesCyl::execute": {
+    "total": 1.694132088,
+    "calls": 29
+   },
+   "functionObject::forcesCyl:write": {
+    "total": 0.013297037,
+    "calls": 29
+   },
+   "functionObject::forcesWalls::execute": {
+    "total": 1.684812713,
+    "calls": 29
+   },
+   "functionObject::forcesWalls:write": {
+    "total": 0.002779356,
+    "calls": 29
+   },
+   "functionObject::momFlux_inlet::execute": {
+    "total": 4.6868e-05,
+    "calls": 29
+   },
+   "functionObject::momFlux_inlet:write": {
+    "total": 0.004823885,
+    "calls": 29
+   },
+   "functionObject::pForce_inlet::execute": {
+    "total": 2.0166e-05,
+    "calls": 29
+   },
+   "functionObject::pForce_inlet:write": {
+    "total": 0.004394121,
+    "calls": 29
+   },
+   "functionObject::flow_inlet::execute": {
+    "total": 2.1677e-05,
+    "calls": 29
+   },
+   "functionObject::flow_inlet:write": {
+    "total": 0.00371334,
+    "calls": 29
+   },
+   "functionObject::momFlux_outlet::execute": {
+    "total": 2.1368e-05,
+    "calls": 29
+   },
+   "functionObject::momFlux_outlet:write": {
+    "total": 0.004446155,
+    "calls": 29
+   },
+   "functionObject::pForce_outlet::execute": {
+    "total": 2.0749e-05,
+    "calls": 29
+   },
+   "functionObject::pForce_outlet:write": {
+    "total": 0.003804832,
+    "calls": 29
+   },
+   "functionObject::flow_outlet::execute": {
+    "total": 1.9637e-05,
+    "calls": 29
+   },
+   "functionObject::flow_outlet:write": {
+    "total": 0.006183021,
+    "calls": 29
+   },
+   "objectRegistry::writeObject": {
+    "total": 0.000644444,
+    "calls": 1
+   }
+  },
+  "ogl": {}
+ },
+ "F_last": [
+  0.004366361469109,
+  2.438424156645e-05,
+  -1.574431358853e-07
+ ],
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20",
+ "gpu_mem": null,
+ "ok": true,
+ "tag": "_r2",
+ "kind": "timing"
+}

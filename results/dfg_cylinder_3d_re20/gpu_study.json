@@ -1,0 +1,1384 @@
+{
+ "title": "GPU versus CPU pressure solver: DFG 3D-1Z cylinder (Re = 20)",
+ "date": "2026-11-11",
+ "question": "How much faster does this machine solve this problem when the pressure equation is solved on the GPU (RTX 4070, through the OGL plugin) instead of the CPU, and from which mesh size does the GPU pay off?",
+ "verdict": "PASS",
+ "summary": {
+  "headline": "The GPU is faster per iteration from about \\(2.0\\) million cells: on the largest mesh (4,752,000 cells) one iteration takes \\(3.80\\,\\mathrm{s}\\) on the best CPU setup (GAMG DIC-GS, 8 ranks) and \\(3.37\\,\\mathrm{s}\\) with the pressure solved on the GPU (8 ranks), a factor \\(1.13\\); the pressure solve alone takes \\(1.44\\) against \\(0.87\\,\\mathrm{s}\\) (factor \\(1.65\\)). Both give the same converged forces.",
+  "answers": [
+   {
+    "label": "Speed-up per iteration, largest mesh",
+    "value": "\\(1.13\\times\\)",
+    "note": "4,752,000 cells; best CPU (GAMG DIC-GS, 8 ranks) over best GPU (8 ranks); above 1 the GPU is faster"
+   },
+   {
+    "label": "Speed-up of the pressure solve, largest mesh",
+    "value": "\\(1.65\\times\\)",
+    "note": "Time per pressure solve including the matrix transfer to the GPU and the solution back"
+   },
+   {
+    "label": "Break-even mesh size (whole iteration)",
+    "value": "\\(2.0\\) million cells",
+    "note": "Log-linear interpolation of the measured speed-ups"
+   },
+   {
+    "label": "Break-even mesh size (pressure solve alone)",
+    "value": "\\(1.9\\) million cells",
+    "note": "Where the GPU pressure solve becomes faster than GAMG"
+   },
+   {
+    "label": "Same answer",
+    "value": "✓ yes",
+    "note": "Converged drag and lift of CPU and GPU runs on L3 and L4 within \\(|\\Delta c_D| \\le 1 \\times 10^{-4}\\), \\(|\\Delta c_L| \\le 1 \\times 10^{-5}\\)"
+   },
+   {
+    "label": "Peak GPU memory, largest mesh",
+    "value": "\\(4.85\\,\\mathrm{GB}\\)",
+    "note": "nvidia-smi during the run, above the idle level; the card has 12 GB"
+   },
+   {
+    "label": "Converged run, L3",
+    "value": "\\(0.61\\times\\)",
+    "note": "CPU wall time over GPU wall time to the same steady state (21 s against 34 s)"
+   },
+   {
+    "label": "Converged run, L4",
+    "value": "\\(1.01\\times\\)",
+    "note": "CPU wall time over GPU wall time to the same steady state (693 s against 685 s)"
+   }
+  ],
+  "findings": [
+   "<b>Tuning mattered more than hardware.</b> With OGL's default multigrid the GPU needed \\(132\\) CG iterations per pressure solve (GAMG: \\(9.4\\)): its coarsest level keeps 64000 rows and is 'solved' by one Jacobi sweep. A small coarsest level solved by CG and two smoothing sweeps brought it to about \\(16\\); building that deeper hierarchy then cost more than the solve, until the preconditioner was reused for 20 solves (the pressure matrix changes slowly between SIMPLE iterations).",
+   "<b>Size dependence.</b> Speed-up per iteration G16 \\(0.23\\), L3 \\(0.55\\), G36 \\(0.90\\), L4 \\(1.03\\), G60 \\(1.13\\); pressure solve alone G16 \\(0.08\\), L3 \\(0.19\\), G36 \\(0.69\\), L4 \\(1.11\\), G60 \\(1.65\\). Both sides change with size, in opposite directions. Time of one pressure solve per million cells: CPU G16 \\(0.081\\), L3 \\(0.081\\), G36 \\(0.153\\), L4 \\(0.226\\), G60 \\(0.302\\) \\(\\mathrm{s}\\), GPU G16 \\(1.084\\), L3 \\(0.426\\), G36 \\(0.221\\), L4 \\(0.203\\), G60 \\(0.183\\) \\(\\mathrm{s}\\). The GPU gets cheaper per cell because its fixed costs per solve (kernel launches, transfers, the coarse levels) are spread over more cells and its many cores fill up. The CPU gets dearer per cell, \\(3.7\\times\\) from its cheapest to the largest mesh; GAMG also needs a few more cycles on larger meshes (G16 \\(2.8\\), L3 \\(6.4\\), G36 \\(4.6\\), L4 \\(5.0\\), G60 \\(5.7\\)), and the rest is consistent with the data leaving the CPU's 96 MB L3 cache (not measured directly).",
+   "<b>Amdahl's limit.</b> On the CPU the pressure solve is G16 \\(35\\,\\%\\), L3 \\(28\\,\\%\\), G36 \\(30\\,\\%\\), L4 \\(32\\,\\%\\), G60 \\(36\\,\\%\\) of an iteration (profiling). Even an infinitely fast pressure solver could speed an iteration up by at most G16 \\(1.55\\times\\), L3 \\(1.39\\times\\), G36 \\(1.42\\times\\), L4 \\(1.46\\times\\), G60 \\(1.57\\times\\): momentum, assembly and the force output stay on the CPU.",
+   "<b>Rank count.</b> 8 ranks (one per physical core) were fastest for both the CPU and the GPU runs on every mesh. Hyper-threads add MPI traffic but no memory bandwidth; for the GPU runs, more ranks speed up the CPU part but every rank's matrix has to travel to the one GPU through host memory (L4: Figure 2).",
+   "<b>Same answer.</b> The converged forces of the GPU and CPU runs agree to \\(6.7 \\times 10^{-10}\\) (drag) and \\(9.8 \\times 10^{-10}\\) (lift), far below the mesh error; a partial linear solve changes the path, not the steady state."
+  ],
+  "limitations": [
+   "One consumer GPU (RTX 4070): fast memory but slow double-precision arithmetic; a data-centre GPU would do better. Ubuntu's Open MPI is not CUDA-aware, so every pressure matrix and solution passes through host memory (<code>forceHostBuffer</code>).",
+   "Only the pressure linear solve runs on the GPU; OGL cannot move assembly or the momentum equations there.",
+   "Tuning was time-boxed (24 configurations on one mesh, 4 ranks); part of it ran next to other runs (marked), which inflates its times but not its iteration counts. A better GPU preconditioner may exist.",
+   "Timing runs are 30 iterations from rest; converged runs were compared on L3 and L4.",
+   "OGL is a development version (commit 7c3ced4), tested by its authors on OpenFOAM v2512, run here on v2606."
+  ],
+  "recommendation": "Below about \\(2.0\\) million cells keep GAMG (DIC-Gauss-Seidel smoother, 8 ranks) on the CPU; above it the tuned GPU solver is worth switching on for long runs, but expect about \\(11\\,\\%\\) less time per iteration at 4.8 million cells, not a multiple. A real gain needs either a GPU with fast double precision, a CUDA-aware MPI (no host copies), or a solver that also moves momentum and assembly to the GPU."
+ },
+ "setup": {
+  "intro": "Both sides solve the same steady problem with the same OpenFOAM solver (simpleFoam, SIMPLEC) on the same meshes, with the same schemes, tolerances, function objects and start field. Only the pressure linear solver changes: GAMG on the CPU cores, or OGL's Ginkgo CG with a multigrid preconditioner on the GPU. In each SIMPLE iteration OpenFOAM assembles the pressure equation on the CPU; with OGL the matrix is then sent to the GPU, solved there and the solution sent back. Meshes: the O-grid family of the main report (L3, L4) plus three extra sizes of the same blocking (G16, G36, G60), 90,112 to 4,752,000 cells.",
+  "hardware": [
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory (WSL)",
+    "23 GB visible to Linux"
+   ],
+   [
+    "GPU",
+    "NVIDIA GeForce RTX 4070, 12282 MiB, 621.14"
+   ],
+   [
+    "GPU link",
+    "PCIe; WSL2 GPU paravirtualisation"
+   ]
+  ],
+  "software": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "OGL (GPU plugin)",
+    "commit 7c3ced4, Ginkgo 2.0 (develop)"
+   ],
+   [
+    "CUDA",
+    "Cuda compilation tools, release 12.9, V12.9.86"
+   ],
+   [
+    "MPI",
+    "mpirun (Open MPI) 4.1.6"
+   ],
+   [
+    "Solver",
+    "simpleFoam (SIMPLEC), steady"
+   ]
+  ],
+  "fairness": [
+   "CPU baseline = the fastest measured GAMG setup per mesh: two smoothers (Gauss-Seidel, DIC-Gauss-Seidel) and 8 or 16 ranks on every mesh, 4 to 16 ranks on L4; not PCG on one core. Chosen per mesh: G16: GAMG DIC-GS, 8 ranks, L3: GAMG GS, 8 ranks, G36: GAMG DIC-GS, 8 ranks, L4: GAMG DIC-GS, 8 ranks, G60: GAMG DIC-GS, 8 ranks.",
+   "Same tolerances on both sides: each pressure solve to \\(\\mathrm{relTol} = 0.05\\) of its initial residual, OpenFOAM's normalised residual (OGL computes the same norm), absolute tolerance \\(1 \\times 10^{-12}\\) (never reached).",
+   "Same work: 30 SIMPLE iterations from the same start field (rest); time per iteration over iterations 6 to 29, so one-off costs (GAMG agglomeration, CUDA start-up, the final write) are excluded on both sides.",
+   "Converged comparison runs start from the same converged coarser-mesh field and stop on the same residual rule.",
+   "Timing runs one at a time, nothing else running; repeats on the largest mesh.",
+   "Clock: rank 0's ExecutionTime (0.01 s resolution) where it equals wall time (checked against OpenFOAM's high-resolution profiled wall time of the loop: at least 70 % of it, the rest being one-off costs); otherwise the profiled wall time of the whole loop / 30, marked * in the tables (1 run(s): 16 ranks on the smallest mesh, where MPI lets rank 0 sleep). The log's ClockTime has 1 s resolution (Insights)."
+  ]
+ },
+ "method": {
+  "intro": "Three kinds of runs: short tuning runs of the GPU solver on one mesh, fixed-length timing runs on five mesh sizes, and converged runs on two meshes to check that the answer is the same.",
+  "choices": [
+   {
+    "choice": "Timing protocol: 30 SIMPLE iterations from rest; time per iteration over iterations 6 to 29",
+    "why": "A converged run on every mesh would cost hours; the cost per iteration is what a solver change affects, and the converged runs (L3, L4) show that both sides need the same number of iterations.",
+    "alternatives": "Converged runs on every size (5-10 times the compute); single-solve benchmarks outside OpenFOAM (would miss the transfer and assembly costs)."
+   },
+   {
+    "choice": "Time split by OpenFOAM's built-in profiling (pressure solve, momentum solve, function objects, rest) and OGL's own per-solve timings (matrix transfer, preconditioner set-up, GPU solve, copy back)",
+    "why": "Profiling measures both sides identically; OGL's verbose output splits the GPU path further.",
+    "alternatives": "nsys/nvprof GPU profiles (not available in WSL here)."
+   },
+   {
+    "choice": "GPU solver: Ginkgo CG, multigrid preconditioner (PGM aggregation), coarsest level at most 1000 rows solved by 20 CG iterations, 2 Jacobi smoothing sweeps, preconditioner reused for 20 solves, <code>adaptMinIter off</code>, <code>scaling -1</code>, <code>forceHostBuffer true</code>",
+    "why": "The fastest of the 24 configurations tried on the 1-million-cell mesh (Results); OGL's defaults needed many times more iterations than GAMG.",
+    "alternatives": "Block Jacobi, ISAI, IC preconditioners (hundreds of iterations, tried); SSOR smoother (fewer iterations, slower); Csr format; more smoothing sweeps (tried)."
+   },
+   {
+    "choice": "GPU rank count: the CPU part runs on N MPI ranks, all sending their rows to the one GPU (<code>ranksPerGPU N</code>); N = 2, 4, 8, 16 tested on L4",
+    "why": "More ranks speed up assembly and momentum, but each extra rank adds a matrix transfer and gather.",
+    "alternatives": "One rank per GPU (OGL refuses serial runs; at least 2 ranks)."
+   },
+   {
+    "choice": "Same-answer test: converged runs on L3 and L4, CPU and GPU, from the same start field; tolerance \\(|\\Delta c_D| \\le 1 \\times 10^{-4}\\), \\(|\\Delta c_L| \\le 1 \\times 10^{-5}\\), fixed before the runs",
+    "why": "Ten times below the mesh uncertainty (GCI) of each number on L4: a GPU solve that changed the answer by more would matter.",
+    "alternatives": "Comparing fields after a fixed number of iterations (partial solves take different paths, so unconverged states differ even when both are right)."
+   }
+  ]
+ },
+ "results": {
+  "intro": "Best CPU and best GPU setup per mesh, then all timing runs, the rank-count test on L4, the tuning runs and the converged runs. Times in seconds of wall time.",
+  "tables": [
+   {
+    "title": "Best setups per mesh",
+    "head": [
+     "Mesh",
+     "Cells",
+     "CPU s/iter (ranks)",
+     "GPU s/iter (ranks)",
+     "Speed-up per iter.",
+     "CPU p solve (s)",
+     "GPU p solve (s)",
+     "Speed-up p solve",
+     "GAMG iters/solve",
+     "GPU CG iters/solve",
+     "GPU memory (MiB)"
+    ],
+    "rows": [
+     [
+      "G16",
+      "90,112",
+      "\\(0.021\\) (8)",
+      "\\(0.091\\) (8)",
+      "\\(0.23\\)",
+      "\\(0.007\\)",
+      "\\(0.098\\)",
+      "\\(0.08\\)",
+      "\\(2.8\\)",
+      "\\(12.0\\)",
+      "235"
+     ],
+     [
+      "L3",
+      "304,128",
+      "\\(0.093\\) (8)",
+      "\\(0.169\\) (8)",
+      "\\(0.55\\)",
+      "\\(0.025\\)",
+      "\\(0.129\\)",
+      "\\(0.19\\)",
+      "\\(6.4\\)",
+      "\\(13.1\\)",
+      "387"
+     ],
+     [
+      "G36",
+      "1,026,432",
+      "\\(0.524\\) (8)",
+      "\\(0.580\\) (8)",
+      "\\(0.90\\)",
+      "\\(0.157\\)",
+      "\\(0.226\\)",
+      "\\(0.69\\)",
+      "\\(4.6\\)",
+      "\\(14.4\\)",
+      "1107"
+     ],
+     [
+      "L4",
+      "2,433,024",
+      "\\(1.715\\) (8)",
+      "\\(1.669\\) (8)",
+      "\\(1.03\\)",
+      "\\(0.549\\)",
+      "\\(0.495\\)",
+      "\\(1.11\\)",
+      "\\(5.0\\)",
+      "\\(15.6\\)",
+      "2518"
+     ],
+     [
+      "G60",
+      "4,752,000",
+      "\\(3.796\\) (8)",
+      "\\(3.372\\) (8)",
+      "\\(1.13\\)",
+      "\\(1.436\\)",
+      "\\(0.869\\)",
+      "\\(1.65\\)",
+      "\\(5.7\\)",
+      "\\(16.2\\)",
+      "4967"
+     ]
+    ],
+    "note": "Speed-up = CPU time / GPU time (above 1: GPU faster). Pressure solve time from profiling, per call, including the transfers to and from the GPU."
+   },
+   {
+    "title": "Rank count on L4",
+    "head": [
+     "Pressure solver",
+     "Ranks",
+     "s/iter",
+     "p solve (s)",
+     "U solve (s)",
+     "Rest (s)",
+     "p iters/solve"
+    ],
+    "rows": [
+     [
+      "GAMG",
+      "4",
+      "\\(1.909\\)",
+      "\\(0.747\\)",
+      "\\(0.442\\)",
+      "\\(0.669\\)",
+      "\\(11.8\\)"
+     ],
+     [
+      "GAMG",
+      "8",
+      "\\(1.836\\)",
+      "\\(0.731\\)",
+      "\\(0.421\\)",
+      "\\(0.667\\)",
+      "\\(13.6\\)"
+     ],
+     [
+      "GAMG",
+      "12",
+      "\\(1.839\\)",
+      "\\(0.692\\)",
+      "\\(0.442\\)",
+      "\\(0.677\\)",
+      "\\(13.0\\)"
+     ],
+     [
+      "GAMG",
+      "16",
+      "\\(2.031\\)",
+      "\\(0.956\\)",
+      "\\(0.477\\)",
+      "\\(0.670\\)",
+      "\\(12.6\\)"
+     ],
+     [
+      "GAMG_DIC",
+      "8",
+      "\\(1.715\\)",
+      "\\(0.549\\)",
+      "\\(0.416\\)",
+      "\\(0.661\\)",
+      "\\(5.0\\)"
+     ],
+     [
+      "GAMG_DIC",
+      "12",
+      "\\(1.756\\)",
+      "\\(0.604\\)",
+      "\\(0.433\\)",
+      "\\(0.679\\)",
+      "\\(5.7\\)"
+     ],
+     [
+      "GAMG_DIC",
+      "16",
+      "\\(1.903\\)",
+      "\\(0.688\\)",
+      "\\(0.471\\)",
+      "\\(0.664\\)",
+      "\\(5.5\\)"
+     ],
+     [
+      "gpu_best",
+      "2",
+      "\\(2.282\\)",
+      "\\(0.491\\)",
+      "\\(0.623\\)",
+      "\\(0.903\\)",
+      "\\(15.9\\)"
+     ],
+     [
+      "gpu_best",
+      "4",
+      "\\(1.760\\)",
+      "\\(0.486\\)",
+      "\\(0.440\\)",
+      "\\(0.682\\)",
+      "\\(15.8\\)"
+     ],
+     [
+      "gpu_best",
+      "8",
+      "\\(1.669\\)",
+      "\\(0.495\\)",
+      "\\(0.420\\)",
+      "\\(0.659\\)",
+      "\\(15.6\\)"
+     ],
+     [
+      "gpu_best",
+      "16",
+      "\\(1.817\\)",
+      "\\(0.628\\)",
+      "\\(0.498\\)",
+      "\\(0.639\\)",
+      "\\(15.7\\)"
+     ]
+    ]
+   },
+   {
+    "title": "GPU solver tuning on G36 (4 ranks, 20 iterations)",
+    "head": [
+     "Configuration: what changes",
+     "CG iters/solve",
+     "GPU solve (ms)",
+     "Set-up per solve (ms)",
+     "p solve (s)",
+     "s/iter"
+    ],
+    "rows": [
+     [
+      "<code>GAMG</code><br>CPU GAMG (Gauss-Seidel), the baseline",
+      "\\(9.4\\)",
+      "–",
+      "–",
+      "\\(0.214\\)",
+      "\\(0.609\\)"
+     ],
+     [
+      "<code>gpu_MG_default</code><br>OGL defaults: coarsest level 64000 rows, 1 Jacobi sweep as coarse solve, adaptMinIter on",
+      "\\(132.2\\)",
+      "\\(443\\)",
+      "\\(223\\)",
+      "\\(0.748\\)",
+      "\\(1.105\\)"
+     ],
+     [
+      "<code>gpu_MG_noadapt</code><br>defaults, adaptMinIter off",
+      "\\(97.0\\)",
+      "\\(362\\)",
+      "\\(271\\)",
+      "\\(0.740\\)",
+      "\\(1.032\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k</code><br>coarsest level 1000 rows (more levels)",
+      "\\(52.3\\)",
+      "\\(472\\)",
+      "\\(976\\)",
+      "\\(1.710\\)",
+      "\\(2.794\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg</code><br>+ coarse solve by CG (20 iterations)",
+      "\\(15.2\\)",
+      "\\(273\\)",
+      "\\(907\\)",
+      "\\(1.443\\)",
+      "\\(2.401\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg_adapt</code><br>same, adaptMinIter on",
+      "\\(16.1\\)",
+      "\\(259\\)",
+      "\\(922\\)",
+      "\\(1.457\\)",
+      "\\(2.091\\)"
+     ],
+     [
+      "<code>gpu_MG_c4k_cg</code><br>coarsest level 4000 rows, CG coarse solve",
+      "\\(15.8\\)",
+      "\\(321\\)",
+      "\\(810\\)",
+      "\\(1.372\\)",
+      "\\(2.089\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg_s2</code><br>+ 2 smoothing sweeps",
+      "\\(13.2\\)",
+      "\\(255\\)",
+      "\\(818\\)",
+      "\\(1.346\\)",
+      "\\(2.396\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg_ssor</code><br>SSOR smoother instead of Jacobi",
+      "\\(12.0\\)",
+      "\\(924\\)",
+      "\\(1129\\)",
+      "\\(2.433\\)",
+      "\\(2.805\\)"
+     ],
+     [
+      "<code>gpu_BJ</code><br>block Jacobi preconditioner",
+      "\\(631.5\\)",
+      "\\(1250\\)",
+      "\\(7\\)",
+      "\\(1.536\\)",
+      "\\(2.612\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg_cache5</code><br>preconditioner reused for 5 solves",
+      "\\(17.0\\)",
+      "\\(362\\)",
+      "\\(177\\)",
+      "\\(0.822\\)",
+      "\\(1.943\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg_cache20</code><br>preconditioner reused for 20 solves",
+      "\\(19.4\\)",
+      "\\(342\\)",
+      "\\(63\\)",
+      "\\(0.640\\)",
+      "\\(1.601\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg_reuse</code><br>hierarchy reused, coarse matrices recomputed",
+      "\\(16.8\\)",
+      "\\(298\\)",
+      "\\(495\\)",
+      "\\(1.104\\)",
+      "\\(2.065\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg_csr</code><br>Csr matrix format",
+      "\\(15.5\\)",
+      "\\(261\\)",
+      "\\(908\\)",
+      "\\(1.436\\)",
+      "\\(2.529\\)"
+     ],
+     [
+      "<code>gpu_MG_c4k_cg_cache20</code><br>coarsest 4000 rows, reused for 20 solves",
+      "\\(17.1\\)",
+      "\\(312\\)",
+      "\\(53\\)",
+      "\\(0.666\\)",
+      "\\(1.965\\)"
+     ],
+     [
+      "<code>gpu_MG_c1k_cg_s2_cache20</code><br>2 sweeps, reused for 20 solves",
+      "\\(15.2\\)",
+      "\\(134\\)",
+      "\\(15\\)",
+      "\\(0.234\\)",
+      "\\(0.612\\)"
+     ],
+     [
+      "<code>gpu_ISAI</code><br>ISAI preconditioner",
+      "\\(353.3\\)",
+      "\\(516\\)",
+      "\\(83\\)",
+      "\\(0.682\\)",
+      "\\(1.093\\)"
+     ],
+     [
+      "<code>gpu_IC</code><br>incomplete Cholesky preconditioner",
+      "\\(206.8\\)",
+      "\\(514\\)",
+      "\\(55\\)",
+      "\\(0.652\\)",
+      "\\(1.055\\)"
+     ],
+     [
+      "<code>gpu_s2c20</code><br>2 sweeps, reused for 20 solves (repeat, nothing else running)",
+      "\\(15.8\\)",
+      "\\(151\\)",
+      "\\(19\\)",
+      "\\(0.268\\)",
+      "\\(0.647\\)"
+     ],
+     [
+      "<code>gpu_s3c20</code><br>3 sweeps, reused for 20 solves",
+      "\\(14.3\\)",
+      "\\(152\\)",
+      "\\(15\\)",
+      "\\(0.260\\)",
+      "\\(0.662\\)"
+     ],
+     [
+      "<code>gpu_s2c50</code><br>2 sweeps, reused for 50 solves",
+      "\\(15.3\\)",
+      "\\(142\\)",
+      "\\(15\\)",
+      "\\(0.239\\)",
+      "\\(0.631\\)"
+     ],
+     [
+      "<code>gpu_c4k_s2c20</code><br>coarsest 4000 rows, 2 sweeps, reused 20",
+      "\\(16.9\\)",
+      "\\(299\\)",
+      "\\(54\\)",
+      "\\(0.558\\)",
+      "\\(1.662\\)"
+     ],
+     [
+      "<code>gpu_s2c20_csr</code><br>2 sweeps, reused 20, Csr format",
+      "\\(15.2\\)",
+      "\\(375\\)",
+      "\\(46\\)",
+      "\\(0.686\\)",
+      "\\(2.074\\)"
+     ],
+     [
+      "<code>gpu_s2c20_k10</code><br>2 sweeps, reused 20, 10 coarse CG iterations",
+      "\\(19.0\\)",
+      "\\(317\\)",
+      "\\(56\\)",
+      "\\(0.657\\)",
+      "\\(1.881\\)"
+     ]
+    ],
+    "note": "Configurations after the first one up to and including the caching tests ran while the accuracy runs of the main report used 12 of the 16 hardware threads: their times are inflated; compare iteration counts there."
+   },
+   {
+    "title": "Converged runs (same start field, same stopping rule)",
+    "head": [
+     "Run",
+     "Cells",
+     "Side",
+     "Ranks",
+     "Iterations",
+     "Wall (s)",
+     "s/iter",
+     "p iters/solve"
+    ],
+    "rows": [
+     [
+      "cpu_L3",
+      "304,128",
+      "CPU",
+      "8",
+      "213",
+      "\\(20.5\\)",
+      "\\(0.092\\)",
+      "\\(2.0\\)"
+     ],
+     [
+      "gpu_L3",
+      "304,128",
+      "GPU",
+      "8",
+      "216",
+      "\\(33.7\\)",
+      "\\(0.142\\)",
+      "\\(7.1\\)"
+     ],
+     [
+      "cpu_L4",
+      "2,433,024",
+      "CPU",
+      "8",
+      "434",
+      "\\(692.9\\)",
+      "\\(1.594\\)",
+      "\\(3.1\\)"
+     ],
+     [
+      "gpu_L4",
+      "2,433,024",
+      "GPU",
+      "8",
+      "434",
+      "\\(685.3\\)",
+      "\\(1.559\\)",
+      "\\(11.1\\)"
+     ]
+    ]
+   },
+   {
+    "title": "All timing runs",
+    "head": [
+     "Run",
+     "Cells",
+     "Side",
+     "Ranks",
+     "s/iter",
+     "p solve (s)",
+     "U solve (s)",
+     "p iters/solve",
+     "GPU MiB"
+    ],
+    "rows": [
+     [
+      "t_G16_GAMG_np8",
+      "90,112",
+      "CPU",
+      "8",
+      "\\(0.022\\)",
+      "\\(0.007\\)",
+      "\\(0.004\\)",
+      "\\(4.6\\)",
+      "–"
+     ],
+     [
+      "t_G16_GAMG_DIC_np8",
+      "90,112",
+      "CPU",
+      "8",
+      "\\(0.021\\)",
+      "\\(0.007\\)",
+      "\\(0.004\\)",
+      "\\(2.8\\)",
+      "–"
+     ],
+     [
+      "t_G16_GAMG_DIC_np16",
+      "90,112",
+      "CPU",
+      "16",
+      "\\(0.039\\) *",
+      "\\(0.020\\)",
+      "\\(0.008\\)",
+      "\\(2.9\\)",
+      "–"
+     ],
+     [
+      "t_G16_gpu_best_np4",
+      "90,112",
+      "GPU",
+      "4",
+      "\\(0.097\\)",
+      "\\(0.096\\)",
+      "\\(0.005\\)",
+      "\\(12.2\\)",
+      "253"
+     ],
+     [
+      "t_G16_gpu_best_np8",
+      "90,112",
+      "GPU",
+      "8",
+      "\\(0.091\\)",
+      "\\(0.098\\)",
+      "\\(0.004\\)",
+      "\\(12.0\\)",
+      "235"
+     ],
+     [
+      "t_L3_GAMG_np8",
+      "304,128",
+      "CPU",
+      "8",
+      "\\(0.093\\)",
+      "\\(0.025\\)",
+      "\\(0.015\\)",
+      "\\(6.4\\)",
+      "–"
+     ],
+     [
+      "t_L3_GAMG_DIC_np8",
+      "304,128",
+      "CPU",
+      "8",
+      "\\(0.098\\)",
+      "\\(0.031\\)",
+      "\\(0.015\\)",
+      "\\(3.7\\)",
+      "–"
+     ],
+     [
+      "t_L3_GAMG_DIC_np16",
+      "304,128",
+      "CPU",
+      "16",
+      "\\(0.103\\)",
+      "\\(0.048\\)",
+      "\\(0.017\\)",
+      "\\(3.7\\)",
+      "–"
+     ],
+     [
+      "t_L3_gpu_best_np4",
+      "304,128",
+      "GPU",
+      "4",
+      "\\(0.191\\)",
+      "\\(0.134\\)",
+      "\\(0.022\\)",
+      "\\(13.2\\)",
+      "371"
+     ],
+     [
+      "t_L3_gpu_best_np8",
+      "304,128",
+      "GPU",
+      "8",
+      "\\(0.169\\)",
+      "\\(0.129\\)",
+      "\\(0.015\\)",
+      "\\(13.1\\)",
+      "387"
+     ],
+     [
+      "t_G36_GAMG_np8",
+      "1,026,432",
+      "CPU",
+      "8",
+      "\\(0.535\\)",
+      "\\(0.165\\)",
+      "\\(0.095\\)",
+      "\\(9.5\\)",
+      "–"
+     ],
+     [
+      "t_G36_GAMG_DIC_np8",
+      "1,026,432",
+      "CPU",
+      "8",
+      "\\(0.524\\)",
+      "\\(0.157\\)",
+      "\\(0.101\\)",
+      "\\(4.6\\)",
+      "–"
+     ],
+     [
+      "t_G36_GAMG_DIC_np16",
+      "1,026,432",
+      "CPU",
+      "16",
+      "\\(0.567\\)",
+      "\\(0.179\\)",
+      "\\(0.121\\)",
+      "\\(4.2\\)",
+      "–"
+     ],
+     [
+      "t_G36_gpu_best_np4",
+      "1,026,432",
+      "GPU",
+      "4",
+      "\\(0.617\\)",
+      "\\(0.213\\)",
+      "\\(0.128\\)",
+      "\\(14.2\\)",
+      "1067"
+     ],
+     [
+      "t_G36_gpu_best_np8",
+      "1,026,432",
+      "GPU",
+      "8",
+      "\\(0.580\\)",
+      "\\(0.226\\)",
+      "\\(0.100\\)",
+      "\\(14.4\\)",
+      "1107"
+     ],
+     [
+      "t_L4_GAMG_np4",
+      "2,433,024",
+      "CPU",
+      "4",
+      "\\(1.909\\)",
+      "\\(0.747\\)",
+      "\\(0.442\\)",
+      "\\(11.8\\)",
+      "–"
+     ],
+     [
+      "t_L4_GAMG_np8",
+      "2,433,024",
+      "CPU",
+      "8",
+      "\\(1.836\\)",
+      "\\(0.731\\)",
+      "\\(0.421\\)",
+      "\\(13.6\\)",
+      "–"
+     ],
+     [
+      "t_L4_GAMG_np12",
+      "2,433,024",
+      "CPU",
+      "12",
+      "\\(1.839\\)",
+      "\\(0.692\\)",
+      "\\(0.442\\)",
+      "\\(13.0\\)",
+      "–"
+     ],
+     [
+      "t_L4_GAMG_np16",
+      "2,433,024",
+      "CPU",
+      "16",
+      "\\(2.031\\)",
+      "\\(0.956\\)",
+      "\\(0.477\\)",
+      "\\(12.6\\)",
+      "–"
+     ],
+     [
+      "t_L4_GAMG_DIC_np8",
+      "2,433,024",
+      "CPU",
+      "8",
+      "\\(1.724\\)",
+      "\\(0.547\\)",
+      "\\(0.424\\)",
+      "\\(5.0\\)",
+      "–"
+     ],
+     [
+      "t_L4_GAMG_DIC_np8_r2",
+      "2,433,024",
+      "CPU",
+      "8",
+      "\\(1.707\\)",
+      "\\(0.551\\)",
+      "\\(0.408\\)",
+      "\\(5.0\\)",
+      "–"
+     ],
+     [
+      "t_L4_GAMG_DIC_np12",
+      "2,433,024",
+      "CPU",
+      "12",
+      "\\(1.756\\)",
+      "\\(0.604\\)",
+      "\\(0.433\\)",
+      "\\(5.7\\)",
+      "–"
+     ],
+     [
+      "t_L4_GAMG_DIC_np16",
+      "2,433,024",
+      "CPU",
+      "16",
+      "\\(1.903\\)",
+      "\\(0.688\\)",
+      "\\(0.471\\)",
+      "\\(5.5\\)",
+      "–"
+     ],
+     [
+      "t_L4_gpu_best_np2",
+      "2,433,024",
+      "GPU",
+      "2",
+      "\\(2.282\\)",
+      "\\(0.491\\)",
+      "\\(0.623\\)",
+      "\\(15.9\\)",
+      "2527"
+     ],
+     [
+      "t_L4_gpu_best_np4",
+      "2,433,024",
+      "GPU",
+      "4",
+      "\\(1.760\\)",
+      "\\(0.486\\)",
+      "\\(0.440\\)",
+      "\\(15.8\\)",
+      "2524"
+     ],
+     [
+      "t_L4_gpu_best_np8",
+      "2,433,024",
+      "GPU",
+      "8",
+      "\\(1.714\\)",
+      "\\(0.521\\)",
+      "\\(0.434\\)",
+      "\\(15.6\\)",
+      "2518"
+     ],
+     [
+      "t_L4_gpu_best_np8_r2",
+      "2,433,024",
+      "GPU",
+      "8",
+      "\\(1.623\\)",
+      "\\(0.468\\)",
+      "\\(0.407\\)",
+      "\\(15.6\\)",
+      "2421"
+     ],
+     [
+      "t_L4_gpu_best_np16",
+      "2,433,024",
+      "GPU",
+      "16",
+      "\\(1.817\\)",
+      "\\(0.628\\)",
+      "\\(0.498\\)",
+      "\\(15.7\\)",
+      "2710"
+     ],
+     [
+      "t_G60_GAMG_np8",
+      "4,752,000",
+      "CPU",
+      "8",
+      "\\(3.849\\)",
+      "\\(1.745\\)",
+      "\\(0.956\\)",
+      "\\(14.5\\)",
+      "–"
+     ],
+     [
+      "t_G60_GAMG_DIC_np8",
+      "4,752,000",
+      "CPU",
+      "8",
+      "\\(3.763\\)",
+      "\\(1.410\\)",
+      "\\(0.965\\)",
+      "\\(5.6\\)",
+      "–"
+     ],
+     [
+      "t_G60_GAMG_DIC_np8_r2",
+      "4,752,000",
+      "CPU",
+      "8",
+      "\\(3.828\\)",
+      "\\(1.463\\)",
+      "\\(0.987\\)",
+      "\\(5.7\\)",
+      "–"
+     ],
+     [
+      "t_G60_GAMG_DIC_np16",
+      "4,752,000",
+      "CPU",
+      "16",
+      "\\(3.965\\)",
+      "\\(1.634\\)",
+      "\\(1.022\\)",
+      "\\(5.9\\)",
+      "–"
+     ],
+     [
+      "t_G60_gpu_best_np4",
+      "4,752,000",
+      "GPU",
+      "4",
+      "\\(3.493\\)",
+      "\\(0.873\\)",
+      "\\(0.977\\)",
+      "\\(16.7\\)",
+      "4493"
+     ],
+     [
+      "t_G60_gpu_best_np8",
+      "4,752,000",
+      "GPU",
+      "8",
+      "\\(3.394\\)",
+      "\\(0.897\\)",
+      "\\(0.955\\)",
+      "\\(16.9\\)",
+      "4501"
+     ],
+     [
+      "t_G60_gpu_best_np8_r2",
+      "4,752,000",
+      "GPU",
+      "8",
+      "\\(3.350\\)",
+      "\\(0.840\\)",
+      "\\(0.957\\)",
+      "\\(15.6\\)",
+      "4967"
+     ]
+    ]
+   }
+  ],
+  "notes": [
+   "Break-even sizes are interpolated between measured meshes (log scale in cells), not extrapolated."
+  ]
+ },
+ "same_answer": {
+  "intro": "Converged runs on the same mesh, CPU (GAMG) and GPU (tuned OGL), from the same start field, stopped by the same residual rule. The tolerance was fixed before the runs, ten times below the mesh uncertainty of each number.",
+  "head": [
+   "Mesh",
+   "Quantity",
+   "CPU",
+   "GPU",
+   "GPU − CPU",
+   "Tolerance",
+   "OK"
+  ],
+  "rows": [
+   [
+    "L3 (304,128 cells)",
+    "\\(c_D\\)",
+    "\\(6.161445\\)",
+    "\\(6.161445\\)",
+    "\\(4.9 \\times 10^{-12}\\)",
+    "\\(1 \\times 10^{-4}\\)",
+    "✓"
+   ],
+   [
+    "L3 (304,128 cells)",
+    "\\(c_L\\)",
+    "\\(0.009818\\)",
+    "\\(0.009818\\)",
+    "\\(7.4 \\times 10^{-12}\\)",
+    "\\(1 \\times 10^{-5}\\)",
+    "✓"
+   ],
+   [
+    "L3",
+    "iterations to converge",
+    "213",
+    "216",
+    "+3",
+    "–",
+    "–"
+   ],
+   [
+    "L4 (2,433,024 cells)",
+    "\\(c_D\\)",
+    "\\(6.180538\\)",
+    "\\(6.180538\\)",
+    "\\(6.7 \\times 10^{-10}\\)",
+    "\\(1 \\times 10^{-4}\\)",
+    "✓"
+   ],
+   [
+    "L4 (2,433,024 cells)",
+    "\\(c_L\\)",
+    "\\(0.009557\\)",
+    "\\(0.009557\\)",
+    "\\(9.8 \\times 10^{-10}\\)",
+    "\\(1 \\times 10^{-5}\\)",
+    "✓"
+   ],
+   [
+    "L4",
+    "iterations to converge",
+    "434",
+    "434",
+    "+0",
+    "–",
+    "–"
+   ]
+  ],
+  "ok": true,
+  "verdict": "Same answer: drag and lift agree within the tolerance on L3 and L4."
+ },
+ "breakdown": {
+  "intro": "Seconds per iteration by part, from OpenFOAM's profiling of the best setups (mean over the run), and the GPU pressure solve split further from OGL's own timings.",
+  "tables": [
+   {
+    "title": "Per iteration (s)",
+    "head": [
+     "Mesh",
+     "Setup",
+     "Pressure solve",
+     "Momentum solve",
+     "Force output",
+     "Rest",
+     "Total",
+     "Pressure share"
+    ],
+    "rows": [
+     [
+      "G16",
+      "CPU (8 ranks)",
+      "\\(0.007\\)",
+      "\\(0.004\\)",
+      "\\(0.003\\)",
+      "\\(0.006\\)",
+      "\\(0.021\\)",
+      "\\(35\\,\\%\\)"
+     ],
+     [
+      "G16",
+      "GPU (8 ranks)",
+      "\\(0.098\\)",
+      "\\(0.004\\)",
+      "\\(0.003\\)",
+      "\\(0.008\\)",
+      "\\(0.112\\)",
+      "\\(87\\,\\%\\)"
+     ],
+     [
+      "L3",
+      "CPU (8 ranks)",
+      "\\(0.025\\)",
+      "\\(0.015\\)",
+      "\\(0.010\\)",
+      "\\(0.038\\)",
+      "\\(0.088\\)",
+      "\\(28\\,\\%\\)"
+     ],
+     [
+      "L3",
+      "GPU (8 ranks)",
+      "\\(0.129\\)",
+      "\\(0.015\\)",
+      "\\(0.010\\)",
+      "\\(0.041\\)",
+      "\\(0.195\\)",
+      "\\(66\\,\\%\\)"
+     ],
+     [
+      "G36",
+      "CPU (8 ranks)",
+      "\\(0.157\\)",
+      "\\(0.101\\)",
+      "\\(0.043\\)",
+      "\\(0.227\\)",
+      "\\(0.528\\)",
+      "\\(30\\,\\%\\)"
+     ],
+     [
+      "G36",
+      "GPU (8 ranks)",
+      "\\(0.226\\)",
+      "\\(0.100\\)",
+      "\\(0.045\\)",
+      "\\(0.226\\)",
+      "\\(0.598\\)",
+      "\\(38\\,\\%\\)"
+     ],
+     [
+      "L4",
+      "CPU (8 ranks)",
+      "\\(0.549\\)",
+      "\\(0.416\\)",
+      "\\(0.113\\)",
+      "\\(0.661\\)",
+      "\\(1.739\\)",
+      "\\(32\\,\\%\\)"
+     ],
+     [
+      "L4",
+      "GPU (8 ranks)",
+      "\\(0.495\\)",
+      "\\(0.420\\)",
+      "\\(0.114\\)",
+      "\\(0.659\\)",
+      "\\(1.688\\)",
+      "\\(29\\,\\%\\)"
+     ],
+     [
+      "G60",
+      "CPU (8 ranks)",
+      "\\(1.436\\)",
+      "\\(0.976\\)",
+      "\\(0.232\\)",
+      "\\(1.331\\)",
+      "\\(3.976\\)",
+      "\\(36\\,\\%\\)"
+     ],
+     [
+      "G60",
+      "GPU (8 ranks)",
+      "\\(0.869\\)",
+      "\\(0.956\\)",
+      "\\(0.227\\)",
+      "\\(1.343\\)",
+      "\\(3.395\\)",
+      "\\(26\\,\\%\\)"
+     ]
+    ],
+    "note": "Rest: matrix assembly, gradients, flux updates, MPI exchange, bookkeeping. Profiling means over all 30 iterations (first-iteration set-up and final write included), so totals are slightly above the Results."
+   },
+   {
+    "title": "GPU pressure solve, per call (ms)",
+    "head": [
+     "Mesh",
+     "Matrix update",
+     "Preconditioner set-up (mean)",
+     "GPU solve",
+     "Copy back",
+     "OGL total",
+     "OpenFOAM side",
+     "CG iters",
+     "ms per CG iter."
+    ],
+    "rows": [
+     [
+      "G16",
+      "\\(4\\)",
+      "\\(7\\)",
+      "\\(70\\)",
+      "\\(0\\)",
+      "\\(77\\)",
+      "\\(21\\)",
+      "\\(12.0\\)",
+      "\\(5.80\\)"
+     ],
+     [
+      "L3",
+      "\\(6\\)",
+      "\\(10\\)",
+      "\\(86\\)",
+      "\\(1\\)",
+      "\\(100\\)",
+      "\\(30\\)",
+      "\\(13.1\\)",
+      "\\(6.52\\)"
+     ],
+     [
+      "G36",
+      "\\(14\\)",
+      "\\(20\\)",
+      "\\(135\\)",
+      "\\(2\\)",
+      "\\(165\\)",
+      "\\(61\\)",
+      "\\(14.4\\)",
+      "\\(9.37\\)"
+     ],
+     [
+      "L4",
+      "\\(84\\)",
+      "\\(40\\)",
+      "\\(249\\)",
+      "\\(5\\)",
+      "\\(366\\)",
+      "\\(129\\)",
+      "\\(15.6\\)",
+      "\\(15.93\\)"
+     ],
+     [
+      "G60",
+      "\\(146\\)",
+      "\\(66\\)",
+      "\\(407\\)",
+      "\\(8\\)",
+      "\\(611\\)",
+      "\\(258\\)",
+      "\\(16.2\\)",
+      "\\(25.12\\)"
+     ]
+    ],
+    "note": "Matrix update: OGL's copy of the new coefficients to the GPU. OpenFOAM side: the rest of the pressure solve call outside OGL's timers (gathering the ranks' matrices, conversion, scattering the solution)."
+   }
+  ],
+  "notes": [
+   "On the GPU the pressure solve shrinks, but the rest of the iteration does not: momentum, assembly and the force output still take G16 \\(0.015\\,\\mathrm{s}\\), L3 \\(0.066\\,\\mathrm{s}\\), G36 \\(0.371\\,\\mathrm{s}\\), L4 \\(1.193\\,\\mathrm{s}\\), G60 \\(2.526\\,\\mathrm{s}\\) per iteration on the GPU runs, against G16 \\(0.013\\,\\mathrm{s}\\), L3 \\(0.063\\,\\mathrm{s}\\), G36 \\(0.371\\,\\mathrm{s}\\), L4 \\(1.191\\,\\mathrm{s}\\), G60 \\(2.539\\,\\mathrm{s}\\) on the CPU runs (profiling means; same rank count on both sides).",
+   "GPU solve time per CG iteration per million cells: G16 \\(0.1\\), L3 \\(0.0\\), G36 \\(0.0\\), L4 \\(0.0\\), G60 \\(0.0\\) \\(\\mathrm{ms}\\): it falls with size up to the largest meshes, where the GPU is finally busy. The OpenFOAM side of the GPU path (gathering the ranks' matrices, conversion, scattering the solution) costs G16 \\(21\\,\\mathrm{ms}\\), L3 \\(30\\,\\mathrm{ms}\\), G36 \\(61\\,\\mathrm{ms}\\), L4 \\(129\\,\\mathrm{ms}\\), G60 \\(258\\,\\mathrm{ms}\\) per solve."
+  ]
+ },
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run tune G36 4 20 <configs>",
+    "what": "GPU tuning runs (configurations in run.py CONFIGS, or name=base+key:value)"
+   },
+   {
+    "cmd": "bash cases/dfg_cylinder_3d_re20/scratch/timing_chain.sh gpu_best A",
+    "what": "L4: CPU GAMG on 4-16 ranks, GPU on 2-16 ranks, 30 iterations each, one at a time"
+   },
+   {
+    "cmd": "bash cases/dfg_cylinder_3d_re20/scratch/timing_chain.sh gpu_best B '<ranks>'",
+    "what": "Size sweep G16, L3, G36, G60 and repeats on G60"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run timing <mesh> <config> <ranks> 30",
+    "what": "One timing run"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run gpu_full gpu_ gpu_best <ranks> L3 L4",
+    "what": "Converged GPU runs (same start field as CPU)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run gpu_full cpu_ GAMG <ranks> L3 L4",
+    "what": "Converged CPU runs, measured alone"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.gpu_study",
+    "what": "This report"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/dfg_cylinder_3d_re20/run.py",
+    "what": "Meshes, pressure-solver configurations (CONFIGS), timing and run modes"
+   },
+   {
+    "path": "cases/dfg_cylinder_3d_re20/gpu_study.py",
+    "what": "Analysis and this report"
+   },
+   {
+    "path": "results/dfg_cylinder_3d_re20/timing/",
+    "what": "One JSON (+ forces) per timing run, with profiling and OGL timings"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/t_<mesh>_<config>_np<ranks>",
+    "what": "Timing runs (processor directories deleted)"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/cpu_L*, gpu_L*",
+    "what": "Converged comparison runs"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "23 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "Per-iteration times: rank 0's ExecutionTime differences where it equals wall time, else the profiled loop mean (Insights: ClockTime has 1 s resolution, ExecutionTime is CPU time)."
+  ]
+ },
+ "figures": [
+  {
+   "key": "tpi",
+   "section": "results",
+   "caption": "Left: wall time per SIMPLE iteration (solid) and per pressure solve (dashed) against mesh size, best CPU setup (GAMG on its fastest rank count) and best GPU setup (OGL, tuned multigrid-preconditioned CG). Right: speed-up of the GPU over the CPU, for the whole iteration and for the pressure solve alone; above the dotted line the GPU is faster."
+  },
+  {
+   "key": "ranks",
+   "section": "results",
+   "caption": "Rank count on the 2,433,024-cell mesh (L4): time per iteration for CPU GAMG (one rank per core or hardware thread) and for the GPU runs (the ranks assemble and solve momentum on the CPU and all send their pressure matrix to the one GPU)."
+  },
+  {
+   "key": "tune",
+   "section": "results",
+   "caption": "GPU solver tuning on the 1,026,432-cell mesh (4 ranks, 20 iterations): CG iterations per pressure solve (left, log scale) and wall time per pressure solve (right), in the order they were tried. Hatched: measured while multi-core accuracy runs were going (time inflated, iteration counts unaffected); solid: nothing else running, or at most single-core set-up work. Dotted: the CPU baseline (GAMG, 4 ranks)."
+  },
+  {
+   "key": "bd",
+   "section": "breakdown",
+   "caption": "Where the time of one iteration goes, best CPU (left bar of each pair) and best GPU setup (right bar), per million cells: pressure solve, momentum solve, force output (function objects) and the rest (matrix assembly, gradients, fluxes, MPI). The GPU only shortens the first part."
+  }
+ ]
+}

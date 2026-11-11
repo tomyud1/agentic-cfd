@@ -154,7 +154,7 @@ def assess(log_path, end_time=None, courant_limit=1.0, residual_targets=None):
             est = per_step * est_iter if finite else None
             est_kind = "lower bound (steady: early residual decay rate)" if finite else "residuals not falling"
             checks.append(dict(name="Projected iterations to residual targets", status="ok" if finite else "warn",
-                               value=f"≥ {est_iter:.0f}" if finite else "not falling",
+                               value=r"\(\ge " + f"{est_iter:.0f}" + r"\)" if finite else "not falling",
                                meaning="Extrapolated from the decay rate of the short run; real runs usually need more."))
     status = "fail" if any(c["status"] == "fail" for c in checks) else \
              "warn" if any(c["status"] == "warn" for c in checks) else "ok"

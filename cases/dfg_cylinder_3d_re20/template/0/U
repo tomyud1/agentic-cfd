@@ -1,0 +1,34 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform ({{ U_init }} 0 0);
+
+boundaryField
+{
+    // Inflow u = 16 Um y z (H - y)(H - z) / H^4, evaluated at each inlet face centre.
+    inlet
+    {
+        type            exprFixedValue;
+        value           uniform (0 0 0);
+        valueExpr       "vector(16*{{ Um }}*pos().y()*pos().z()*({{ H }} - pos().y())*({{ H }} - pos().z())/pow({{ H }}, 4), 0, 0)";
+    }
+    outlet
+    {
+        type            zeroGradient;
+    }
+    walls
+    {
+        type            noSlip;
+    }
+    cylinder
+    {
+        type            noSlip;
+    }
+}

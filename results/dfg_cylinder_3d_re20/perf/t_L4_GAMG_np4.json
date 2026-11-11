@@ -1,0 +1,213 @@
+{
+ "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/t_L4_GAMG_np4",
+ "solver": "simpleFoam",
+ "cells": 2433024,
+ "cores": 4,
+ "steps": 30,
+ "wall_s": 65.25251671999968,
+ "cpu_s": 258.795623,
+ "solver_cpu_s": 64.34,
+ "peak_mem_mb": 946.9375,
+ "us_per_cell_step": 0.8939837382067156,
+ "cpu_efficiency": 0.9915158679262098,
+ "write_share": 0.11114539460784967,
+ "lin_iters": {
+  "Ux": 4.933333333333334,
+  "Uy": 5.666666666666667,
+  "Uz": 5.733333333333333,
+  "p": 11.833333333333334
+ },
+ "lin_solves_per_step": {
+  "Ux": 1.0,
+  "Uy": 1.0,
+  "Uz": 1.0,
+  "p": 1.0
+ },
+ "lin_iters_by_solve": {
+  "Ux": {
+   "solve 1": 4.933333333333334,
+   "last": 4.933333333333334
+  },
+  "Uy": {
+   "solve 1": 5.666666666666667,
+   "last": 5.666666666666667
+  },
+  "Uz": {
+   "solve 1": 5.733333333333333,
+   "last": 5.733333333333333
+  },
+  "p": {
+   "solve 1": 11.833333333333334,
+   "last": 11.833333333333334
+  }
+ },
+ "loop_s_per_iter": 1.9130434782608696,
+ "loop_cpu_s_per_iter": 1.9086956521739133,
+ "profiling": {
+  "application::main": {
+   "total": 64.329096742,
+   "calls": 1
+  },
+  "time.run() t_L4_GAMG_np4processor0": {
+   "total": 59.826433194,
+   "calls": 30
+  },
+  "functionObjects.start()": {
+   "total": 0.026604814,
+   "calls": 1
+  },
+  "functionObjects::read": {
+   "total": 0.026559728,
+   "calls": 1
+  },
+  "functionObject::forcesCyl::new": {
+   "total": 0.000743609,
+   "calls": 1
+  },
+  "functionObject::forcesWalls::new": {
+   "total": 0.000218116,
+   "calls": 1
+  },
+  "functionObject::momFlux_inlet::new": {
+   "total": 0.014602957,
+   "calls": 1
+  },
+  "functionObject::pForce_inlet::new": {
+   "total": 0.000143925,
+   "calls": 1
+  },
+  "functionObject::flow_inlet::new": {
+   "total": 0.000140418,
+   "calls": 1
+  },
+  "functionObject::momFlux_outlet::new": {
+   "total": 0.000217551,
+   "calls": 1
+  },
+  "functionObject::pForce_outlet::new": {
+   "total": 0.000170896,
+   "calls": 1
+  },
+  "functionObject::flow_outlet::new": {
+   "total": 0.000169674,
+   "calls": 1
+  },
+  "mesh.update()": {
+   "total": 4.7349e-05,
+   "calls": 30
+  },
+  "fvMatrix::solve.U": {
+   "total": 13.272321625,
+   "calls": 30
+  },
+  "lduMatrix::solver.Ux": {
+   "total": 3.806360856,
+   "calls": 30
+  },
+  "lduMatrix::smoother.Ux": {
+   "total": 3.05382364,
+   "calls": 30
+  },
+  "lduMatrix::solver.Uy": {
+   "total": 4.145423178,
+   "calls": 30
+  },
+  "lduMatrix::smoother.Uy": {
+   "total": 3.460818617,
+   "calls": 30
+  },
+  "lduMatrix::solver.Uz": {
+   "total": 4.183290099,
+   "calls": 30
+  },
+  "lduMatrix::smoother.Uz": {
+   "total": 3.514890304,
+   "calls": 30
+  },
+  "fvMatrix::solve.p": {
+   "total": 22.420550572,
+   "calls": 30
+  },
+  "lduMatrix::solver.p": {
+   "total": 22.317711012,
+   "calls": 30
+  },
+  "lduMatrix::solver.coarsestLevelCorr": {
+   "total": 21.810482338,
+   "calls": 30
+  },
+  "functionObjects.execute()": {
+   "total": 4.063314864,
+   "calls": 29
+  },
+  "functionObject::forcesCyl::execute": {
+   "total": 2.061024591,
+   "calls": 29
+  },
+  "functionObject::forcesCyl:write": {
+   "total": 0.004311199,
+   "calls": 29
+  },
+  "functionObject::forcesWalls::execute": {
+   "total": 1.964330952,
+   "calls": 29
+  },
+  "functionObject::forcesWalls:write": {
+   "total": 0.002644875,
+   "calls": 29
+  },
+  "functionObject::momFlux_inlet::execute": {
+   "total": 7.4218e-05,
+   "calls": 29
+  },
+  "functionObject::momFlux_inlet:write": {
+   "total": 0.007064571,
+   "calls": 29
+  },
+  "functionObject::pForce_inlet::execute": {
+   "total": 2.3347e-05,
+   "calls": 29
+  },
+  "functionObject::pForce_inlet:write": {
+   "total": 0.005559283,
+   "calls": 29
+  },
+  "functionObject::flow_inlet::execute": {
+   "total": 5.4785e-05,
+   "calls": 29
+  },
+  "functionObject::flow_inlet:write": {
+   "total": 0.003571536,
+   "calls": 29
+  },
+  "functionObject::momFlux_outlet::execute": {
+   "total": 2.4255e-05,
+   "calls": 29
+  },
+  "functionObject::momFlux_outlet:write": {
+   "total": 0.00457259,
+   "calls": 29
+  },
+  "functionObject::pForce_outlet::execute": {
+   "total": 2.278e-05,
+   "calls": 29
+  },
+  "functionObject::pForce_outlet:write": {
+   "total": 0.004399958,
+   "calls": 29
+  },
+  "functionObject::flow_outlet::execute": {
+   "total": 2.159e-05,
+   "calls": 29
+  },
+  "functionObject::flow_outlet:write": {
+   "total": 0.004688531,
+   "calls": 29
+  },
+  "objectRegistry::writeObject": {
+   "total": 0.001068181,
+   "calls": 1
+  }
+ },
+ "ogl": {}
+}

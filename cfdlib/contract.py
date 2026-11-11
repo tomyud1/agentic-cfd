@@ -22,7 +22,7 @@ CHECK_STATUSES = {"ok", "warn", "fail"}
 VERDICTS = {"PASS", "WARN", "FAIL"}
 COMPARISON_TYPES = {"verification", "benchmark", "validation", "consistency"}
 FIGURE_SECTIONS = ["problem", "theory", "preflight", "simulation", "convergence", "comparison", "performance"]
-INSIGHT_STAGES = {"intake", "theory", "setup", "preflight", "production", "analysis", "report", "tooling", "performance"}
+INSIGHT_STAGES = {"intake", "theory", "setup", "preflight", "production", "analysis", "report", "tooling", "performance", "gpu"}
 INSIGHT_STATUSES = {"open", "resolved"}
 # What kind of influence a decision has on the answer (shown as a tag in the report).
 DECISION_KINDS = {

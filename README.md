@@ -23,9 +23,12 @@ the tools and the guidelines. Its lessons were then folded back into the guideli
 | 2 | Lid-driven cavity, Re = 100 | Steady, nonlinear, benchmark (Ghia et al. 1982) | ⚠️ WARN | Velocity profiles within 0.009 U of the benchmark; the remaining gap is traced to the benchmark's own mesh | [view](https://tomyud1.github.io/agentic-cfd/results/lid_driven_cavity_re100/report.html) |
 | 3 | Stokes' first problem | Transient, linear, exact solution | ✅ PASS | Velocity within 0.002 % of U, 2nd-order convergence | [view](https://tomyud1.github.io/agentic-cfd/results/stokes_first_problem/report.html) |
 | 4 | Cylinder in a channel, Re = 100 (DFG 2D-2) | Transient, nonlinear, vortex shedding, benchmark (FeatFlow) | ⚠️ WARN | Drag, lift and Strouhal number all inside their uncertainty bands (St 0.3015 vs 0.3019); MPI scaling study | [view](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_re100/report.html) |
+| 5 | Cylinder in a square duct, Re = 20 (DFG 3D-1Z) | Steady, 3D, up to 2.4 million cells, benchmark (FeatFlow) | ❌ FAIL | Drag within 0.08 % of the reference; lift 1.7 % off, outside its band. A second mesh family shows the lift depends on the cell grading around the cylinder | [view](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_3d_re20/report.html) |
+| 5b | GPU vs CPU study (same case) | OpenFOAM pressure solve on an RTX 4070 (OGL plugin) vs the best CPU setup | ✅ PASS | Same answer on both sides; GPU breaks even at about 2 million cells and is 1.13 times faster at 4.75 million. Capped near 1.5 times because the pressure solve is only a third of each iteration | [view](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_3d_re20/gpu_study.html) |
 
 **WARN** means the answer is usable but a check the agent set for itself, before seeing the results,
-did not fully pass. The report says which one and why. Verdicts are never softened.
+did not fully pass. **FAIL** means a requested output missed the accuracy rule fixed before the runs.
+The report says which check and why. Verdicts are never softened.
 
 ### What is in every report
 
@@ -43,6 +46,9 @@ did not fully pass. The report says which one and why. Verdicts are never soften
 | 9 Reproducibility | The exact commands, files and software versions |
 | Appendix | Performance (case 4): MPI scaling, linear solvers, what limits speed |
 
+Case 5 also has a separate **performance study** report (GPU vs CPU): what is compared, the method,
+results per mesh size, the same-answer check, where the time goes and the insights.
+
 ## How it works
 
 Three layers, so the agent can solve problems it has not seen before:
@@ -54,7 +60,7 @@ Three layers, so the agent can solve problems it has not seen before:
 2. **Guidelines** ([`.claude/skills/agentic-cfd/`](.claude/skills/agentic-cfd)): the workflow
    (intake, theory, setup, pre-flight, production, analysis, report, visual review), an OpenFOAM
    primer with every pitfall met so far, the report contract and the machine setup.
-3. **Worked examples** ([`cases/`](cases)): the four solved cases. The agent copies their structure,
+3. **Worked examples** ([`cases/`](cases)): the five solved cases. The agent copies their structure,
    not their numbers.
 
 A **report contract** ([`cfdlib/contract.py`](cfdlib/contract.py)) is checked before any report is
@@ -62,7 +68,7 @@ written: required sections, every setting covered by a decision, math typeset as
 references valid.
 
 The **insight log** is how the workflow improves: agents record problems as they meet them
-(47 entries over cases 1-4), and the lessons go into the guidelines for the next agent. Example: in
+(61 entries over cases 1-5), and the lessons go into the guidelines for the next agent. Example: in
 case 4 the agent found that OpenFOAM's PISO algorithm was only first-order accurate in time for this
 flow, which made the lift 10 % wrong; the guidelines now require a time-step study in the pre-flight
 of every unsteady nonlinear problem.
@@ -122,7 +128,7 @@ from [`requirements.txt`](requirements.txt). Check the OpenFOAM install with
 
 ### 2. Re-create the reports from the saved data (minutes, no OpenFOAM needed)
 
-The data extracted from every run is stored in `results/<case>/runs/`, so all four reports can be
+The data extracted from every run is stored in `results/<case>/runs/`, so all reports can be
 rebuilt, including theory, figures and checks:
 
 ```bash
@@ -171,13 +177,16 @@ and go to `http://localhost:8765/<case>/report.html`.
 
 The agent reads the guidelines and the worked examples, logs insights as it goes, and finishes
 with `results/<new_case>/report.html`. The cases here used Claude Opus with high effort; a case took
-from about 25 minutes (case 3) to about 1.5 hours of active agent time (case 4).
+from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study).
 
 ## Roadmap
 
-- **GPU acceleration** (next): a 3D case of a few million cells, comparing an OpenFOAM GPU
-  linear-solver plugin on an RTX 4070 against the best CPU setup (GAMG on 16 MPI ranks, measured in
-  case 4).
+- **Speed beyond the GPU linear solver**: case 5 showed that offloading only the pressure solve is
+  capped near 1.5 times. Next: smarter studies (start each finer mesh from the coarser solution,
+  stop when the extrapolated answer settles) and faster algorithms for steady problems, then
+  possibly a GPU-resident solver for a narrow class of problems, verified against cases 1-5.
+- **GPU setup instructions** for OGL are in [`setup/gpu/`](setup/gpu) (CUDA check, build script,
+  smoke test).
 - More problem types: heat transfer, turbulence models, problems without a benchmark.
 
 ## Background papers

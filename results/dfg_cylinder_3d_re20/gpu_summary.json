@@ -1,0 +1,7 @@
+{
+ "headline": "The GPU is faster per iteration from about \\(2.0\\) million cells: on the largest mesh (4,752,000 cells) one iteration takes \\(3.80\\,\\mathrm{s}\\) on the best CPU setup (GAMG DIC-GS, 8 ranks) and \\(3.37\\,\\mathrm{s}\\) with the pressure solved on the GPU (8 ranks), a factor \\(1.13\\); the pressure solve alone takes \\(1.44\\) against \\(0.87\\,\\mathrm{s}\\) (factor \\(1.65\\)). Both give the same converged forces.",
+ "notes": [
+  "<b>GPU study.</b> The GPU is faster per iteration from about \\(2.0\\) million cells: on the largest mesh (4,752,000 cells) one iteration takes \\(3.80\\,\\mathrm{s}\\) on the best CPU setup (GAMG DIC-GS, 8 ranks) and \\(3.37\\,\\mathrm{s}\\) with the pressure solved on the GPU (8 ranks), a factor \\(1.13\\); the pressure solve alone takes \\(1.44\\) against \\(0.87\\,\\mathrm{s}\\) (factor \\(1.65\\)). Both give the same converged forces. See the <a href='gpu_study.html'>GPU study report</a>.",
+  "<b>Pressure share.</b> On the CPU the pressure solve takes G16 \\(35\\,\\%\\), L3 \\(26\\,\\%\\), G36 \\(30\\,\\%\\), L4 \\(32\\,\\%\\), G60 \\(38\\,\\%\\) of an iteration; that bounds what any pressure-solver change can gain."
+ ]
+}

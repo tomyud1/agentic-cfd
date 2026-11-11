@@ -1,0 +1,43 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+solvers
+{
+    // Pressure: CPU GAMG or, for the GPU study, an OGL (Ginkgo) solver; written by run.py (p_block).
+    p
+    {
+{{ p_block }}
+    }
+    U
+    {
+        solver          {{ U_solver }};
+        smoother        {{ U_smoother }};
+        tolerance       {{ U_tol }};
+        relTol          {{ U_relTol }};
+    }
+}
+
+// Steady SIMPLEC. The problem is NONLINEAR (convection), so velocity is under-relaxed.
+SIMPLE
+{
+    nNonOrthogonalCorrectors {{ n_nonorth }};
+    consistent      {{ "yes" if consistent else "no" }};
+    residualControl
+    {
+        U           {{ res_U }};
+        p           {{ res_p }};
+    }
+}
+
+relaxationFactors
+{
+    equations
+    {
+        U           {{ relax_U }};
+    }
+}

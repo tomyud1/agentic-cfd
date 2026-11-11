@@ -1,0 +1,51 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: dfg_cylinder_3d_re20
+title: Steady 3D flow past a cylinder in a square channel at Re = 20 (DFG benchmark 3D-1Z)
+description: >
+  Fluid flows slowly through a channel of square cross-section past a circular cylinder that spans the
+  channel from wall to wall. At this Reynolds number the flow is steady. Find the steady flow and the
+  forces on the cylinder, and compare them with the published benchmark. This case is also the test
+  problem for a CPU versus GPU performance study (see study below).
+setup:
+  - 'Channel: length \(L\) along \(x\), square cross-section of side \(H\) in \(y\) and \(z\). Coordinates start at a lower corner of the inlet plane.'
+  - 'Cylinder: diameter \(D\), axis along \(z\) through \((x_c, y_c)\), spanning the whole channel width \(0 \le z \le H\). It sits slightly below the mid-height of the channel.'
+  - 'Inlet (\(x = 0\)): \(u = 16 U_m\, y z (H - y)(H - z) / H^4\), \(v = w = 0\).'
+  - 'Outlet (\(x = L\)): free outflow, no stress imposed.'
+  - 'Channel walls and cylinder: no-slip.'
+  - 'Force coefficients use the mean inflow velocity \(\bar U\) (the average of the inlet profile over the inlet plane), the diameter and the cylinder length \(H\): \(c_D = 2 F_D / (\rho \bar U^2 D H)\) and \(c_L = 2 F_L / (\rho \bar U^2 D H)\), with the drag \(F_D\) along \(x\) and the lift \(F_L\) along \(y\).'
+  - 'The Reynolds number is \(Re = \bar U D / \nu\).'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  L:     {value: 2.5,   unit: m,     symbol: '\(L\)',    label: "Channel length (inlet to outlet)"}
+  H:     {value: 0.41,  unit: m,     symbol: '\(H\)',    label: "Side of the square cross-section (also the cylinder length)"}
+  D:     {value: 0.1,   unit: m,     symbol: '\(D\)',    label: "Cylinder diameter"}
+  xc:    {value: 0.5,   unit: m,     symbol: '\(x_c\)',  label: "Cylinder axis, distance from the inlet"}
+  yc:    {value: 0.2,   unit: m,     symbol: '\(y_c\)',  label: "Cylinder axis, height above the lower wall"}
+  Um:    {value: 0.45,  unit: m/s,   symbol: '\(U_m\)',  label: "Maximum inflow velocity (centre of the inlet)"}
+  nu:    {value: 0.001, unit: m²/s,  symbol: '\(\nu\)',  label: "Kinematic viscosity"}
+  rho:   {value: 1.0,   unit: kg/m³, symbol: '\(\rho\)', label: "Density"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: drag, text: 'Drag coefficient \(c_D\) of the cylinder'}
+  - {key: lift, text: 'Lift coefficient \(c_L\) of the cylinder'}
+  - {key: flow, text: 'A picture of the flow in the mid-plane \(z = H/2\) (velocity), showing the region of reversed flow behind the cylinder'}
+
+reference:
+  file: reference/featflow_dfg3d_re20.yaml
+  description: >
+    Reference drag and lift of Braack and Richter (2006), and drag and lift computed with CFX, OpenFOAM and
+    FeatFlow on four mesh levels (6144 to 3145728 cells) by Bayraktar, Mierka and Turek (2012), parsed by
+    code from the FeatFlow benchmark pages (setup/fetch_featflow_3d.sh downloads them,
+    setup/parse_featflow_3d.py turns them into the YAML file).
+
+study:   # a second deliverable: a performance study with its own report (cfdlib.study)
+  key: gpu
+  question: >
+    How much faster does this machine solve this problem when the pressure equation is solved on the GPU
+    (RTX 4070, through the OGL plugin) instead of the CPU, and from which mesh size does the GPU pay off?
+  wanted:
+    - Time per iteration (and per pressure solve) on the CPU and the GPU for several mesh sizes, up to a few million cells
+    - The mesh size where the GPU starts to win, if it does
+    - Proof that CPU and GPU runs give the same answer (same forces to the stated tolerance)
+    - Where the time goes (pressure solve, momentum, matrix assembly and copies, everything else) and what limits the speed-up
+  output: results/dfg_cylinder_3d_re20/gpu_study.html

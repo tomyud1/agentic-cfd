@@ -5,8 +5,10 @@
 # PY defaults to the project venv; override with  PY=/path/to/python bash setup/rerender_all.sh
 cd "$(dirname "$0")/.." || exit 1
 PY="${PY:-$HOME/venvs/cfd/bin/python}"
-for c in plane_poiseuille lid_driven_cavity_re100 stokes_first_problem dfg_cylinder_re100; do
+for c in plane_poiseuille lid_driven_cavity_re100 stokes_first_problem dfg_cylinder_re100 dfg_cylinder_3d_re20; do
   echo "== $c"
   $PY -m cases.$c.analyze --report 2>&1 | grep -iE "error|Report:|Traceback|PASS|WARN|FAIL|not found" | head -6
   $PY -m cfdlib.contract results/$c/results.json | head -3
 done
+echo "== dfg_cylinder_3d_re20 GPU study"
+$PY -m cases.dfg_cylinder_3d_re20.gpu_study 2>&1 | grep -iE "error|Traceback|gpu_study|PASS|WARN|FAIL" | head -4

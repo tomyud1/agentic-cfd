@@ -1,0 +1,1516 @@
+{
+ "title": "Steady 3D flow past a cylinder in a square channel at Re = 20 (DFG benchmark 3D-1Z)",
+ "date": "2026-11-11",
+ "verdict": "FAIL",
+ "comparison_type": "benchmark",
+ "summary": {
+  "headline": "<b>Benchmark comparison FAILED.</b> On the finest mesh (L4, 2,433,024 cells) the drag is \\(6.1805\\) (reference \\(6.1853\\), \\(-0.077\\,\\%\\)) and the lift \\(0.00956\\) (\\(0.00940\\), \\(1.7\\,\\%\\)); mesh-extrapolated: \\(0.017\\,\\%\\) and \\(1.2\\,\\%\\). The drag passes the band fixed beforehand (\\(0.60\\) times its width). The lift misses the band fixed beforehand (\\(2.51\\) times its width). The lift is very sensitive to the cell distribution around the cylinder (sensitivity runs); the paper's OpenFOAM was \\(3.5\\,\\%\\) off on its finest level.",
+  "answer_columns": [
+   "Requested",
+   "Reference (Braack and Richter 2006)",
+   "Simulation (L4)",
+   "Difference (÷ band)"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Drag coefficient \\(c_D\\) of the cylinder",
+    "theory": "\\(c_D = 6.1853 \\pm 6.8 \\times 10^{-4}\\)<div class='sub'>OpenFOAM in the paper, level 4: \\(6.1893\\)</div>",
+    "sim": "\\(c_D = 6.1805\\)<div class='sub'>extrapolated: \\(6.1864\\)</div>",
+    "diff": "\\(-0.0048\\) (\\(-0.077\\,\\%\\))<br>0.60 band ✓<div class='sub'>extrapolated: \\(0.017\\,\\%\\)</div>"
+   },
+   {
+    "letter": "b",
+    "label": "Lift coefficient \\(c_L\\) of the cylinder",
+    "theory": "\\(c_L = 0.00940 \\pm 4 \\times 10^{-6}\\)<div class='sub'>OpenFOAM in the paper, level 4: \\(0.00973\\)</div>",
+    "sim": "\\(c_L = 0.00956\\)<div class='sub'>extrapolated: \\(0.00951\\)</div>",
+    "diff": "\\(+0.00016\\) (\\(1.7\\,\\%\\))<br>2.51 band ✗<div class='sub'>extrapolated: \\(1.2\\,\\%\\)</div>"
+   },
+   {
+    "letter": "c",
+    "label": "A picture of the flow in the mid-plane \\(z = H/2\\) (velocity), showing the region of reversed flow behind the cylinder",
+    "theory": "Steady flow; a closed region of reversed flow behind the cylinder (Theory, step 1)",
+    "sim": "Figure 2: reversed flow up to \\(0.75\\,D\\) behind the cylinder",
+    "diff": "no reference value<div class='sub'>symmetry check: \\(|w|_{\\max} = 1.8 \\times 10^{-8}\\,\\mathrm{m/s}\\) on the mid-plane</div>"
+   }
+  ],
+  "findings": [
+   "<b>Drag (a).</b> \\(c_D = 6.1805\\) on L4 (2,433,024 cells), \\(-0.077\\,\\%\\) from the reference \\(6.1853\\); Richardson extrapolation of L2-L4 gives \\(6.1864\\) (\\(0.017\\,\\%\\)). The paper's OpenFOAM result on its level 4 (3,145,728 cells) is \\(6.1893\\) (\\(0.064\\,\\%\\)).",
+   "<b>Lift (b).</b> \\(c_L = 0.00956\\), \\(1.7\\,\\%\\) from the reference \\(0.00940\\); extrapolated \\(0.00951\\) (\\(1.2\\,\\%\\)). The paper's OpenFOAM level 4 is \\(3.5\\,\\%\\) off. The lift is a small difference of pressure and friction forces (\\(0.00728\\) and \\(0.00228\\)) and converges from far above: \\(0.0201\\), \\(0.0116\\), \\(0.0098\\), \\(0.0096\\) on L1-L4.",
+   "<b>Mesh convergence.</b> \\(c_D\\): observed order \\(2.10\\), \\(c_L\\): observed order \\(2.73\\) on L2-L4 (design order 2); GCI of L4 \\(0.12\\,\\%\\) (drag) and \\(0.61\\,\\%\\) (lift).",
+   "<b>Flow (c).</b> Behind the cylinder the fluid turns back over \\(0.75\\,D\\) (mid-plane, Figure 2); the fastest backflow is \\(0.019\\,\\mathrm{m/s}\\), \\(9.4\\,\\%\\) of the mean inflow.",
+   "<b>Converged and conserving.</b> Over the last \\(10\\,\\%\\) of the iterations \\(c_D\\) changed by at most \\(2.6 \\times 10^{-8}\\) and \\(c_L\\) by \\(1.7 \\times 10^{-8}\\); the momentum balance of the channel closes to \\(0.14\\,\\%\\) of the drag on L4 (\\(0.036\\,\\%\\) with the inlet friction it neglects); the side force is \\(1.3 \\times 10^{-11}\\) of the drag (mid-plane symmetry).",
+   "<b>GPU question.</b> The GPU is faster per iteration from about \\(2.0\\) million cells: on the largest mesh (4,752,000 cells) one iteration takes \\(3.80\\,\\mathrm{s}\\) on the best CPU setup (GAMG DIC-GS, 8 ranks) and \\(3.37\\,\\mathrm{s}\\) with the pressure solved on the GPU (8 ranks), a factor \\(1.13\\); the pressure solve alone takes \\(1.44\\) against \\(0.87\\,\\mathrm{s}\\) (factor \\(1.65\\)). Both give the same converged forces. Details: <a href='gpu_study.html'>GPU study report</a>.",
+   "<b>Rule failed:</b> \\(c_L\\) differs from the reference by more than twice the combined uncertainty."
+  ],
+  "limitations": [
+   "The reference is itself a numerical solution (adaptive finite elements), not an experiment; its uncertainty is estimated from a second code (FeatFlow level 4).",
+   "Four meshes up to 2,433,024 cells; a fifth level (about 19 million cells) would need about 11 GB of memory and hours per run on this machine.",
+   "The flow picture (c) has no reference to compare with; the length of the reversed-flow region is reported for information only.",
+   "Steady laminar model as the benchmark; whether this steady state is stable (would be reached by a real flow) is not tested by a steady solver.",
+   "Wall times of the accuracy runs are inflated (they shared the machine with GPU tuning runs); speed numbers are in the GPU study."
+  ]
+ },
+ "problem": {
+  "description": "Fluid flows slowly through a channel of square cross-section past a circular cylinder that spans the channel from wall to wall. At this Reynolds number the flow is steady. Find the steady flow and the forces on the cylinder, and compare them with the published benchmark. This case is also the test problem for a CPU versus GPU performance study (see study below).",
+  "setup": [
+   "Channel: length \\(L\\) along \\(x\\), square cross-section of side \\(H\\) in \\(y\\) and \\(z\\). Coordinates start at a lower corner of the inlet plane.",
+   "Cylinder: diameter \\(D\\), axis along \\(z\\) through \\((x_c, y_c)\\), spanning the whole channel width \\(0 \\le z \\le H\\). It sits slightly below the mid-height of the channel.",
+   "Inlet (\\(x = 0\\)): \\(u = 16 U_m\\, y z (H - y)(H - z) / H^4\\), \\(v = w = 0\\).",
+   "Outlet (\\(x = L\\)): free outflow, no stress imposed.",
+   "Channel walls and cylinder: no-slip.",
+   "Force coefficients use the mean inflow velocity \\(\\bar U\\) (the average of the inlet profile over the inlet plane), the diameter and the cylinder length \\(H\\): \\(c_D = 2 F_D / (\\rho \\bar U^2 D H)\\) and \\(c_L = 2 F_L / (\\rho \\bar U^2 D H)\\), with the drag \\(F_D\\) along \\(x\\) and the lift \\(F_L\\) along \\(y\\).",
+   "The Reynolds number is \\(Re = \\bar U D / \\nu\\)."
+  ],
+  "given": [
+   {
+    "label": "Channel length (inlet to outlet)",
+    "symbol": "\\(L\\)",
+    "value": "\\(2.5\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Side of the square cross-section (also the cylinder length)",
+    "symbol": "\\(H\\)",
+    "value": "\\(0.41\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Cylinder diameter",
+    "symbol": "\\(D\\)",
+    "value": "\\(0.1\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Cylinder axis, distance from the inlet",
+    "symbol": "\\(x_c\\)",
+    "value": "\\(0.5\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Cylinder axis, height above the lower wall",
+    "symbol": "\\(y_c\\)",
+    "value": "\\(0.2\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Maximum inflow velocity (centre of the inlet)",
+    "symbol": "\\(U_m\\)",
+    "value": "\\(0.45\\)",
+    "unit": "m/s"
+   },
+   {
+    "label": "Kinematic viscosity",
+    "symbol": "\\(\\nu\\)",
+    "value": "\\(0.001\\)",
+    "unit": "m²/s"
+   },
+   {
+    "label": "Density",
+    "symbol": "\\(\\rho\\)",
+    "value": "\\(1\\)",
+    "unit": "kg/m³"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "drag",
+    "text": "Drag coefficient \\(c_D\\) of the cylinder"
+   },
+   {
+    "letter": "b",
+    "key": "lift",
+    "text": "Lift coefficient \\(c_L\\) of the cylinder"
+   },
+   {
+    "letter": "c",
+    "key": "flow",
+    "text": "A picture of the flow in the mid-plane \\(z = H/2\\) (velocity), showing the region of reversed flow behind the cylinder"
+   }
+  ],
+  "reference": "Braack and Richter (2006) drag and lift, and the level 1-4 results of OpenFOAM, CFX and FeatFlow of Bayraktar, Mierka and Turek (2012), parsed from the FeatFlow benchmark pages into <code>reference/featflow_dfg3d_re20.yaml</code>."
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "Steady flow",
+    "status": "standard",
+    "check": "The problem states that the flow is steady at \\(Re = 20\\); a steady solver cannot show an instability. Each run converged to a fixed point (forces change by less than \\(3 \\times 10^{-8}\\) over its last iterations), which a steady solver would not reach if the steady solution were strongly unstable."
+   },
+   {
+    "name": "Laminar, incompressible, Newtonian",
+    "status": "standard",
+    "check": "\\(Re = \\bar U D/\\nu = 20\\): laminar. Constant density and viscosity are given; \\(U_m = 0.45\\,\\mathrm{m/s}\\) is far below the speed of sound of any liquid or gas."
+   },
+   {
+    "name": "Mid-plane symmetry",
+    "status": "ok",
+    "check": "Not imposed (the whole channel is computed). The side force is at most \\(1.3 \\times 10^{-11}\\) of the drag, and the velocity across the mid-plane at most \\(1.8 \\times 10^{-8}\\,\\mathrm{m/s}\\): round-off level, as theory requires."
+   },
+   {
+    "name": "Outlet far enough downstream",
+    "status": "standard",
+    "check": "The outlet is \\(20\\,D\\) behind the cylinder, as in the benchmark; the reversed flow ends \\(0.75\\,D\\) behind it. Zero-gradient velocity with zero pressure equals the stress-free outflow for parallel outflow."
+   },
+   {
+    "name": "Cylinder surface as straight faces",
+    "status": "imposed",
+    "check": "The circle is represented by 192 straight faces on the finest mesh (points on the exact circle); the lost area is a second-order error included in the mesh study."
+   },
+   {
+    "name": "Inflow profile from face centres",
+    "status": "ok",
+    "check": "The inflow rate is \\(1.2 \\times 10^{-4}\\) (relative) above \\(\\bar U H^2\\) on L4, shrinking about 4 times per level (\\(0.0076\\), \\(0.0019\\), \\(4.6 \\times 10^{-4}\\), \\(1.2 \\times 10^{-4}\\))."
+   }
+  ]
+ },
+ "theory": {
+  "intro": "Flow around a cylinder in a duct has <b>no exact solution</b>: the convection term makes the equations nonlinear and the geometry is three-dimensional. The comparison therefore uses the benchmark's reference values. Theory still fixes the scales (one number, \\(Re\\)), the inflow (its mean and how far it is from developed duct flow), what must hold by symmetry (no side force), and a conservation law used as a check (the momentum balance of the channel). The algebra marked below is checked by SymPy.",
+  "steps": [
+   {
+    "label": "Governing equations: steady, incompressible, Newtonian, constant density",
+    "latex": "\\nabla\\cdot\\mathbf{u} = 0,\\qquad (\\mathbf{u}\\cdot\\nabla)\\,\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nu\\,\\nabla^2\\mathbf{u}",
+    "note": "The convection term on the left makes the equations nonlinear; with a cylinder in a duct no exact solution is known. The flow is computed; theory gives scales, symmetry and a balance used as checks."
+   },
+   {
+    "label": "Boundary conditions",
+    "latex": "x = 0:\\ u = \\frac{16\\,U_m\\,y z (H - y)(H - z)}{H^4},\\ v = w = 0;\\qquad x = L:\\ \\nu\\frac{\\partial \\mathbf{u}}{\\partial n} - \\frac{p}{\\rho}\\,\\mathbf{n} = 0;\\qquad \\text{walls, cylinder: } \\mathbf{u} = 0",
+    "note": "The outflow condition is the stress-free ('do-nothing') condition of the benchmark. The finite-volume model uses zero normal gradient of velocity and zero pressure at the outlet, the same condition for flow leaving parallel to the axis, which holds 20 diameters behind the cylinder."
+   },
+   {
+    "label": "Requested quantities (3D normalisation with the cylinder length)",
+    "latex": "c_D = \\frac{2F_D}{\\rho\\,\\bar U^2 D H},\\qquad c_L = \\frac{2F_L}{\\rho\\,\\bar U^2 D H},\\qquad \\mathbf{F} = \\oint_{\\mathrm{cyl}} \\left(-p\\,\\mathbf{n} + \\rho\\nu\\,(\\nabla\\mathbf{u} + \\nabla\\mathbf{u}^T)\\cdot\\mathbf{n}\\right)dA",
+    "note": "The force is the pressure plus the friction integrated over the whole cylinder surface; drag is its x component, lift its y component."
+   },
+   {
+    "label": "Symmetry about the mid-plane z = H/2",
+    "latex": "\\mathbf{u}(x, y, H - z) = \\big(u, v, -w\\big)(x, y, z)\\ \\Rightarrow\\ w = 0 \\text{ on } z = H/2,\\qquad F_z = 0",
+    "note": "Geometry and inflow are mirror-symmetric about the mid-plane, so (for the steady, stable solution) the flow is too: no fluid crosses the mid-plane and the side force vanishes. The simulation does not impose this; it is checked."
+   },
+   {
+    "label": "Steady x-momentum balance of the whole channel (check of the force output)",
+    "latex": "F_D + F_w = \\int_{\\mathrm{in}}\\!\\left(p + \\rho u^2\\right)dA - \\int_{\\mathrm{out}}\\!\\left(p + \\rho u^2\\right)dA",
+    "note": "In steady flow the drag on the cylinder plus the friction on the four channel walls must equal the net pressure and momentum flux through inlet and outlet (viscous normal stresses at inlet and outlet are neglected: they vanish for flow parallel to the axis). It tests the force output independently of the force integration on the cylinder."
+   }
+  ],
+  "derived": [
+   {
+    "key": "Ubar",
+    "label": "Mean inflow velocity",
+    "symbol": "\\bar U",
+    "value": 0.19999999999999998,
+    "value_tex": "0.2",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "\\bar U = \\frac{4 U_{m}}{9}",
+    "check": "\\bar U = \\frac{4 \\cdot 0.45}{9} = 0.2",
+    "why": "The velocity scale of the benchmark: the Reynolds number and both force coefficients are defined with it. In 3D the mean of the product of two parabolas is \\(\\tfrac{2}{3} \\times \\tfrac{2}{3} = \\tfrac{4}{9}\\) of the maximum (SymPy check below).",
+    "params": [
+     {
+      "tex": "U_m",
+      "meaning": "maximum inflow velocity",
+      "value": 0.45,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "Re",
+    "label": "Reynolds number",
+    "symbol": "Re",
+    "value": 20.0,
+    "value_tex": "20",
+    "unit_tex": "",
+    "formula": "Re = \\frac{D \\bar U}{\\nu}",
+    "check": "Re = \\frac{0.1 \\cdot 0.2}{0.001} = 20",
+    "why": "Inertia versus friction at the scale of the cylinder. At \\(Re = 20\\) friction is strong: the flow stays steady (no vortex shedding; the problem says so, and the 2D benchmark only sheds at \\(Re = 100\\)), and a short, closed region of reversed flow sits behind the cylinder.",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.001,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "\\bar U",
+      "meaning": "mean inflow velocity, \\(\\tfrac{4}{9}U_m\\)",
+      "value": 0.19999999999999998,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "Fscale",
+    "label": "Force scale (dynamic pressure times frontal area)",
+    "symbol": "F_0",
+    "value": 0.0008199999999999999,
+    "value_tex": "8.2 \\times 10^{-4}",
+    "unit_tex": "\\mathrm{N}",
+    "formula": "F_0 = \\frac{D H \\bar U^{2} \\rho}{2}",
+    "check": "F_0 = \\frac{0.1 \\cdot 0.41 \\cdot 0.2^{2} \\cdot 1}{2} = 8.2 \\times 10^{-4}",
+    "why": "The denominator of \\(c_D\\) and \\(c_L\\): a coefficient is the force in units of this scale. At low \\(Re\\) friction makes a large part of the drag, and the confinement speeds the flow up around the cylinder, so \\(c_D\\) is several times larger than at high \\(Re\\).",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "side of the square channel section, also the cylinder length",
+      "value": 0.41,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\rho",
+      "meaning": "density",
+      "value": 1.0,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "\\bar U",
+      "meaning": "mean inflow velocity, \\(\\tfrac{4}{9}U_m\\)",
+      "value": 0.19999999999999998,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "blockage",
+    "label": "Blockage ratio",
+    "symbol": "D/H",
+    "value": 0.24390243902439024,
+    "value_tex": "0.2439",
+    "unit_tex": "",
+    "formula": "D/H = \\frac{D}{H}",
+    "check": "D/H = \\frac{0.1}{0.41} = 0.2439",
+    "why": "The cylinder fills a quarter of the channel height, and it spans the channel from wall to wall: the walls are close on all sides, so the flow is strongly confined.",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "side of the square channel section, also the cylinder length",
+      "value": 0.41,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   },
+   {
+    "key": "offset",
+    "label": "Vertical offset of the cylinder",
+    "symbol": "\\frac{H/2 - y_c}{D}",
+    "value": 0.04999999999999982,
+    "value_tex": "0.05",
+    "unit_tex": "",
+    "formula": "\\frac{H/2 - y_c}{D} = \\frac{\\frac{H}{2} - y_{c}}{D}",
+    "check": "\\frac{H/2 - y_c}{D} = \\frac{\\frac{0.41}{2} - 0.2}{0.1} = 0.05",
+    "why": "The cylinder sits a twentieth of its diameter below the mid-height. A centred cylinder would have exactly zero lift by symmetry; this small offset is the only reason the lift is not zero, so \\(c_L\\) is hundreds of times smaller than \\(c_D\\) and is a small difference of large pressure and friction forces: hard to compute accurately.",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "H",
+      "meaning": "side of the square channel section, also the cylinder length",
+      "value": 0.41,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "y_c",
+      "meaning": "height of the cylinder axis",
+      "value": 0.2,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   },
+   {
+    "key": "delta",
+    "label": "Boundary-layer thickness scale",
+    "symbol": "\\delta",
+    "value": 0.022360679774997897,
+    "value_tex": "0.02236",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "\\delta = \\frac{\\sqrt{D} \\sqrt{\\nu}}{\\sqrt{\\bar U}}",
+    "check": "\\delta = \\frac{\\sqrt{0.1} \\sqrt{0.001}}{\\sqrt{0.2}} = 0.02236",
+    "why": "Laminar boundary layers on the cylinder have a thickness of order \\(D/\\sqrt{Re}\\) (a scaling, not an exact value; at this low \\(Re\\) the layer is thick, a fifth of the diameter). The mesh must resolve it with several cells: see the mesh table.",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.001,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "\\bar U",
+      "meaning": "mean inflow velocity, \\(\\tfrac{4}{9}U_m\\)",
+      "value": 0.19999999999999998,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "upstream",
+    "label": "Distance from the inlet to the cylinder",
+    "symbol": "\\frac{x_c}{D}",
+    "value": 5.0,
+    "value_tex": "5",
+    "unit_tex": "",
+    "formula": "\\frac{x_c}{D} = \\frac{x_{c}}{D}",
+    "check": "\\frac{x_c}{D} = \\frac{0.5}{0.1} = 5",
+    "why": "The inflow profile is not the developed duct flow (SymPy check below), so the flow re-arranges between inlet and cylinder; over \\(5\\,D\\) at \\(Re = 20\\) this adjustment is part of the problem as posed, the same for every code that solves it.",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "cylinder diameter",
+      "value": 0.1,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "x_c",
+      "meaning": "distance of the cylinder axis from the inlet",
+      "value": 0.5,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "inflow \\(u = 0\\) on all four walls (no slip)",
+    "ok": true
+   },
+   {
+    "name": "inflow maximum at the centre \\(y = z = H/2\\) with \\(u = U_m\\)",
+    "ok": true
+   },
+   {
+    "name": "mean inflow velocity \\(\\bar U = \\frac{1}{H^2}\\iint u\\,dy\\,dz = \\frac{4}{9}U_m\\)",
+    "ok": true
+   },
+   {
+    "name": "the inflow is not the developed square-duct flow: \\(\\nabla^2 u\\) varies over the section",
+    "ok": true
+   },
+   {
+    "name": "inflow symmetric about the mid-plane: \\(u(y, H - z) = u(y, z)\\)",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "Steady, incompressible, laminar, Newtonian flow in three dimensions",
+   "settings": [
+    "constant/turbulenceProperties/simulationType",
+    "constant/transportProperties/*",
+    "system/fvSchemes/ddtSchemes/*"
+   ],
+   "why": "The benchmark 3D-1Z is defined for the steady 3D incompressible Navier-Stokes equations with constant viscosity \\(\\nu = 10^{-3}\\,\\mathrm{m^2/s}\\) at \\(Re = 20\\), where the flow is laminar and steady. Density is constant (\\(\\rho = 1\\)), so OpenFOAM's kinematic pressure \\(p/\\rho\\) equals the pressure. The time derivative is dropped (<code>steadyState</code>).",
+   "affects": "Defines the equations solved. A turbulence model would add an eddy viscosity the benchmark does not have.",
+   "alternatives": "A transient solver run until the flow stops changing (the benchmark paper ran OpenFOAM's <code>icoFoam</code> that way): same steady answer, many more pressure solves."
+  },
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "<code>simpleFoam</code>: the steady SIMPLE algorithm in its SIMPLEC form (<code>consistent yes</code>)",
+   "settings": [
+    "system/controlDict/application",
+    "system/controlDict/deltaT",
+    "system/fvSolution/SIMPLE/consistent"
+   ],
+   "why": "The answer is a steady state, so a steady solver iterates directly towards it; each iteration solves the momentum equations once and the pressure equation once. SIMPLEC allows weak velocity relaxation and no pressure relaxation. <code>deltaT 1</code> only counts iterations. It also gives the GPU study a clean unit of work: one pressure solve per iteration.",
+   "affects": "How the steady state is reached, not the state itself (the converged equations are the same).",
+   "alternatives": "<code>pimpleFoam</code>/<code>icoFoam</code> run to steady state (as the benchmark paper; slower); plain SIMPLE (needs pressure relaxation, more iterations)."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "Square channel \\(2.5 \\times 0.41 \\times 0.41\\,\\mathrm{m}\\) with the cylinder \\(D = 0.1\\,\\mathrm{m}\\), axis along \\(z\\) through \\((0.5, 0.2)\\,\\mathrm{m}\\), spanning the channel; patches <code>inlet</code>, <code>outlet</code>, <code>walls</code> (all four channel walls) and <code>cylinder</code>",
+   "settings": [
+    "system/blockMeshDict/vertices",
+    "system/blockMeshDict/scale",
+    "system/blockMeshDict/boundary"
+   ],
+   "why": "The geometry is given. The cylinder surface is represented by straight faces between points on the exact circle (blockMesh arcs).",
+   "affects": "Defines the problem. The faceted circle is a geometric error that shrinks with the square of the surface cell size and is part of the mesh study.",
+   "alternatives": "A curved-boundary (higher-order) representation, as finite-element codes such as FeatFlow use; not available in standard finite-volume OpenFOAM."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "Inlet: \\(u = 16U_m\\,yz(H - y)(H - z)/H^4\\), \\(v = w = 0\\), evaluated at each inlet face centre (<code>exprFixedValue</code>), zero normal pressure gradient. Outlet: zero normal velocity gradient, \\(p = 0\\). Walls and cylinder: no slip, zero normal pressure gradient.",
+   "settings": [
+    "0/U/boundaryField/*",
+    "0/p/boundaryField/*"
+   ],
+   "why": "The inflow and no-slip conditions are given. The benchmark's stress-free (\"do-nothing\") outflow is modelled by the standard OpenFOAM pair zero-gradient velocity / fixed zero pressure; both are the same for flow leaving parallel to the axis, 20 diameters behind the cylinder. Face-centre values of the profile give a slightly too large inflow (a second-order error, measured in the pre-flight and shrinking 4 times per level), which the mesh study includes.",
+   "affects": "Defines the problem. The outflow model can differ from the benchmark's only near the outlet.",
+   "alternatives": "Exact face-averaged inflow values written as a list (removes the small inflow excess); <code>inletOutlet</code> at the outlet (prevents backflow; none occurs)."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "solver",
+   "choice": "Initial field: fluid at rest on L1; every finer level starts from the converged flow of the next coarser level, interpolated with <code>mapFields</code>. The fixed-length GPU/CPU timing runs all start from rest.",
+   "settings": [
+    "0/U/internalField",
+    "0/p/internalField",
+    "system/controlDict/startTime"
+   ],
+   "why": "A steady solution does not depend on the starting guess, but a good guess saves many iterations on the expensive meshes. The timing runs start from the same field on CPU and GPU so that both do exactly the same work.",
+   "affects": "The number of iterations, not the converged answer (checked: the stopping rule is applied to every run).",
+   "alternatives": "Start every level from rest (more iterations on L4); potential-flow initialisation (<code>potentialFoam</code>)."
+  },
+  {
+   "area": "Mesh",
+   "kind": "accuracy",
+   "choice": "Block-structured O-grid (as case 4): 4 blocks around the cylinder inside a square box of side \\(0.2\\,\\mathrm{m}\\) centred on the axis (radial cells shrinking 4 times towards the cylinder), 8 rectangular blocks filling the channel (graded towards the box), all extruded over \\(0 \\le z \\le H\\) with cells shrinking 2 times towards both side walls. Four levels L1-L4 with 24 to 192 faces around the cylinder and 12 to 96 cells across the channel (4752 to 2.43 million cells); every cell count doubles per level in all three directions (refinement ratio 2, 8 times the cells), like the benchmark's levels 1-4. Three extra meshes (G16, G36, G60) for the GPU study only.",
+   "settings": [
+    "system/blockMeshDict/blocks"
+   ],
+   "why": "A body-fitted O-grid gives orthogonal, smoothly graded cells on the cylinder, where the forces are decided; the side-wall grading resolves the boundary layers on the walls that the cylinder ends touch. Refinement ratio 2 in every direction gives the observed order and the GCI. The level sizes match the benchmark's (6144 to 3.1 million cells), so the comparison with its OpenFOAM results is level by level.",
+   "affects": "Spatial discretisation error, measured by the mesh study (observed order, Richardson extrapolation, GCI). Sensitivity runs with the O-grid radial ratio changed to 2 and 8 (L3, and ratio 2 also on L4) show that the lift depends strongly on this choice (Comparison).",
+   "alternatives": "snappyHexMesh around an STL cylinder (less regular cells at the wall); uniform cells in \\(z\\) (more cells for the same wall resolution); a different radial cell distribution in the O-grid (tested, see above)."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "accuracy",
+   "choice": "Second-order central schemes in space: <code>bounded Gauss linear</code> for convection, <code>Gauss linear</code> gradients and interpolation, Laplacian with explicit non-orthogonal correction (<code>corrected</code>)",
+   "settings": [
+    "system/fvSchemes/gradSchemes/*",
+    "system/fvSchemes/laplacianSchemes/*",
+    "system/fvSchemes/interpolationSchemes/*",
+    "system/fvSchemes/snGradSchemes/*",
+    "system/fvSchemes/divSchemes/*"
+   ],
+   "why": "At \\(Re = 20\\) the flow is smooth and dominated by friction (cell Péclet numbers near the cylinder are small), so central convection is stable and adds no numerical diffusion; it is also what the benchmark paper's OpenFOAM runs used. <code>bounded</code> removes the continuity-error term while the iterations converge; it vanishes at convergence. The O-grid corners are up to about 42 degrees non-orthogonal, so the Laplacian needs the correction.",
+   "affects": "Spatial order of accuracy (2) and the size of the error constant.",
+   "alternatives": "<code>linearUpwind</code> (also second order, more dissipative, more robust on coarse meshes)."
+  },
+  {
+   "area": "Algorithm and linear solvers",
+   "kind": "solver",
+   "choice": "SIMPLEC with velocity relaxation 0.9 and no pressure relaxation, no non-orthogonal corrector loop. Pressure: GAMG (Gauss-Seidel smoother) to \\(relTol\\ 0.05\\) per iteration (absolute tolerance \\(10^{-12}\\), never reached); velocity: symmetric Gauss-Seidel to \\(relTol\\ 0.1\\). In the GPU study the pressure solver is replaced by OGL's Ginkgo CG with a multigrid preconditioner on the GPU at the same tolerances.",
+   "settings": [
+    "system/fvSolution/solvers/*",
+    "system/fvSolution/relaxationFactors/*",
+    "system/fvSolution/SIMPLE/nNonOrthogonalCorrectors"
+   ],
+   "why": "In a steady iteration each linear system only needs to be solved partly: the outer iterations remove the rest, and the converged answer does not depend on how far each solve went. GAMG is the fastest CPU pressure solver measured on this machine (case 4: 4 times faster than PCG). The non-orthogonal correction is explicit and converges with the outer iterations, so an inner corrector loop would only add pressure solves.",
+   "affects": "Speed and the path to the steady state; not the converged answer (the stopping rule bounds the remaining iteration error).",
+   "alternatives": "Tighter linear solves (fewer outer iterations, each more expensive); PCG for pressure (slower); one non-orthogonal corrector (one more pressure solve per iteration)."
+  },
+  {
+   "area": "Convergence",
+   "kind": "accuracy",
+   "choice": "Stop when the normalised initial residuals fall below \\(10^{-7}\\) (pressure) and \\(10^{-8}\\) (each velocity component), at most 6000 iterations; accepted only if, over the last 10 % of the iterations, \\(c_D\\) changed by less than \\(10^{-5}\\) and \\(c_L\\) by less than \\(10^{-6}\\) (physical check, fixed before the runs)",
+   "settings": [
+    "system/fvSolution/SIMPLE/residualControl/*",
+    "system/controlDict/endTime"
+   ],
+   "why": "Residuals are not a solution-error measure (pitfall 10 of the primer), so the requested numbers themselves must have stopped changing, by far less than the mesh error (about \\(10^{-3}\\) relative between levels). The thresholds are about \\(2 \\times 10^{-6}\\) of \\(c_D\\) and \\(10^{-4}\\) of \\(c_L\\).",
+   "affects": "The iteration error of the answers, bounded by the physical check on every run.",
+   "alternatives": "A <code>runTimeControl</code> function object on the force coefficients (stops directly on the physical check; needs a test of which results it can watch); a fixed iteration count."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Forces on the cylinder (drag, lift and side force) and on the channel walls, momentum flux, pressure force and volume flow at inlet and outlet, every iteration; fields written at the end of a run, 12 significant digits; built-in profiling (time per code section)",
+   "settings": [
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/writePrecision",
+    "system/controlDict/timePrecision",
+    "system/controlDict/functions/*",
+    "system/controlDict/profiling/*"
+   ],
+   "why": "Drag and lift every iteration give the answers (a), (b) and the convergence check; the side force tests the mid-plane symmetry; fluxes and wall friction close the momentum balance (physical check of the force output). The final fields give the mid-plane picture (c). Profiling splits the run time into pressure solve, momentum solve and the rest for the GPU study, identically on CPU and GPU.",
+   "affects": "What is measured and how precisely; not the solution.",
+   "alternatives": "The <code>forceCoeffs</code> function object (same numbers, but the 3D normalisation would be hidden in its settings; here the coefficients are computed in the analysis from the raw forces)."
+  },
+  {
+   "area": "GPU pressure solver (study only)",
+   "kind": "solver",
+   "choice": "For the GPU study only: <code>libs (\"libOGL.so\")</code> loads the OGL plugin, and the pressure solver becomes Ginkgo CG on the GPU (<code>executor cuda</code>) with a multigrid preconditioner, <code>scaling -1</code>, <code>forceHostBuffer true</code>, all MPI ranks gathered on the one GPU (<code>ranksPerGPU</code>); the tuned preconditioner settings are in the GPU study report",
+   "settings": [
+    "system/controlDict/libs"
+   ],
+   "why": "OGL replaces only the linear solver of one field; assembly, momentum and everything else stay on the CPU. Its pressure solves reach the same normalised tolerance as GAMG, so the converged steady state is the same (checked in the study).",
+   "affects": "Run time only, provided the same-answer check passes.",
+   "alternatives": "Other OGL preconditioners (block Jacobi, ISAI, IC) or solvers (BiCGStab); a GPU-native CFD code (not OpenFOAM)."
+  },
+  {
+   "area": "Parallel runs",
+   "kind": "solver",
+   "choice": "L1 on one core, L2 on 4 MPI ranks, L3 on 8 and L4 on 12 ranks (<code>mpirun --use-hwthread-cpus</code> above 8), scotch decomposition; the remaining hardware threads ran the GPU tuning runs at the same time",
+   "settings": [],
+   "why": "The accuracy runs only need to finish within the budget; leaving 4 of the 16 hardware threads free let the GPU tuning run alongside. Their wall times are therefore not used for any speed comparison (the GPU study measures speed with nothing else running). Decomposition changes the order of floating-point operations and the GAMG coarsening only; the converged answer is the same to the stopping tolerance.",
+   "affects": "Run time only.",
+   "alternatives": "All 16 ranks with nothing else running (case 4's fastest setting; about a third faster for L4); everything serial (L4 would take hours)."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before the production runs, short runs on the coarsest and the finest mesh check that the setup runs, stays stable, records every output, delivers the right inflow and fits the time budget.",
+  "runs": [
+   {
+    "name": "L1 (4,752 cells, 1 rank)",
+    "setup": "40 SIMPLE iterations from rest",
+    "outcome": "✓ OK; 0.7 s, \\(0.030\\,\\mathrm{s}\\) per iteration"
+   },
+   {
+    "name": "L4 (2,433,024 cells, 16 ranks)",
+    "setup": "40 SIMPLE iterations from rest",
+    "outcome": "✓ OK; 92.0 s, \\(2.030\\,\\mathrm{s}\\) per iteration"
+   }
+  ],
+  "checks": [
+   {
+    "name": "Solver finished without errors (L1)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (L1)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux (L1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0107\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy (L1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.00562\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz (L1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.00996\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p (L1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.00614\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend (L1)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0056\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Projected iterations to residual targets (L1)",
+    "status": "ok",
+    "value": "\\(\\ge 112\\)",
+    "meaning": "Extrapolated from the decay rate of the short run; real runs usually need more."
+   },
+   {
+    "name": "Inflow rate (L1)",
+    "status": "ok",
+    "value": "\\(0.0076\\) relative to \\(\\bar U H^2\\)",
+    "meaning": "The inlet must deliver the benchmark's flow rate; face-centre values of the profile give a small excess that shrinks with the square of the cell size (4 times per level)."
+   },
+   {
+    "name": "Forces recorded every iteration (L1)",
+    "status": "ok",
+    "value": "40 rows for 40 iterations",
+    "meaning": "Drag and lift at every iteration are needed for the stopping check."
+   },
+   {
+    "name": "Pressure-solve share of the run (L1)",
+    "status": "ok",
+    "value": "\\(19.9\\,\\%\\)",
+    "meaning": "Built-in profiling works and splits the time; the pressure solve is the part a GPU solver would take over."
+   },
+   {
+    "name": "Solver finished without errors (L4)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (L4)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux (L4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.146\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy (L4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.179\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz (L4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.291\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p (L4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0353\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend (L4)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.013\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Projected iterations to residual targets (L4)",
+    "status": "ok",
+    "value": "\\(\\ge 347\\)",
+    "meaning": "Extrapolated from the decay rate of the short run; real runs usually need more."
+   },
+   {
+    "name": "Inflow rate (L4)",
+    "status": "ok",
+    "value": "\\(1.2 \\times 10^{-4}\\) relative to \\(\\bar U H^2\\)",
+    "meaning": "The inlet must deliver the benchmark's flow rate; face-centre values of the profile give a small excess that shrinks with the square of the cell size (4 times per level)."
+   },
+   {
+    "name": "Forces recorded every iteration (L4)",
+    "status": "ok",
+    "value": "40 rows for 40 iterations",
+    "meaning": "Drag and lift at every iteration are needed for the stopping check."
+   },
+   {
+    "name": "Pressure-solve share of the run (L4)",
+    "status": "ok",
+    "value": "\\(39.9\\,\\%\\)",
+    "meaning": "Built-in profiling works and splits the time; the pressure solve is the part a GPU solver would take over."
+   }
+  ],
+  "conclusion": "All pre-flight checks passed. The L4 pre-flight projected at least \\(12\\,\\mathrm{min}\\) to the residual targets (a lower bound from the early residual decay); started from the converged L3 flow, the production run needed 439 iterations, about \\(15\\,\\mathrm{min}\\) at the pre-flight speed on 16 ranks."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Geometry",
+    "real": "Square channel \\(2.5 \\times 0.41 \\times 0.41\\,\\mathrm{m}\\), cylinder \\(D = 0.1\\,\\mathrm{m}\\) from wall to wall",
+    "model": "The same, meshed in full (no symmetry plane); the circle as straight faces between points on it."
+   },
+   {
+    "aspect": "Inflow",
+    "real": "Product of two parabolas, maximum \\(U_m = 0.45\\,\\mathrm{m/s}\\)",
+    "model": "The profile evaluated at each inlet face centre; flow rate within \\(1.2 \\times 10^{-4}\\) (relative) of \\(\\bar U H^2\\) on L4."
+   },
+   {
+    "aspect": "Outflow",
+    "real": "Free (stress-free) outflow",
+    "model": "Zero normal velocity gradient, zero pressure."
+   },
+   {
+    "aspect": "Steady state",
+    "real": "The flow after all transients have died out",
+    "model": "Steady SIMPLEC iterations until the residuals and the forces stop changing (physical check)."
+   },
+   {
+    "aspect": "Forces",
+    "real": "Pressure and friction on the cylinder",
+    "model": "OpenFOAM <code>forces</code> on the cylinder patch every iteration; coefficients with \\(\\tfrac12\\rho\\bar U^2 D H\\) computed in the analysis."
+   }
+  ],
+  "meshes": {
+   "intro": "Four block-structured O-grid meshes; every cell count doubles from one level to the next in all three directions (8 times the cells). \\(h_w\\): radial size of the cells on the cylinder; \\(\\delta = D/\\sqrt{Re}\\) is the boundary-layer scale; \\(h_z\\): cell size at the side walls.",
+   "head": [
+    "Mesh",
+    "Cells",
+    "Faces around cylinder",
+    "Cells across \\(z\\)",
+    "Wall cell \\(h_w\\)",
+    "\\(\\delta/h_w\\)",
+    "\\(h_z\\) at side wall",
+    "Max non-orth.",
+    "Iterations"
+   ],
+   "rows": [
+    [
+     "L1",
+     "4,752",
+     "24",
+     "12",
+     "\\(7.14\\,\\mathrm{mm}\\)",
+     "\\(3.13\\)",
+     "\\(23.5\\,\\mathrm{mm}\\)",
+     "\\(32.3\\)°",
+     "104"
+    ],
+    [
+     "L2",
+     "38,016",
+     "48",
+     "24",
+     "\\(3.73\\,\\mathrm{mm}\\)",
+     "\\(5.99\\)",
+     "\\(11.8\\,\\mathrm{mm}\\)",
+     "\\(39\\)°",
+     "130"
+    ],
+    [
+     "L3",
+     "304,128",
+     "96",
+     "48",
+     "\\(1.9\\,\\mathrm{mm}\\)",
+     "\\(11.8\\)",
+     "\\(5.91\\,\\mathrm{mm}\\)",
+     "\\(42.1\\)°",
+     "212"
+    ],
+    [
+     "L4",
+     "2,433,024",
+     "192",
+     "96",
+     "\\(0.956\\,\\mathrm{mm}\\)",
+     "\\(23.4\\)",
+     "\\(2.96\\,\\mathrm{mm}\\)",
+     "\\(43.5\\)°",
+     "439"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Mesh",
+    "Cells",
+    "\\(c_D\\)",
+    "\\(c_L\\)",
+    "\\(c_D\\) pressure / friction",
+    "Paper OpenFOAM cells",
+    "Paper OF \\(c_D\\)",
+    "Paper OF \\(c_L\\)"
+   ],
+   "rows": [
+    [
+     "L1",
+     "4,752",
+     "\\(5.7072\\)",
+     "\\(0.02014\\)",
+     "\\(3.7746\\) / \\(1.9326\\)",
+     "6,144",
+     "\\(6.1341\\)",
+     "\\(0.01734\\)"
+    ],
+    [
+     "L2",
+     "38,016",
+     "\\(6.0797\\)",
+     "\\(0.01155\\)",
+     "\\(3.9948\\) / \\(2.0849\\)",
+     "49,152",
+     "\\(6.1970\\)",
+     "\\(0.01099\\)"
+    ],
+    [
+     "L3",
+     "304,128",
+     "\\(6.1614\\)",
+     "\\(0.00982\\)",
+     "\\(4.0847\\) / \\(2.0767\\)",
+     "393,216",
+     "\\(6.1936\\)",
+     "\\(0.01001\\)"
+    ],
+    [
+     "L4",
+     "2,433,024",
+     "\\(6.1805\\)",
+     "\\(0.00956\\)",
+     "\\(4.1214\\) / \\(2.0591\\)",
+     "3,145,728",
+     "\\(6.1893\\)",
+     "\\(0.00973\\)"
+    ],
+    [
+     "Observed order \\(p\\) (L2-L4)",
+     "",
+     "\\(2.10\\)",
+     "\\(2.73\\)",
+     "",
+     "",
+     "–",
+     "\\(1.81\\)"
+    ],
+    [
+     "Richardson extrapolation",
+     "",
+     "\\(6.1864\\)",
+     "\\(0.00951\\)",
+     "",
+     "",
+     "–",
+     "\\(0.00962\\)"
+    ],
+    [
+     "GCI of L4 (absolute)",
+     "",
+     "\\(0.0073\\)",
+     "\\(5.8 \\times 10^{-5}\\)",
+     "",
+     "",
+     "",
+     ""
+    ],
+    [
+     "Reference (Braack and Richter)",
+     "",
+     "\\(6.1853\\)",
+     "\\(0.00940\\)",
+     "",
+     "",
+     "",
+     ""
+    ],
+    [
+     "L3_LU (linear-upwind convection)",
+     "304,128",
+     "\\(6.1715\\)",
+     "\\(0.00974\\)",
+     "\\(4.1021\\) / \\(2.0694\\)",
+     "",
+     "",
+     ""
+    ],
+    [
+     "L3_R2 (O-grid radial ratio 2)",
+     "304,128",
+     "\\(6.1638\\)",
+     "\\(0.00912\\)",
+     "\\(4.0677\\) / \\(2.0961\\)",
+     "",
+     "",
+     ""
+    ],
+    [
+     "L3_R8 (O-grid radial ratio 8)",
+     "304,128",
+     "\\(6.1571\\)",
+     "\\(0.01032\\)",
+     "\\(4.0989\\) / \\(2.0582\\)",
+     "",
+     "",
+     ""
+    ],
+    [
+     "L4_R2 (O-grid radial ratio 2)",
+     "2,433,024",
+     "\\(6.1810\\)",
+     "\\(0.00938\\)",
+     "\\(4.1112\\) / \\(2.0698\\)",
+     "",
+     "",
+     ""
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Run",
+    "Iterations",
+    "Log",
+    "\\(\\Delta c_D\\) / \\(\\Delta c_L\\)",
+    "Converged",
+    "Momentum",
+    "Momentum + inlet friction",
+    "Side force",
+    "Inflow excess",
+    "Wall s (ranks)"
+   ],
+   "rows": [
+    [
+     "L1",
+     "104",
+     "✓ OK",
+     "\\(3 \\times 10^{-8}\\)<br>\\(2 \\times 10^{-8}\\)",
+     "✓",
+     "\\(-0.41\\,\\%\\)",
+     "\\(-0.1\\,\\%\\)",
+     "\\(6 \\times 10^{-12}\\)",
+     "\\(0.0076\\)",
+     "1 (1)"
+    ],
+    [
+     "L2",
+     "130",
+     "✓ OK",
+     "\\(1 \\times 10^{-9}\\)<br>\\(2 \\times 10^{-10}\\)",
+     "✓",
+     "\\(0.28\\,\\%\\)",
+     "\\(0.071\\,\\%\\)",
+     "\\(1 \\times 10^{-11}\\)",
+     "\\(0.0019\\)",
+     "2 (4)"
+    ],
+    [
+     "L3",
+     "212",
+     "✓ OK",
+     "\\(4 \\times 10^{-11}\\)<br>\\(1 \\times 10^{-11}\\)",
+     "✓",
+     "\\(0.23\\,\\%\\)",
+     "\\(0.057\\,\\%\\)",
+     "\\(2 \\times 10^{-12}\\)",
+     "\\(4.6 \\times 10^{-4}\\)",
+     "21 (8)"
+    ],
+    [
+     "L4",
+     "439",
+     "✓ OK",
+     "\\(8 \\times 10^{-10}\\)<br>\\(2 \\times 10^{-10}\\)",
+     "✓",
+     "\\(0.14\\,\\%\\)",
+     "\\(0.036\\,\\%\\)",
+     "\\(7 \\times 10^{-12}\\)",
+     "\\(1.2 \\times 10^{-4}\\)",
+     "961 (12)"
+    ],
+    [
+     "L3_LU",
+     "152",
+     "✓ OK",
+     "\\(9 \\times 10^{-9}\\)<br>\\(1 \\times 10^{-8}\\)",
+     "✓",
+     "\\(0.15\\,\\%\\)",
+     "–",
+     "\\(2 \\times 10^{-12}\\)",
+     "\\(4.6 \\times 10^{-4}\\)",
+     "17 (8)"
+    ],
+    [
+     "L3_R2",
+     "195",
+     "✓ OK",
+     "\\(9 \\times 10^{-11}\\)<br>\\(8 \\times 10^{-11}\\)",
+     "✓",
+     "\\(0.23\\,\\%\\)",
+     "–",
+     "\\(2 \\times 10^{-12}\\)",
+     "\\(4.6 \\times 10^{-4}\\)",
+     "19 (8)"
+    ],
+    [
+     "L3_R8",
+     "206",
+     "✓ OK",
+     "\\(8 \\times 10^{-11}\\)<br>\\(1 \\times 10^{-11}\\)",
+     "✓",
+     "\\(0.23\\,\\%\\)",
+     "–",
+     "\\(2 \\times 10^{-12}\\)",
+     "\\(4.6 \\times 10^{-4}\\)",
+     "20 (8)"
+    ],
+    [
+     "L4_R2",
+     "437",
+     "✓ OK",
+     "\\(3 \\times 10^{-10}\\)<br>\\(9 \\times 10^{-11}\\)",
+     "✓",
+     "\\(0.14\\,\\%\\)",
+     "–",
+     "\\(2 \\times 10^{-11}\\)",
+     "\\(1.2 \\times 10^{-4}\\)",
+     "845 (12)"
+    ]
+   ],
+   "notes": [
+    "Log: automatic log checks (no crash, no NaN, residual and continuity-error trends; cfdlib.monitor).",
+    "\\(\\Delta c_D\\), \\(\\Delta c_L\\): largest change over the last \\(10\\,\\%\\) of the iterations; tolerances \\(1 \\times 10^{-5}\\) and \\(1 \\times 10^{-6}\\), fixed before the runs. Every run stopped on its residual targets (\\(1 \\times 10^{-7}\\) pressure, \\(1 \\times 10^{-8}\\) velocity).",
+    "Momentum: imbalance of the steady x-momentum balance (Theory, step 5) divided by the drag force; tolerance \\(0.5\\,\\%\\) on the finest mesh. The next column adds the viscous force through the inlet, which the balance neglects: zero for the continuous problem, but not for the discrete one (one-sided gradient at an inlet whose profile is not developed duct flow; computed from the fields, Insights). Side force: \\(|F_z|/F_D\\).",
+    "Runs L3_*, L4_R2: sensitivity runs (one change each, see the Comparison).",
+    "Wall times include waiting for cores shared with the GPU tuning runs (Performance appendix)."
+   ]
+  }
+ },
+ "comparison": {
+  "kind": "Benchmark: the simulation is compared with the reference values of Braack and Richter (adaptive finite elements). Agreement is judged against a band: the GCI of the finest mesh plus the reference uncertainty (distance to FeatFlow level 4). The benchmark paper's own OpenFOAM results are shown for comparison.",
+  "definitions": [
+   {
+    "name": "Force coefficients",
+    "latex": "c_D = \\frac{2F_D}{\\rho\\,\\bar U^2 D H},\\qquad c_L = \\frac{2F_L}{\\rho\\,\\bar U^2 D H}",
+    "meaning": "\\(\\bar U = \\tfrac49 U_m\\), \\(H\\) the cylinder length; forces are the converged values."
+   },
+   {
+    "name": "Reference uncertainty",
+    "latex": "U_{\\mathrm{ref}} = |q_{\\mathrm{ref}} - q_{\\mathrm{FeatFlow},4}|",
+    "meaning": "Distance to an independent high-order solution on its finest level."
+   },
+   {
+    "name": "Simulation uncertainty",
+    "latex": "U_{\\mathrm{sim}} = 1.25\\,\\frac{|q_{L4} - q_{L3}|}{2^p - 1}",
+    "meaning": "GCI of the finest mesh (Celik et al. 2008) from L2, L3, L4 with their observed order \\(p\\)."
+   },
+   {
+    "name": "Verdict per number",
+    "latex": "|q_{L4} - q_{\\mathrm{ref}}| \\le U_{\\mathrm{sim}} + U_{\\mathrm{ref}}",
+    "meaning": "Inside the band: ok; up to twice the band: warning; beyond: fail."
+   }
+  ],
+  "head": [
+   "Number",
+   "Reference",
+   "\\(U_{\\mathrm{ref}}\\)",
+   "Simulation (L4)",
+   "\\(U_{\\mathrm{sim}}\\)",
+   "Difference",
+   "÷ band, status",
+   "Richardson (rel. diff.)",
+   "Paper OpenFOAM L4 (rel. diff.)"
+  ],
+  "rows": [
+   [
+    "\\(c_D\\)",
+    "\\(6.1853\\)",
+    "\\(6.8 \\times 10^{-4}\\)",
+    "\\(6.1805\\)",
+    "\\(0.0073\\)",
+    "\\(-0.0048\\)<br>\\(-0.077\\,\\%\\)",
+    "\\(0.60\\)<br>✓ OK",
+    "\\(6.1864\\)<br>\\(0.017\\,\\%\\)",
+    "\\(6.1893\\)<br>\\(0.064\\,\\%\\)"
+   ],
+   [
+    "\\(c_L\\)",
+    "\\(0.00940\\)",
+    "\\(4 \\times 10^{-6}\\)",
+    "\\(0.00956\\)",
+    "\\(5.8 \\times 10^{-5}\\)",
+    "\\(+0.00016\\)<br>\\(1.7\\,\\%\\)",
+    "\\(2.51\\)<br>✗ fail",
+    "\\(0.00951\\)<br>\\(1.2\\,\\%\\)",
+    "\\(0.00973\\)<br>\\(3.5\\,\\%\\)"
+   ]
+  ],
+  "findings": [
+   "<b>The reference.</b> Braack and Richter give \\(c_D = 6.1853\\) and \\(c_L = 0.00940\\) without an uncertainty (printed digits: \\(5 \\times 10^{-6}\\) and \\(5 \\times 10^{-7}\\)). As its uncertainty this report uses the distance to the finest result of an independent high-order code, FeatFlow level 4: \\(6.8 \\times 10^{-4}\\) and \\(4 \\times 10^{-6}\\).",
+   "<b>Level by level against the paper's OpenFOAM.</b> Same method family (cell-centred finite volumes, central differences), similar cell counts (Figure 4). Drag error on L1-L4: \\(-7.7\\,\\%\\), \\(-1.7\\,\\%\\), \\(-0.39\\,\\%\\), \\(-0.077\\,\\%\\); paper's OpenFOAM: \\(-0.83\\,\\%\\), \\(0.19\\,\\%\\), \\(0.13\\,\\%\\), \\(0.064\\,\\%\\). Lift error: \\(1.1e+02\\,\\%\\), \\(23\\,\\%\\), \\(4.4\\,\\%\\), \\(1.7\\,\\%\\) against \\(84\\,\\%\\), \\(17\\,\\%\\), \\(6.5\\,\\%\\), \\(3.5\\,\\%\\).",
+   "<b>The paper's OpenFOAM drag did not converge cleanly.</b> Its changes from level 2 to 3 and 3 to 4 are \\(-0.0034\\) and \\(-0.0043\\): they do not shrink, so it cannot be extrapolated; its lift converges with observed order \\(1.81\\). This simulation converges monotonically in both on L2-L4. FeatFlow (finite elements, more unknowns per cell) is the most accurate of the three on every level.",
+   "<b>How stable is the extrapolation?</b> Richardson from L1-L3 gives \\(6.1845\\) and \\(0.00938\\); from L2-L4 \\(6.1864\\) and \\(0.00951\\). For \\(c_D\\) the two differ by \\(0.0019\\), less than the GCI of L4: stable. For \\(c_L\\) the two differ by \\(1.3 \\times 10^{-4}\\), more than the GCI of L4 (\\(5.8 \\times 10^{-5}\\)): the lift is not yet in its asymptotic range, and its GCI understates the error.",
+   "<b>Robustness of the lift (sensitivity runs).</b> Same solver, one change at a time: L3, linear-upwind convection: \\(c_D = 6.1715\\), \\(c_L = 0.00974\\) (\\(3.6\\,\\%\\)); L3, O-grid radial ratio 2: \\(c_D = 6.1638\\), \\(c_L = 0.00912\\) (\\(-3\\,\\%\\)); L3, O-grid radial ratio 8: \\(c_D = 6.1571\\), \\(c_L = 0.01032\\) (\\(9.8\\,\\%\\)); L4, O-grid radial ratio 2: \\(c_D = 6.1810\\), \\(c_L = 0.00938\\) (\\(-0.27\\,\\%\\)). On L3 the lift spans \\(13\\,\\%\\) of the reference between these meshes of the same size while the drag moves by at most \\(0.16\\,\\%\\): the lift depends on how the cells are distributed in the O-grid (the flow through the gaps between cylinder and walls), not only on their number. The convection scheme matters little.",
+   "<b>A second mesh family.</b> With radial ratio 2 the lift goes from \\(0.00912\\) (L3) to \\(0.00938\\) (L4), \\(-0.27\\,\\%\\) from the reference, while the production family (ratio 4) gives \\(0.00956\\). The two families approach the reference from opposite sides; their difference on L4, \\(1.8 \\times 10^{-4}\\), is a more honest measure of the lift's mesh uncertainty than the GCI of one family (\\(5.8 \\times 10^{-5}\\)). The drag of the two families differs by only \\(4.8 \\times 10^{-4}\\).",
+   "<b>Pressure and friction.</b> On L4 the pressure gives \\(66.7\\,\\%\\) of the drag and friction the rest: at \\(Re = 20\\) friction is a large part of the drag, unlike at high Reynolds numbers."
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "gpu",
+   "logged": "2026-11-11 17:27",
+   "status": "resolved",
+   "problem": "environment.md lists the GPU multigrid options to explore as MaxLevels, MinCoarseRows and ZeroGuess. The OGL source (include/OGL/Preconditioner/Multigrid.hpp, CoarseSolver.cpp) reads them in lower camel case (maxLevels, minCoarseRows, smoother, maxIterSmoother, coarseSolver, maxIterCoarse, cycle, reuseHierarchy) and only from a preconditioner SUB-dictionary; there is no ZeroGuess option. Written as top-level keys they would be ignored silently.",
+   "diagnosis": "The option names in the guidance were guessed, not read from the plugin. OGL looks the preconditioner options up in the dictionary of the preconditioner entry (preconditioner { preconditioner Multigrid; minCoarseRows 1000; ... }). Its defaults are weak for a large 3D problem: the coarsest level keeps 64000 rows and is 'solved' by ONE Jacobi sweep (coarseSolver Jacobi, maxIterCoarse 1), with one Jacobi smoothing sweep per level.",
+   "fix": "Read the option names and defaults from ~/src/OGL before tuning; write them in a preconditioner sub-dictionary (run.py CONFIGS).",
+   "lesson": "Read the plugin's source for option names and defaults before tuning; a misspelt option in an OpenFOAM dictionary is ignored without a warning.",
+   "guideline": "environment.md, OGL section: replace 'MaxLevels, MinCoarseRows, ZeroGuess' by the real names, show the sub-dictionary form and the defaults (minCoarseRows 64000, coarse solver = 1 Jacobi sweep).",
+   "resolved": "2026-11-11 17:27"
+  },
+  {
+   "id": 2,
+   "stage": "tooling",
+   "logged": "2026-11-11 17:27",
+   "status": "resolved",
+   "problem": "The task brief said to log insights with 'python -m cfdlib.insights <case> add ...'; the CLI verb is 'new' ('add' is rejected by argparse).",
+   "diagnosis": "Mismatch between the brief and cfdlib/insights.py.",
+   "fix": "Use 'new' (or the Python API insights.log).",
+   "lesson": "Check the CLI help (python -m cfdlib.insights -h) instead of trusting a quoted command.",
+   "guideline": "Either accept 'add' as an alias in cfdlib/insights.py or quote 'new' everywhere (SKILL.md already does).",
+   "resolved": "2026-11-11 17:27"
+  },
+  {
+   "id": 3,
+   "stage": "performance",
+   "logged": "2026-11-11 17:33",
+   "status": "resolved",
+   "problem": "The study needs the pressure-solve time of CPU runs, but GAMG prints no timings and cfdlib.perf only counts iterations. OpenFOAM's built-in profiling (controlDict: profiling { active true; }) writes <time>/uniform/profiling with the wall time and call count of every section: fvMatrix::solve.p, fvMatrix::solve.U, each function object, for CPU and GPU runs alike (processor0/... in parallel runs).",
+   "diagnosis": "Profiling is off by default and not mentioned in the guidelines. One quirk: its GAMG entry 'lduMatrix::solver.coarsestLevelCorr' reports almost the whole pressure solve (a nesting artefact), so only fvMatrix::solve.p is used.",
+   "fix": "Profiling on in every run of this case (an output decision); run.py reads the totals per section from processor0.",
+   "lesson": "Before writing log parsers for timings, check what the solver can already measure about itself.",
+   "guideline": "SKILL.md performance section: switch on controlDict profiling for any performance study and read fvMatrix::solve.<field>; cfdlib.perf.summarize could parse uniform/profiling itself.",
+   "resolved": "2026-11-11 17:33"
+  },
+  {
+   "id": 4,
+   "stage": "gpu",
+   "logged": "2026-11-11 17:33",
+   "status": "resolved",
+   "problem": "OGL's stopping criterion has adaptMinIter (default true): every pressure solve must do at least 0.6 times the iterations of the previous one (log: 'Creating stopping criterion with minIter 421 frequency 6'), and the residual is checked only every few iterations. In a steady SIMPLE run with partial solves (relTol 0.05) this can force far more iterations than the tolerance needs.",
+   "diagnosis": "Measured on the 1-million-cell mesh (4 ranks): with OGL's default multigrid, switching adaptMinIter off cut the CG iterations per pressure solve from 132 to 97. With the tuned preconditioner the effect is small (16 with it, 15 without), because the iteration count no longer varies much between solves.",
+   "fix": "adaptMinIter false in every tuned GPU configuration (run.py _gpu_mg).",
+   "lesson": "Library defaults tuned for transient runs with full solves can waste work in steady runs with partial solves.",
+   "guideline": "environment.md OGL section: mention adaptMinIter (default on) and set it off for partial (relTol) solves.",
+   "resolved": "2026-11-11 18:06"
+  },
+  {
+   "id": 5,
+   "stage": "performance",
+   "logged": "2026-11-11 17:33",
+   "status": "resolved",
+   "problem": "The forces function object costs about 6 % of each iteration on the 2.43 million cell mesh (two calls, cylinder and walls, 0.064 s each per iteration on 16 ranks; profiling): it evaluates the stress tensor on the whole mesh, not only on the patch.",
+   "diagnosis": "forces builds devRhoReff (needs grad U everywhere) every call; at 2.4 million cells that is not free.",
+   "fix": "Kept every iteration (identical on CPU and GPU runs, so the comparison stays fair) and reported as part of the time outside the pressure solve.",
+   "lesson": "Every-iteration function objects are a measurable cost on large meshes and dilute any linear-solver speed-up.",
+   "guideline": "For long steady runs, evaluate forces every few iterations (executeInterval) once the stopping rule allows it.",
+   "resolved": "2026-11-11 17:33"
+  },
+  {
+   "id": 6,
+   "stage": "production",
+   "logged": "2026-11-11 17:33",
+   "status": "resolved",
+   "problem": "The steady x-momentum balance of the channel closes only to 0.41, 0.28 and 0.23 % of the drag on L1, L2, L3: inside the 0.5 % rule set beforehand, but the imbalance shrinks slowly with refinement, not like a second-order error.",
+   "diagnosis": "The balance neglects the viscous normal stress at inlet and outlet. In the continuous problem its integral over the inlet is zero (continuity: the integral of du/dx over a section with no-slip edges vanishes). The discrete one is not: the solver's one-sided face gradient at an inlet whose profile is not the developed duct flow leaves a first-order remainder. Computed from the fields (run.py inletvisc), it is about three quarters of the imbalance on L1-L3; with it, the imbalance falls to about 0.1, 0.07 and 0.055 % of the drag.",
+   "fix": "Kept the pass rule fixed beforehand (balance without the term, 0.5 %); report the inlet viscous term and the balance with it as a diagnostic.",
+   "lesson": "A conservation check is only as exact as its list of terms: a term that vanishes in the continuum may survive discretely at first order and look like a solver error.",
+   "guideline": "primer: for a momentum balance through an inlet with a non-developed profile, include (or measure) the viscous flux through the inlet; it decays only like the first cell size.",
+   "resolved": "2026-11-11 17:44"
+  },
+  {
+   "id": 7,
+   "stage": "tooling",
+   "logged": "2026-11-11 17:47",
+   "status": "resolved",
+   "problem": "cfdlib.monitor.assess writes the projected iteration count of a steady run with a plain-text Unicode greater-or-equal sign; copied into the report's pre-flight checks, the contract warns about a math character in plain text.",
+   "diagnosis": "monitor.py builds the value with the Unicode sign instead of LaTeX.",
+   "fix": "analyze.py converts the value to \\(\\ge 112\\) before passing it to the report.",
+   "lesson": "Shared helpers that produce report text must follow the report's typesetting rules too.",
+   "guideline": "cfdlib/monitor.py: write value=m(r'\\ge ' + ...) for the projected iteration count.",
+   "resolved": "2026-11-11 17:47"
+  },
+  {
+   "id": 8,
+   "stage": "report",
+   "logged": "2026-11-11 17:47",
+   "status": "resolved",
+   "problem": "The mid-plane picture needs the velocity on the plane z = H/2, which is a face plane of the mesh (even cell count in z). matplotlib's Delaunay triangulation of the structured cell centres has degenerate triangles: plotting works, but LinearTriInterpolator raises 'Triangulation is invalid'. Matching the two cell layers next to the plane by sorted (x, y) also failed until the coordinates were rounded (round-off differences between layers reordered the sort).",
+   "diagnosis": "Collinear points of a structured grid; floating-point ties in a lexicographic sort.",
+   "fix": "Average the two layers with linear weights after sorting rounded coordinates; interpolate along lines with scipy's LinearNDInterpolator.",
+   "lesson": "Structured-grid data and Delaunay-based tools do not mix well; prefer scipy (Qhull) or sampling in OpenFOAM.",
+   "guideline": "A helper in cfdlib to extract a plane of a structured mesh (or an OpenFOAM 'surfaces' sampling recipe in the primer) would save every 3D case this detour."
+  },
+  {
+   "id": 9,
+   "stage": "analysis",
+   "logged": "2026-11-11 17:52",
+   "status": "resolved",
+   "problem": "The lift fails the rule fixed beforehand: on L4 it is 1.66 % above the reference, 2.5 times the band (GCI of L4 plus reference uncertainty). Its observed order on L2-L4 is 2.73 (L1-L3: 2.31), so the GCI band is narrow, and the Richardson value is still 1.16 % high. Drag passes (L4 -0.077 %, extrapolated +0.017 %).",
+   "diagnosis": "Robustness runs (one change each): convection scheme on L3 moves the lift by 0.8 %; the O-grid radial cell distribution moves it from -3.0 % (ratio 2) through +4.4 % (ratio 4, production) to +9.8 % (ratio 8) of the reference on L3, with the drag almost unchanged. On L4, ratio 2 gives -0.27 % against +1.66 % for ratio 4: the two mesh families approach the reference from opposite sides. The lift, a small difference of large pressure and friction forces, depends on how the gap flow between cylinder and walls is resolved; the GCI of one family (narrow because its observed order is high) does not see that.",
+   "fix": "Kept the FAIL verdict of the rule fixed beforehand; reported the sensitivity runs and the spread between the two families as the honest lift uncertainty.",
+   "lesson": "For a small force component, one mesh family's GCI can be far too optimistic; a second family (different grading, same cell count) is a cheap and strong test.",
+   "guideline": "SKILL.md stage 5: for small or sensitive outputs (lift of a nearly symmetric body), run a second mesh family on at least two levels before trusting the GCI; budget for it in the plan.",
+   "resolved": "2026-11-11 18:10"
+  },
+  {
+   "id": 10,
+   "stage": "report",
+   "logged": "2026-11-11 17:56",
+   "status": "resolved",
+   "problem": "A Python patch of analyze.py passed through a Bash heredoc collapsed every double backslash to a single one. It came out right only because none of the affected sequences formed a control character (TAB from times, form feed from frac); the guideline to edit LaTeX-bearing files only with Edit/Write exists for exactly this.",
+   "diagnosis": "The Bash tool processes backslashes before the heredoc reaches Python, whatever the quoting.",
+   "fix": "Checked the file for control characters (none) and the edited lines by eye; later edits with the Edit tool.",
+   "lesson": "The guideline also applies to small scripted patches, not only to whole files.",
+   "guideline": "SKILL.md stage 2: say explicitly that Python one-off patch scripts through Bash count as Bash editing."
+  },
+  {
+   "id": 11,
+   "stage": "performance",
+   "logged": "2026-11-11 17:58",
+   "status": "resolved",
+   "problem": "OpenFOAM's per-iteration ClockTime in the log, which run.py and case 4 (_loop_us) use for time per iteration, is printed in whole seconds: on a 0.05 s iteration it is useless, on a 0.6 s one it carries a 5-10 % error over 20 iterations. The timeInfo function object's clockTime column has the same 1 s resolution.",
+   "diagnosis": "Time::elapsedClockTime returns whole seconds. ExecutionTime (CPU time of rank 0, 0.01 s resolution) looked like wall time on the first checks, but on the 90 thousand cell mesh with 16 ranks it was half the wall time (0.020 against 0.039 s per iteration): with 16 ranks on 16 hardware threads, MPI yields the core instead of busy-waiting. That made 16 ranks look fastest on the small meshes. Profiling's totals (time.run()) are high-resolution wall times.",
+   "fix": "Time per iteration = profiled wall time of the iteration loop divided by the iteration count, on both sides (includes the first iteration's one-off costs, the same for every run of a mesh up to the GPU's CUDA start-up).",
+   "lesson": "Check the resolution AND the meaning (CPU or wall) of a clock before timing with it, on the smallest case too.",
+   "guideline": "cfdlib.perf: compute loop time from ExecutionTime differences (or profiling), never from ClockTime; say in SKILL.md that ClockTime has 1 s resolution.",
+   "resolved": "2026-11-11 18:39"
+  },
+  {
+   "id": 12,
+   "stage": "gpu",
+   "logged": "2026-11-11 18:06",
+   "status": "resolved",
+   "problem": "After the coarse-level fix (CG coarse solve, coarsest level at most 1000 rows) the GPU needed only 15 CG iterations per pressure solve, but the multigrid set-up then cost about 0.9 s per solve on 1 million cells, several times the solve itself, so the GPU was still slower than GAMG.",
+   "diagnosis": "OGL rebuilds the multigrid hierarchy (PGM aggregation on the GPU) for every solve by default; a deeper hierarchy costs more to build.",
+   "fix": "Reuse the preconditioner for 20 solves (preconditioner { caching 20; }): the pressure matrix changes slowly between SIMPLE iterations, so the stale preconditioner costs about 1-4 extra CG iterations and saves the set-up. reuseHierarchy (recompute only the coarse matrices) helped less.",
+   "lesson": "On the GPU, preconditioner set-up can dominate; amortise it over solves.",
+   "guideline": "environment.md OGL section: start GPU tuning from minCoarseRows ~1000, coarseSolver CG, maxIterSmoother 2, caching 20, adaptMinIter off (the settings found here), not from the defaults."
+  },
+  {
+   "id": 13,
+   "stage": "performance",
+   "logged": "2026-11-11 18:39",
+   "status": "resolved",
+   "problem": "The CPU baseline is not 'GAMG on all cores': on this steady 3D case GAMG with the DIC-Gauss-Seidel smoother needs 5 instead of 13 iterations per pressure solve and is about 6 % faster per iteration than with Gauss-Seidel, and 8 ranks beat 16 on every mesh from 0.3 to 4.75 million cells (L4: 1.72 s per iteration on 8 ranks, 1.90 on 16). Case 4 (2D, transient) had found 16 ranks fastest.",
+   "diagnosis": "A steady 3D SIMPLE iteration is memory-bandwidth bound; hyper-threads add MPI traffic and halo work without adding bandwidth. DIC smoothing does more per sweep but converges GAMG in fewer cycles.",
+   "fix": "The study's CPU baseline is the fastest of GAMG GS / GAMG DIC-GS on 8 or 16 ranks per mesh (4-16 on L4).",
+   "lesson": "'Best CPU setup' must be measured for each case; smoother and rank count both matter by 5-15 %.",
+   "guideline": "primer, parallel section: add this case's numbers (8 ranks best for steady 3D, DIC-GS smoother) next to case 4's."
+  },
+  {
+   "id": 14,
+   "stage": "gpu",
+   "logged": "2026-11-11 19:15",
+   "status": "resolved",
+   "problem": "Even fully tuned, the GPU only breaks even at about 2 million cells and saves about 11 % of the time per SIMPLE iteration at 4.75 million cells (a factor 1.13), although its pressure solve there is 1.65 times faster than the best GAMG; on a converged L4 run both took about 11.5 minutes.",
+   "diagnosis": "Three limits stack up. (1) Amdahl: the pressure solve is only about a third of a steady SIMPLE iteration (momentum, assembly and the force output stay on the CPU), so even an infinitely fast solver gives at most about 1.5 times. (2) Each solve pays a fixed host path: the ranks' matrices are gathered and copied through host memory (no CUDA-aware MPI), tens of milliseconds outside OGL's own timers. (3) The consumer GPU's double precision is slow, so CG with multigrid needs 3 times the iterations of GAMG with DIC smoothing and gains only from memory bandwidth.",
+   "fix": "Reported as the answer: break-even and gains measured, with the same converged forces on both sides.",
+   "lesson": "For steady incompressible OpenFOAM runs, offloading only the pressure solve cannot give more than the pressure share allows; measure that share first (profiling) before investing in GPU tuning.",
+   "guideline": "SKILL.md performance study: start by measuring the pressure share with profiling and state the Amdahl bound; it sets expectations before any GPU run.",
+   "resolved": "2026-11-11 19:18"
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The channel and the cylinder to scale: side view in the mid-plane \\(z = H/2\\) (left) and the square cross-section seen from the inlet (right), where the cylinder spans the channel from wall to wall. The inflow profile is a parabola in both \\(y\\) and \\(z\\). Orange: the requested forces (a), (b); dotted: the steady region of reversed flow shown in (c)."
+  },
+  {
+   "key": "iters",
+   "section": "convergence",
+   "caption": "Physical stopping check: change of the drag (left) and lift (right) coefficient from its final value, against the iteration, on each mesh (finer meshes start from the converged coarser flow). Every run stops on its residual targets; the dashed lines are the tolerances fixed beforehand for the change over the last \\(10\\,\\%\\) of the iterations. All runs end below them."
+  },
+  {
+   "key": "levels",
+   "section": "comparison",
+   "caption": "Drag and lift against the number of cells: this simulation (blue, levels L1-L4), the benchmark paper's OpenFOAM, CFX and FeatFlow results on its levels 1-4, and the reference value (dotted). Open circles: the same setup with a different radial cell distribution in the O-grid (ratio 2 instead of 4). The open diamond is the Richardson extrapolation of L2-L4 with its GCI bar. Right: the lift as its error relative to the reference, on a scale that is linear between \\(-1\\) and \\(1\\,\\%\\) and logarithmic outside, because the coarse levels are far off."
+  },
+  {
+   "key": "flow",
+   "section": "simulation",
+   "caption": "Output (c): streamwise velocity \\(u\\) in the mid-plane \\(z = H/2\\) on the finest mesh (L4). The black line is \\(u = 0\\): inside it (blue) the fluid flows backwards, towards the cylinder; the colour scale is stretched below zero so that this weak backflow (at most \\(0.019\\,\\mathrm{m/s}\\)) is visible. Right: \\(u\\) along the line \\(y = 0.198\\,\\mathrm{m}\\) through the reversed-flow region; it is negative up to \\(x = 0.625\\,\\mathrm{m}\\), \\(0.75\\,D\\) behind the cylinder surface. The fast fluid squeezed between cylinder and walls is red."
+  }
+ ],
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run preflight",
+    "what": "Short test runs on L1 (1 core) and L4 (16 ranks)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run production L1 L2 L3",
+    "what": "Converged runs, each from the converged coarser flow"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run production L4",
+    "what": "Finest mesh, 12 MPI ranks"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run flow L4",
+    "what": "Mid-plane velocity for the picture"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run inletvisc L1 L2 L3 L4",
+    "what": "Viscous force through the inlet (balance diagnostic)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run variant L3_LU L3 \"schemes.div_U=bounded Gauss linearUpwind grad(U)\"",
+    "what": "Sensitivity: convection scheme (8 ranks)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run variant L3_R2 L3 mesh.radial_ratio=2",
+    "what": "Sensitivity: O-grid radial ratio 2 (also L3_R8 with 8)"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.run variant L4_R2 L4 from=L3_R2 ranks=12 mesh.radial_ratio=2",
+    "what": "Second mesh family on L4, started from L3_R2"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.analyze --report",
+    "what": "Analysis, figures and this report"
+   },
+   {
+    "cmd": "python -m cases.dfg_cylinder_3d_re20.gpu_study",
+    "what": "GPU study report (its own reproducibility section lists the runs)"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/dfg_cylinder_3d_re20/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/dfg_cylinder_3d_re20/reference/",
+    "what": "Benchmark values (parsed) and copies of the benchmark pages"
+   },
+   {
+    "path": "cases/dfg_cylinder_3d_re20/numerics.yaml",
+    "what": "Meshes, solver settings, stopping and acceptance rules"
+   },
+   {
+    "path": "cases/dfg_cylinder_3d_re20/decisions.yaml",
+    "what": "Every choice, with the OpenFOAM settings it controls"
+   },
+   {
+    "path": "cases/dfg_cylinder_3d_re20/insights.yaml",
+    "what": "Workflow insights logged during the work"
+   },
+   {
+    "path": "cases/dfg_cylinder_3d_re20/template/",
+    "what": "OpenFOAM case; blockMeshDict filled from run.mesh_spec"
+   },
+   {
+    "path": "cases/dfg_cylinder_3d_re20/run.py",
+    "what": "Mesh generator, runs, mapping, MPI, GPU configurations, timing"
+   },
+   {
+    "path": "cases/dfg_cylinder_3d_re20/theory.py",
+    "what": "What theory can say (SymPy)"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/<level>",
+    "what": "One directory per level (L1-L4)"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/pf_<level>",
+    "what": "Pre-flight runs"
+   },
+   {
+    "path": "results/dfg_cylinder_3d_re20/",
+    "what": "preflight.json, runs/, perf/, timing/, analysis.json, results.json, both reports"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "23 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "L3 (8 ranks) and L4 (12 ranks) ran at the same time as GPU tuning runs (4 ranks and the GPU); L1 and L2 ran alone.",
+   "MPI runs: <code>decomposePar</code> (scotch), <code>mpirun -np N simpleFoam -parallel</code>, <code>reconstructPar -latestTime</code>; the finer levels start from <code>mapFields</code> of the coarser one."
+  ]
+ },
+ "performance": {
+  "intro": "Run-time data of the accuracy runs. Wall microseconds per cell per iteration inside the iteration loop; pressure iterations are the mean GAMG iterations per solve; pressure share is the fraction of the loop time spent in the pressure solve (built-in profiling).",
+  "head": [
+   "Run",
+   "Cells",
+   "Ranks",
+   "Iterations",
+   "Wall (s)",
+   "\\(\\mu s\\)/cell/iter",
+   "\\(p\\) iters",
+   "Pressure share",
+   "CPU eff."
+  ],
+  "rows": [
+   [
+    "L1",
+    "4,752",
+    "1",
+    "104",
+    "1",
+    "–",
+    "\\(2.4\\)",
+    "\\(18.6\\,\\%\\)",
+    "\\(0.75\\)"
+   ],
+   [
+    "L2",
+    "38,016",
+    "4",
+    "130",
+    "2",
+    "\\(0.214\\)",
+    "\\(2.0\\)",
+    "\\(17.9\\,\\%\\)",
+    "\\(0.76\\)"
+   ],
+   [
+    "L3",
+    "304,128",
+    "8",
+    "212",
+    "21",
+    "\\(0.305\\)",
+    "\\(3.8\\)",
+    "\\(19.9\\,\\%\\)",
+    "\\(0.97\\)"
+   ],
+   [
+    "L4",
+    "2,433,024",
+    "12",
+    "439",
+    "961",
+    "\\(0.899\\)",
+    "\\(8.2\\)",
+    "\\(31.4\\,\\%\\)",
+    "\\(0.99\\)"
+   ]
+  ],
+  "notes": [
+   "<b>Accuracy runs ran next to the GPU tuning runs</b> (L3 on 8 and L4 on 12 ranks, the tuning runs on 4 ranks plus the GPU): their wall times are inflated and are not used for any speed comparison. All timing comparisons are in the <a href='gpu_study.html'>GPU study</a>, measured with nothing else running.",
+   "<b>Where the time goes on the CPU.</b> Pressure share from OpenFOAM's built-in profiling (\\(\\texttt{fvMatrix::solve.p}\\) over the whole iteration loop); the rest is the momentum solve, matrix assembly and the force output every iteration.",
+   "<b>GPU study.</b> The GPU is faster per iteration from about \\(2.0\\) million cells: on the largest mesh (4,752,000 cells) one iteration takes \\(3.80\\,\\mathrm{s}\\) on the best CPU setup (GAMG DIC-GS, 8 ranks) and \\(3.37\\,\\mathrm{s}\\) with the pressure solved on the GPU (8 ranks), a factor \\(1.13\\); the pressure solve alone takes \\(1.44\\) against \\(0.87\\,\\mathrm{s}\\) (factor \\(1.65\\)). Both give the same converged forces. See the <a href='gpu_study.html'>GPU study report</a>.",
+   "<b>Pressure share.</b> On the CPU the pressure solve takes G16 \\(35\\,\\%\\), L3 \\(26\\,\\%\\), G36 \\(30\\,\\%\\), L4 \\(32\\,\\%\\), G60 \\(38\\,\\%\\) of an iteration; that bounds what any pressure-solver change can gain."
+  ]
+ },
+ "data": {
+  "analysis": "analysis.json",
+  "verdict_rules": {
+   "fail": [
+    "\\(c_L\\) differs from the reference by more than twice the combined uncertainty"
+   ],
+   "warn": []
+  }
+ }
+}

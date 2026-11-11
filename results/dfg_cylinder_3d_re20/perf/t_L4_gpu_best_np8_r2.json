@@ -1,0 +1,280 @@
+{
+ "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/t_L4_gpu_best_np8_r2",
+ "solver": "simpleFoam",
+ "cells": 2433024,
+ "cores": 8,
+ "steps": 30,
+ "wall_s": 53.79569310500028,
+ "cpu_s": 423.404176,
+ "solver_cpu_s": 52.26,
+ "peak_mem_mb": 1721.76953125,
+ "us_per_cell_step": 0.7370209953402334,
+ "cpu_efficiency": 0.9838245209834577,
+ "write_share": 0.10773526225766905,
+ "lin_iters": {
+  "Ux": 4.966666666666667,
+  "Uy": 5.7,
+  "Uz": 5.833333333333333,
+  "p": 15.633333333333333
+ },
+ "lin_solves_per_step": {
+  "Ux": 1.0,
+  "Uy": 1.0,
+  "Uz": 1.0,
+  "p": 1.0
+ },
+ "lin_iters_by_solve": {
+  "Ux": {
+   "solve 1": 4.966666666666667,
+   "last": 4.966666666666667
+  },
+  "Uy": {
+   "solve 1": 5.7,
+   "last": 5.7
+  },
+  "Uz": {
+   "solve 1": 5.833333333333333,
+   "last": 5.833333333333333
+  },
+  "p": {
+   "solve 1": 15.633333333333333,
+   "last": 15.633333333333333
+  }
+ },
+ "loop_s_per_iter": 1.6521739130434783,
+ "loop_cpu_s_per_iter": 1.623478260869565,
+ "profiling": {
+  "application::main": {
+   "total": 52.656880194,
+   "calls": 1
+  },
+  "time.run() t_L4_gpu_best_np8_r2processor0": {
+   "total": 48.960025007,
+   "calls": 30
+  },
+  "functionObjects.start()": {
+   "total": 0.034974161,
+   "calls": 1
+  },
+  "functionObjects::read": {
+   "total": 0.034929974,
+   "calls": 1
+  },
+  "functionObject::forcesCyl::new": {
+   "total": 0.000824587,
+   "calls": 1
+  },
+  "functionObject::forcesWalls::new": {
+   "total": 0.000187415,
+   "calls": 1
+  },
+  "functionObject::momFlux_inlet::new": {
+   "total": 0.016869999,
+   "calls": 1
+  },
+  "functionObject::pForce_inlet::new": {
+   "total": 0.000165031,
+   "calls": 1
+  },
+  "functionObject::flow_inlet::new": {
+   "total": 0.000187806,
+   "calls": 1
+  },
+  "functionObject::momFlux_outlet::new": {
+   "total": 0.000183638,
+   "calls": 1
+  },
+  "functionObject::pForce_outlet::new": {
+   "total": 0.000206402,
+   "calls": 1
+  },
+  "functionObject::flow_outlet::new": {
+   "total": 0.000253503,
+   "calls": 1
+  },
+  "mesh.update()": {
+   "total": 0.000195579,
+   "calls": 30
+  },
+  "fvMatrix::solve.U": {
+   "total": 12.214033581,
+   "calls": 30
+  },
+  "lduMatrix::solver.Ux": {
+   "total": 3.427016264,
+   "calls": 30
+  },
+  "lduMatrix::smoother.Ux": {
+   "total": 2.74452294,
+   "calls": 30
+  },
+  "lduMatrix::solver.Uy": {
+   "total": 3.798757342,
+   "calls": 30
+  },
+  "lduMatrix::smoother.Uy": {
+   "total": 3.13420093,
+   "calls": 30
+  },
+  "lduMatrix::solver.Uz": {
+   "total": 3.850598662,
+   "calls": 30
+  },
+  "lduMatrix::smoother.Uz": {
+   "total": 3.201974394,
+   "calls": 30
+  },
+  "fvMatrix::solve.p": {
+   "total": 14.033564493,
+   "calls": 30
+  },
+  "lduMatrix::solver.p": {
+   "total": 13.927837215,
+   "calls": 30
+  },
+  "functionObjects.execute()": {
+   "total": 3.349515581,
+   "calls": 29
+  },
+  "functionObject::forcesCyl::execute": {
+   "total": 1.658419092,
+   "calls": 29
+  },
+  "functionObject::forcesCyl:write": {
+   "total": 0.013105695,
+   "calls": 29
+  },
+  "functionObject::forcesWalls::execute": {
+   "total": 1.644970855,
+   "calls": 29
+  },
+  "functionObject::forcesWalls:write": {
+   "total": 0.002873932,
+   "calls": 29
+  },
+  "functionObject::momFlux_inlet::execute": {
+   "total": 4.8563e-05,
+   "calls": 29
+  },
+  "functionObject::momFlux_inlet:write": {
+   "total": 0.0050412,
+   "calls": 29
+  },
+  "functionObject::pForce_inlet::execute": {
+   "total": 2.1342e-05,
+   "calls": 29
+  },
+  "functionObject::pForce_inlet:write": {
+   "total": 0.00415925,
+   "calls": 29
+  },
+  "functionObject::flow_inlet::execute": {
+   "total": 2.092e-05,
+   "calls": 29
+  },
+  "functionObject::flow_inlet:write": {
+   "total": 0.003431287,
+   "calls": 29
+  },
+  "functionObject::momFlux_outlet::execute": {
+   "total": 2.1193e-05,
+   "calls": 29
+  },
+  "functionObject::momFlux_outlet:write": {
+   "total": 0.005443861,
+   "calls": 29
+  },
+  "functionObject::pForce_outlet::execute": {
+   "total": 2.4127e-05,
+   "calls": 29
+  },
+  "functionObject::pForce_outlet:write": {
+   "total": 0.004511639,
+   "calls": 29
+  },
+  "functionObject::flow_outlet::execute": {
+   "total": 2.3042e-05,
+   "calls": 29
+  },
+  "functionObject::flow_outlet:write": {
+   "total": 0.006288715,
+   "calls": 29
+  },
+  "objectRegistry::writeObject": {
+   "total": 0.000845918,
+   "calls": 1
+  }
+ },
+ "ogl": {
+  "p:perform_all_to_all_update": {
+   "mean": 64.28996296296296,
+   "n": 30,
+   "total": 1952.2399999999998
+  },
+  "p:perform_pairwise_update": {
+   "mean": 1.6709999999999998,
+   "n": 30,
+   "total": 51.869
+  },
+  "p:reorder_matrix_data": {
+   "mean": 5.727407407407408,
+   "n": 30,
+   "total": 175.43500000000003
+  },
+  "p_distributed_matrix:call_init": {
+   "mean": 2061.195,
+   "n": 1,
+   "total": 2061.195
+  },
+  "p_rhs:call_init": {
+   "mean": 5.711,
+   "n": 1,
+   "total": 5.711
+  },
+  "p_initial_guess:call_init": {
+   "mean": 4.54,
+   "n": 1,
+   "total": 4.54
+  },
+  "p:scale_RHS": {
+   "mean": 0.27525925925925926,
+   "n": 30,
+   "total": 8.306
+  },
+  "p:init_precond": {
+   "mean": 21.034703703703705,
+   "n": 30,
+   "total": 1165.519
+  },
+  "p:generate_solver": {
+   "mean": 0.024740740740740747,
+   "n": 30,
+   "total": 0.9560000000000002
+  },
+  "p:solve": {
+   "mean": 234.33096296296296,
+   "n": 30,
+   "total": 7588.181
+  },
+  "p:copy_x_back": {
+   "mean": 4.27588888888889,
+   "n": 30,
+   "total": 128.281
+  },
+  "p:solve_multi_gpu": {
+   "mean": 336.6712222222223,
+   "n": 30,
+   "total": 13214.872000000001
+  },
+  "p_distributed_matrix:call_update": {
+   "mean": 71.44515384615384,
+   "n": 29,
+   "total": 2106.557
+  },
+  "p_rhs:call_update": {
+   "mean": 3.0264230769230767,
+   "n": 29,
+   "total": 88.62899999999999
+  }
+ }
+}

@@ -35,6 +35,7 @@ cfdlib/                       shared tools (do NOT modify; log needed changes as
                  environment_info(), render()
   perf.py        performance numbers per run (summarize, machine) for the performance appendix
   contract.py    the report contract checker (also --decisions mode)
+  study.py       a second, focused report for a performance study (render_study), e.g. GPU vs CPU
   insights.py    the live insight log (checks typesetting when you log; refuses to overwrite a filled entry)
   foamdict.py    OpenFOAM dictionary parser (used by the checker)
 cases/<name>/                 one folder per problem
@@ -65,6 +66,11 @@ settings):
   several reference levels, curved-body O-grid mesh generated in Python, MPI runs and a performance
   appendix. Report: `results/dfg_cylinder_re100/report.html`. Its insights.yaml holds 16 lessons
   (the most important: PISO was first order in time).
+- `cases/dfg_cylinder_3d_re20/`: nonlinear, STEADY, 3D (O-grid extruded with wall grading), benchmark
+  with levels 1-4, a second mesh family for the sensitive lift, and a GPU vs CPU performance study
+  (`gpu_study.py`, OGL tuning, profiling-based timing). Reports: `results/dfg_cylinder_3d_re20/report.html`
+  and `gpu_study.html`. Its insights.yaml holds 14 lessons (lift needed a second mesh family; the GPU
+  gain is capped by the pressure share).
 
 ## Stages
 
@@ -92,7 +98,7 @@ settings):
   the way to mesh curved bodies (example: `mesh_spec()` in `cases/dfg_cylinder_re100/run.py`).
 - **Edit files that contain LaTeX only with the Edit/Write tools**, never through Bash heredocs or
   inline Python: the Bash tool eats backslashes (`\times` becomes a TAB). Cases 3 and 4 both lost
-  time to this.
+  time to this. Small one-off patch scripts piped through Bash count too (case 5 had a near miss).
 - Write `decisions.yaml` as you go: one entry per choice with `kind` (physics / accuracy / solver /
   output) and `settings` patterns covering every setting in the case files. Check coverage as soon as
   one case is rendered: `python -m cfdlib.contract --decisions cases/<name>/decisions.yaml <case dir>`.
@@ -154,6 +160,10 @@ settings):
   rule and reported the extrapolation as context).
 - Periodic outputs (shedding, oscillations): use `cfdlib.signals` (cycles between upward crossings,
   parabola-refined peaks, periodicity check, FFT cross-check) instead of writing your own.
+- **Small or sensitive outputs** (lift of a nearly symmetric body, a small difference of large
+  terms): one mesh family's GCI can be far too optimistic. Plan a second family (different grading,
+  same cell counts) on at least two levels and report the spread. In case 5 the lift's GCI band was
+  0.6 %, but two families on the finest level differed by 1.9 % and bracketed the reference.
 - A coarse-mesh match can be luck (error cancellation). Report differences honestly, where and why.
 - An explanation is a claim: check it against the data (sign, size, scaling) before writing it. In
   case 3 the first explanation of an error had the wrong sign and a third of the size.
@@ -209,14 +219,49 @@ now; GPU linear solvers next).
   `reconstructPar`; 8 physical cores / 16 threads, Open MPI 4.1.6, `--use-hwthread-cpus` above 8
   ranks) with a scaling test (1, 2, 4, 8, 16 ranks on the finest mesh, recording pressure iterations
   per decomposition); linear-solver choice and tolerances for `p` (GAMG was 4 times faster than PCG
-  in case 4); write interval and function objects. `perf.summarize` gives `lin_iters_by_solve`
-  (iterations of the 1st, 2nd, ... and last pressure solve of a step).
-- A GPU test must compare against the BEST CPU setup (GAMG on all ranks), not PCG on one core, and
-  report time and iterations per pressure solve separately from the total. An optimisation that can change the answer is a decision (document it) and must be shown to
-  give the same result as the baseline (to round-off or within the stated tolerance).
+  in case 4); write interval and function objects (`forces` every iteration cost 6 % of a 2.4
+  million cell iteration in case 5; use `executeInterval` when the stopping rule allows).
+  `perf.summarize` gives `lin_iters_by_solve` (iterations of the 1st, 2nd, ... and last pressure
+  solve of a step).
+- **Time with profiling, not the log clock.** `ClockTime` in the solver log (and `timeInfo`) has 1 s
+  resolution; `ExecutionTime` is rank 0's CPU time, which undercounts wall time when ranks wait (16
+  ranks on 16 threads: half). Switch on `profiling { active true; }` in controlDict and read
+  `perf.profiling(case, cores)`: high-resolution wall time per section (`fvMatrix::solve.p`,
+  `fvMatrix::solve.U`, each function object).
+- A GPU test must compare against the BEST CPU setup, measured per case: GAMG smoother (`DICGaussSeidel`
+  needed 5 instead of 13 iterations in case 5) and rank count (8 ranks beat 16 on steady 3D, case 5;
+  16 won on transient 2D, case 4). Never PCG on one core. Report time and iterations per pressure solve
+  separately from the total.
 - Report it in the optional `performance` appendix (see report-contract.md) and log what you learn as
-  insights with stage `performance`: what limited speed, what helped by how much, what you would try
-  next, and what data a GPU test would need.
+  insights with stage `performance`: what limited speed, what helped by how much, what you would try next.
+
+## Performance study (when problem.yaml has a `study` block)
+Some cases ask a second question with its own report, e.g. "how much faster is the GPU?". Answer it
+with `cfdlib.study.render_study()` (contract and keys in its docstring) into the file named in
+`study.output`; the main report answers the physics as usual and links to it in its notes.
+- **Amdahl bound first.** Before any GPU run, measure the pressure share of an iteration with
+  profiling on the CPU baseline and state the bound 1 / (1 - share): a solver that only accelerates
+  the pressure solve can never beat it (case 5: share 30-37 %, bound about 1.5; measured 1.13 at 4.75
+  million cells). It sets expectations and the time budget for tuning.
+- **Same answer first.** A faster run that gives a different answer is not a speed-up. Compare the
+  requested outputs (forces etc.) of CPU and GPU runs on the same mesh and state the tolerance before
+  measuring. `verdict PASS` requires it.
+- **Fair baseline.** The CPU side uses its best measured setup on this machine (GAMG, all useful
+  ranks). Same mesh, same schemes, same tolerances on both sides; only the linear solver and where it
+  runs change. Say which pressure solve tolerance each side reaches (`relTol`, `tolerance`).
+- **Measure, do not project.** Several mesh sizes (factor about 2-8 in cells each), up to the largest
+  that fits the memory, at least 2 repeats of the timing run on the largest; time per iteration after
+  start-up, iterations and time per pressure solve, total wall time, peak GPU memory (`nvidia-smi
+  --query-gpu=memory.used --format=csv` while it runs).
+- **Where the time goes**: solve time of p and U, matrix assembly, host-device copies (OGL with
+  `verbose 1` prints per-solve timings `[OGL LOG]`), everything else. A GPU linear solver only
+  accelerates the solve; the rest still runs on the CPU and limits the gain (Amdahl).
+- Log what you learn as insights with stage `gpu` (GPU-specific) or `performance`; the study report
+  shows both.
+- GPU details for this machine (OGL plugin, solver names, tuned options, pitfalls):
+  `references/environment.md`. Start from the settings found in case 5, not from OGL's defaults.
+- An optimisation that can change the answer is a decision (document it) and must be shown to give
+  the same result as the baseline (to round-off or within the stated tolerance).
 
 ## Insight entries
 Fields: `stage`, `problem` (when logged), then `diagnosis`, `fix`, `lesson`, `guideline` (the change

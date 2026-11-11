@@ -1,0 +1,374 @@
+{
+ "name": "t_G36_gpu_MG_c4k_cg_cache20_np4_tune",
+ "mesh": "G36",
+ "cells": 1026432,
+ "h": {
+  "surface": 0.002181661564992912,
+  "wall": 0.0012719698458713835,
+  "box": 0.005555555555555556,
+  "z_wall": 0.003942612731439237,
+  "z_mid": 0.007885225462878474,
+  "outlet": 0.03773632842054517
+ },
+ "cores": 4,
+ "cfg": "gpu_MG_c4k_cg_cache20",
+ "p_block": "        solver          GKOCG;\n        executor        cuda;\n        scaling         -1;\n        forceHostBuffer true;\n        verbose         1;\n        matrixFormat    Coo;\n        adaptMinIter    false;\n        preconditioner\n        {\n            preconditioner  Multigrid;\n            minCoarseRows   4000;\n            coarseSolver    CG;\n            maxIterCoarse   30;\n            relTolCoarse    0.01;\n            caching         20;\n        }\n        ranksPerGPU     4;\n        tolerance       1e-12;\n        relTol          0.05;",
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/t_G36_gpu_MG_c4k_cg_cache20_np4_tune",
+ "wall_time": 48.281551989000036,
+ "iterations": 20,
+ "converged": false,
+ "mesh_ok": null,
+ "checkmesh": {
+  "max_nonorth": null,
+  "max_skew": null,
+  "max_aspect": null
+ },
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0534\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0902\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz",
+    "status": "ok",
+    "value": "\\(\\times\\,0.236\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0851\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0189\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 20,
+  "last_time": 20.0,
+  "wall_time": 44.53,
+  "est_full_runtime": null,
+  "est_kind": null
+ },
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20/t_G36_gpu_MG_c4k_cg_cache20_np4_tune",
+  "solver": "simpleFoam",
+  "cells": 1026432,
+  "cores": 4,
+  "steps": 20,
+  "wall_s": 48.281551989000036,
+  "cpu_s": 184.626114,
+  "solver_cpu_s": 44.53,
+  "peak_mem_mb": 1075.26171875,
+  "us_per_cell_step": 2.351911865033438,
+  "cpu_efficiency": 0.9559868438055973,
+  "write_share": 0.21294990665052516,
+  "lin_iters": {
+   "Ux": 4.8,
+   "Uy": 4.85,
+   "Uz": 4.95,
+   "p": 17.15
+  },
+  "lin_solves_per_step": {
+   "Ux": 1.0,
+   "Uy": 1.0,
+   "Uz": 1.0,
+   "p": 1.0
+  },
+  "lin_iters_by_solve": {
+   "Ux": {
+    "solve 1": 4.8,
+    "last": 4.8
+   },
+   "Uy": {
+    "solve 1": 4.85,
+    "last": 4.85
+   },
+   "Uz": {
+    "solve 1": 4.95,
+    "last": 4.95
+   },
+   "p": {
+    "solve 1": 17.15,
+    "last": 17.15
+   }
+  },
+  "loop_s_per_iter": 2.0,
+  "loop_cpu_s_per_iter": 1.9653846153846157,
+  "profiling": {
+   "application::main": {
+    "total": 46.066305766,
+    "calls": 1
+   },
+   "time.run() t_G36_gpu_MG_c4k_cg_cache20_np4_tuneprocessor0": {
+    "total": 42.117273174,
+    "calls": 20
+   },
+   "functionObjects.start()": {
+    "total": 0.096418027,
+    "calls": 1
+   },
+   "functionObjects::read": {
+    "total": 0.096334664,
+    "calls": 1
+   },
+   "functionObject::forcesCyl::new": {
+    "total": 0.002130459,
+    "calls": 1
+   },
+   "functionObject::forcesWalls::new": {
+    "total": 0.000296019,
+    "calls": 1
+   },
+   "functionObject::momFlux_inlet::new": {
+    "total": 0.059238122,
+    "calls": 1
+   },
+   "functionObject::pForce_inlet::new": {
+    "total": 0.001881382,
+    "calls": 1
+   },
+   "functionObject::flow_inlet::new": {
+    "total": 0.000574222,
+    "calls": 1
+   },
+   "functionObject::momFlux_outlet::new": {
+    "total": 0.000529997,
+    "calls": 1
+   },
+   "functionObject::pForce_outlet::new": {
+    "total": 0.000314005,
+    "calls": 1
+   },
+   "functionObject::flow_outlet::new": {
+    "total": 0.000274327,
+    "calls": 1
+   },
+   "mesh.update()": {
+    "total": 7.6505e-05,
+    "calls": 20
+   },
+   "fvMatrix::solve.U": {
+    "total": 10.989213496,
+    "calls": 20
+   },
+   "lduMatrix::solver.Ux": {
+    "total": 3.670085106,
+    "calls": 20
+   },
+   "lduMatrix::smoother.Ux": {
+    "total": 2.549426542,
+    "calls": 20
+   },
+   "lduMatrix::solver.Uy": {
+    "total": 3.145638397,
+    "calls": 20
+   },
+   "lduMatrix::smoother.Uy": {
+    "total": 2.477654239,
+    "calls": 20
+   },
+   "lduMatrix::solver.Uz": {
+    "total": 3.368803801,
+    "calls": 20
+   },
+   "lduMatrix::smoother.Uz": {
+    "total": 2.678672183,
+    "calls": 20
+   },
+   "fvMatrix::solve.p": {
+    "total": 13.326433833,
+    "calls": 20
+   },
+   "lduMatrix::solver.p": {
+    "total": 13.235866671,
+    "calls": 20
+   },
+   "functionObjects.execute()": {
+    "total": 3.074879926,
+    "calls": 19
+   },
+   "functionObject::forcesCyl::execute": {
+    "total": 1.643639291,
+    "calls": 19
+   },
+   "functionObject::forcesCyl:write": {
+    "total": 0.010206836,
+    "calls": 19
+   },
+   "functionObject::forcesWalls::execute": {
+    "total": 1.346558688,
+    "calls": 19
+   },
+   "functionObject::forcesWalls:write": {
+    "total": 0.004773893,
+    "calls": 19
+   },
+   "functionObject::momFlux_inlet::execute": {
+    "total": 0.000113986,
+    "calls": 19
+   },
+   "functionObject::momFlux_inlet:write": {
+    "total": 0.016911692,
+    "calls": 19
+   },
+   "functionObject::pForce_inlet::execute": {
+    "total": 4.1617e-05,
+    "calls": 19
+   },
+   "functionObject::pForce_inlet:write": {
+    "total": 0.008532049,
+    "calls": 19
+   },
+   "functionObject::flow_inlet::execute": {
+    "total": 3.7771e-05,
+    "calls": 19
+   },
+   "functionObject::flow_inlet:write": {
+    "total": 0.008108409,
+    "calls": 19
+   },
+   "functionObject::momFlux_outlet::execute": {
+    "total": 2.8212e-05,
+    "calls": 19
+   },
+   "functionObject::momFlux_outlet:write": {
+    "total": 0.011838888,
+    "calls": 19
+   },
+   "functionObject::pForce_outlet::execute": {
+    "total": 4.8992e-05,
+    "calls": 19
+   },
+   "functionObject::pForce_outlet:write": {
+    "total": 0.013174414,
+    "calls": 19
+   },
+   "functionObject::flow_outlet::execute": {
+    "total": 5.0436e-05,
+    "calls": 19
+   },
+   "functionObject::flow_outlet:write": {
+    "total": 0.009450496,
+    "calls": 19
+   },
+   "objectRegistry::writeObject": {
+    "total": 0.000765477,
+    "calls": 1
+   }
+  },
+  "ogl": {
+   "p:perform_all_to_all_update": {
+    "mean": 36.33694117647059,
+    "n": 20,
+    "total": 750.7020000000001
+   },
+   "p:perform_pairwise_update": {
+    "mean": 2.5262941176470592,
+    "n": 20,
+    "total": 53.824999999999996
+   },
+   "p:reorder_matrix_data": {
+    "mean": 7.4375294117647055,
+    "n": 20,
+    "total": 177.74900000000002
+   },
+   "p_distributed_matrix:call_init": {
+    "mean": 2672.514,
+    "n": 1,
+    "total": 2672.514
+   },
+   "p_rhs:call_init": {
+    "mean": 16.59,
+    "n": 1,
+    "total": 16.59
+   },
+   "p_initial_guess:call_init": {
+    "mean": 8.839,
+    "n": 1,
+    "total": 8.839
+   },
+   "p:scale_RHS": {
+    "mean": 0.7474705882352941,
+    "n": 20,
+    "total": 14.835
+   },
+   "p:init_precond": {
+    "mean": 0.07170588235294117,
+    "n": 20,
+    "total": 1053.2149999999995
+   },
+   "p:generate_solver": {
+    "mean": 0.07094117647058823,
+    "n": 20,
+    "total": 1.405
+   },
+   "p:solve": {
+    "mean": 311.5340588235294,
+    "n": 20,
+    "total": 7130.253000000001
+   },
+   "p:copy_x_back": {
+    "mean": 8.674470588235295,
+    "n": 20,
+    "total": 186.44
+   },
+   "p:solve_multi_gpu": {
+    "mean": 378.958,
+    "n": 20,
+    "total": 12201.29
+   },
+   "p_distributed_matrix:call_update": {
+    "mean": 46.52825,
+    "n": 19,
+    "total": 905.0760000000001
+   },
+   "p_rhs:call_update": {
+    "mean": 6.64825,
+    "n": 19,
+    "total": 122.47
+   }
+  }
+ },
+ "F_last": [
+  0.004380178126735,
+  3.284339653193e-05,
+  -5.705784548032e-08
+ ],
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_3d_re20",
+ "gpu_mem": {
+  "base_mib": 1270.0,
+  "peak_mib": 2075.0,
+  "peak_above_base_mib": 805.0
+ },
+ "ok": true,
+ "tag": "_tune",
+ "kind": "timing"
+}

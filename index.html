@@ -15,7 +15,7 @@
   a.card:hover { border-color: var(--accent); }
   .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; flex-wrap: wrap; }
   .t { font-weight: 650; font-size: 17px; } .v { font-size: 13px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
-  .pass { background: #dcf3e3; color: #17663a; } .warn { background: #fdf0d5; color: #8a5a00; }
+  .pass { background: #dcf3e3; color: #17663a; } .warn { background: #fdf0d5; color: #8a5a00; } .fail { background: #fbe0e0; color: #9b1c1c; }
   .d { color: var(--ink2); font-size: 14px; margin-top: 4px; }
   footer { color: var(--ink2); font-size: 14px; margin-top: 28px; }
 </style>
@@ -33,6 +33,10 @@
     <div class="d">Transient, linear, exact solution. Velocity within 0.002 % of the plate speed.</div></a>
   <a class="card" href="results/dfg_cylinder_re100/report.html"><div class="row"><span class="t">4. Cylinder in a channel, Re = 100 (DFG 2D-2)</span><span class="v warn">WARN</span></div>
     <div class="d">Transient, nonlinear vortex shedding, FeatFlow benchmark. Drag, lift and Strouhal number inside their uncertainty bands; MPI scaling study.</div></a>
+  <a class="card" href="results/dfg_cylinder_3d_re20/report.html"><div class="row"><span class="t">5. Cylinder in a square duct, Re = 20 (DFG 3D-1Z)</span><span class="v fail">FAIL</span></div>
+    <div class="d">Steady, 3D, up to 2.4 million cells, FeatFlow benchmark. Drag within 0.08 %; lift 1.7 % off, outside its band (sensitive to the mesh grading).</div></a>
+  <a class="card" href="results/dfg_cylinder_3d_re20/gpu_study.html"><div class="row"><span class="t">5b. GPU vs CPU study (RTX 4070, OGL plugin)</span><span class="v pass">PASS</span></div>
+    <div class="d">Same answer on both sides. The GPU breaks even at about 2 million cells and is 1.13 times faster at 4.75 million; capped near 1.5 times by the CPU share of each iteration.</div></a>
   <footer>Code, workflow and how to reproduce: <a href="https://github.com/tomyud1/agentic-cfd">github.com/tomyud1/agentic-cfd</a></footer>
 </main>
 </body>

@@ -1,0 +1,56 @@
+# Numerical choices (made by the agent, not given by the user).
+solver: simpleFoam            # steady incompressible laminar solver, SIMPLEC variant (consistent yes)
+mesh:
+  # The O-grid blocking of case 4 (cases/dfg_cylinder_re100) moved to this geometry and extruded in z:
+  # 4 O-grid blocks around the cylinder inside a square box of side 0.2 m centred on the cylinder axis,
+  # 8 rectangular channel blocks around the box, every block extruded over 0 <= z <= H with cells
+  # graded towards both side walls. All counts are given on L1 and double per level (refinement
+  # ratio 2 in all three directions, 8 times the cells per level, as the benchmark's levels 1-4).
+  box_half: 0.1               # half side of the box around the cylinder axis [m]
+  levels: [L1, L2, L3, L4]
+  nc_L1: 6                    # cells along one box side = along a quarter of the cylinder
+  nr_L1: 3                    # radial cells in the O-grid
+  nl_L1: 6                    # cells in x upstream of the box (0 .. 0.4 m)
+  nd_L1: 18                   # cells in x downstream of the box (0.6 .. 2.5 m)
+  nb_L1: 3                    # cells in y below the box (0 .. 0.1 m)
+  nt_L1: 3                    # cells in y above the box (0.3 .. 0.41 m)
+  nz_L1: 12                   # cells in z across the channel (even: the mid-plane z = H/2 is a face plane)
+  radial_ratio: 4.0           # O-grid radial expansion (cell at the box / cell at the cylinder)
+  upstream_ratio: 0.5         # upstream x grading (cell at the box / cell at the inlet)
+  downstream_ratio: 6.0       # downstream x grading (cell at the outlet / cell at the box)
+  z_ratio: 2.0                # z grading: cell at mid-width / cell at a side wall (each half)
+  # Extra meshes for the GPU study only (same blocking, counts scaled by nc / nc_L1; not ratio 2)
+  extra: {G16: 16, G36: 36, G60: 60}
+simple:
+  consistent: true            # SIMPLEC
+  relax_U: 0.9                # velocity under-relaxation (pressure not relaxed: SIMPLEC)
+  n_nonorth: 0                # steady: the explicit non-orthogonal correction converges with the outer iterations
+  max_iterations: 6000        # safety cap per run
+  residual_U: 1.0e-8          # residualControl stop (normalised initial residual, every velocity component)
+  residual_p: 1.0e-7
+schemes:
+  div_U: 'bounded Gauss linear'   # central convection (second order), as the benchmark paper's OpenFOAM runs
+linear_solvers:
+  p: {solver: GAMG, smoother: GaussSeidel, tol: 1.0e-12, relTol: 0.05}   # partial solve per SIMPLE iteration
+  U: {solver: smoothSolver, smoother: symGaussSeidel, tol: 1.0e-12, relTol: 0.1}
+parallel:
+  cores: {L1: 1, L2: 4, L3: 8, L4: 12}    # MPI ranks for the accuracy runs; 2-4 threads stay free for GPU tuning runs alongside
+convergence:
+  # PHYSICAL stopping check, fixed before the runs: over the last 10 % of the iterations of a run the
+  # force coefficients must change by less than these (absolute, coefficient units). The residual
+  # targets above are only accepted if every run passes it.
+  window: 0.1
+  cd_change: 1.0e-5           # about 2e-6 relative: far below the expected mesh error (1e-3)
+  cl_change: 1.0e-6           # about 1e-4 relative to cL ~ 0.0094
+  momentum_balance_rel: 0.005 # steady x-momentum balance of the channel, |imbalance| / drag force
+  side_force_rel: 1.0e-3      # z-symmetry: |F_z| / F_D must vanish
+preflight:
+  iterations: 40              # short runs on L1 (1 core) and L4 (16 ranks), from the uniform start
+# Acceptance rules for the verdict, fixed BEFORE looking at the production results.
+acceptance:
+  # Per requested number q (cD, cL), finest mesh L4 against the reference (Braack and Richter 2006):
+  #   band = GCI of L4 (from L2, L3, L4) + U_ref; U_ref = |reference - FeatFlow level 4| (a second
+  #   independent high-order solution; the printed digits alone would give 5e-6).
+  #   |q_L4 - q_ref| <= band -> ok; <= 2 band -> WARN; else FAIL.
+  order_range: [1.0, 3.0]     # observed order outside -> WARN
+probes: []

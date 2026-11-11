@@ -34,9 +34,41 @@ def machine():
         mem = kb / 1024 ** 2
     except (OSError, StopIteration):
         pass
+    gpu = "none found"
+    if shutil.which("nvidia-smi"):
+        import subprocess
+        try:
+            gpu = subprocess.run(["nvidia-smi", "--query-gpu=name,memory.total", "--format=csv,noheader"],
+                                 capture_output=True, text=True, timeout=20).stdout.strip() or gpu
+        except (OSError, subprocess.SubprocessError):
+            pass
     return dict(logical_cores=os.cpu_count(), physical_cores=os.cpu_count() // 2 if os.cpu_count() else None,
-                memory_gb=mem, mpirun=bool(shutil.which("mpirun")) or Path("/usr/bin/mpirun").exists(),
-                gpu="not used (no GPU linear-solver plugin installed)")
+                memory_gb=mem, mpirun=bool(shutil.which("mpirun")) or Path("/usr/bin/mpirun").exists(), gpu=gpu)
+
+
+def profiling(case_dir, cores=1):
+    """OpenFOAM's built-in profiling (controlDict: profiling { active true; }), from the last written time
+    of the case (processor0 for parallel runs): {section description: dict(total=wall s, calls=n)}.
+
+    High-resolution wall time per section, e.g. "fvMatrix::solve.p" (the pressure solve) and
+    "fvMatrix::solve.U". Use it for timing: the log's ClockTime has 1 s resolution and ExecutionTime is
+    rank 0's CPU time. GAMG's "lduMatrix::solver.coarsestLevelCorr" entry is a nesting artefact; use
+    fvMatrix::solve.<field> for solve times.
+    """
+    from cfdlib import foam
+    root = Path(case_dir) / "processor0" if cores > 1 else Path(case_dir)
+    tdirs = [d for d in foam.time_dirs(root) if (d / "uniform" / "profiling").exists()]
+    out = {}
+    if not tdirs:
+        return out
+    text = (tdirs[-1] / "uniform" / "profiling").read_text(errors="replace")
+    for blk in re.findall(r"\{([^{}]*)\}", text):
+        dsc = re.search(r'description\s+"([^"]+)"', blk)
+        tot = re.search(r"totalTime\s+([\d.eE+-]+);", blk)
+        cnt = re.search(r"calls\s+(\d+);", blk)
+        if dsc and tot:
+            out[dsc.group(1)] = dict(total=float(tot.group(1)), calls=int(cnt.group(1)) if cnt else None)
+    return out
 
 
 def summarize(case_dir, log_name, cells, cores=1):

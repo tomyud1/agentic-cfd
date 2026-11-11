@@ -1,0 +1,100 @@
+# Every modelling and numerical choice for this case. Written by the agent WHILE setting up the case.
+# `settings`: the OpenFOAM settings (path patterns, * = wildcard) this decision controls.
+
+- area: Physical model
+  kind: physics
+  choice: Steady, incompressible, laminar, Newtonian flow in three dimensions
+  settings: [constant/turbulenceProperties/simulationType, constant/transportProperties/*, system/fvSchemes/ddtSchemes/*]
+  why: 'The benchmark 3D-1Z is defined for the steady 3D incompressible Navier-Stokes equations with constant viscosity \(\nu = 10^{-3}\,\mathrm{m^2/s}\) at \(Re = 20\), where the flow is laminar and steady. Density is constant (\(\rho = 1\)), so OpenFOAM''s kinematic pressure \(p/\rho\) equals the pressure. The time derivative is dropped (<code>steadyState</code>).'
+  affects: 'Defines the equations solved. A turbulence model would add an eddy viscosity the benchmark does not have.'
+  alternatives: 'A transient solver run until the flow stops changing (the benchmark paper ran OpenFOAM''s <code>icoFoam</code> that way): same steady answer, many more pressure solves.'
+
+- area: Solver
+  kind: solver
+  choice: '<code>simpleFoam</code>: the steady SIMPLE algorithm in its SIMPLEC form (<code>consistent yes</code>)'
+  settings: [system/controlDict/application, system/controlDict/deltaT, system/fvSolution/SIMPLE/consistent]
+  why: 'The answer is a steady state, so a steady solver iterates directly towards it; each iteration solves the momentum equations once and the pressure equation once. SIMPLEC allows weak velocity relaxation and no pressure relaxation. <code>deltaT 1</code> only counts iterations. It also gives the GPU study a clean unit of work: one pressure solve per iteration.'
+  affects: 'How the steady state is reached, not the state itself (the converged equations are the same).'
+  alternatives: '<code>pimpleFoam</code>/<code>icoFoam</code> run to steady state (as the benchmark paper; slower); plain SIMPLE (needs pressure relaxation, more iterations).'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Square channel \(2.5 \times 0.41 \times 0.41\,\mathrm{m}\) with the cylinder \(D = 0.1\,\mathrm{m}\), axis along \(z\) through \((0.5, 0.2)\,\mathrm{m}\), spanning the channel; patches <code>inlet</code>, <code>outlet</code>, <code>walls</code> (all four channel walls) and <code>cylinder</code>'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/boundary]
+  why: 'The geometry is given. The cylinder surface is represented by straight faces between points on the exact circle (blockMesh arcs).'
+  affects: 'Defines the problem. The faceted circle is a geometric error that shrinks with the square of the surface cell size and is part of the mesh study.'
+  alternatives: 'A curved-boundary (higher-order) representation, as finite-element codes such as FeatFlow use; not available in standard finite-volume OpenFOAM.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Inlet: \(u = 16U_m\,yz(H - y)(H - z)/H^4\), \(v = w = 0\), evaluated at each inlet face centre (<code>exprFixedValue</code>), zero normal pressure gradient. Outlet: zero normal velocity gradient, \(p = 0\). Walls and cylinder: no slip, zero normal pressure gradient.'
+  settings: [0/U/boundaryField/*, 0/p/boundaryField/*]
+  why: 'The inflow and no-slip conditions are given. The benchmark''s stress-free ("do-nothing") outflow is modelled by the standard OpenFOAM pair zero-gradient velocity / fixed zero pressure; both are the same for flow leaving parallel to the axis, 20 diameters behind the cylinder. Face-centre values of the profile give a slightly too large inflow (a second-order error, measured in the pre-flight and shrinking 4 times per level), which the mesh study includes.'
+  affects: 'Defines the problem. The outflow model can differ from the benchmark''s only near the outlet.'
+  alternatives: 'Exact face-averaged inflow values written as a list (removes the small inflow excess); <code>inletOutlet</code> at the outlet (prevents backflow; none occurs).'
+
+- area: Domain and boundary conditions
+  kind: solver
+  choice: 'Initial field: fluid at rest on L1; every finer level starts from the converged flow of the next coarser level, interpolated with <code>mapFields</code>. The fixed-length GPU/CPU timing runs all start from rest.'
+  settings: [0/U/internalField, 0/p/internalField, system/controlDict/startTime]
+  why: 'A steady solution does not depend on the starting guess, but a good guess saves many iterations on the expensive meshes. The timing runs start from the same field on CPU and GPU so that both do exactly the same work.'
+  affects: 'The number of iterations, not the converged answer (checked: the stopping rule is applied to every run).'
+  alternatives: 'Start every level from rest (more iterations on L4); potential-flow initialisation (<code>potentialFoam</code>).'
+
+- area: Mesh
+  kind: accuracy
+  choice: 'Block-structured O-grid (as case 4): 4 blocks around the cylinder inside a square box of side \(0.2\,\mathrm{m}\) centred on the axis (radial cells shrinking 4 times towards the cylinder), 8 rectangular blocks filling the channel (graded towards the box), all extruded over \(0 \le z \le H\) with cells shrinking 2 times towards both side walls. Four levels L1-L4 with 24 to 192 faces around the cylinder and 12 to 96 cells across the channel (4752 to 2.43 million cells); every cell count doubles per level in all three directions (refinement ratio 2, 8 times the cells), like the benchmark''s levels 1-4. Three extra meshes (G16, G36, G60) for the GPU study only.'
+  settings: [system/blockMeshDict/blocks]
+  why: 'A body-fitted O-grid gives orthogonal, smoothly graded cells on the cylinder, where the forces are decided; the side-wall grading resolves the boundary layers on the walls that the cylinder ends touch. Refinement ratio 2 in every direction gives the observed order and the GCI. The level sizes match the benchmark''s (6144 to 3.1 million cells), so the comparison with its OpenFOAM results is level by level.'
+  affects: 'Spatial discretisation error, measured by the mesh study (observed order, Richardson extrapolation, GCI). Sensitivity runs with the O-grid radial ratio changed to 2 and 8 (L3, and ratio 2 also on L4) show that the lift depends strongly on this choice (Comparison).'
+  alternatives: 'snappyHexMesh around an STL cylinder (less regular cells at the wall); uniform cells in \(z\) (more cells for the same wall resolution); a different radial cell distribution in the O-grid (tested, see above).'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Second-order central schemes in space: <code>bounded Gauss linear</code> for convection, <code>Gauss linear</code> gradients and interpolation, Laplacian with explicit non-orthogonal correction (<code>corrected</code>)'
+  settings: [system/fvSchemes/gradSchemes/*, system/fvSchemes/laplacianSchemes/*, system/fvSchemes/interpolationSchemes/*,
+             system/fvSchemes/snGradSchemes/*, system/fvSchemes/divSchemes/*]
+  why: 'At \(Re = 20\) the flow is smooth and dominated by friction (cell Péclet numbers near the cylinder are small), so central convection is stable and adds no numerical diffusion; it is also what the benchmark paper''s OpenFOAM runs used. <code>bounded</code> removes the continuity-error term while the iterations converge; it vanishes at convergence. The O-grid corners are up to about 42 degrees non-orthogonal, so the Laplacian needs the correction.'
+  affects: 'Spatial order of accuracy (2) and the size of the error constant.'
+  alternatives: '<code>linearUpwind</code> (also second order, more dissipative, more robust on coarse meshes).'
+
+- area: Algorithm and linear solvers
+  kind: solver
+  choice: 'SIMPLEC with velocity relaxation 0.9 and no pressure relaxation, no non-orthogonal corrector loop. Pressure: GAMG (Gauss-Seidel smoother) to \(relTol\ 0.05\) per iteration (absolute tolerance \(10^{-12}\), never reached); velocity: symmetric Gauss-Seidel to \(relTol\ 0.1\). In the GPU study the pressure solver is replaced by OGL''s Ginkgo CG with a multigrid preconditioner on the GPU at the same tolerances.'
+  settings: [system/fvSolution/solvers/*, system/fvSolution/relaxationFactors/*, system/fvSolution/SIMPLE/nNonOrthogonalCorrectors]
+  why: 'In a steady iteration each linear system only needs to be solved partly: the outer iterations remove the rest, and the converged answer does not depend on how far each solve went. GAMG is the fastest CPU pressure solver measured on this machine (case 4: 4 times faster than PCG). The non-orthogonal correction is explicit and converges with the outer iterations, so an inner corrector loop would only add pressure solves.'
+  affects: 'Speed and the path to the steady state; not the converged answer (the stopping rule bounds the remaining iteration error).'
+  alternatives: 'Tighter linear solves (fewer outer iterations, each more expensive); PCG for pressure (slower); one non-orthogonal corrector (one more pressure solve per iteration).'
+
+- area: Convergence
+  kind: accuracy
+  choice: 'Stop when the normalised initial residuals fall below \(10^{-7}\) (pressure) and \(10^{-8}\) (each velocity component), at most 6000 iterations; accepted only if, over the last 10 % of the iterations, \(c_D\) changed by less than \(10^{-5}\) and \(c_L\) by less than \(10^{-6}\) (physical check, fixed before the runs)'
+  settings: [system/fvSolution/SIMPLE/residualControl/*, system/controlDict/endTime]
+  why: 'Residuals are not a solution-error measure (pitfall 10 of the primer), so the requested numbers themselves must have stopped changing, by far less than the mesh error (about \(10^{-3}\) relative between levels). The thresholds are about \(2 \times 10^{-6}\) of \(c_D\) and \(10^{-4}\) of \(c_L\).'
+  affects: 'The iteration error of the answers, bounded by the physical check on every run.'
+  alternatives: 'A <code>runTimeControl</code> function object on the force coefficients (stops directly on the physical check; needs a test of which results it can watch); a fixed iteration count.'
+
+- area: Outputs
+  kind: output
+  choice: 'Forces on the cylinder (drag, lift and side force) and on the channel walls, momentum flux, pressure force and volume flow at inlet and outlet, every iteration; fields written at the end of a run, 12 significant digits; built-in profiling (time per code section)'
+  settings: [system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision,
+             system/controlDict/timePrecision, system/controlDict/functions/*, system/controlDict/profiling/*]
+  why: 'Drag and lift every iteration give the answers (a), (b) and the convergence check; the side force tests the mid-plane symmetry; fluxes and wall friction close the momentum balance (physical check of the force output). The final fields give the mid-plane picture (c). Profiling splits the run time into pressure solve, momentum solve and the rest for the GPU study, identically on CPU and GPU.'
+  affects: 'What is measured and how precisely; not the solution.'
+  alternatives: 'The <code>forceCoeffs</code> function object (same numbers, but the 3D normalisation would be hidden in its settings; here the coefficients are computed in the analysis from the raw forces).'
+
+- area: GPU pressure solver (study only)
+  kind: solver
+  choice: 'For the GPU study only: <code>libs ("libOGL.so")</code> loads the OGL plugin, and the pressure solver becomes Ginkgo CG on the GPU (<code>executor cuda</code>) with a multigrid preconditioner, <code>scaling -1</code>, <code>forceHostBuffer true</code>, all MPI ranks gathered on the one GPU (<code>ranksPerGPU</code>); the tuned preconditioner settings are in the GPU study report'
+  settings: [system/controlDict/libs]
+  why: 'OGL replaces only the linear solver of one field; assembly, momentum and everything else stay on the CPU. Its pressure solves reach the same normalised tolerance as GAMG, so the converged steady state is the same (checked in the study).'
+  affects: 'Run time only, provided the same-answer check passes.'
+  alternatives: 'Other OGL preconditioners (block Jacobi, ISAI, IC) or solvers (BiCGStab); a GPU-native CFD code (not OpenFOAM).'
+
+- area: Parallel runs
+  kind: solver
+  choice: 'L1 on one core, L2 on 4 MPI ranks, L3 on 8 and L4 on 12 ranks (<code>mpirun --use-hwthread-cpus</code> above 8), scotch decomposition; the remaining hardware threads ran the GPU tuning runs at the same time'
+  settings: []
+  why: 'The accuracy runs only need to finish within the budget; leaving 4 of the 16 hardware threads free let the GPU tuning run alongside. Their wall times are therefore not used for any speed comparison (the GPU study measures speed with nothing else running). Decomposition changes the order of floating-point operations and the GAMG coarsening only; the converged answer is the same to the stopping tolerance.'
+  affects: 'Run time only.'
+  alternatives: 'All 16 ranks with nothing else running (case 4''s fastest setting; about a third faster for L4); everything serial (L4 would take hours).'

@@ -19,3 +19,6 @@ cases/dfg_cylinder_re100/reference/featflow_dfg2d2_page.html
 
 # Claude Code local settings
 .claude/settings.local.json
+cases/dfg_cylinder_3d_re20/reference/*.html
+cases/dfg_cylinder_3d_re20/reference/*.png
+cases/dfg_cylinder_3d_re20/reference/BenchValues.txt

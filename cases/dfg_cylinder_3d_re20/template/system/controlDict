@@ -1,0 +1,107 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     simpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ max_iterations }};   // steady solver: "time" = iteration count
+deltaT          1;
+writeControl    timeStep;
+writeInterval   {{ write_interval }};
+purgeWrite      0;
+writeFormat     {{ write_format }};
+writePrecision  12;
+writeCompression off;
+timeFormat      general;
+timePrecision   8;
+runTimeModifiable false;
+
+// Built-in profiling: wall time per code section (pressure solve, momentum solve, ...) written with the fields.
+profiling
+{
+    active          true;
+    cpuInfo         false;
+    memInfo         false;
+    sysInfo         false;
+}
+{% if gpu %}
+// GPU linear solver plugin (OGL): provides the GKO* solvers used for p in fvSolution.
+libs            ("libOGL.so");
+{% endif %}
+functions
+{
+    // Force on the cylinder (pressure + viscous), every iteration: drag (x), lift (y), side force (z).
+    forcesCyl
+    {
+        type            forces;
+        libs            (forces);
+        patches         (cylinder);
+        rho             rhoInf;
+        rhoInf          {{ rho }};
+        CofR            ({{ xc }} {{ yc }} {{ H / 2 }});
+        executeControl  timeStep;
+        executeInterval 1;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Friction on the four channel walls: enters the x-momentum balance of the channel (physical check).
+    forcesWalls
+    {
+        type            forces;
+        libs            (forces);
+        patches         (walls);
+        rho             rhoInf;
+        rhoInf          {{ rho }};
+        CofR            ({{ xc }} {{ yc }} {{ H / 2 }});
+        executeControl  timeStep;
+        executeInterval 1;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Momentum flux, pressure force and volume flow through inlet and outlet (x-momentum balance).
+{% for pat in ["inlet", "outlet"] %}
+    momFlux_{{ pat }}
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            {{ pat }};
+        operation       weightedSum;
+        weightField     phi;
+        fields          (U);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   {{ balance_interval }};
+    }
+    pForce_{{ pat }}
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            {{ pat }};
+        operation       areaIntegrate;
+        fields          (p);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   {{ balance_interval }};
+    }
+    flow_{{ pat }}
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            {{ pat }};
+        operation       sum;
+        fields          (phi);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   {{ balance_interval }};
+    }
+{% endfor %}
+}

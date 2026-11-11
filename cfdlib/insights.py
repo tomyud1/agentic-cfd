@@ -26,7 +26,7 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-STAGES = ("intake", "theory", "setup", "preflight", "production", "analysis", "report", "tooling", "performance")
+STAGES = ("intake", "theory", "setup", "preflight", "production", "analysis", "report", "tooling", "performance", "gpu")
 RESOLVED_FIELDS = ("diagnosis", "fix", "lesson", "guideline")
 HEADER = """\
 # Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
@@ -107,7 +107,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Live workflow-insight log")
     ap.add_argument("case")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    n = sub.add_parser("new")
+    n = sub.add_parser("new", aliases=["add"])
     n.add_argument("stage", choices=STAGES)
     n.add_argument("problem")
     r = sub.add_parser("resolve")
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     r.add_argument("--overwrite", action="store_true")
     sub.add_parser("list")
     a = ap.parse_args()
-    if a.cmd == "new":
+    if a.cmd in ("new", "add"):
         print("logged insight", log(a.case, a.stage, a.problem))
     elif a.cmd == "resolve":
         e = resolve(a.case, a.id, overwrite=a.overwrite, **{k: getattr(a, k) for k in RESOLVED_FIELDS if getattr(a, k)})

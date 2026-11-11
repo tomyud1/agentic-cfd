@@ -69,8 +69,16 @@ cells per core, communication dominates): measure; a common rule of thumb is tha
 - Measured on this machine (case 4, pimpleFoam, 215 thousand cells, GAMG pressure): speed-up 1.6, 2.8,
   4.2 and 5.4 on 2, 4, 8 and 16 ranks; 16 (all hardware threads) was fastest. The limit is memory
   bandwidth, and GAMG needs more pressure iterations on more subdomains (5.5 on 4, 8.2 on 8).
+- Measured on this machine (case 5, simpleFoam, steady 3D, 0.3-4.75 million cells): 8 ranks beat 16
+  on every mesh (2.4 million cells: 1.72 against 1.90 s per iteration). A steady 3D SIMPLE iteration
+  is memory-bandwidth bound; hyper-threads add MPI traffic without adding bandwidth. So the best rank
+  count depends on the case: measure 8 and 16.
 - Pressure solver: GAMG was 4 times faster than PCG with DIC (182 iterations per solve) on 54
-  thousand cells. Never benchmark a GPU solver against PCG on one core.
+  thousand cells. GAMG's `smoother DICGaussSeidel` needed 5 instead of 13 iterations per solve in case 5
+  (6 % faster per iteration than `GaussSeidel`). Never benchmark a GPU solver against PCG on one core.
+- Momentum balance through an inlet whose profile is not the developed one: the viscous normal stress
+  at the inlet integrates to zero in the continuum but not discretely (a first-order remainder that
+  shrinks only with the first cell size). Include or measure it (case 5: three quarters of the imbalance).
 
 ## Pitfalls already met (each cost real time)
 1. **Courant number**: transient PISO solvers become unstable when max Co exceeds ~1. Refining the

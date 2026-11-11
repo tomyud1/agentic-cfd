@@ -1,0 +1,135 @@
+{% include "_head.html.j2" %}
+<body>
+<main>
+{% macro figures(section) -%}
+  {% for f in figs if f.section == section %}
+  <figure class="{{ section }}" style="--w: {{ f.width_px }}px">{{ f.svg }}
+    <figcaption><b>Figure {{ f.number }}.</b> {{ f.caption }}</figcaption></figure>
+  {% endfor %}
+{%- endmacro %}
+{% macro table(t, full=false) -%}
+  {% if t.title is defined and t.title %}<h4>{{ t.title }}</h4>{% endif %}
+  <div class="table-wrap"><table class="{{ 'full' if full else '' }}">
+    <tr>{% for h in t.head %}<th class="{{ '' if loop.first else 'num' }}">{{ h }}</th>{% endfor %}</tr>
+    {% for row in t.rows %}
+    <tr>{% for c in row %}<td class="{{ '' if loop.first else 'num' }}">{{ c }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </table></div>
+  {% if t.note is defined and t.note %}<p class="lead" style="margin-top:8px;font-size:14px">{{ t.note }}</p>{% endif %}
+{%- endmacro %}
+
+<header>
+  <div class="kicker">Agentic CFD performance study · {{ r.date }}</div>
+  <h1>{{ r.title }}</h1>
+  <nav class="toc">
+    <a href="#summary">Summary</a><a href="#setup">1 What is compared</a><a href="#method">2 Method</a>
+    <a href="#results">3 Results</a><a href="#same">4 Same answer?</a><a href="#breakdown">5 Where the time goes</a>
+    <a href="#insights">6 Insights</a><a href="#repro">A Reproducibility</a>
+  </nav>
+</header>
+
+<section id="summary" class="summary {{ r.verdict }}">
+  <h2>Summary <span class="verdict">{{ r.verdict_label }}</span></h2>
+  <p class="headline"><b>Question.</b> {{ r.question }}</p>
+  <p class="headline">{{ r.summary.headline }}</p>
+  <h4>Key numbers</h4>
+  <div class="table-wrap"><table class="answers full">
+    <tr><th>Measure</th><th>Value</th><th>What it means</th></tr>
+    {% for a in r.summary.answers %}<tr><td><b>{{ a.label }}</b></td><td>{{ a.value }}</td><td>{{ a.note }}</td></tr>{% endfor %}
+  </table></div>
+  <h4>Key findings</h4>
+  <ul class="points">{% for b in r.summary.findings %}<li>{{ b }}</li>{% endfor %}</ul>
+  {% for l in r.summary.limitations %}<div class="callout warn"><span class="tag">Limitation</span>{{ l }}</div>{% endfor %}
+  {% if r.summary.recommendation is defined %}<div class="callout info"><span class="tag">Recommendation</span>{{ r.summary.recommendation }}</div>{% endif %}
+</section>
+
+<section id="setup">
+  <h2><span class="num">1</span> What is compared</h2>
+  <p class="lead">{{ r.setup.intro }}</p>
+  {{ figures('setup') }}
+  <div class="repro-grid">
+    <div class="panel"><h4>Hardware</h4><table>{% for k, v in r.setup.hardware %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
+    <div class="panel"><h4>Software</h4><table>{% for k, v in r.setup.software %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
+  </div>
+  <h4>Rules for a fair comparison</h4>
+  <ul class="points">{% for f in r.setup.fairness %}<li>{{ f }}</li>{% endfor %}</ul>
+</section>
+
+<section id="method">
+  <h2><span class="num">2</span> Method</h2>
+  <p class="lead">{{ r.method.intro }}</p>
+  {% for c in r.method.choices %}
+  <article class="dcard solver">
+    <header><span class="dnum">M{{ loop.index }}</span><div class="choice">{{ c.choice }}</div></header>
+    <div class="dbody">
+      <div class="why"><div class="lbl">Why this choice</div>{{ c.why }}</div>
+      <div class="side"><div><div class="lbl">Alternatives</div>{{ c.alternatives }}</div></div>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+
+<section id="results">
+  <h2><span class="num">3</span> Results</h2>
+  <p class="lead">{{ r.results.intro }}</p>
+  {{ figures('results') }}
+  {% for t in r.results.tables %}{{ table(t, full=true) }}{% endfor %}
+  {% for n in r.results.notes %}<div class="callout info">{{ n }}</div>{% endfor %}
+</section>
+
+<section id="same">
+  <h2><span class="num">4</span> Same answer?</h2>
+  <p class="lead">{{ r.same_answer.intro }}</p>
+  {{ table(r.same_answer, full=true) }}
+  <div class="callout {{ 'info' if r.same_answer.ok else 'warn' }}"><span class="tag">{{ '✓ Same answer' if r.same_answer.ok else '⚠ Answers differ' }}</span>{{ r.same_answer.verdict }}</div>
+</section>
+
+<section id="breakdown">
+  <h2><span class="num">5</span> Where the time goes</h2>
+  <p class="lead">{{ r.breakdown.intro }}</p>
+  {{ figures('breakdown') }}
+  {% for t in r.breakdown.tables %}{{ table(t, full=true) }}{% endfor %}
+  <ul class="notes">{% for n in r.breakdown.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+</section>
+
+<section id="insights">
+  <h2><span class="num">6</span> Insights</h2>
+  <p class="lead">Performance and GPU entries of the case's live insight log: what limited speed, what helped, what to try next.</p>
+  {% for it in insights %}
+  <div class="insight {{ it.status | default('resolved') }}">
+    <div class="meta"><span class="stage">{{ it.stage }}</span><span class="when">logged {{ it.logged }}</span>
+      {% if it.status | default('resolved') == 'open' %}<span class="open-tag">✗ Unresolved</span>{% endif %}</div>
+    <dl><dt>Problem</dt><dd>{{ it.problem }}</dd>
+      {% for k, lab in [('diagnosis', 'Diagnosis'), ('fix', 'Fix'), ('lesson', 'Lesson'), ('guideline', 'Guideline')] %}
+      {% if it[k] is defined and it[k] %}<dt>{{ lab }}</dt><dd>{{ it[k] }}</dd>{% endif %}{% endfor %}</dl>
+  </div>
+  {% endfor %}
+</section>
+
+<section id="repro">
+  <h2><span class="num">A</span> Reproducibility</h2>
+  <p class="lead">Everything needed to repeat the measurements. Commands run inside WSL from the project folder.</p>
+  <h4>Re-run it</h4>
+  <div class="rerun"><ol>
+    {% for c in r.reproducibility.commands %}<li><code>{{ c.cmd | e }}</code><span class="what">{{ c.what }}</span></li>{% endfor %}
+  </ol></div>
+  <div class="repro-grid">
+    <div class="panel"><h4>Files</h4><ul>
+      {% for f in r.reproducibility.files %}<li><code>{{ f.path | e }}</code><span class="what">{{ f.what }}</span></li>{% endfor %}
+    </ul></div>
+    <div class="panel"><h4>Run directories</h4><ul>
+      {% for f in r.reproducibility.run_dirs %}<li><code>{{ f.path | e }}</code><span class="what">{{ f.what }}</span></li>{% endfor %}
+    </ul>
+    <h4 style="margin-top:16px">Environment</h4>
+    <table>{% for k, v in r.reproducibility.environment %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
+  </div>
+  {% if r.reproducibility.notes is defined and r.reproducibility.notes %}
+  <ul class="notes">{% for n in r.reproducibility.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+  {% endif %}
+</section>
+
+<footer>Every number in this study was computed by code (study.json); none was typed by the agent.
+  The study passed the automatic contract check. Main report of this case: <a href="report.html">report.html</a>.</footer>
+</main>
+</body>
+</html>
