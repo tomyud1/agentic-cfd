@@ -9,31 +9,51 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-- **Faster, self-stopping grid studies for steady flows** (`gpucfd/steady.py`,
-  `gpucfd/tests/test_steady.py`, `iteration_error` in `cfdlib/verification.py`; not committed yet).
-  - **Not a direct steady solver:** gpucfd still marches in time until the flow settles. Two changes
-    make that cheaper:
-    - **Grid sequencing:** each finer grid starts from the coarser grid's solution, interpolated, so
-      it doesn't redo the whole start-up from rest.
-    - **An error-based stop:** the run ends once the estimated error still left from marching is
-      below 1% of the grid's own discretisation error. It no longer runs until the forces stop
-      changing in the sixth digit, which is far tighter than the grid's accuracy.
-  - **Logging and stopping refinement:** every time chunk logs the forces with that error estimate,
-    so runs can be watched live. A study can stop adding grids once the extrapolated answer has
-    settled.
-  - **A known limit, handled:** a slowly decaying part of the solution can hide under a faster one,
-    and then the estimate is up to 11 times too small (synthetic test). The fix: finer grids reuse
-    the decay rate the coarser grid measured, and the first grid gets a minimum run time set by
-    physics.
-  - **Status:** the estimator tests pass. The GPU tests (rung 11: Couette 16, 32 and 64 cells, both
-    sequenced and from rest) and the DFG 2D-1 comparison have not run yet.
-  - **Motivation:** with bodies, gpucfd must use the explicit scheme (IMEX is unstable there). This
-    made fine-grid steady runs slow: DFG 2D-1 at 35 cells per diameter took 400 GPU-seconds, mostly
-    spent settling.
-  - **Next:** connect gpucfd to the agent through cfdlib, starting with case 4 (DFG 2D-2), against
-    OpenFOAM.
+Nothing uncommitted. Next: connect gpucfd to the agent through cfdlib, starting with case 4
+(DFG 2D-2), against OpenFOAM.
 
 ## 2026-11-12
+
+### gpucfd: grid studies for steady flows, 20× faster (rung 11), commit hash to be filled in
+- **What:** `gpucfd/steady.py` makes steady grid studies faster and self-stopping. gpucfd still
+  marches in time to steady state; it is not a direct steady solver. Two changes make the march
+  cheaper:
+  - **Grid sequencing:** each finer grid starts from the coarser grid's solution instead of from rest.
+  - **An error-based stop:** each run stops once the error left from marching is below 1% of the
+    grid's own discretisation error, which is estimated while it runs from the difference to the
+    coarser grid. Every time chunk logs the forces with that estimate, so runs can be watched live.
+  - A study can also stop adding grids once the answer has settled.
+  - The estimator (`iteration_error`) is in `cfdlib/verification.py`, so OpenFOAM runs can use it
+    next.
+- **Why it matters:** with bodies, gpucfd must use the explicit scheme (IMEX is unstable there), so
+  fine-grid steady runs were slow. DFG 2D-1 at 70 cells per diameter had not finished after
+  2.6 GPU-hours from rest.
+- **How it was verified:** rung 11 (`gpucfd/tests/test_steady.py`, 6 of 6 pass) and a one-off DFG
+  2D-1 study.
+  - **Estimator:** tested on sequences with a known limit. It is exact for a single decaying mode,
+    never too small in the harder cases, and it recognises solver noise.
+  - **Same answers:** a Couette flow with an exact solution, on three grids, gives the same answers
+    sequenced and from rest.
+  - **DFG 2D-1:** the same drag, lift and pressure difference as runs started from rest.
+- **Key numbers (DFG 2D-1, Re 20):**
+  - **35 cells per diameter:** 19.6 GPU-seconds against 398 from rest (20×). The new stop gives
+    3.8×, sequencing another 5.4×.
+  - **70 cells per diameter:** 331 GPU-seconds against more than 9,400 from rest. Drag is within
+    0.14% of the benchmark, lift within 5%. The three-grid study takes 6 GPU-minutes in all.
+  - **Couette (exact solution):** sequencing halves the GPU time (7.1 s against 14.2 s).
+- **Problems found while building it, all fixed:**
+  - A slow decaying mode hidden under a fast one made the error estimate up to 11× too small.
+  - Solver noise made a run march 200 time units past convergence.
+  - The Richardson tool gave a value 11× off for a probe too close to a wall. It now refuses to
+    extrapolate when the observed order is below 0.5.
+- **Open:**
+  - **Pressure difference:** it gets slightly worse on the finest grid (−0.23% at 35 cells per
+    diameter, −0.47% at 70). The surface pressure next to an immersed body converges irregularly; drag
+    and lift are not affected.
+  - **Richardson extrapolation:** it does not improve drag or lift here. Report it as an estimate,
+    never as the answer.
+- **Next:** connect gpucfd to the agent through cfdlib, starting with case 4 (DFG 2D-2), against
+  OpenFOAM.
 
 ### Case backlog (`cases/BACKLOG.md`) and project docs, `ba626b8` and later
 - **What:**

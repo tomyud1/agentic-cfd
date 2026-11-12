@@ -35,6 +35,7 @@ optimisation that breaks anything is caught at once.
 | 8 | Transient with walls | Stokes' first problem (case 3), Poiseuille (case 1) | exact solutions, order 2 |
 | 9 | Open boundaries | Poiseuille channel with inflow and outflow in every direction; Kovasznay flow (exact Navier-Stokes) with inflow profiles on all sides | order 2; the discrete fully developed flow kept to round-off; flow out = flow in |
 | 10 | Immersed bodies | circular Couette flow between immersed cylinders and a tilted channel (exact), 3D extrusions, DFG benchmark 2D-1 | velocity order 2 (mean over the grids); 3D = 2D; drag, pressure difference and lift converge to the benchmark; forces independent of the box |
+| 11 | Steady-state tooling | iteration-error estimator on sequences with a known limit; prolongation of a converged Couette flow; three-grid Couette study sequenced and from rest | estimate exact for one mode, never too small otherwise, noise floors recognised; prolongation keeps the coarse accuracy; sequenced = from rest within the stop tolerances, and cheaper |
 
 The numpy references are written separately from the CUDA code, not translated from it, so a shared
 mistake is unlikely.
@@ -94,6 +95,7 @@ test_open | test_bodies | test_reproducible`); results in `gpucfd/tests/results/
 | 8 | Reproducibility: two identical runs are bit-identical, and CUDA graphs on/off are bit-identical (Poisson double/mixed; cavity, 3D periodic flow and a channel with inflow/outflow, each with both schemes; immersed bodies in an open channel and a closed Couette cell) |
 | 9 | Open boundaries (`test_open`), each check with both schemes: Poiseuille channel with parabolic inflow and outflow along +x, -x, +y and z (3D) converges at order 1.84, 1.93 (N = 16, 32, 64; error = 0.99 h^2 - 2.84 h^3, so coarse pairs read low); fed the discrete equations' own fully developed profile (computed separately in numpy), the whole channel keeps it to 6e-16 (RK3) / 1e-14 (IMEX, diffusion solves to 1e-14); flow out = flow in exactly; the -x channel equals the mirrored +x channel to 2e-14; started from rest it reaches the same state. Kovasznay flow (Re 40, exact Navier-Stokes with convection; velocity profiles prescribed on all four sides): L2 order 2.02, 2.01 (32^2-128^2); the max error, in the first cell row along a side, converges at 1.90-1.92 out to 256^2 while the interior converges at 2.00 |
 | 10 | Immersed bodies (`test_bodies`, explicit scheme): circular Couette flow between immersed cylinders, velocity order 2.50, 2.10 (rms), pressure away from the walls 2.37, 1.48; channel at atan(1/2) to the grid, mean order 2.24; 3D extrusions equal 2D; DFG 2D-1 drag -2.26 % / -0.65 % (D/h 17.6 / 35), pressure difference -0.23 % at D/h 35; forces exact discrete momentum balance (box-independent to 2e-18). Details: Immersed bodies, below |
+| 11 | Steady-state tooling (`test_steady`, `gpucfd/steady.py`): iteration-error estimator exact for one geometric mode, conservative (9x) for an oscillating one, never too small while a fast mode dies out once the slow rate is known, noise floors recognised in 97 % of noisy histories and sized (covers the true error 97 % of the time); prolongation 32^2 -> 64^2 of the Couette flow keeps the coarse error (5.5e-3 vs 6.0e-3); Couette 32/64/128 sequenced vs from rest: same answers (worst 0.29 of the allowance), 7.1 s vs 14.2 s GPU on the refined grids. DFG 2D-1 study (one-off): 20x at D/h 35. Details: Steady flows, below |
 
 Bugs the ladder caught while building (each would have produced plausible-looking wrong results):
 1. Multigrid corrections on coarse levels started from leftover memory (rung 2 and 4 failures).
@@ -295,6 +297,74 @@ Immersed-boundary errors fluctuate with how the surface cuts each grid (a single
 1.4 or 3), so the orders are judged on the mean over the range. The lift in 2D-1 is 0.2 % of the drag,
 so its relative error is large on coarse grids; it falls with refinement.
 
+### Steady flows: grid sequencing and an error-based stop (2026-11-12)
+Steady flows are reached by marching in time. With bodies that march must use RK3 (IMEX is unstable
+there, above), so on fine grids the time step is small (diffusion limit 0.15 h^2 / nu). DFG 2D-1 at
+D/h 35 spent 398 GPU-s settling from rest; the D/h 70 run from rest was stopped unfinished after more
+than 9400 GPU-s. Two things cut that, both in `gpucfd/steady.py` (the estimator is in
+`cfdlib/verification.py`, so OpenFOAM runs can use it too):
+
+- **Error-based stop (`march`).** Close to steady state the slowest mode dominates, and each change of
+  a monitored quantity (drag, lift, a pressure difference) is about rho times the one before, so the
+  error still left is |last change| rho / (1 - rho) (`iteration_error`). The run stops when that is
+  below a tolerance on two consecutive chunks. A study needs the iteration error only well below the
+  grid's discretisation error. On grid k that is known while it runs, about |f_k - f_(k-1)| / (r^p - 1),
+  and the tolerance is 1 % of it (p observed from three grids, else 2). The old rule (change below
+  1e-6 per time unit) kept marching long after the answer was good to the grid's accuracy.
+- **Grid sequencing (`prolong`, `sequence`).** Each finer grid starts from the coarser solution,
+  interpolated (bi/trilinear) and projected, instead of from rest. `sequence(target=...)` also stops
+  refining once every quantity's discretisation error estimate is below a target.
+
+Pitfalls found while building it (each would have stopped runs too early, or never):
+1. A slow mode hidden under a fast one is invisible in the history: while the fast one dominates, the
+   estimate is up to 11x too small (synthetic two-mode test). Fixes: the estimate is trusted only once
+   the ratio has settled (1 - rho agrees within 1.5x over the window); finer grids take the coarser
+   grid's measured slow rate as a floor for rho (same physics, same chunk length); the first grid gets
+   a minimum time from a physical time scale (`t_min`: 30 for DFG 2D-1, about 3 flow-through times).
+2. Solver noise. Monitored quantities do not settle below a floor set by the solver tolerances (the
+   RK3 pressure is updated by phi / (b dt), so the projection tolerance is amplified as dt shrinks:
+   DFG lift noise 2e-6 at D/h 17.6, 4e-5 at D/h 70). There the changes flip sign without shrinking.
+   The estimator recognises that (at least 3 sign flips in 8 changes, the last 4 not smaller than 0.2
+   of the first 4) and returns the noise size as the error; the march stops (more marching cannot
+   help) and flags the quantity noise-limited if the floor is above its tolerance. Without this the
+   first DFG run marched 200 time units past convergence. The rate floor handed to the next grid must
+   come from a settled estimate, not from noise (rho 2.8 there would have stopped nothing).
+3. `cfdlib.verification.level_sequence` returned a Richardson value for any observed order. A Couette
+   pressure probe less than one cell from the wall on 16^2 gave order 0.006 and a "Richardson" value
+   11 times the exact one. It now refuses below order 0.5 (`plausible` False). The rung-11 probes sit
+   at least 2.6 cells from both walls.
+4. Rung 11's divergence bound after prolongation was first set at 1e-10 without checking what
+   `project()` achieves. It reaches max |div u| h / U = 3.6e-10, the projection tolerance; the bound was
+   changed to 1e-8 after seeing that number.
+
+**DFG 2D-1 on three grids** (Re 20; one-off run, `t_min` 30, chunks of 1 time unit):
+
+| D/h | start | GPU-s | t | cD | cL | dP |
+|---|---|---|---|---|---|---|
+| 17.6 | rest, old stop | 15 | 14 | 5.45362 (-2.26 %) | 0.04618 | 0.11371 (-3.24 %) |
+| 17.6 | rest, new stop | 23 | 31 (t_min) | 5.453616 | 0.046178 (noise-limited) | 0.1137133 |
+| 35 | rest, old stop | 398 | 128 | 5.54312 (-0.65 %) | 0.01222 | 0.11725 (-0.23 %) |
+| 35 | rest, new stop | 105 | 31 (t_min) | 5.543124 | 0.012219 | 0.1172475 |
+| 35 | sequenced, new stop | **19.6** | 6 | 5.543128 | 0.012228 | 0.1172476 |
+| 70 | rest, old stop | > 9400, stopped | - | - | - | - |
+| 70 | sequenced, new stop | **331** | 12 | 5.571607 (-0.14 %) | 0.010084 (-5.0 %, noise-limited) | 0.116970 (-0.47 %) |
+
+At D/h 35 the new stop gives 3.8x and sequencing another 5.4x (20x together; the from-rest run with
+the new stop ended at t_min, so part of its time is that choice). All runs agree within their stop
+tolerances. The whole three-grid study took 374 GPU-s.
+
+What the third grid shows (reference cD 5.57954, cL 0.010619, dP 0.117520):
+- Drag converges at observed order 1.65. Richardson gives 5.5849 (+0.10 %), no better than the finest
+  grid (-0.14 %).
+- Lift has overshot the reference (+335 %, +15 %, -5 %). The three-grid "order 4" is spurious and its
+  Richardson value (-6.4 %) is worse than the finest grid. Extrapolated values are estimates to report
+  next to the finest grid, never the answer.
+- **Open:** the pressure difference gets worse on the finest grid (-0.23 % at D/h 35, -0.47 % at
+  D/h 70). It comes from the surface pressure, extrapolated along the normal from 1.5-3.5 h, and the
+  immersed-boundary pressure next to a body converges irregularly (rung 10: max error near the walls
+  1.9e-2, 6.8e-3, 9.8e-3). Drag and lift come from the momentum balance away from the body and do not
+  show it. Rung 10 runs only D/h 17.6 and 35, so it does not see this.
+
 ## Limitations (2026-11-12)
 
 **Problems it cannot solve yet**
@@ -330,7 +400,8 @@ so its relative error is large on coarse grids; it falls with refinement.
 - Large grids are limited by memory bandwidth, and the pressure is solved three times per time
   step (once per Runge-Kutta stage).
 - Steady problems are time-marched: the number of time units to settle is set by the physics (27
-  for the Re 100 cavity), and convection is explicit, so the time step is bounded by the flow speed
+  for the Re 100 cavity; in a grid study, sequencing and the error-based stop of `steady.py` cut the
+  finer grids to a few time units, 20x at DFG D/h 35), and convection is explicit, so the time step is bounded by the flow speed
   (CFL about 1.7 for convection-dominated flows; up to about 4 when the cell Reynolds number is
   below 1, as in the cavity, because the implicit diffusion damps the grid-scale modes).
 - Memory: 12 GB holds about 17 million cells (256^3) with this layout.
@@ -345,6 +416,8 @@ so its relative error is large on coarse grids; it falls with refinement.
 4. ~~Inflow/outflow~~ (done 2026-11-12, rung 9, below).
 5. ~~Curved bodies (immersed boundary) with force coefficients~~ (done 2026-11-12, rung 10, above).
    Open: IMEX with bodies (instability with the incremental pressure).
+   Steady studies: grid sequencing and an error-based stop (done 2026-11-12, rung 11, above). Open:
+   the surface pressure difference on the finest DFG grid.
 6. gpucfd as a backend of the agent's pipeline (cfdlib): the DFG 2D-2 case (Re 100, case 4) run by
    gpucfd and compared with case 4's OpenFOAM result and time.
 7. Stretched grids (boundary layers without refining everywhere).

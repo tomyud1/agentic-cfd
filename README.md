@@ -65,8 +65,8 @@ GPU.
   an independent reference code and the order of accuracy. Speed-only changes must give
   bit-identical results.
 - **What it handles:** incompressible laminar flow in a box with walls, inflow and outflow, and
-  bodies of any shape inside the flow. On the DFG cylinder benchmark (Re 20), drag is within 0.65%
-  at 35 cells per diameter and converging.
+  bodies of any shape inside the flow. On the DFG cylinder benchmark (Re 20), drag is within 0.14%
+  at 70 cells per diameter; the three-grid study takes 6 GPU-minutes.
 - **Not yet:** turbulence, heat transfer, stretched grids.
 
 Details, status and limits: [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md). History:
@@ -196,8 +196,8 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
   [cases/BACKLOG.md](cases/BACKLOG.md).
 - **gpucfd as a tool for the agent:** the agent picks it when a problem fits, and documents that
   choice like any other decision.
-- **Smarter runs:** finer meshes start from the coarser solution; the agent watches runs live and
-  stops them once the answer has settled.
+- **Smarter runs:** done for gpucfd steady flows (each finer grid starts from the coarser one and stops
+  once its answer has settled: 20× faster). Next: the same live stop for OpenFOAM runs.
 
 GPU setup instructions for OpenFOAM's OGL plugin are in [`setup/gpu/`](setup/gpu).
 
