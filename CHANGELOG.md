@@ -17,7 +17,16 @@ Nothing uncommitted. Next, in this order:
 
 ## 2026-11-12
 
-### The live stop's check costs the same at step one million as at step one thousand, commit hash to be filled in
+### Monitoring guidance written as options, not rules, commit hash to be filled in
+- **What:** SKILL.md stage 4 now offers the live stop, peek and watch as tools the agent may use as
+  it judges best. It says plainly that the saved history in `<case>/peek/` is always complete and
+  can be read in any part, in any way. Only the updating is incremental. How often to look, how
+  much history a stopping rule uses, and whether to open the figure are the agent's call. The one
+  firm rule stays: a run stops on its physical check, with the end time only a maximum.
+- **Why it matters:** the agent should be guided, not boxed in. Fixed rhythms and "only read what is
+  new" would take away judgement the agent needs on problems we have not seen yet.
+
+### The live stop's check costs the same at step one million as at step one thousand (`af88528`)
 - **What:**
   - New `monitor.DatTail` reads a postProcessing file incrementally. Each call parses only the lines
     added since the last one and keeps the history in a growing array.

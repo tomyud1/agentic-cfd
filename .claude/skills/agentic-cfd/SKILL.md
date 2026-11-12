@@ -154,45 +154,45 @@ settings):
 - Run meshes coarse to fine. For steady runs, extrapolate the iteration count of the finest mesh from
   the coarser ones (it often grows 3-4x per refinement) before launching it.
 - Stopping must be physical: make the physical check of stage 2 the stopping rule, and the planned
-  end time only a maximum. Use `monitor.LiveStop(case, decide)` as `foam.run(..., watch=...)`:
-  `decide(case)` reads the run's output so far (`monitor.read_dat_live`) and returns
-  `monitor.judge({quantity: per-cycle or per-chunk values}, {quantity: tol})`; once every quantity is
-  settled the solver writes the current step and ends normally (OpenFOAM's `abort` function object,
-  serial and parallel). A quantity whose changes stop shrinking above its tolerance is at a floor:
-  the run stops with a warning, and that spread becomes its iteration uncertainty (case 4's M1 drag
-  peaks jitter by 7e-4 against a 5e-4 rule; waiting longer never helps). Example:
-  `cases/dfg_cylinder_re100/run.py` (`periodic_rule`, `live_decider`, `do_live`). Replay the rule
-  on recorded histories before trusting it (`do_live_check`). Keep each check's cost flat however
-  long the run gets:
-  - read the output with `monitor.DatTail`, which parses only the lines added since the last check;
-  - analyse only the stretch of history the verdict depends on (case 4: the last 14 periods).
+  end time only a maximum. How you apply it is your call; the tools are there to help:
+  - `monitor.LiveStop(case, decide)`, passed as `foam.run(..., watch=...)`, applies your rule beside
+    the solver every few seconds (no tokens), and ends the run cleanly once it holds (OpenFOAM's
+    `abort` function object, serial and parallel).
+  - `monitor.judge` / `monitor.settled` classify per-cycle or per-chunk values: settled, still
+    changing, or at a floor. A floor means the changes stopped shrinking above the tolerance; it
+    stops with a warning, and the spread becomes the iteration uncertainty. Case 4's M1 drag peaks
+    jitter by 7e-4 against a 5e-4 rule, and waiting longer never helps.
+  - For long runs, `monitor.DatTail` reads only what is new at each check. Looking at only the recent
+    stretch the verdict depends on keeps a check cheap: 7.2 s → 0.14 s at a million steps in case 4.
+    Use a longer stretch, or the whole history, whenever your rule needs it.
+  - Example: `cases/dfg_cylinder_re100/run.py` (`periodic_rule`, `live_decider`, `do_live`).
+    Replaying a rule on recorded histories (`do_live_check`) is a cheap way to test it before you
+    rely on it.
 
-  On a million-step history this takes a check from 7.2 s to 0.14 s. For steady SIMPLE runs, check per mesh
-  that the residual targets actually satisfy the physical check, on the coarse meshes first.
+  For steady SIMPLE runs that stop on residual targets, check per mesh that the targets actually
+  satisfy the physical check, on the coarse meshes first.
 - Independent runs (different meshes) may run at the same time, up to 6 at once (8 cores). Say so in
   the reproducibility notes, since it inflates per-run wall times.
-- Look into a running case whenever you judge it useful:
-  `python -m cfdlib.monitor peek <case dir> [--files forcesCyl,probes] [--from T] [--windows N] [--csv DIR]`.
-  It prints the state, progress and time left, health so far, and the live stop's last verdict. It
-  then gives the whole history as numbers: residuals, Courant number and each monitored series as
-  min / mean / max over N equal time windows (default 8). Rising or falling means, a growing or
-  steady oscillation and the start-up transient all show in the rows. Narrow it with `--files` and
-  `--from`; use `--windows` for finer rows. Every peek also saves the RAW history, every step, to
-  `<case>/peek/`: `solver_log.csv` (residuals, Courant number, continuity error, solver time) and
-  one CSV per postProcessing file. It lists them with sizes and columns. Each peek only appends what
-  the run wrote since the last one, so peeking at a run of millions of steps stays cheap. Search the
-  CSVs with grep, or load them with `cfdlib.monitor.load_csv`, which reads the float64 twin
-  `<name>.f64`: a million rows in about 0.03 s. Do this rather than reading values off a figure. `--plot` adds
-  `<case>/peek.png`, the same history as a figure: look at it when the shape matters, and use it to
-  show the engineer how the run is going. Between peeks nothing runs, so a run of many hours costs no
-  tokens. A sensible
-  rhythm: early (is the start healthy?), then at intervals matched to the projected run time, then at
-  the end; peek more often when something looks wrong. A Monitor on the run's own log should only
-  report the stop, the end and errors.
+- You can look into a running case whenever you judge it useful, and read whatever part of its
+  history you want:
+  - `python -m cfdlib.monitor peek <case dir>` prints the state, progress and time left, health so
+    far, and the live stop's last verdict. It adds a short overview of the history: min / mean / max
+    over a few time windows. Options: `--files`, `--from`, `--windows`, `--plot`.
+  - Each peek also brings the raw history in `<case>/peek/` up to date, every step from the start:
+    - `solver_log.csv`: residuals, Courant number, continuity error and solver time;
+    - one CSV per postProcessing file.
+
+    These files are yours to search and load in any way: grep, slices, your own analysis code, or
+    `monitor.load_csv`, which reads the float64 twin `<name>.f64` fast. Only the updating is
+    incremental; the files always hold the complete history.
+  - `--plot` (or `watch`) gives the same history as a figure. Look at it when a shape matters, and
+    use it to show the engineer how the run is going.
+  - Between peeks nothing runs, so a long run costs no tokens while you are not looking. How often
+    you look is up to you. A Monitor on the run's own log works well for the stop, the end and
+    errors.
 - For the human engineer: `python -m cfdlib.monitor watch <case dir> --every 60` keeps
   `<case>/peek.html` up to date until the run ends: a figure of the whole history plus the same text,
-  reloading itself in a browser. Start it in the background and give the engineer the printed
-  path. `peek --plot` writes the figure once.
+  reloading itself in a browser. Start it in the background and give the engineer the printed path.
 - Long runs go in the background; `python -m cfdlib.foam ps` lists solver processes, and
   `python -m cfdlib.foam stop <case dir>` kills one (stopping the Python wrapper alone leaves an
   orphan solver). Record per run: health (`monitor.assess`), the physical check, wall time.
