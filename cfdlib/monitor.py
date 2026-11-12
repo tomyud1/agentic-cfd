@@ -418,8 +418,10 @@ def peek(case_dir, plot=False, t_from=None, files=None, courant_limit=1.0, windo
     the Courant number and every monitored series (postProcessing) as min / mean / max over `windows`
     equal time windows (_digest; windows=0: one line per series). Returns dict(text, png, csv, ...).
     files: substrings selecting postProcessing series (default all); t_from: show the history from
-    this time on; csv_dir: also write the selected series at full resolution, one CSV per file;
-    plot: also write <case>/peek.png, a figure for a human (see watch())."""
+    this time on; csv_dir: where the raw history goes (default <case>/peek/: solver_log.csv with every
+    step's residuals, Courant number and continuity error, and one CSV per postProcessing file, always
+    in full); plot: also write <case>/peek.png, the history as a figure, to look at or to show a human
+    (see watch())."""
     case = Path(case_dir)
     logs = [p for p in case.glob("log.*") if p.name.endswith("Foam")]
     if not logs:
@@ -474,16 +476,30 @@ def peek(case_dir, plot=False, t_from=None, files=None, courant_limit=1.0, windo
             parts = [f"{k} {v[-1]:.5g} [{v[late].min():.5g}, {v[late].max():.5g}]" for k, v in list(cols.items())[:3]]
             lines.append(f"{label}: " + "; ".join(parts) + (f"; +{len(cols) - 3} columns" if len(cols) > 3 else "")
                          + "  (last value [min, max over the last quarter])")
+    # The raw history, always saved in full (every step, every series, whatever --files / --from show),
+    # so the agent can search or load exactly what it needs instead of reading it off a figure.
+    out = Path(csv_dir) if csv_dir else case / "peek"
+    out.mkdir(parents=True, exist_ok=True)
     csvs = []
-    if csv_dir:
-        out = Path(csv_dir)
-        out.mkdir(parents=True, exist_ok=True)
-        for label, t, cols in ser:
-            f = out / (label.replace("/", "_").replace(".dat", "") + ".csv")
-            np.savetxt(f, np.column_stack([t] + list(cols.values())), delimiter=",", fmt="%.10g",
-                       header="t," + ",".join(cols), comments="")
-            csvs.append(str(f))
-        lines.append(f"raw series (CSV, full resolution): {', '.join(csvs)}")
+
+    def save(name, t, cols):
+        f = out / f"{name}.csv"
+        np.savetxt(f, np.column_stack([t] + list(cols.values())), delimiter=",", fmt="%.10g",
+                   header="t," + ",".join(cols), comments="")
+        csvs.append(f"{f.name} ({len(t)} rows: t, {', '.join(cols)})")
+
+    if s:
+        fields = sorted({f for x in s for f in x["res"]})
+        nan = float("nan")
+        save("solver_log", np.array([x["time"] for x in s]), {
+            "exec_s": np.array([x["exec"] if x["exec"] is not None else nan for x in s]),
+            "courant_max": np.array([x["co"] if x["co"] is not None else nan for x in s]),
+            "continuity_local": np.array([x["cont"] if x["cont"] is not None else nan for x in s]),
+            **{f"res_{f}": np.array([x["res"].get(f, nan) for x in s]) for f in fields}})
+    for label, t, cols in (_series(case) if (files or t_from is not None) else ser):
+        save(label.replace("/", "_").replace(".dat", ""), t, cols)
+    lines.append(f"raw history, every step, in {out}/ (CSV; search with grep or load with numpy/pandas):")
+    lines += [f"  {c}" for c in csvs]
     png = None
     if plot and (s or ser):
         png = _peek_plot(case, log.name, s, ser, t_from)
@@ -559,6 +575,7 @@ def _peek_plot(case, title, steps, ser, t_from):
 
 if __name__ == "__main__":
     # python -m cfdlib.monitor peek  <case dir> [--files forcesCyl,probes] [--from T] [--windows N] [--csv DIR] [--plot]
+    #   (always saves the raw history as CSV in <case>/peek/)
     # python -m cfdlib.monitor watch <case dir> [--every S] [--files ...]        (a live page for a human)
     import argparse
     ap = argparse.ArgumentParser(description="Look into an OpenFOAM run: progress, health, live-stop verdict, history")
@@ -567,7 +584,7 @@ if __name__ == "__main__":
     ap.add_argument("--from", dest="t_from", type=float)
     ap.add_argument("--files", help="comma-separated substrings of postProcessing series to show")
     ap.add_argument("--windows", type=int, default=8, help="time windows of the history table (0: one line per series)")
-    ap.add_argument("--csv", dest="csv_dir", help="also write the selected series in full as CSV files to this directory")
+    ap.add_argument("--csv", dest="csv_dir", help="directory for the raw-history CSV files (default <case>/peek/)")
     ap.add_argument("--courant-limit", type=float, default=1.0)
     ap.add_argument("--plot", action="store_true", help="also write <case>/peek.png (a figure for a human)")
     ap.add_argument("--every", type=float, default=60.0, help="watch: seconds between page updates")

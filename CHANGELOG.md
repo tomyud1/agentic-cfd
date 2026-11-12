@@ -17,7 +17,20 @@ Nothing uncommitted. Next, in this order:
 
 ## 2026-11-12
 
-### Peek gives the agent numbers; a live page shows the human engineer the figure, commit hash to be filled in
+### Peek always saves the raw run history for the agent to search, commit hash to be filled in
+- **What:** every `peek` writes the full history to `<case>/peek/`, every time step, whatever
+  `--files` or `--from` show:
+  - `solver_log.csv`: residuals, Courant number, continuity error and solver time;
+  - one CSV per postProcessing file: forces, probes, fluxes.
+
+  It lists the files with row counts and columns.
+- **Why it matters:** the agent can grep or load exactly the values it needs instead of reading them
+  off small plots. The window table stays as a quick overview. The figure (`--plot`, `watch`) is for
+  when the shape matters and for showing the engineer how the run is going.
+- **How it was verified:** on case 4's `live_M3`, 10 files of 2330 rows each (1.6 MB), checked
+  against the log and force.dat.
+
+### Peek gives the agent numbers; a live page shows the human engineer the figure (`b149395`)
 - **What:**
   - `peek` now gives the history as numbers by default. Residuals, Courant number and each
     monitored series appear as min / mean / max over 8 equal time windows (`--windows N`).

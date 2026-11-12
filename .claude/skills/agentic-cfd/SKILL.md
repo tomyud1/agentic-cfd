@@ -172,8 +172,13 @@ settings):
   then gives the whole history as numbers: residuals, Courant number and each monitored series as
   min / mean / max over N equal time windows (default 8). Rising or falling means, a growing or
   steady oscillation and the start-up transient all show in the rows. Narrow it with `--files` and
-  `--from`; use `--windows` for finer rows. Use `--csv` to read the raw series at full resolution
-  with your own code. Between peeks nothing runs, so a run of many hours costs no tokens. A sensible
+  `--from`; use `--windows` for finer rows. Every peek also saves the RAW history, every step, to
+  `<case>/peek/`: `solver_log.csv` (residuals, Courant number, continuity error, solver time) and
+  one CSV per postProcessing file. It lists them with row counts and columns. Search or load what
+  you need from there (grep, numpy, pandas) rather than reading values off a figure. `--plot` adds
+  `<case>/peek.png`, the same history as a figure: look at it when the shape matters, and use it to
+  show the engineer how the run is going. Between peeks nothing runs, so a run of many hours costs no
+  tokens. A sensible
   rhythm: early (is the start healthy?), then at intervals matched to the projected run time, then at
   the end; peek more often when something looks wrong. A Monitor on the run's own log should only
   report the stop, the end and errors.
