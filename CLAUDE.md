@@ -76,6 +76,8 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
   [tomyud1.github.io/agentic-cfd](https://tomyud1.github.io/agentic-cfd/)).
 - [`CHANGELOG.md`](CHANGELOG.md): what changed and when. Read it to catch up on recent work.
 - [`README.md`](README.md): results so far (cases 1-5 and the GPU study) with links to the reports.
+- [`cases/BACKLOG.md`](cases/BACKLOG.md): the next problems to give the agent, in order, with
+  candidate sources (NASA TMR, the Luminary V&V catalogue).
 - [`.claude/skills/agentic-cfd/SKILL.md`](.claude/skills/agentic-cfd/SKILL.md): the workflow the agent
   follows for each problem.
 - [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md): the GPU solver's plan, verification ladder, status,

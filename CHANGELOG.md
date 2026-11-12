@@ -35,6 +35,18 @@ moves to a dated entry when it is committed.
 
 ## 2026-11-12
 
+### Case backlog (`cases/BACKLOG.md`) and project docs, `ba626b8` and later
+- **What:**
+  - [`cases/BACKLOG.md`](cases/BACKLOG.md) lists the next problems in order: heat transfer (heated
+    pipe, buoyancy cavity), the first RANS case (NASA TMR turbulent flat plate), harder laminar
+    cases that gpucfd can also run, and TMR turbulence cases.
+  - It also proposes adopting manufactured solutions (MMS) for verification.
+  - The changelog, AGENTS.md (for non-Claude agents such as Codex) and the changelog rule in
+    CLAUDE.md came in `ba626b8`.
+- **Why it matters:** each next case adds one new capability. The sources (NASA TMR, and Luminary's
+  V&V catalogue, suggested by Dhanush from Prof. Frankel's lab) come with grid families and
+  reference results, and some with a commercial result to compare against.
+
 ### gpucfd: bodies inside the flow (rung 10), `a043ae6`
 - **What:** shapes defined by a signed distance (cylinders, any shape you can describe that way) are
   placed inside the grid with a sharp-interface (ghost-cell) immersed boundary. Drag, lift and
