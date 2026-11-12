@@ -48,6 +48,8 @@ def lib():
         L.gcfd_ns_set.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp]
         L.gcfd_ns_get.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp]
         L.gcfd_ns_run.argtypes = [ctypes.c_void_p, ctypes.c_double, ctypes.c_int, ctypes.c_double, _dp]
+        L.gcfd_ns_scheme.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double]
+        L.gcfd_set_graphs.argtypes = [ctypes.c_int]
         L.gcfd_ns_project.restype = ctypes.c_double
         L.gcfd_ns_project.argtypes = [ctypes.c_void_p]
         _lib = L
@@ -58,6 +60,11 @@ def device():
     buf = ctypes.create_string_buffer(256)
     cc = lib().gcfd_device(buf, 256)
     return dict(name=buf.value.decode(), compute_capability=cc / 10)
+
+
+def use_graphs(on=True):
+    """CUDA graphs for the multigrid V-cycles (default on). Results are bit-identical either way."""
+    lib().gcfd_set_graphs(1 if on else 0)
 
 
 def bandwidth(mbytes=512, reps=20):
@@ -123,12 +130,15 @@ class NavierStokes:
     walls: per direction, True for walls at both ends (no slip), False for periodic. On a wall direction
     the normal component's face 0 is the low wall and stays zero.
     wall_velocity: {"x-"|"x+"|"y-"|"y+"|"z-"|"z+": (ux, uy, uz)} for moving walls (tangential part used).
-    force: constant body force per unit mass (gx, gy, gz)."""
+    force: constant body force per unit mass (gx, gy, gz).
+    scheme: "rk3" (explicit, third order, time step limited by 0.15 h^2 / nu as well as the flow speed)
+    or "imex" (diffusion implicit by Crank-Nicolson, second order, time step limited by the flow speed
+    only). htol: relative tolerance of the implicit diffusion solves."""
 
     SIDES = ("x-", "x+", "y-", "y+", "z-", "z+")
 
     def __init__(self, n, length, nu, pressure="mixed", walls=(False, False, False), wall_velocity=None,
-                 force=(0.0, 0.0, 0.0)):
+                 force=(0.0, 0.0, 0.0), scheme="rk3", htol=1e-10):
         self.n = tuple(int(v) for v in n)
         self.shape = (self.n[2], self.n[1], self.n[0])
         self.length = tuple(float(v) for v in length)
@@ -144,6 +154,9 @@ class NavierStokes:
             raise ValueError("gcfd: invalid grid (periodic directions need even cell counts; at least 2 cells "
                              "in x and y; no z walls in 2D)")
         self.h = h
+        self.nu = float(nu)
+        self.scheme = scheme
+        lib().gcfd_ns_scheme(h, {"rk3": 0, "imex": 1}[scheme], float(htol))
 
     def close(self):
         if getattr(self, "h", None):
@@ -178,11 +191,20 @@ class NavierStokes:
         return lib().gcfd_ns_project(self.h)
 
     def run(self, dt, nsteps, ptol=1e-10):
-        """Advance; returns dict(ms (GPU time), max_div (after), poisson_its (mean per projection))."""
-        st = np.zeros(3)
+        """Advance; returns dict(ms (GPU time), max_div (after), poisson_its (mean per projection),
+        helm_its (IMEX: mean CG iterations per diffusion solve))."""
+        st = np.zeros(4)
         lib().gcfd_ns_run(self.h, float(dt), int(nsteps), float(ptol), st)
         if not np.isfinite(st[1]):
             hmin = min(self.length[d] / self.n[d] for d in range(3) if self.n[d] > 1)
-            raise FloatingPointError(f"gcfd: solution blew up (dt {dt:g}; stability needs roughly dt < 0.8 h / max|u| "
-                                     f"and dt < 0.2 h^2 / nu with h = {hmin:g})")
-        return dict(ms=float(st[0]), max_div=float(st[1]), poisson_its=float(st[2]))
+            limit = "dt < 0.8 h / max|u|" + (" and dt < 0.2 h^2 / nu" if self.scheme == "rk3" else "")
+            raise FloatingPointError(f"gcfd: solution blew up (dt {dt:g}; stability needs roughly {limit} "
+                                     f"with h = {hmin:g})")
+        return dict(ms=float(st[0]), max_div=float(st[1]), poisson_its=float(st[2]), helm_its=float(st[3]))
+
+    def max_dt(self, umax, cfl=0.8):
+        """Largest stable time step for velocity scale umax: convective limit, plus the explicit
+        diffusion limit for scheme "rk3"."""
+        h = min(self.length[d] / self.n[d] for d in range(3) if self.n[d] > 1)
+        dt = cfl * h / umax
+        return dt if self.scheme == "imex" else min(dt, 0.15 * h * h / self.nu)

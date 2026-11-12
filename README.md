@@ -189,8 +189,8 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
   2D/3D flows pass. On the same 3D flow and grid as OpenFOAM (each with its best settings), it is 17
   times faster at 262 thousand cells and 168 times faster at 2.1 million, with a smaller error. Walls
   work too: on the lid-driven cavity its solution and OpenFOAM's converge to each other at second
-  order. On that small steady problem it is still slower than OpenFOAM (explicit diffusion and launch
-  overhead), which is the next work.
+  order. Implicit diffusion and CUDA graphs made that small steady problem 9 times faster (now about
+  the same time as OpenFOAM), with results checked to be bit-for-bit reproducible.
 - **Smarter studies**: start each finer mesh from the coarser solution, stop when the extrapolated
   answer settles, faster algorithms for steady problems.
 - **GPU setup instructions** for OGL are in [`setup/gpu/`](setup/gpu) (CUDA check, build script,

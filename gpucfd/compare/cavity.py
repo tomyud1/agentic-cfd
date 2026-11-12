@@ -1,7 +1,7 @@
 """Verification ladder, rung 7b: lid-driven cavity at Re = 100 on the GPU solver, against the benchmark of
 Ghia, Ghia & Shin (1982) and against our own OpenFOAM results of case 2 (same Re, same grids).
 
-    python -m gpucfd.compare.cavity 32 64 128 [256]      (inside WSL, from the project root)
+    python -m gpucfd.compare.cavity [imex] 32 64 128 [256]      (inside WSL, from the project root)
 
 Unit square, lid (y = 1) moving at U = 1 in +x, nu = 0.01. Time-marched from rest until the velocity
 changes by less than 1e-7 (max norm) over one time unit. Results in gpucfd/compare/results/cavity.json.
@@ -31,11 +31,11 @@ def ghia():
     return u[np.argsort(u[:, 0])], v[np.argsort(v[:, 0])]
 
 
-def gpu_cavity(N, ptol=1e-4, tmax=80.0, settle=1e-7):
+def gpu_cavity(N, ptol=1e-4, tmax=80.0, settle=1e-7, scheme="rk3", cfl=0.8):
+    s = gcfd.NavierStokes((N, N, 1), (1.0, 1.0, 1.0), NU, walls=(True, True, False), wall_velocity={"y+": (U, 0, 0)},
+                          scheme=scheme)
     h = 1.0 / N
-    dt_target = min(0.8 * h / U, 0.15 * h * h / NU)
-    per_unit = int(np.ceil(1.0 / dt_target))
-    s = gcfd.NavierStokes((N, N, 1), (1.0, 1.0, 1.0), NU, walls=(True, True, False), wall_velocity={"y+": (U, 0, 0)})
+    per_unit = int(np.ceil(1.0 / s.max_dt(U, cfl)))
     t, loop, change, hist = 0.0, 0.0, np.inf, []
     old = [np.zeros(s.shape), np.zeros(s.shape)]
     t0 = time.time()
@@ -55,7 +55,7 @@ def gpu_cavity(N, ptol=1e-4, tmax=80.0, settle=1e-7):
     xv = np.concatenate([[0.0], (np.arange(N) + 0.5) * h, [1.0]])
     vl = np.concatenate([[0.0], v[N // 2, :], [0.0]])
     s.close()
-    return dict(N=N, t_steady=t, steps=int(t * per_unit), loop_s=loop, wall_s=time.time() - t0, last_change=change,
+    return dict(N=N, scheme=scheme, t_steady=t, steps=int(t * per_unit), loop_s=loop, wall_s=time.time() - t0, last_change=change,
                 max_div=st["max_div"], line_u=(yu, ul), line_v=(xv, vl))
 
 
@@ -78,15 +78,16 @@ def at_ghia(line, pts):
 
 
 if __name__ == "__main__":
-    Ns = [int(a) for a in sys.argv[1:]] or [32, 64, 128]
+    scheme = "imex" if "imex" in sys.argv[1:] else "rk3"
+    Ns = [int(a) for a in sys.argv[1:] if a.isdigit()] or [32, 64, 128]
     gu, gv = ghia()
     inner_u, inner_v = gu[1:-1], gv[1:-1]            # Ghia's points without the wall values
     rows, lines = [], {}
     for N in Ns:
-        r = gpu_cavity(N)
+        r = gpu_cavity(N, scheme=scheme)
         du = np.abs(at_ghia(r["line_u"], inner_u[:, 0]) - inner_u[:, 1])
         dv = np.abs(at_ghia(r["line_v"], inner_v[:, 0]) - inner_v[:, 1])
-        row = dict(N=N, t_steady=r["t_steady"], steps=r["steps"], loop_s=r["loop_s"], wall_s=r["wall_s"],
+        row = dict(N=N, scheme=scheme, t_steady=r["t_steady"], steps=r["steps"], loop_s=r["loop_s"], wall_s=r["wall_s"],
                    last_change=r["last_change"], max_div=r["max_div"],
                    gpu_vs_ghia_u=float(du.max()), gpu_vs_ghia_v=float(dv.max()))
         of = openfoam_lines(N)
@@ -115,6 +116,7 @@ if __name__ == "__main__":
     path = OUT / "cavity.json"
     old = json.loads(path.read_text()) if path.exists() else {}
     for r in rows:
-        old[str(r["N"])] = r
-    old["lines"] = {**old.get("lines", {}), **{str(k): v for k, v in lines.items()}}
+        old[str(r["N"]) + ("" if scheme == "rk3" else "_imex")] = r
+    if scheme == "rk3":
+        old["lines"] = {**old.get("lines", {}), **{str(k): v for k, v in lines.items()}}
     path.write_text(json.dumps(old, indent=1))

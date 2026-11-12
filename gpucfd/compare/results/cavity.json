@@ -1009,5 +1009,55 @@
     ]
    ]
   }
+ },
+ "32_imex": {
+  "N": 32,
+  "scheme": "imex",
+  "t_steady": 27.0,
+  "steps": 1080,
+  "loop_s": 10.935955505371092,
+  "wall_s": 10.937403917312622,
+  "last_change": 9.425760819081752e-08,
+  "max_div": 4.884981308350689e-15,
+  "gpu_vs_ghia_u": 0.002041093604121663,
+  "gpu_vs_ghia_v": 0.008420916537684675,
+  "openfoam_vs_ghia_u": 0.00415972525861541,
+  "openfoam_vs_ghia_v": 0.008695240182872321,
+  "gpu_vs_openfoam": 0.0026751105002657876,
+  "openfoam_case2_wall_s": 0.7067202050000105
+ },
+ "64_imex": {
+  "N": 64,
+  "scheme": "imex",
+  "t_steady": 27.0,
+  "steps": 2160,
+  "loop_s": 19.361000244140627,
+  "wall_s": 19.389039516448975,
+  "last_change": 9.26562225000982e-08,
+  "max_div": 6.8833827526759706e-15,
+  "gpu_vs_ghia_u": 0.003816604276762975,
+  "gpu_vs_ghia_v": 0.008559341149813049,
+  "openfoam_vs_ghia_u": 0.00409308557454327,
+  "openfoam_vs_ghia_v": 0.008665282824218745,
+  "gpu_vs_openfoam": 0.0007238215416199185,
+  "openfoam_case2_wall_s": 3.972612228999992,
+  "change_from_coarser": 0.005966464468016741
+ },
+ "128_imex": {
+  "N": 128,
+  "scheme": "imex",
+  "t_steady": 27.0,
+  "steps": 4320,
+  "loop_s": 42.790113647460934,
+  "wall_s": 42.79103708267212,
+  "last_change": 9.199152983807579e-08,
+  "max_div": 6.821210263296962e-13,
+  "gpu_vs_ghia_u": 0.004929815717623354,
+  "gpu_vs_ghia_v": 0.009082172397041649,
+  "openfoam_vs_ghia_u": 0.004996082410726077,
+  "openfoam_vs_ghia_v": 0.009100939559689936,
+  "gpu_vs_openfoam": 0.00018089667766041373,
+  "openfoam_case2_wall_s": 45.913066532000016,
+  "change_from_coarser": 0.0013708705901267493
  }
 }

@@ -4,6 +4,7 @@
 // Builds into a shared library with a plain C API (see the bottom of this file and ../gcfd.py).
 #include <cuda_runtime.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -217,13 +218,21 @@ __global__ void k_coarse(T* x, const T* b, Level L, Coef<T> K, int sweeps, int s
 }
 
 template <typename T>
-__global__ void k_dot(const T* a, const T* b, size_t n, double* out) {
+__global__ void k_dot(const T* a, const T* b, size_t n, double* part) {  // one partial sum per block
   double s = 0.0;
   for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
     s += double(a[q]) * (b ? double(b[q]) : 1.0);
   s = block_sum(s);
-  if (threadIdx.x == 0) atomicAdd(out, s);
+  if (threadIdx.x == 0) part[blockIdx.x] = s;
 }
+
+__global__ void k_sum_parts(const double* part, int np, double* out) {  // one block, fixed order
+  double s = 0.0;
+  for (int q = threadIdx.x; q < np; q += blockDim.x) s += part[q];
+  s = block_sum(s);
+  if (threadIdx.x == 0) *out = s;
+}
+
 
 template <typename T>
 __global__ void k_axpy(T* y, const T* x, double a, size_t n) {  // y += a x
@@ -257,6 +266,31 @@ __global__ void k_copy4(const float4* a, float4* b, size_t n) {
 static int lin_blocks(size_t n) {
   const size_t b = (n + 255) / 256;
   return int(b < 2048 ? (b > 0 ? b : 1) : 2048);
+}
+
+// Deterministic dot product (sum if b is null) in double precision: per-block partial sums, then one
+// block adds them in a fixed order. (An atomicAdd of block sums made results differ between runs at
+// round-off level, 4e-16, which also hid whether an optimisation changed anything.)
+// buf: 1 + 2048 doubles on the device; the result is copied to the host.
+static const int DOT_BUF = 1 + 2048;
+template <typename T>
+double dot_det(const T* a, const T* b, size_t n, double* buf) {
+  const int nb = lin_blocks(n);
+  k_dot<T><<<nb, 256>>>(a, b, n, buf + 1);
+  k_sum_parts<<<1, 1024>>>(buf + 1, nb, buf);
+  double s;
+  CK(cudaMemcpy(&s, buf, sizeof(double), cudaMemcpyDeviceToHost));
+  return s;
+}
+
+// CUDA graphs on (default) or off: a switch for timing and for the bit-identity check in the ladder.
+static bool g_use_graphs = true;
+// The stream graphs are recorded on and launched into. A blocking stream: it synchronises with the
+// legacy default stream used by everything else, so ordering is the same as without graphs.
+static cudaStream_t capture_stream() {
+  static cudaStream_t s = nullptr;
+  if (!s) CK(cudaStreamCreate(&s));
+  return s;
 }
 
 struct Base {
@@ -329,7 +363,7 @@ struct Solver : Base {
     CK(cudaMalloc(&q_, N * sizeof(T)));
     CK(cudaMalloc(&z_, N * sizeof(T)));
     CK(cudaMalloc(&rr_, N * sizeof(T)));
-    CK(cudaMalloc(&dsum, sizeof(double)));
+    CK(cudaMalloc(&dsum, DOT_BUF * sizeof(double)));
   }
   ~Solver() override {
     for (size_t l = 0; l < L.size(); ++l) {
@@ -342,15 +376,48 @@ struct Solver : Base {
     cudaFree(z_);
     cudaFree(rr_);
     cudaFree(dsum);
+    if (gexec) cudaGraphExecDestroy(gexec);
     delete pre;
   }
 
+  // CUDA graph of one preconditioning V-cycle: the roughly 100 small kernel launches of a V-cycle are
+  // recorded once and replayed with a single launch (launch overhead dominated small grids). The graph
+  // depends on the input/output arrays, so it is re-recorded when they change. Same kernels, same
+  // order: results are bit-identical with graphs on or off (checked in the ladder).
+  cudaStream_t st = 0;  // stream the V-cycle kernels go to (the capture stream while recording)
+  cudaGraphExec_t gexec = nullptr;
+  const void* gkey[2] = {nullptr, nullptr};
+
+  template <class Body>
+  void as_graph(const void* k1, const void* k2, Body body) {
+    if (!g_use_graphs) {
+      body();
+      return;
+    }
+    if (!gexec || gkey[0] != k1 || gkey[1] != k2) {
+      if (gexec) CK(cudaGraphExecDestroy(gexec));
+      cudaGraph_t g;
+      st = capture_stream();
+      CK(cudaStreamBeginCapture(st, cudaStreamCaptureModeThreadLocal));
+      body();
+      CK(cudaStreamEndCapture(st, &g));
+      CK(cudaGraphInstantiate(&gexec, g, 0));
+      CK(cudaGraphDestroy(g));
+      st = 0;
+      gkey[0] = k1;
+      gkey[1] = k2;
+    }
+    CK(cudaGraphLaunch(gexec, capture_stream()));
+  }
+
   void vcycle_d(const double* R, double* Z) override {
-    const size_t N = L[0].cells();
-    k_convert<double, T><<<lin_blocks(N), 256>>>(R, rr_, N);
-    CK(cudaMemsetAsync(z_, 0, N * sizeof(T)));
-    vcycle(0, z_, rr_);
-    k_convert<T, double><<<lin_blocks(N), 256>>>(z_, Z, N);
+    as_graph(R, Z, [&] {
+      const size_t N = L[0].cells();
+      k_convert<double, T><<<lin_blocks(N), 256, 0, st>>>(R, rr_, N);
+      CK(cudaMemsetAsync(z_, 0, N * sizeof(T), st));
+      vcycle(0, z_, rr_);
+      k_convert<T, double><<<lin_blocks(N), 256, 0, st>>>(z_, Z, N);
+    });
   }
 
   // Z = M R: one V-cycle from zero, in this precision or (mixed) in the single-precision partner.
@@ -361,8 +428,10 @@ struct Solver : Base {
         return;
       }
     }
-    CK(cudaMemsetAsync(Z, 0, L[0].cells() * sizeof(T)));
-    vcycle(0, Z, R);
+    as_graph(R, Z, [&] {
+      CK(cudaMemsetAsync(Z, 0, L[0].cells() * sizeof(T), st));
+      vcycle(0, Z, R);
+    });
   }
 
   int levels(int* dims) const override {
@@ -381,11 +450,7 @@ struct Solver : Base {
     for (size_t q = 0; q < n; ++q) h[q] = double(t[q]);
   }
   double dot(const T* a, const T* bb, size_t n) {
-    CK(cudaMemset(dsum, 0, sizeof(double)));
-    k_dot<T><<<lin_blocks(n), 256>>>(a, bb, n, dsum);
-    double s;
-    CK(cudaMemcpy(&s, dsum, sizeof(double), cudaMemcpyDeviceToHost));
-    return s;
+    return dot_det(a, bb, n, dsum);
   }
   void remove_mean(T* a, size_t n) {
     const double m = dot(a, nullptr, n) / double(n);
@@ -394,8 +459,8 @@ struct Solver : Base {
 
   void smooth(int l, T* X, const T* B, int sweeps, bool forward) {
     for (int s = 0; s < sweeps; ++s) {
-      k_rbgs<T><<<grid3(L[l]), B3>>>(X, B, L[l], K[l], forward ? 0 : 1);
-      k_rbgs<T><<<grid3(L[l]), B3>>>(X, B, L[l], K[l], forward ? 1 : 0);
+      k_rbgs<T><<<grid3(L[l]), B3, 0, st>>>(X, B, L[l], K[l], forward ? 0 : 1);
+      k_rbgs<T><<<grid3(L[l]), B3, 0, st>>>(X, B, L[l], K[l], forward ? 1 : 0);
     }
   }
 
@@ -403,15 +468,15 @@ struct Solver : Base {
   void vcycle(int l, T* X, const T* B) {
     const int last = int(L.size()) - 1;
     if (l == last) {
-      k_coarse<T><<<1, 512>>>(X, B, L[l], K[l], coarse_sweeps, singular ? 1 : 0);
+      k_coarse<T><<<1, 512, 0, st>>>(X, B, L[l], K[l], coarse_sweeps, singular ? 1 : 0);
       return;
     }
     smooth(l, X, B, nu1, true);
-    k_residual<T><<<grid3(L[l]), B3>>>(X, B, r[l], L[l], K[l]);
-    k_restrict<T><<<grid3(L[l + 1]), B3>>>(r[l], b[l + 1], L[l], L[l + 1]);
-    CK(cudaMemsetAsync(x[l + 1], 0, L[l + 1].cells() * sizeof(T)));  // the correction starts from zero
+    k_residual<T><<<grid3(L[l]), B3, 0, st>>>(X, B, r[l], L[l], K[l]);
+    k_restrict<T><<<grid3(L[l + 1]), B3, 0, st>>>(r[l], b[l + 1], L[l], L[l + 1]);
+    CK(cudaMemsetAsync(x[l + 1], 0, L[l + 1].cells() * sizeof(T), st));  // the correction starts from zero
     vcycle(l + 1, x[l + 1], b[l + 1]);
-    k_prolong_add<T><<<grid3(L[l]), B3>>>(X, x[l + 1], L[l], L[l + 1]);
+    k_prolong_add<T><<<grid3(L[l]), B3, 0, st>>>(X, x[l + 1], L[l], L[l + 1]);
     smooth(l, X, B, nu2, false);
   }
 
@@ -619,13 +684,14 @@ __global__ void k_ns_div(const T* u, const T* v, const T* w, T* dv, Level L) {
   dv[c] = s;
 }
 
+// q -= scale * d(phi)/dx_comp at the comp-faces (wall faces: untouched)
 template <typename T>
-__global__ void k_ns_correct(T* q, const T* phi, Level L, int comp) {
+__global__ void k_ns_correct(T* q, const T* phi, Level L, int comp, double scale = 1.0) {
   CELL(L)
   const int I[3] = {i, j, k};
   if (wall_dir(L, comp) && I[comp] == 0) return;  // wall face: no correction (zero pressure gradient there)
   const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-  q[c] -= (phi[c] - phi[at(L, i - E[comp][0], j - E[comp][1], k - E[comp][2])]) / T(L.h[comp]);
+  q[c] -= T(scale) * (phi[c] - phi[at(L, i - E[comp][0], j - E[comp][1], k - E[comp][2])]) / T(L.h[comp]);
 }
 
 template <typename T>
@@ -633,6 +699,58 @@ __global__ void k_zero_wall(T* q, Level L, int comp) {
   CELL(L)
   const int I[3] = {i, j, k};
   if (wall_dir(L, comp) && I[comp] == 0) q[c] = T(0);
+}
+
+// ---------------------------------------------------------------- implicit diffusion (IMEX scheme)
+// Laplacian of velocity component comp at its face (i,j,k), with the same wall rules as k_ns_rhs.
+// homog = 1 drops the wall speed (ghost -q instead of 2 U_wall - q): the linear part of the operator.
+template <typename T>
+__device__ __forceinline__ T lap_at(const T* q, const Level& L, int comp, const Walls& W, int homog, int i, int j,
+                                    int k, size_t c) {
+  const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+  const T qc = q[c];
+  T s = T(0);
+  for (int d = 0; d < 3; ++d) {
+    if (L.n[d] == 1) continue;
+    const int* ed = E[d];
+    const T h = T(L.h[d]);
+    const long long mp = at(L, i + ed[0], j + ed[1], k + ed[2]);
+    const long long mm = at(L, i - ed[0], j - ed[1], k - ed[2]);
+    T qp, qm;
+    if (d == comp) {
+      qp = normal_at(q, mp);
+      qm = normal_at(q, mm);
+    } else {
+      qp = mp >= 0 ? q[mp] : (homog ? T(0) : T(2.0 * W.U[2 * d + 1][comp])) - qc;
+      qm = mm >= 0 ? q[mm] : (homog ? T(0) : T(2.0 * W.U[2 * d][comp])) - qc;
+    }
+    s += (qp - T(2) * qc + qm) / (h * h);
+  }
+  return s;
+}
+
+template <typename T>
+__global__ void k_ns_lap(const T* q, T* out, Level L, int comp, Walls W, int homog) {
+  CELL(L)
+  const int I[3] = {i, j, k};
+  out[c] = (wall_dir(L, comp) && I[comp] == 0) ? T(0) : lap_at(q, L, comp, W, homog, i, j, k, c);
+}
+
+// Helmholtz operator A x = x - cnu * Laplacian_homogeneous(x); the identity on wall faces (kept at zero).
+template <typename T>
+__global__ void k_helm(const T* x, T* Ax, Level L, int comp, Walls W, double cnu) {
+  CELL(L)
+  const int I[3] = {i, j, k};
+  Ax[c] = (wall_dir(L, comp) && I[comp] == 0) ? x[c] : x[c] - T(cnu) * lap_at(x, L, comp, W, 1, i, j, k, c);
+}
+
+// Right-hand side of an IMEX stage: b = q + dt (gam N + zeta N_old + alpha nu Lap(q)) + beta dt nu B,
+// where B = Laplacian of the zero field with the walls' speeds (the wall terms of the implicit part).
+template <typename T>
+__global__ void k_imex_b(T* b, const T* q, const T* N, const T* No, const T* Lq, const T* B, double dt, double gam,
+                         double zeta, double alpha, double beta, double nu, size_t n) {
+  for (size_t s = blockIdx.x * size_t(blockDim.x) + threadIdx.x; s < n; s += size_t(gridDim.x) * blockDim.x)
+    b[s] = q[s] + T(dt) * (T(gam) * N[s] + T(zeta) * No[s] + T(alpha * nu) * Lq[s]) + T(beta * dt * nu) * B[s];
 }
 
 template <typename T>
@@ -672,6 +790,17 @@ struct NS {
   long poisson_its = 0, projections = 0;
   Walls W;
   Force G;
+  // scheme 0: explicit SSP-RK3 for everything. scheme 1 (IMEX): convection and body force by the
+  // low-storage RK3 of Spalart, Moser & Rogers (1991), diffusion by Crank-Nicolson within each stage
+  // (each velocity component solves (I - beta dt nu Lap) u* = b with conjugate gradients), so the time
+  // step is limited by the flow speed only. Second order in time.
+  int scheme = 0;
+  double htol = 1e-10;
+  long helm_its = 0, helm_solves = 0;
+  T *Fo[3] = {nullptr, nullptr, nullptr}, *Bw[3] = {nullptr, nullptr, nullptr};
+  T *tmp = nullptr, *cr = nullptr, *cp = nullptr, *cAp = nullptr;
+  T* pres = nullptr;  // IMEX: pressure (per unit density), carried between stages (incremental projection)
+  double* dsum = nullptr;
 
   NS(const int* n, const double* len, double nu_, int precision, const int* walls, const double* uwall,
      const double* g)
@@ -696,20 +825,85 @@ struct NS {
     CK(cudaMalloc(&dv, N * sizeof(T)));
     CK(cudaMemset(phi, 0, N * sizeof(T)));
     CK(cudaMalloc(&dmax, sizeof(double)));
+    CK(cudaMalloc(&dsum, DOT_BUF * sizeof(double)));
+    for (T** a : {&tmp, &cr, &cp, &cAp, &pres}) CK(cudaMalloc(a, N * sizeof(T)));
+    CK(cudaMemset(pres, 0, N * sizeof(T)));
+    for (int s = 0; s < 3; ++s) {
+      CK(cudaMalloc(&Fo[s], N * sizeof(T)));
+      CK(cudaMalloc(&Bw[s], N * sizeof(T)));
+      CK(cudaMemset(Fo[s], 0, N * sizeof(T)));
+      // wall terms of the Laplacian: Lap(0) with the walls' speeds
+      CK(cudaMemset(tmp, 0, N * sizeof(T)));
+      k_ns_lap<T><<<grid3(L), B3>>>(tmp, Bw[s], L, s, W, 0);
+    }
   }
   ~NS() {
     for (int s = 0; s < 3; ++s) {
       cudaFree(q[s]);
       cudaFree(q0[s]);
       cudaFree(F[s]);
+      cudaFree(Fo[s]);
+      cudaFree(Bw[s]);
     }
-    cudaFree(phi);
-    cudaFree(dv);
+    for (T* a : {phi, dv, tmp, cr, cp, cAp, pres}) cudaFree(a);
     cudaFree(dmax);
+    cudaFree(dsum);
     delete P;
   }
-  void rhs() {
-    for (int s = 0; s < ncomp; ++s) k_ns_rhs<T><<<grid3(L), B3>>>(q[0], q[1], q[2], F[s], L, s, T(nu), W, G);
+  void rhs() {  // explicit scheme: convection + diffusion + force; IMEX: convection + force only
+    const T nu_explicit = scheme == 0 ? T(nu) : T(0);
+    for (int s = 0; s < ncomp; ++s) k_ns_rhs<T><<<grid3(L), B3>>>(q[0], q[1], q[2], F[s], L, s, nu_explicit, W, G);
+  }
+  double dot(const T* a, const T* b) {
+    return dot_det(a, b, L.cells(), dsum);
+  }
+  // Solve (I - cnu Lap_homogeneous) x = b for component comp by conjugate gradients (the operator is
+  // symmetric positive definite and well conditioned: 1 <= eigenvalues <= 1 + 4 cnu sum(1/h^2)).
+  void helmholtz(int comp, T* x, const T* b, double cnu) {
+    const size_t n = L.cells();
+    k_helm<T><<<grid3(L), B3>>>(x, cAp, L, comp, W, cnu);
+    CK(cudaMemcpyAsync(cr, b, n * sizeof(T), cudaMemcpyDeviceToDevice));
+    k_axpy<T><<<lin_blocks(n), 256>>>(cr, cAp, -1.0, n);  // r = b - A x
+    CK(cudaMemcpyAsync(cp, cr, n * sizeof(T), cudaMemcpyDeviceToDevice));
+    double rr = dot(cr, cr);
+    const double stop = htol * htol * std::max(dot(b, b), 1e-300);
+    int it = 0;
+    while (rr > stop && it < 500) {
+      k_helm<T><<<grid3(L), B3>>>(cp, cAp, L, comp, W, cnu);
+      const double alpha = rr / dot(cp, cAp);
+      k_axpy<T><<<lin_blocks(n), 256>>>(x, cp, alpha, n);
+      k_axpy<T><<<lin_blocks(n), 256>>>(cr, cAp, -alpha, n);
+      const double rr2 = dot(cr, cr);
+      k_xpby<T><<<lin_blocks(n), 256>>>(cp, cr, rr2 / rr, n);
+      rr = rr2;
+      ++it;
+    }
+    helm_its += it;
+    ++helm_solves;
+  }
+  void step_imex(double dt) {
+    static const double gam[3] = {8.0 / 15.0, 5.0 / 12.0, 3.0 / 4.0};
+    static const double zeta[3] = {0.0, -17.0 / 60.0, -5.0 / 12.0};
+    static const double ab[3] = {4.0 / 15.0, 1.0 / 15.0, 1.0 / 6.0};  // alpha = beta (Crank-Nicolson split)
+    // Incremental projection: the predictor includes the last pressure gradient, so the projection
+    // only removes the pressure INCREMENT. Without it the implicit diffusion acts on the full gradient
+    // part of u*, and near walls Lap(grad p) is not a gradient: an O(dt) error that survives even at
+    // steady state (found: the steady cavity differed from the explicit scheme's by up to 6e-4 U).
+    const size_t n = L.cells();
+    for (int k = 0; k < 3; ++k) {
+      const double cdt = 2.0 * ab[k] * dt;  // (alpha + beta) dt: converts the increment phi to pressure
+      rhs();                                // F = N(u_{k-1})
+      for (int s = 0; s < ncomp; ++s) {
+        k_ns_lap<T><<<grid3(L), B3>>>(q[s], tmp, L, s, W, 0);
+        k_imex_b<T><<<lin_blocks(n), 256>>>(q0[s], q[s], F[s], Fo[s], tmp, Bw[s], dt, gam[k], zeta[k], ab[k], ab[k],
+                                            nu, n);  // q0 holds the stage's right-hand side
+        k_ns_correct<T><<<grid3(L), B3>>>(q0[s], pres, L, s, cdt);  // - (alpha+beta) dt grad p_old
+        helmholtz(s, q[s], q0[s], ab[k] * dt * nu);                // initial guess: the current velocity
+        std::swap(F[s], Fo[s]);                                     // N(u_{k-1}) becomes N_old next stage
+      }
+      project();                                               // u = u* - grad(phi)
+      k_axpy<T><<<lin_blocks(n), 256>>>(pres, phi, 1.0 / cdt, n);  // p += phi / ((alpha+beta) dt)
+    }
   }
   void project() {
     k_ns_div<T><<<grid3(L), B3>>>(q[0], q[1], q[2], dv, L);
@@ -724,6 +918,10 @@ struct NS {
     project();
   }
   void step(double dt) {
+    if (scheme == 1) {
+      step_imex(dt);
+      return;
+    }
     for (int s = 0; s < ncomp; ++s) CK(cudaMemcpyAsync(q0[s], q[s], L.cells() * sizeof(T), cudaMemcpyDeviceToDevice));
     stage(0.0, 1.0, dt);
     stage(0.75, 0.25, dt);
@@ -768,6 +966,8 @@ void gcfd_ns_run(void* s, double dt, int nsteps, double ptol, double* stats) {
   m->ptol = ptol;
   m->poisson_its = 0;
   m->projections = 0;
+  m->helm_its = 0;
+  m->helm_solves = 0;
   cudaEvent_t e0, e1;
   CK(cudaEventCreate(&e0));
   CK(cudaEventCreate(&e1));
@@ -783,6 +983,17 @@ void gcfd_ns_run(void* s, double dt, int nsteps, double ptol, double* stats) {
   stats[0] = t;
   stats[1] = m->max_div();
   stats[2] = m->projections ? double(m->poisson_its) / m->projections : 0.0;
+  stats[3] = m->helm_solves ? double(m->helm_its) / m->helm_solves : 0.0;
+}
+// CUDA graphs for the multigrid V-cycles: 1 on (default), 0 off. Affects solvers created afterwards
+// and graphs recorded afterwards; results are identical either way.
+void gcfd_set_graphs(int on) { g_use_graphs = on != 0; }
+
+// scheme 0: explicit RK3; 1: IMEX (implicit diffusion). htol: relative tolerance of the diffusion solves.
+void gcfd_ns_scheme(void* s, int scheme, double htol) {
+  NS* m = static_cast<NS*>(s);
+  m->scheme = scheme;
+  m->htol = htol;
 }
 double gcfd_ns_project(void* s) {  // project the current velocity (initial data), return max |div u| after
   NS* m = static_cast<NS*>(s);

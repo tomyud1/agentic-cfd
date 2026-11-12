@@ -72,8 +72,10 @@ gpucfd/
 ## Status (2026-11-11)
 
 Built and verified: the pressure Poisson solver (rungs 0-5), Navier-Stokes on periodic boxes
-(rung 6) and walls (rung 7, 2026-11-12). Run the whole ladder with `bash gpucfd/run_ladder.sh`
-(or `python -m gpucfd.tests.test_poisson | test_ns | test_walls`); results in `gpucfd/tests/results/`.
+(rung 6), walls (rung 7), reproducibility (rung 8), and two time schemes: explicit RK3 and IMEX
+(implicit diffusion). Run the whole ladder with `bash gpucfd/run_ladder.sh` (or
+`python -m gpucfd.tests.test_poisson | test_ns | test_walls | test_reproducible`); results in
+`gpucfd/tests/results/`.
 
 | Rung | Result |
 |---|---|
@@ -83,15 +85,24 @@ Built and verified: the pressure Poisson solver (rungs 0-5), Navier-Stokes on pe
 | 3 | Order of accuracy 1.99-2.00 for Neumann, Dirichlet, periodic and mixed boundaries, 2D and 3D |
 | 4 | Multigrid: 12 V-cycles (2D) / 13-14 (3D) to 1e-10 at every grid size from 32^2 to 1024^2 and 16^3 to 128^3; with CG 8-9 iterations; reduction 0.06-0.17 per iteration |
 | 5 | Mixed precision (double outer iteration, single-precision multigrid) equals double to 1e-14 with the same iteration count. Pure single precision is NOT safe: on a 256^2 grid its error was 6 times the discretisation error (round-off grows like 1/h^2), so it is not used |
-| 6 | Taylor-Green (2D) and ABC flow (3D): spatial order 2.00, temporal order 3 (RK3), divergence 1e-13, mixed = double to 1e-15 |
+| 6 | Taylor-Green (2D) and ABC flow (3D): spatial order 2.00, temporal order 3 (RK3) and 2.0 (IMEX, mean 1.99 / 2.07), divergence 1e-13 or below, mixed = double to 1e-15 |
 | 7a | Walls against exact solutions: Couette flow (moving wall) stays exact to 1e-16 in 2D and 3D; decaying channel mode order 2.00 (2D, and 3D with walls in another direction); Poiseuille flow from rest with a body force order 2.00; zero flow through wall faces, divergence 0 |
-| 7b | Lid-driven cavity Re 100 (`python -m gpucfd.compare.cavity 32 64 128`): GPU and OpenFOAM (case 2) solutions converge to each other at second order (centreline difference 0.0027, 0.0007, 0.0002 U on 32^2, 64^2, 128^2); both stay 0.009 U from Ghia et al., as case 2 found (Ghia's own error) |
+| 7b | Lid-driven cavity Re 100 (`python -m gpucfd.compare.cavity [imex] 32 64 128`): GPU and OpenFOAM (case 2) solutions converge to each other at second order (centreline difference 0.0027, 0.0007, 0.0002 U on 32^2, 64^2, 128^2); both stay 0.009 U from Ghia et al., as case 2 found (Ghia's own error). Both time schemes (all wall tests are run with each) |
+| 7c | Both time schemes reach the same steady cavity: 5e-9 U apart on 16^2 and 32^2 |
+| 8 | Reproducibility: two identical runs are bit-identical, and CUDA graphs on/off are bit-identical (Poisson double/mixed, cavity with each scheme) |
 
 Bugs the ladder caught while building (each would have produced plausible-looking wrong results):
 1. Multigrid corrections on coarse levels started from leftover memory (rung 2 and 4 failures).
 2. Pure single precision silently lost accuracy on fine grids (rung 5): led to mixed precision.
 3. A blown-up run reported "divergence 0": `fmax` ignores NaN. The maximum now propagates NaN and
    `NavierStokes.run` raises with the stability limits.
+4. The first IMEX version reached a different steady cavity than the explicit scheme (up to 6e-4 U):
+   with implicit diffusion, a non-incremental projection leaves an O(dt) error near walls, because
+   the Laplacian of a pressure gradient is not a gradient there. Fixed with the incremental projection
+   (predictor uses the last pressure; the projection only removes the increment). Rung 7c now checks it.
+5. Results differed between identical runs at 4e-16: dot products summed block results with
+   atomicAdd, whose order varies. Now deterministic (fixed-order sums), which also makes "this
+   optimisation changed nothing" checkable bit for bit (rung 8).
 
 Speed (RTX 4070, `python -m gpucfd.bench.bench_poisson`, numbers in `bench/results/`):
 - Pressure solve to 1e-6, mixed precision, 3D: 9.6 ms at 2.1 million cells, 100 ms at 16.8 million.
@@ -110,16 +121,41 @@ Speed (RTX 4070, `python -m gpucfd.bench.bench_poisson`, numbers in `bench/resul
 - A loose relative pressure tolerance (1e-4) does not change the cavity answer (2.6e-7 U against
   1e-3 U between grids) and halves the time.
 
+### Speed work, round 1 (2026-11-12)
+Two changes, each gated by the full ladder:
+1. **IMEX time scheme** (`scheme="imex"`): convection by the low-storage RK3 of Spalart, Moser & Rogers
+   (1991), diffusion by Crank-Nicolson inside each stage (one conjugate-gradient Helmholtz solve per
+   velocity component, about 3-10 iterations), with an incremental pressure projection. The time step
+   is limited by the flow speed only. Second order in time (RK3 explicit stays available: third order).
+2. **CUDA graphs** for the multigrid V-cycles (about 100 launches recorded once, replayed as one).
+
+| Case | Before | After | Speed-up |
+|---|---|---|---|
+| Cavity 32^2 to steady state | 19.5 s (rk3) | 10.9 s (imex + graphs) | 1.8 |
+| Cavity 64^2 | 89.6 s | 19.4 s | 4.6 |
+| Cavity 128^2 | 396 s, 29 511 steps | 42.8 s, 4 320 steps | 9.3 |
+| ABC flow 64^3 (comparison flow) | 0.30 s | 0.18 s | 1.7 |
+| ABC flow 128^3 | 1.73 s | 1.57 s | 1.1 |
+| ABC flow 256^3 | 32.3 s | 31.4 s | 1.0 |
+
+Answers unchanged: cavity centrelines identical to the earlier runs' accuracy (same differences from
+Ghia and OpenFOAM), ABC errors identical. The cavity on 128^2 now takes about as long as case 2's
+OpenFOAM run (46 s, steady SIMPLE as case 2 configured it; not tuned for speed, so not a fair speed
+comparison). Large 3D grids barely change: they were already limited by memory bandwidth, not
+launches.
+
+Still left on small grids: about 10 ms per time step on 128^2. The Helmholtz and pressure CG loops
+synchronise with the CPU for every dot product, and the time-step kernels outside the V-cycle are
+not in a graph.
+
 ## Next steps (in order)
 1. ~~Fair OpenFOAM comparison~~ (done 2026-11-12, below). Open question from it: why OpenFOAM's
    error converges faster than second order on this flow (one more grid would show it).
 2. ~~Walls~~ (done 2026-11-12, rung 7).
-3. **Speed, each change gated by the ladder** (the cavity shows what matters most):
-   - implicit (or semi-implicit) diffusion, so the time step follows the flow speed, not h^2 / nu;
-   - CUDA graphs: record a whole time step once and replay it (launch overhead);
+3. **Speed, round 2** (each change gated by the ladder):
    - a steady-state mode (local time steps or a steady solver) for problems like the cavity;
-   - red-black kernels that launch only one colour's cells; fused residual + restriction; on-device
-     CG scalars (no host sync per dot product).
+   - CG scalars on the GPU (no CPU sync per dot product), then a whole time step as one graph;
+   - red-black kernels that launch only one colour's cells; fused residual + restriction.
 4. Stretched grids, inflow/outflow, then curved bodies (immersed boundary) for the DFG cylinders.
 
 ## Comparison with OpenFOAM (2026-11-12)
