@@ -526,23 +526,55 @@ struct Solver : Base {
 };
 
 // ================================================================================================
-// Incompressible Navier-Stokes on a periodic staggered (MAC) grid.
+// Incompressible Navier-Stokes on a staggered (MAC) grid.
 // Velocity component c lives on the c-faces: q_c[i,j,k] is at the low face of cell (i,j,k) in
 // direction c. Convection in divergence form with central averages, diffusion with the 2nd-order
 // Laplacian, time stepping with the 3-stage strong-stability-preserving Runge-Kutta scheme, and a
 // pressure projection after every stage (Laplacian(phi) = div(u*), u = u* - grad(phi)).
+//
+// Each direction is periodic or bounded by a wall at both ends (L.bc = NEUMANN there, for the
+// pressure). On a wall the normal velocity is zero: for the normal component, face 0 IS the low wall
+// (kept at zero) and face n (not stored) is the high wall. A tangential component sees the ghost value
+// 2 U_wall - q beyond a wall, so that its average on the wall equals the wall's speed (no slip; a
+// moving lid has U_wall != 0).
 // ================================================================================================
-__device__ __forceinline__ size_t wrap(const Level& L, int i, int j, int k) {
-  i = (i + L.n[0]) % L.n[0];
-  j = (j + L.n[1]) % L.n[1];
-  k = (k + L.n[2]) % L.n[2];
-  return i + size_t(L.n[0]) * (j + size_t(L.n[1]) * k);
+struct Walls {
+  double U[6][3];  // velocity of each wall: x-, x+, y-, y+, z-, z+
+};
+struct Force {
+  double g[3];  // constant body force per unit mass (drives channel flows)
+};
+
+__device__ __forceinline__ bool wall_dir(const Level& L, int d) { return L.bc[2 * d] != PERIODIC; }
+
+// Linear index of (i,j,k), wrapped in periodic directions; -1 if it lies beyond a wall.
+__device__ __forceinline__ long long at(const Level& L, int i, int j, int k) {
+  int I[3] = {i, j, k};
+#pragma unroll
+  for (int d = 0; d < 3; ++d) {
+    if (I[d] < 0 || I[d] >= L.n[d]) {
+      if (L.bc[2 * d] != PERIODIC) return -1;
+      I[d] = (I[d] + L.n[d]) % L.n[d];
+    }
+  }
+  return I[0] + (long long)L.n[0] * (I[1] + (long long)L.n[1] * I[2]);
+}
+
+// A face-normal component at index m: beyond a wall it is the wall itself, where it is zero.
+template <typename T>
+__device__ __forceinline__ T normal_at(const T* a, long long m) {
+  return m < 0 ? T(0) : a[m];
 }
 
 template <typename T>
 __global__ void k_ns_rhs(const T* __restrict__ u, const T* __restrict__ v, const T* __restrict__ w, T* F,
-                         Level L, int comp, T nu) {
+                         Level L, int comp, T nu, Walls W, Force G) {
   CELL(L)
+  const int I[3] = {i, j, k};
+  if (wall_dir(L, comp) && I[comp] == 0) {  // a wall face: the normal velocity stays zero
+    F[c] = T(0);
+    return;
+  }
   const T* V[3] = {u, v, w};
   const T* q = V[comp];
   const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
@@ -553,21 +585,25 @@ __global__ void k_ns_rhs(const T* __restrict__ u, const T* __restrict__ v, const
     if (L.n[d] == 1) continue;
     const int* ed = E[d];
     const T h = T(L.h[d]);
-    const T qp = q[wrap(L, i + ed[0], j + ed[1], k + ed[2])];
-    const T qm = q[wrap(L, i - ed[0], j - ed[1], k - ed[2])];
-    if (d == comp) {
+    const long long mp = at(L, i + ed[0], j + ed[1], k + ed[2]);
+    const long long mm = at(L, i - ed[0], j - ed[1], k - ed[2]);
+    T qp, qm;
+    if (d == comp) {  // along its own direction: the wall faces are zero
+      qp = normal_at(q, mp);
+      qm = normal_at(q, mm);
       const T Up = T(0.5) * (qc + qp), Um = T(0.5) * (qm + qc);  // cell-centre values right and left
       conv += (Up * Up - Um * Um) / h;
-    } else {
-      const T* a = V[d];  // advecting component, averaged to the edges of the face
-      const T aup = T(0.5) * (a[wrap(L, i + ed[0], j + ed[1], k + ed[2])] +
-                              a[wrap(L, i + ed[0] - ec[0], j + ed[1] - ec[1], k + ed[2] - ec[2])]);
-      const T alo = T(0.5) * (a[c] + a[wrap(L, i - ec[0], j - ec[1], k - ec[2])]);
+    } else {  // across direction d: ghost values beyond walls carry the wall speed
+      qp = mp >= 0 ? q[mp] : T(2.0 * W.U[2 * d + 1][comp]) - qc;
+      qm = mm >= 0 ? q[mm] : T(2.0 * W.U[2 * d][comp]) - qc;
+      const T* a = V[d];  // advecting component at the face's edges; zero on a wall (no flow through it)
+      const T aup = T(0.5) * (normal_at(a, mp) + normal_at(a, at(L, i + ed[0] - ec[0], j + ed[1] - ec[1], k + ed[2] - ec[2])));
+      const T alo = T(0.5) * (a[c] + normal_at(a, at(L, i - ec[0], j - ec[1], k - ec[2])));
       conv += (aup * T(0.5) * (qc + qp) - alo * T(0.5) * (qm + qc)) / h;
     }
     diff += (qp - T(2) * qc + qm) / (h * h);
   }
-  F[c] = -conv + nu * diff;
+  F[c] = -conv + nu * diff + T(G.g[comp]);
 }
 
 template <typename T>
@@ -578,7 +614,7 @@ __global__ void k_ns_div(const T* u, const T* v, const T* w, T* dv, Level L) {
   T s = T(0);
   for (int d = 0; d < 3; ++d) {
     if (L.n[d] == 1) continue;
-    s += (V[d][wrap(L, i + E[d][0], j + E[d][1], k + E[d][2])] - V[d][c]) / T(L.h[d]);
+    s += (normal_at(V[d], at(L, i + E[d][0], j + E[d][1], k + E[d][2])) - V[d][c]) / T(L.h[d]);
   }
   dv[c] = s;
 }
@@ -586,8 +622,17 @@ __global__ void k_ns_div(const T* u, const T* v, const T* w, T* dv, Level L) {
 template <typename T>
 __global__ void k_ns_correct(T* q, const T* phi, Level L, int comp) {
   CELL(L)
+  const int I[3] = {i, j, k};
+  if (wall_dir(L, comp) && I[comp] == 0) return;  // wall face: no correction (zero pressure gradient there)
   const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-  q[c] -= (phi[c] - phi[wrap(L, i - E[comp][0], j - E[comp][1], k - E[comp][2])]) / T(L.h[comp]);
+  q[c] -= (phi[c] - phi[at(L, i - E[comp][0], j - E[comp][1], k - E[comp][2])]) / T(L.h[comp]);
+}
+
+template <typename T>
+__global__ void k_zero_wall(T* q, Level L, int comp) {
+  CELL(L)
+  const int I[3] = {i, j, k};
+  if (wall_dir(L, comp) && I[comp] == 0) q[c] = T(0);
 }
 
 template <typename T>
@@ -625,9 +670,17 @@ struct NS {
   double* dmax = nullptr;
   Solver<double>* P;
   long poisson_its = 0, projections = 0;
+  Walls W;
+  Force G;
 
-  NS(const int* n, const double* len, double nu_, int precision) : nu(nu_) {
-    const int bc[6] = {PERIODIC, PERIODIC, PERIODIC, PERIODIC, PERIODIC, PERIODIC};
+  NS(const int* n, const double* len, double nu_, int precision, const int* walls, const double* uwall,
+     const double* g)
+      : nu(nu_) {
+    int bc[6];
+    for (int d = 0; d < 3; ++d) bc[2 * d] = bc[2 * d + 1] = walls[d] ? NEUMANN : PERIODIC;
+    for (int s = 0; s < 6; ++s)
+      for (int d = 0; d < 3; ++d) W.U[s][d] = uwall[3 * s + d];
+    for (int d = 0; d < 3; ++d) G.g[d] = g[d];
     P = new Solver<double>(n, len, bc, 2, 2);
     if (precision == 6) P->pre = new Solver<float>(n, len, bc, 2, 2);
     L = P->L[0];
@@ -656,7 +709,7 @@ struct NS {
     delete P;
   }
   void rhs() {
-    for (int s = 0; s < ncomp; ++s) k_ns_rhs<T><<<grid3(L), B3>>>(q[0], q[1], q[2], F[s], L, s, T(nu));
+    for (int s = 0; s < ncomp; ++s) k_ns_rhs<T><<<grid3(L), B3>>>(q[0], q[1], q[2], F[s], L, s, T(nu), W, G);
   }
   void project() {
     k_ns_div<T><<<grid3(L), B3>>>(q[0], q[1], q[2], dv, L);
@@ -688,16 +741,22 @@ struct NS {
 
 extern "C" {
 
-void* gcfd_ns_create(const int* n, const double* len, double nu, int precision) {
-  for (int d = 0; d < 3; ++d)
-    if (n[d] < 1 || (n[d] > 1 && n[d] % 2)) return nullptr;
-  if (n[0] < 2 || n[1] < 2) return nullptr;
-  return new NS(n, len, nu, precision);
+// walls: 3 ints (1: walls at both ends of that direction, 0: periodic). uwall: 18 doubles, the velocity
+// of each wall (x-, x+, y-, y+, z-, z+; only tangential components are used). g: body force (3).
+void* gcfd_ns_create(const int* n, const double* len, double nu, int precision, const int* walls,
+                     const double* uwall, const double* g) {
+  for (int d = 0; d < 3; ++d) {
+    if (n[d] < 1) return nullptr;
+    if (!walls[d] && n[d] > 1 && n[d] % 2) return nullptr;  // periodic: even (red-black ordering)
+  }
+  if (n[0] < 2 || n[1] < 2 || (n[2] == 1 && walls[2])) return nullptr;
+  return new NS(n, len, nu, precision, walls, uwall, g);
 }
 void gcfd_ns_destroy(void* s) { delete static_cast<NS*>(s); }
 void gcfd_ns_set(void* s, int comp, const double* h) {
   NS* m = static_cast<NS*>(s);
   CK(cudaMemcpy(m->q[comp], h, m->L.cells() * sizeof(double), cudaMemcpyHostToDevice));
+  k_zero_wall<double><<<grid3(m->L), B3>>>(m->q[comp], m->L, comp);  // a wall face carries no flow
 }
 void gcfd_ns_get(void* s, int comp, double* h) {
   NS* m = static_cast<NS*>(s);

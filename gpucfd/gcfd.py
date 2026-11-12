@@ -43,7 +43,7 @@ def lib():
         L.gcfd_device.restype = ctypes.c_int
         L.gcfd_device.argtypes = [ctypes.c_char_p, ctypes.c_int]
         L.gcfd_ns_create.restype = ctypes.c_void_p
-        L.gcfd_ns_create.argtypes = [_ip, _dp, ctypes.c_double, ctypes.c_int]
+        L.gcfd_ns_create.argtypes = [_ip, _dp, ctypes.c_double, ctypes.c_int, _ip, _dp, _dp]
         L.gcfd_ns_destroy.argtypes = [ctypes.c_void_p]
         L.gcfd_ns_set.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp]
         L.gcfd_ns_get.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp]
@@ -117,19 +117,32 @@ class Poisson:
 
 
 class NavierStokes:
-    """Incompressible Navier-Stokes on a periodic box (staggered grid, all fields in double precision).
+    """Incompressible Navier-Stokes on a box (staggered grid, all fields in double precision).
     Velocity component c is stored on the low c-faces of the cells: u[k, j, i] at x = i h, y = (j + 1/2) h,
-    z = (k + 1/2) h, and so on. nz = 1 makes it 2D. pressure: "mixed" or "double" (projection solver)."""
+    z = (k + 1/2) h, and so on. nz = 1 makes it 2D. pressure: "mixed" or "double" (projection solver).
+    walls: per direction, True for walls at both ends (no slip), False for periodic. On a wall direction
+    the normal component's face 0 is the low wall and stays zero.
+    wall_velocity: {"x-"|"x+"|"y-"|"y+"|"z-"|"z+": (ux, uy, uz)} for moving walls (tangential part used).
+    force: constant body force per unit mass (gx, gy, gz)."""
 
-    def __init__(self, n, length, nu, pressure="mixed"):
+    SIDES = ("x-", "x+", "y-", "y+", "z-", "z+")
+
+    def __init__(self, n, length, nu, pressure="mixed", walls=(False, False, False), wall_velocity=None,
+                 force=(0.0, 0.0, 0.0)):
         self.n = tuple(int(v) for v in n)
         self.shape = (self.n[2], self.n[1], self.n[0])
         self.length = tuple(float(v) for v in length)
         self.ncomp = 3 if self.n[2] > 1 else 2
+        self.walls = tuple(bool(w) for w in walls)
+        uw = np.zeros((6, 3))
+        for side, vel in (wall_velocity or {}).items():
+            uw[self.SIDES.index(side)] = vel
         h = lib().gcfd_ns_create(np.array(self.n, np.int32), np.array(length, np.float64), float(nu),
-                                 PRECISION[pressure])
+                                 PRECISION[pressure], np.array(self.walls, np.int32), uw.ravel(),
+                                 np.array(force, np.float64))
         if not h:
-            raise ValueError("gcfd: invalid grid (even cell counts, at least 2 in x and y)")
+            raise ValueError("gcfd: invalid grid (periodic directions need even cell counts; at least 2 cells "
+                             "in x and y; no z walls in 2D)")
         self.h = h
 
     def close(self):

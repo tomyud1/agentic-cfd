@@ -71,9 +71,9 @@ gpucfd/
 
 ## Status (2026-11-11)
 
-Built and verified: the pressure Poisson solver (rungs 0-5) and Navier-Stokes on periodic boxes
-(rung 6). Run the ladder with `python -m gpucfd.tests.test_poisson` and `python -m gpucfd.tests.test_ns`;
-results in `gpucfd/tests/results/`.
+Built and verified: the pressure Poisson solver (rungs 0-5), Navier-Stokes on periodic boxes
+(rung 6) and walls (rung 7, 2026-11-12). Run the whole ladder with `bash gpucfd/run_ladder.sh`
+(or `python -m gpucfd.tests.test_poisson | test_ns | test_walls`); results in `gpucfd/tests/results/`.
 
 | Rung | Result |
 |---|---|
@@ -84,6 +84,8 @@ results in `gpucfd/tests/results/`.
 | 4 | Multigrid: 12 V-cycles (2D) / 13-14 (3D) to 1e-10 at every grid size from 32^2 to 1024^2 and 16^3 to 128^3; with CG 8-9 iterations; reduction 0.06-0.17 per iteration |
 | 5 | Mixed precision (double outer iteration, single-precision multigrid) equals double to 1e-14 with the same iteration count. Pure single precision is NOT safe: on a 256^2 grid its error was 6 times the discretisation error (round-off grows like 1/h^2), so it is not used |
 | 6 | Taylor-Green (2D) and ABC flow (3D): spatial order 2.00, temporal order 3 (RK3), divergence 1e-13, mixed = double to 1e-15 |
+| 7a | Walls against exact solutions: Couette flow (moving wall) stays exact to 1e-16 in 2D and 3D; decaying channel mode order 2.00 (2D, and 3D with walls in another direction); Poiseuille flow from rest with a body force order 2.00; zero flow through wall faces, divergence 0 |
+| 7b | Lid-driven cavity Re 100 (`python -m gpucfd.compare.cavity 32 64 128`): GPU and OpenFOAM (case 2) solutions converge to each other at second order (centreline difference 0.0027, 0.0007, 0.0002 U on 32^2, 64^2, 128^2); both stay 0.009 U from Ghia et al., as case 2 found (Ghia's own error) |
 
 Bugs the ladder caught while building (each would have produced plausible-looking wrong results):
 1. Multigrid corrections on coarse levels started from leftover memory (rung 2 and 4 failures).
@@ -99,15 +101,25 @@ Speed (RTX 4070, `python -m gpucfd.bench.bench_poisson`, numbers in `bench/resul
   million cells, 480 ms at 16.8 million (about 28 ns per cell per step). The pressure solve is nearly
   all of it.
 - Compared with OpenFOAM on the same flow: see "Comparison with OpenFOAM" below.
+- **Where the GPU solver is slow (cavity, rung 7b)**: the steady 2D cavity on 128^2 took 396 s of
+  GPU time against 46 s for OpenFOAM's steady SIMPLE solver (case 2). Two reasons, both measured:
+  (1) diffusion is explicit, so the time step is limited by 0.15 h^2 / nu instead of the flow speed:
+  29 511 steps on 128^2 where the convective limit would allow about 4 300; (2) small grids are
+  dominated by launch overhead: about 10 ms per time step even on 32^2 (1024 cells), roughly 1000
+  kernel launches per step. Neither is a GPU limit; both are the next speed work.
+- A loose relative pressure tolerance (1e-4) does not change the cavity answer (2.6e-7 U against
+  1e-3 U between grids) and halves the time.
 
 ## Next steps (in order)
 1. ~~Fair OpenFOAM comparison~~ (done 2026-11-12, below). Open question from it: why OpenFOAM's
    error converges faster than second order on this flow (one more grid would show it).
-2. **Walls** (no-slip, moving lid) on the staggered grid, then rung 7: lid-driven cavity Re 100
-   against Ghia et al. and case 2.
-3. **Speed, each change gated by the ladder**: projection tolerance tied to the divergence target
-   instead of 1e-10 relative; CUDA graphs against launch overhead; red-black kernels that launch only
-   the cells of one colour; fused residual + restriction; on-device CG scalars (no host sync per dot).
+2. ~~Walls~~ (done 2026-11-12, rung 7).
+3. **Speed, each change gated by the ladder** (the cavity shows what matters most):
+   - implicit (or semi-implicit) diffusion, so the time step follows the flow speed, not h^2 / nu;
+   - CUDA graphs: record a whole time step once and replay it (launch overhead);
+   - a steady-state mode (local time steps or a steady solver) for problems like the cavity;
+   - red-black kernels that launch only one colour's cells; fused residual + restriction; on-device
+     CG scalars (no host sync per dot product).
 4. Stretched grids, inflow/outflow, then curved bodies (immersed boundary) for the DFG cylinders.
 
 ## Comparison with OpenFOAM (2026-11-12)

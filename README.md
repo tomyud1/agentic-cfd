@@ -187,8 +187,10 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
   rung against a verification ladder (exact solutions, independent reference code, order of
   accuracy); see [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md) for the plan and current status. Periodic
   2D/3D flows pass. On the same 3D flow and grid as OpenFOAM (each with its best settings), it is 17
-  times faster at 262 thousand cells and 168 times faster at 2.1 million, with a smaller error; it
-  only handles periodic boxes so far, so walls are next.
+  times faster at 262 thousand cells and 168 times faster at 2.1 million, with a smaller error. Walls
+  work too: on the lid-driven cavity its solution and OpenFOAM's converge to each other at second
+  order. On that small steady problem it is still slower than OpenFOAM (explicit diffusion and launch
+  overhead), which is the next work.
 - **Smarter studies**: start each finer mesh from the coarser solution, stop when the extrapolated
   answer settles, faster algorithms for steady problems.
 - **GPU setup instructions** for OGL are in [`setup/gpu/`](setup/gpu) (CUDA check, build script,
