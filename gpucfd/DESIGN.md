@@ -89,7 +89,7 @@ Built and verified: the pressure Poisson solver (rungs 0-5), Navier-Stokes on pe
 | 7a | Walls against exact solutions: Couette flow (moving wall) stays exact to 1e-16 in 2D and 3D; decaying channel mode order 2.00 (2D, and 3D with walls in another direction); Poiseuille flow from rest with a body force order 2.00; zero flow through wall faces, divergence 0 |
 | 7b | Lid-driven cavity Re 100 (`python -m gpucfd.compare.cavity [imex] 32 64 128`): GPU and OpenFOAM (case 2) solutions converge to each other at second order (centreline difference 0.0027, 0.0007, 0.0002 U on 32^2, 64^2, 128^2); both stay 0.009 U from Ghia et al., as case 2 found (Ghia's own error). Both time schemes (all wall tests are run with each) |
 | 7c | Both time schemes reach the same steady cavity: 5e-9 U apart on 16^2 and 32^2 |
-| 8 | Reproducibility: two identical runs are bit-identical, and CUDA graphs on/off are bit-identical (Poisson double/mixed, cavity with each scheme) |
+| 8 | Reproducibility: two identical runs are bit-identical, and CUDA graphs on/off are bit-identical (Poisson double/mixed, cavity and 3D periodic flow with each scheme) |
 
 Bugs the ladder caught while building (each would have produced plausible-looking wrong results):
 1. Multigrid corrections on coarse levels started from leftover memory (rung 2 and 4 failures).
@@ -148,14 +148,100 @@ Still left on small grids: about 10 ms per time step on 128^2. The Helmholtz and
 synchronise with the CPU for every dot product, and the time-step kernels outside the V-cycle are
 not in a graph.
 
+### Speed work, round 2 (2026-11-12)
+Measured first (`python -m gpucfd.bench.bench_step`): 10.5 ms per time step even on a 32^2 cavity
+(1024 cells), so the cost was fixed overhead, not work. Under WSL a kernel launch costs about 25 us
+and a CPU-GPU round trip about 63 us, and a step made about 115 round trips (one per dot product)
+and about 1200 launches. Changes, each gated by the ladder:
+1. **Every CG scalar on the GPU, loops decided by the GPU.** Dot products, alpha, beta and the stop
+   test live in GPU memory (one-thread kernels doing exactly the CPU's former arithmetic), and each
+   CG loop is a CUDA graph WHILE node (CUDA 12.4+). A whole pressure solve, and a whole time step,
+   is recorded once and replayed with one launch and no CPU sync. With graphs off, the CPU launches
+   the same kernels and reads the stop flag; rung 8 checks that both give bit-identical results.
+2. **Fused residual + restriction** in the V-cycle (the residual is never stored), and the coarse
+   end of each V-cycle (levels of at most 1024 cells) in **one thread block in shared memory**.
+3. **Multiply by 1/h and 1/h^2 instead of dividing** in the Navier-Stokes kernels. This GPU runs
+   double-precision arithmetic at 1/64 of the float rate, and a double division costs about 10 of
+   those operations, so these kernels were limited by arithmetic, not memory (12 % faster in 3D).
+4. **Larger time steps for steady problems**: the steady answer does not depend on the time step
+   (rung 7c), and the IMEX scheme on the Re 100 cavity is stable up to CFL about 4 (blows up at 6;
+   cell Reynolds number 0.8, so the implicit diffusion damps the grid-scale modes that limit explicit
+   convection). `compare.cavity imex cfl=2` uses half the measured limit. The default stays 0.8: in
+   convection-dominated flows the limit is the usual one (about 1.7).
+
+**Same answers**: changes 1 and 2 are bit-identical to the round-1 build (checked with
+`tests/same_as_build.py` against a build of the old source: 18 of 18 results equal to the last bit,
+Poisson, cavity and 3D flow, both schemes). Change 3 is bit-identical where h is a power of two (the
+cavity) and differs at 1e-10 on the 3D flow (a pressure solve near its 1e-4 tolerance took a
+different iteration count); the 3D errors against the exact solution are unchanged to 3 digits.
+Change 4 moves the steady cavity by at most 3e-10 U.
+
+Per time step (`bench/results/bench_step.json`):
+
+| Case | Round 1 | Round 2 | Speed-up |
+|---|---|---|---|
+| Cavity 32^2, IMEX | 10.5 ms | 2.1 ms | 5.0 |
+| Cavity 128^2, IMEX | 11.6 ms | 2.9 ms | 4.0 |
+| ABC 64^3, IMEX | 15.2 ms | 8.5 ms | 1.8 |
+| ABC 128^3, IMEX | 63.6 ms | 49.8 ms | 1.3 |
+
+Whole runs (`python -m gpucfd.bench.round2`, `bench/results/round2.json`):
+
+| Case | Before round 1 | Round 1 | Round 2 | vs OpenFOAM |
+|---|---|---|---|---|
+| Cavity 128^2 to steady state | 396 s | 42.8 s | 11.1 s (CFL 0.8), 5.1 s (CFL 2) | case 2: 46 s (steady SIMPLE, not tuned for speed) |
+| Cavity 256^2 | | | 36.0 s (CFL 0.8), 17.7 s (CFL 2) | |
+| ABC 32^3 (comparison flow, RK3) | 0.088 s | | 0.020 s | 18 times faster (0.36 s) |
+| ABC 64^3 | 0.30 s | 0.18 s | 0.107 s | 47 times (4.98 s) |
+| ABC 128^3 | 1.73 s | 1.57 s | 1.24 s | 235 times (291 s) |
+| ABC 256^3 | 32.3 s | 31.4 s | 26.5 s | (OpenFOAM does not fit in 23 GB) |
+
+What did not pay: the one-block V-cycle tail sped a 32^2 mixed-precision V-cycle up 27 % (110 to
+80 us) but a whole step only about 5 %, within run-to-run noise (about 10 %, so timings are best of
+several runs). Small grids are now limited by latency: about 1200 dependent GPU operations per step
+at 1-2 us each. Nsight Systems under WSL records API calls but not kernel times, which made this
+harder to see; the step costs were measured with microbenchmarks instead.
+
+## Limitations (2026-11-12)
+
+**Problems it cannot solve yet**
+- Geometry: a box only. Uniform Cartesian grids (no stretching, so a boundary layer forces a fine
+  grid everywhere), no bodies inside the domain (no cylinders, no curved walls).
+- Boundaries: periodic, or no-slip walls that can slide tangentially (a moving lid). No inflow,
+  outflow, symmetry, slip or pressure boundaries, so no channel with an inlet, no external flow.
+- Physics: incompressible, single phase, constant density and viscosity, laminar. No turbulence
+  model (only resolved simulations at low Reynolds number), no heat transfer or transported scalars,
+  no buoyancy, no free surface, no compressibility. Body force constant in space and time.
+- Numerics: central differences without upwinding or limiters, so the grid must resolve the flow
+  (cell Reynolds number U h / nu around 2 or below for clean results); at higher Reynolds numbers it
+  will oscillate rather than smear.
+- Grid sizes: periodic directions need even cell counts, and multigrid works well only when each
+  direction halves several times (sizes like 2^k or 3 x 2^k). An awkward size leaves a large coarsest
+  grid, which is solved slowly by one thread block.
+- Tooling: no field output for ParaView, no restart files, no probes or force coefficients; data
+  comes out through Python (`NavierStokes.get`). One GPU, no MPI.
+
+**Speed limits**
+- Small grids are latency-bound: a time step is about 1200 dependent GPU operations of a few
+  microseconds each, so it costs about 2 ms whatever the grid size below about 128^2.
+- Double-precision arithmetic: consumer GPUs (the RTX 4070 here, and the RTX Spark-class machines)
+  run FP64 at 1/64 of the float rate. The velocity, the diffusion solves and all reductions are
+  double; only the pressure multigrid runs in float (mixed precision).
+- Large grids are limited by memory bandwidth, and the pressure is solved three times per time
+  step (once per Runge-Kutta stage).
+- Steady problems are time-marched: the number of time units to settle is set by the physics (27
+  for the Re 100 cavity), and convection is explicit, so the time step is bounded by the flow speed
+  (CFL about 1.7 for convection-dominated flows; up to about 4 when the cell Reynolds number is
+  below 1, as in the cavity, because the implicit diffusion damps the grid-scale modes).
+- Memory: 12 GB holds about 17 million cells (256^3) with this layout.
+
 ## Next steps (in order)
 1. ~~Fair OpenFOAM comparison~~ (done 2026-11-12, below). Open question from it: why OpenFOAM's
    error converges faster than second order on this flow (one more grid would show it).
 2. ~~Walls~~ (done 2026-11-12, rung 7).
-3. **Speed, round 2** (each change gated by the ladder):
-   - a steady-state mode (local time steps or a steady solver) for problems like the cavity;
-   - CG scalars on the GPU (no CPU sync per dot product), then a whole time step as one graph;
-   - red-black kernels that launch only one colour's cells; fused residual + restriction.
+3. ~~Speed, round 2~~ (done 2026-11-12, above). Left for later: a true steady solver (implicit
+   convection, Newton), fewer pressure solves per step, fused CG kernels, and running on a GPU with
+   full-rate FP64 or on native Linux.
 4. Stretched grids, inflow/outflow, then curved bodies (immersed boundary) for the DFG cylinders.
 
 ## Comparison with OpenFOAM (2026-11-12)
@@ -189,6 +275,9 @@ profiling of `time.run()`; GPU: CUDA events), excluding start-up and output.
 | 64^3 (262 k) | 4.98 s, err 3.6e-4 | | 0.30 s, err 1.3e-5 | 0.62 s | 17 |
 | 128^3 (2.1 M) | 291 s, err 3.0e-5 | 514 s, err 2.7e-5 | 1.73 s, err 3.3e-6 | 3.35 s | 168 |
 | 256^3 (16.8 M) | (too large for 23 GB) | | 32.3 s, err 8.5e-7 | | |
+
+(Times as first measured. After the speed work the gpucfd times are 0.020, 0.107, 1.24 and 26.5 s
+with the same errors: 18, 47 and 235 times faster than OpenFOAM's best on the same grids.)
 
 What the numbers say:
 1. **Same grid, same flow: the GPU solver is 4 to 170 times faster**, and the gap grows with the

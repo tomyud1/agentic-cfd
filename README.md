@@ -185,12 +185,15 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
   OpenFOAM's pressure solve is capped near 1.5 times, so this solver keeps the whole time step on the
   GPU (staggered grid, projection method, geometric multigrid, mixed precision). It is built rung by
   rung against a verification ladder (exact solutions, independent reference code, order of
-  accuracy); see [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md) for the plan and current status. Periodic
-  2D/3D flows pass. On the same 3D flow and grid as OpenFOAM (each with its best settings), it is 17
-  times faster at 262 thousand cells and 168 times faster at 2.1 million, with a smaller error. Walls
-  work too: on the lid-driven cavity its solution and OpenFOAM's converge to each other at second
-  order. Implicit diffusion and CUDA graphs made that small steady problem 9 times faster (now about
-  the same time as OpenFOAM), with results checked to be bit-for-bit reproducible.
+  accuracy); see [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md) for the plan, current status and
+  limitations. Periodic 2D/3D flows pass. On the same 3D flow and grid as OpenFOAM (each with its
+  best settings), it is 47 times faster at 262 thousand cells and 235 times faster at 2.1 million,
+  with a smaller error. Walls work too: on the lid-driven cavity its solution and OpenFOAM's converge
+  to each other at second order. Two rounds of speed work (implicit diffusion, whole time steps as
+  CUDA graphs with the solver loops decided on the GPU, larger steady time steps) took that small
+  steady problem from 396 s to 5 s (OpenFOAM, case 2: 46 s), with results checked to be bit-for-bit
+  unchanged by each speed-only change. Not yet possible: inflow/outflow, bodies in the flow,
+  stretched grids, turbulence and heat transfer.
 - **Smarter studies**: start each finer mesh from the coarser solution, stop when the extrapolated
   answer settles, faster algorithms for steady problems.
 - **GPU setup instructions** for OGL are in [`setup/gpu/`](setup/gpu) (CUDA check, build script,

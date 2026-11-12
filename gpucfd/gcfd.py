@@ -7,6 +7,7 @@ Arrays are numpy float64 of shape (nz, ny, nx) (x fastest), interior cells only.
     x, hist, ms = s.solve(f, tol=1e-8, method="pcg")
 """
 import ctypes
+import os
 from pathlib import Path
 
 import numpy as np
@@ -14,7 +15,8 @@ import numpy as np
 BC = {"periodic": 0, "neumann": 1, "dirichlet": 2}
 # "mixed": double-precision outer iteration (solution, residual) with a single-precision multigrid inside
 PRECISION = {"double": 8, "float": 4, "mixed": 6}
-LIB = Path(__file__).parent / "build" / "libgcfd.so"
+# GCFD_LIB: another build of the library (used to check that a change leaves results bit-identical)
+LIB = Path(os.environ.get("GCFD_LIB", Path(__file__).parent / "build" / "libgcfd.so"))
 _lib = None
 
 _dp = np.ctypeslib.ndpointer(dtype=np.float64, flags="C_CONTIGUOUS")
@@ -50,6 +52,8 @@ def lib():
         L.gcfd_ns_run.argtypes = [ctypes.c_void_p, ctypes.c_double, ctypes.c_int, ctypes.c_double, _dp]
         L.gcfd_ns_scheme.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_double]
         L.gcfd_set_graphs.argtypes = [ctypes.c_int]
+        if hasattr(L, "gcfd_set_tail"):  # absent in builds before 2026-11-12 (compared by same_as_build)
+            L.gcfd_set_tail.argtypes = [ctypes.c_longlong]
         L.gcfd_ns_project.restype = ctypes.c_double
         L.gcfd_ns_project.argtypes = [ctypes.c_void_p]
         _lib = L
@@ -63,8 +67,16 @@ def device():
 
 
 def use_graphs(on=True):
-    """CUDA graphs for the multigrid V-cycles (default on). Results are bit-identical either way."""
+    """CUDA graphs (default on): each pressure solve or time step is recorded once and replayed with one
+    launch, loops decided on the GPU. Off: the CPU launches every kernel. Results are bit-identical."""
     lib().gcfd_set_graphs(1 if on else 0)
+
+
+def set_tail(cells=4096):
+    """Multigrid levels with at most this many cells run inside one thread block (one launch for the
+    whole coarse end of a V-cycle); 0 switches it off. Results are bit-identical. Applies to graphs
+    recorded afterwards (create solvers after calling it)."""
+    lib().gcfd_set_tail(int(cells))
 
 
 def bandwidth(mbytes=512, reps=20):
