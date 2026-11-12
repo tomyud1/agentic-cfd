@@ -162,6 +162,55 @@
     "cl_max": -6.123643388589173e-05,
     "cl_min": -8.65276382027158e-05,
     "f": -5.193331439024007e-05
+   },
+   "live": {
+    "start": 15.002,
+    "end": 17.736,
+    "wall": 90.33496622800001,
+    "decision": {
+     "stop": true,
+     "status": "ok",
+     "reason": "all settled: cl_max 0.00074 < 0.002, cl_min 0.00053 < 0.002, cd_max 0.0002 < 0.0005, cd_min 0.00028 < 0.0005, period 0.00013 < 0.0005",
+     "quantities": {
+      "cl_max": {
+       "state": "settled",
+       "spread": 0.0007399190501529151,
+       "remaining": 0.00022467679399573726
+      },
+      "cl_min": {
+       "state": "settled",
+       "spread": 0.0005301772041776953,
+       "remaining": 0.0004145433988006628
+      },
+      "cd_max": {
+       "state": "settled",
+       "spread": 0.00020108257219986214,
+       "remaining": 0.0
+      },
+      "cd_min": {
+       "state": "settled",
+       "spread": 0.00027664547957417795,
+       "remaining": 0.0
+      },
+      "period": {
+       "state": "settled",
+       "spread": 0.00013434341805540484,
+       "remaining": 0.0
+      }
+     },
+     "t": 17.73,
+     "cycles": 7,
+     "cd_max": 3.226551487860116,
+     "cl_max": 1.0100196192078648
+    },
+    "health": "ok",
+    "vs_full": {
+     "cd_max": -5.1855585764926104e-05,
+     "cd_min": -4.789740954125321e-05,
+     "cl_max": -6.123643388589173e-05,
+     "cl_min": -8.65276382027158e-05,
+     "f": -5.193331439024007e-05
+    }
    }
   },
   "M3": {

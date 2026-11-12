@@ -17,7 +17,31 @@ Nothing uncommitted. Next, in this order:
 
 ## 2026-11-12
 
-### OpenFOAM runs stop live on their physical check, commit hash to be filled in
+### Peek: the agent can look into a running simulation whenever it chooses, commit hash to be filled in
+- **What:** `python -m cfdlib.monitor peek <case dir>` gives a snapshot of an OpenFOAM run from its
+  first step to now:
+  - the state (running, finished, crashed) and progress, with the time left;
+  - health so far;
+  - the live stop's last verdict;
+  - every monitored series in one line each.
+
+  It also writes a figure of the whole history: residuals, Courant number, forces, probes and other
+  postProcessing output. `--files` and `--from` narrow it down. SKILL.md stage 4 says how to use it.
+- **Why it matters:** the automatic live stop runs in Python beside the solver and costs no agent
+  tokens. Peek is the other half: the agent decides when to look, after a minute or after hours.
+  Between looks nothing runs, so a long simulation does not fill the agent's session. Everything
+  is read from files the run writes anyway, so it works on any OpenFOAM case.
+- **How it was verified:**
+  - A scratch run was peeked twice while running and once after the end. It was seen as running,
+    and the time-left estimate was right: 15 s left at 8 s; the run ended at 23 s.
+  - A finished case: 1.6 s for an 8 MB log.
+  - A third live-stop run, `live_M2`, stopped at 17.74 s, where the replay predicted 17.70 s. It took
+    90 s instead of 97 s, with numbers within 9e-5 of the full run.
+  - The live stop's progress lines now only print when a verdict changes.
+- **Open:** gpucfd runs have no peek yet; they run inside Python and report through
+  `cfdlib.gpu.run_transient`'s log lines.
+
+### OpenFOAM runs stop live on their physical check (`5a064ef`)
 - **What:** `cfdlib/monitor.py` gained `LiveStop`. While OpenFOAM runs, it reads the run's own output
   every 10 s and applies the stopping rule written down before the run. Once the rule holds, it
   triggers OpenFOAM's `abort` function object, which writes the current step and ends the run

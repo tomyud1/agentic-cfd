@@ -311,7 +311,10 @@ class LiveStop:
         if d is None:
             return
         self.history.append(d)
-        self.log(f"live check t = {d.get('t', float('nan')):.4g}: {d['reason']}")
+        states = {k: q["state"] for k, q in d.get("quantities", {}).items()}
+        if len(self.history) == 1 or states != getattr(self, "_states", None):   # log changes only
+            self.log(f"live check t = {d.get('t', float('nan')):.4g}: {d['reason']}")
+        self._states = states
         if d["stop"]:
             (self.case / STOP_FILE).write_text("action=writeNow\n")
             self.decision = d
@@ -321,3 +324,181 @@ class LiveStop:
     def summary(self):
         return dict(stopped=self.decision is not None, decision=self.decision, checks=len(self.history),
                     last=self.history[-1] if self.history else None)
+
+
+# ---------------------------------------------------------------------------------------------
+# Peek: look into a run at any moment, from its first step to now
+# ---------------------------------------------------------------------------------------------
+# The agent calls this when IT chooses (after a minute or after hours); nothing runs between calls,
+# so a long run costs no tokens while the agent is not looking. Everything comes from files the run
+# writes anyway (solver log, postProcessing, live_stop.json, the PID file of foam.run), so it works
+# on any OpenFOAM case, while the run goes or after it ended or crashed.
+
+def _entry(text, key):
+    m = re.search(rf"^\s*{key}\s+([^;]+);", text, re.M)
+    return m.group(1).strip() if m else None
+
+
+def _alive(case):
+    """True / False if foam.run's PID file says whether the solver runs, None if there is no PID file."""
+    import os
+    pids = list(Path(case).glob("*.pid"))
+    if not pids:
+        return None
+    for p in pids:
+        try:
+            os.killpg(int(p.read_text().strip()), 0)
+            return True
+        except (ValueError, ProcessLookupError, PermissionError):
+            continue
+    return False
+
+
+def _series(case, t_from=None):
+    """Every postProcessing .dat file as (label, time, {column name: values}); vectors split into x/y/z,
+    columns that never change dropped."""
+    out = []
+    root = Path(case) / "postProcessing"
+    if not root.exists():
+        return out
+    files = {}
+    for f in root.glob("*/*/*"):                       # <function object>/<start time>/<file>
+        if f.is_file() and (f.suffix == ".dat" or not f.suffix):   # .dat files and probes (U, p, ...)
+            files.setdefault((f.parent.parent.name, f.name), []).append(f)
+    for (fo, fname), _ in sorted(files.items()):
+        rows = [r for r in read_dat_live(case, fo, fname) if r and isinstance(r[0], float)]
+        if len(rows) < 2:
+            continue
+        first = next(iter(sorted(files[(fo, fname)])))
+        hdr = [ln for ln in first.read_text(errors="replace").splitlines()[:40] if ln.startswith("#")]
+        names = hdr[-1].lstrip("#").split()[1:] if hdr else []
+        width = min(len(r) for r in rows)
+        t = np.array([r[0] for r in rows], float)
+        keep = t >= t_from if t_from is not None else np.ones(len(t), bool)
+        cols = {}
+        for j in range(1, width):
+            base = names[j - 1] if j - 1 < len(names) else f"col{j}"
+            vals = [r[j] for r in rows]
+            if isinstance(vals[0], tuple):
+                for c, comp in enumerate("xyz"[:len(vals[0])]):
+                    cols[f"{base}_{comp}"] = np.array([v[c] for v in vals], float)
+            elif isinstance(vals[0], float):
+                cols[base] = np.array(vals, float)
+        # drop columns that do not change beyond round-off (a fixed inflow rate) or are round-off themselves
+        # (the z force of a 2D case: 1e-24 next to 1e-3)
+        scale = max((float(np.max(np.abs(v))) for v in cols.values()), default=0.0)
+        cols = {k: v[keep] for k, v in cols.items()
+                if np.ptp(v) > 1e-8 * np.max(np.abs(v)) and np.max(np.abs(v)) > 1e-12 * scale}
+        if cols:
+            out.append((f"{fo}/{fname}", t[keep], cols))
+    return out
+
+
+def peek(case_dir, plot=True, t_from=None, files=None, courant_limit=1.0):
+    """Snapshot of an OpenFOAM run from its first step to now: progress and time left, health so far,
+    the live stopping rule's last verdict, and every monitored series (postProcessing). Returns
+    dict(text, png, ...); text is a compact summary (about 20 lines), png a figure of the whole
+    history (residuals, Courant number, every series) to look at. files: substrings selecting
+    postProcessing series (default all); t_from: only show the history from this time on."""
+    case = Path(case_dir)
+    logs = [p for p in case.glob("log.*") if p.name.endswith("Foam")]
+    if not logs:
+        return dict(text=f"{case}: no solver log (log.*Foam) yet", png=None)
+    log = max(logs, key=lambda p: p.stat().st_mtime)
+    cd = (case / "system" / "controlDict").read_text()
+    t_start, t_end = float(_entry(cd, "startTime") or 0), float(_entry(cd, "endTime") or "nan")
+    parsed = parse_log(log)
+    s = parsed["steps"]
+    a = assess(log, end_time=t_end, courant_limit=courant_limit)
+    alive = _alive(case)
+    state = ("running" if alive else "crashed" if (parsed["fatal"] or parsed["fpe"]) else
+             "finished" if parsed["ended"] else "not running (killed or stopped?)" if alive is False else
+             "unknown (no PID file; finished runs have none)")
+    lines = [f"{case.name}: {log.name}, {state}"]
+    if s:
+        t_now = s[-1]["time"]
+        frac = (t_now - t_start) / (t_end - t_start) if t_end > t_start else float("nan")
+        ex = [(x["time"], x["exec"]) for x in s if x["exec"] is not None]
+        wall = ex[-1][1] if ex else float("nan")
+        msg = (f"progress: t = {t_now:.6g} of {t_start:g}..{t_end:g} ({100 * frac:.1f} %), {len(s)} steps, "
+               f"{wall:.0f} s of solver time")
+        if state == "running" and a["est_full_runtime"] is not None:
+            msg += f", about {a['est_full_runtime'] - wall:.0f} s left to endTime at the current rate"
+        lines.append(msg)
+    bad = [c for c in a["checks"] if c["status"] != "ok"]
+    lines.append(f"health: {a['status']}" + ("" if not bad else ": " + "; ".join(
+        f"{c['name']} {c['status']} ({re.sub(r'[\\\\()]|times|,', '', str(c['value'])).strip()})" for c in bad)))
+    ls_path = case / "live_stop.json"
+    if ls_path.exists():
+        ls = json.loads(ls_path.read_text())
+        last = ls.get("decision") or ls.get("last") or {}
+        lines.append(f"live stop: {'stop requested' if ls.get('stopped') else 'watching'} after {ls.get('checks')} checks; "
+                     f"last verdict at t = {last.get('t', float('nan')):.5g}: {last.get('reason', '-')}")
+    ser = [x for x in _series(case, t_from) if not files or any(f in x[0] for f in files)]
+    for label, t, cols in ser:
+        if len(t) < 4:
+            continue
+        late = t >= t[-1] - 0.25 * (t[-1] - t[0])
+        parts = [f"{k} {v[-1]:.5g} [{v[late].min():.5g}, {v[late].max():.5g}]" for k, v in list(cols.items())[:3]]
+        lines.append(f"{label}: " + "; ".join(parts) + (f"; +{len(cols) - 3} columns" if len(cols) > 3 else ""))
+    if ser:
+        lines.append("(series: last value [min, max over the last quarter of the shown history])")
+    png = None
+    if plot and (s or ser):
+        png = _peek_plot(case, log.name, s, ser, t_from)
+        lines.append(f"figure: {png}")
+    return dict(text="\n".join(lines), png=str(png) if png else None, state=state, health=a["status"])
+
+
+def _peek_plot(case, title, steps, ser, t_from):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    panels = []
+    if steps:
+        t = np.array([x["time"] for x in steps])
+        keep = t >= t_from if t_from is not None else np.ones(len(t), bool)
+        res = {f: np.array([x["res"].get(f, np.nan) for x in steps])[keep] for f in sorted({f for x in steps for f in x["res"]})}
+        panels.append(("initial residuals", t[keep], res, True))
+        co = np.array([x["co"] if x["co"] is not None else np.nan for x in steps])[keep]
+        if np.isfinite(co).any():
+            panels.append(("max Courant number", t[keep], {"Co": co}, False))
+    for label, t, cols in ser:
+        panels.append((label, t, dict(list(cols.items())[:3]), False))
+    nc = 3
+    nr = -(-len(panels) // nc)
+    fig, axs = plt.subplots(nr, nc, figsize=(12, 2.3 * nr), squeeze=False)
+    for ax, (label, t, cols, logy) in zip(axs.flat, panels):
+        step = max(1, len(t) // 4000)                    # at most ~4000 points per line
+        for k, v in cols.items():
+            ax.plot(t[::step], v[::step], lw=0.8, label=k)
+        if logy:
+            ax.set_yscale("log")
+        ax.set_title(label, fontsize=9)
+        ax.tick_params(labelsize=7)
+        ax.legend(fontsize=6, loc="best")
+    for ax in list(axs.flat)[len(panels):]:
+        ax.axis("off")
+    span = "whole history" if t_from is None else f"history from t = {t_from:g}"
+    fig.suptitle(f"{case.name} ({title}): {span}", fontsize=10)
+    fig.tight_layout()
+    png = case / "peek.png"
+    fig.savefig(png, dpi=70)
+    plt.close(fig)
+    return png
+
+
+if __name__ == "__main__":
+    # python -m cfdlib.monitor peek <case dir> [--from T] [--files forcesCyl,probes] [--courant-limit C] [--no-plot]
+    import argparse
+    ap = argparse.ArgumentParser(description="Look into an OpenFOAM run: progress, health, live-stop verdict, history")
+    ap.add_argument("cmd", choices=["peek"])
+    ap.add_argument("case")
+    ap.add_argument("--from", dest="t_from", type=float)
+    ap.add_argument("--files", help="comma-separated substrings of postProcessing series to show")
+    ap.add_argument("--courant-limit", type=float, default=1.0)
+    ap.add_argument("--no-plot", action="store_true")
+    a = ap.parse_args()
+    r = peek(a.case, plot=not a.no_plot, t_from=a.t_from, files=a.files.split(",") if a.files else None,
+             courant_limit=a.courant_limit)
+    print(r["text"])

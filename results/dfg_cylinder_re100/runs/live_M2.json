@@ -1,0 +1,213 @@
+{
+ "name": "live_M2",
+ "level": "M2",
+ "cells": 13432,
+ "h": {
+  "surface": 0.002454369260617026,
+  "wall": 0.001429235408973499,
+  "box": 0.0062499999999999995,
+  "outlet": 0.025057334366245965
+ },
+ "dt": 0.002,
+ "start_time": 15.0,
+ "end_time": 18.0,
+ "cores": 1,
+ "div_U": "Gauss linear",
+ "p_solver": "GAMG",
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/live_M2",
+ "wall_time": 90.33496622800001,
+ "mesh_ok": true,
+ "checkmesh": {
+  "max_nonorth": 42.8058638294,
+  "max_skew": 0.523281537835,
+  "max_aspect": 4.1002910788
+ },
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "1.77",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 2.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,1.02\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,1.03\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,1.02\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.02\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 1368,
+  "last_time": 17.736,
+  "wall_time": 89.89,
+  "est_full_runtime": null,
+  "est_kind": null
+ },
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/live_M2",
+  "solver": "pimpleFoam",
+  "cells": 13432,
+  "cores": 1,
+  "steps": 1368,
+  "wall_s": 90.33496622800001,
+  "cpu_s": 90.134917,
+  "solver_cpu_s": 89.89,
+  "peak_mem_mb": 102.28515625,
+  "us_per_cell_step": 4.916195059411235,
+  "cpu_efficiency": 0.9977854729308793,
+  "write_share": 0.01477795679505367,
+  "lin_iters": {
+   "Ux": 3.3658625730994154,
+   "Uy": 3.3044590643274856,
+   "p": 4.340369152046784
+  },
+  "lin_solves_per_step": {
+   "Ux": 2.0,
+   "Uy": 2.0,
+   "p": 8.0
+  },
+  "lin_iters_by_solve": {
+   "Ux": {
+    "solve 1": 4.003654970760234,
+    "solve 2": 2.7280701754385963,
+    "last": 2.7280701754385963
+   },
+   "Uy": {
+    "solve 1": 4.014619883040936,
+    "solve 2": 2.594298245614035,
+    "last": 2.594298245614035
+   },
+   "p": {
+    "solve 1": 2.999269005847953,
+    "solve 2": 4.748538011695906,
+    "solve 3": 3.06359649122807,
+    "solve 4": 6.423976608187134,
+    "solve 5": 3.2419590643274856,
+    "solve 6": 4.77266081871345,
+    "solve 7": 3.3735380116959064,
+    "solve 8": 6.099415204678363,
+    "last": 6.099415204678363
+   }
+  }
+ },
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100",
+ "source": "M1",
+ "dt_factor": 1.0,
+ "live_stop": {
+  "stopped": true,
+  "decision": {
+   "stop": true,
+   "status": "ok",
+   "reason": "all settled: cl_max 0.00074 < 0.002, cl_min 0.00053 < 0.002, cd_max 0.0002 < 0.0005, cd_min 0.00028 < 0.0005, period 0.00013 < 0.0005",
+   "quantities": {
+    "cl_max": {
+     "state": "settled",
+     "spread": 0.0007399190501529151,
+     "remaining": 0.00022467679399573726
+    },
+    "cl_min": {
+     "state": "settled",
+     "spread": 0.0005301772041776953,
+     "remaining": 0.0004145433988006628
+    },
+    "cd_max": {
+     "state": "settled",
+     "spread": 0.00020108257219986214,
+     "remaining": 0.0
+    },
+    "cd_min": {
+     "state": "settled",
+     "spread": 0.00027664547957417795,
+     "remaining": 0.0
+    },
+    "period": {
+     "state": "settled",
+     "spread": 0.00013434341805540484,
+     "remaining": 0.0
+    }
+   },
+   "t": 17.73,
+   "cycles": 7,
+   "cd_max": 3.226551487860116,
+   "cl_max": 1.0100196192078648
+  },
+  "checks": 3,
+  "last": {
+   "stop": true,
+   "status": "ok",
+   "reason": "all settled: cl_max 0.00074 < 0.002, cl_min 0.00053 < 0.002, cd_max 0.0002 < 0.0005, cd_min 0.00028 < 0.0005, period 0.00013 < 0.0005",
+   "quantities": {
+    "cl_max": {
+     "state": "settled",
+     "spread": 0.0007399190501529151,
+     "remaining": 0.00022467679399573726
+    },
+    "cl_min": {
+     "state": "settled",
+     "spread": 0.0005301772041776953,
+     "remaining": 0.0004145433988006628
+    },
+    "cd_max": {
+     "state": "settled",
+     "spread": 0.00020108257219986214,
+     "remaining": 0.0
+    },
+    "cd_min": {
+     "state": "settled",
+     "spread": 0.00027664547957417795,
+     "remaining": 0.0
+    },
+    "period": {
+     "state": "settled",
+     "spread": 0.00013434341805540484,
+     "remaining": 0.0
+    }
+   },
+   "t": 17.73,
+   "cycles": 7,
+   "cd_max": 3.226551487860116,
+   "cl_max": 1.0100196192078648
+  }
+ },
+ "t_end_actual": 17.736,
+ "max_length": 3.0
+}
