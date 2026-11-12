@@ -39,3 +39,25 @@ if run.exists():
 # 4. contract: control characters are errors
 bad = {"x": {"formula": "a \t b", "svg": "\t ignored"}}
 print("control chars:", contract.control_chars(bad))
+
+# 5. monitor.settled: converged, floor (noise above tol), drift (small steps, one direction), and a stop switch
+from cfdlib import monitor  # noqa: E402
+
+rng = np.random.default_rng(0)
+conv = 3.2 + 0.01 * 0.3 ** np.arange(12)                       # geometric approach: settled
+noise = 3.2 + 7e-4 * rng.standard_normal(14)                   # jitter 7e-4 > tol 5e-4: floor
+drift = 3.2 + 4e-4 * np.arange(10)                             # each change 4e-4 < tol, but still moving: running
+states = [monitor.settled(v, 5e-4)["state"] for v in (conv, noise, drift)]
+print("settled states (expect settled, floor, running):", states)
+assert states == ["settled", "floor", "running"], states
+j = monitor.judge({"a": conv, "b": noise}, {"a": 5e-4, "b": 5e-4})
+assert j["stop"] and j["status"] == "warn", j
+import tempfile  # noqa: E402
+with tempfile.TemporaryDirectory() as tmp:
+    (Path(tmp) / "system").mkdir()
+    (Path(tmp) / "system/controlDict").write_text("application x;\n\nfunctions\n{\n    f1 { type probes; }\n}\n")
+    monitor.add_stop_switch(tmp)
+    monitor.add_stop_switch(tmp)                               # idempotent
+    txt = (Path(tmp) / "system/controlDict").read_text()
+    assert txt.count("type            abort;") == 1 and txt.index("liveStop") < txt.index("f1"), txt
+print("stop switch: ok")

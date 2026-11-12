@@ -1,8 +1,11 @@
-"""Solver-log monitoring: health checks, divergence warnings and run-time estimates.
+"""Solver-log monitoring: health checks, divergence warnings, run-time estimates and the live stop.
 
-Use it on short pre-flight runs (catch blow-ups and bad settings before a long run) and on
-production runs (document that each run was healthy).
+Use it on short pre-flight runs (catch blow-ups and bad settings before a long run), on production
+runs (document that each run was healthy), and while a run goes (LiveStop: end it once the physical
+check written down before the run holds).
 """
+import json
+import math
 import re
 import shutil
 import subprocess
@@ -12,6 +15,7 @@ import numpy as np
 
 from . import foam
 from .report import tex_num
+from .verification import iteration_error
 
 
 def _ratio(x):
@@ -187,3 +191,133 @@ def preflight(case_dir, solver, end_time_short, end_time_full, timeout=600, cour
                residual_targets=residual_targets)
     a.update(case=str(pf), end_time_short=end_time_short, timed_out=timed_out)
     return a
+
+
+# ---------------------------------------------------------------------------------------------
+# Live stop: end a run as soon as a physical check holds, while it runs
+# ---------------------------------------------------------------------------------------------
+# A fixed end time is a guess made before the run: too short and the answer is not converged
+# (gpucfd G1 on case 4: drag 16 % low after 3 s), too long and the run wastes time. The live stop
+# replaces the guess with the rule the agent writes down before the run (the end time becomes a
+# maximum): every few seconds the run's own output is read, the rule is applied, and once it holds
+# the solver writes the current time step and ends normally.
+
+STOP_FILE = "STOP_NOW"
+
+
+def add_stop_switch(case_dir, action="writeNow"):
+    """Add OpenFOAM's `abort` function object to system/controlDict (once).
+
+    When the file <case>/STOP_NOW appears, the solver writes the current time step and ends normally,
+    so fields, logs and postProcessing output are complete, as if endTime had been reached. Only the
+    master rank looks for the file and tells the others, so parallel runs stop the same way. The
+    function object deletes a leftover file when the run starts."""
+    cd = Path(case_dir) / "system" / "controlDict"
+    text = cd.read_text()
+    if "liveStop" in text:
+        return
+    block = ("    liveStop    // cfdlib.monitor.LiveStop: write and end when <case>/" + STOP_FILE + " appears\n"
+             "    {\n        type            abort;\n        libs            (utilityFunctionObjects);\n"
+             f'        file            "<case>/{STOP_FILE}";\n        action          {action};\n    }}\n\n')
+    m = re.search(r"^functions\s*\{[^\n]*\n", text, re.M)
+    text = text[:m.end()] + block + text[m.end():] if m else text + "\nfunctions\n{\n" + block + "}\n"
+    cd.write_text(text)
+
+
+def read_dat_live(case_dir, fo, fname):
+    """Rows of a postProcessing .dat file of a run that may still be writing it: complete lines only,
+    all start-time folders (restarts) in time order."""
+    def start(p):
+        try:
+            return float(p.parent.name)
+        except ValueError:
+            return math.inf
+    rows = []
+    for h in sorted((Path(case_dir) / "postProcessing" / fo).rglob(fname), key=start):
+        text = h.read_text(errors="replace")
+        rows += foam.parse_dat(text[:text.rfind("\n") + 1])
+    return rows
+
+
+def settled(values, tol, n=4):
+    """Has a quantity stopped changing? `values`: one number per cycle (periodic flow, e.g. the drag
+    maximum of each shedding cycle) or per equal chunk of time or iterations (steady flow).
+
+    settled : the largest change between consecutive values over the last n values is below tol (the
+              periodicity rule of the DFG cases), and no drift is left: if the last n changes all point
+              the same way, the change still to come (geometric extrapolation at their average decay
+              rate) must be below tol. A run of equal small changes in one direction is not settled.
+    floor   : the changes have stopped shrinking and flip sign (the noise test of
+              cfdlib.verification.iteration_error: round-off, solver tolerances, time sampling of the
+              peaks), so running longer will not bring them below tol. The run can stop; the spread
+              is then the quantity's iteration uncertainty, and the stop is a warning.
+    running : neither yet.
+    Returns dict(state, spread, remaining): remaining is the extrapolated change still to come of a
+    one-way trend (0 when the changes do not all point the same way)."""
+    v = np.asarray(values, float)
+    if len(v) < n:
+        return dict(state="running", spread=None, remaining=None)
+    spread = float(np.max(np.abs(np.diff(v[-n:]))))
+    it = iteration_error(v)
+    # Drift: the last n changes all point the same way. Extrapolate them geometrically at their average
+    # decay rate over the window (ratio of the last to the first change, per step; at least 0.5, i.e. one
+    # more half-size step): a constant or growing drift has no bound (inf). iteration_error's own
+    # estimate needs steady ratios, which per-cycle peaks rarely give (case 4: ratios 0.4 to 1.2 while
+    # the changes shrink 10x), so it only serves the floor test here.
+    d = np.diff(v[-n - 1:])
+    remaining = 0.0
+    if len(d) == n and len(np.unique(np.sign(d))) == 1:
+        rho = max(0.5, float(abs(d[-1] / d[0])) ** (1.0 / (n - 1)))
+        remaining = math.inf if rho >= 1.0 else float(abs(d[-1])) * rho / (1.0 - rho)
+    drift = remaining > tol
+    state = "settled" if spread < tol and not drift else "floor" if it["noise"] else "running"
+    return dict(state=state, spread=spread, remaining=remaining)
+
+
+def judge(quantities, tolerances, n=4):
+    """Apply settled() to several quantities (dict name -> per-cycle values, name -> tol). Stop when
+    every quantity is settled or at its floor; status ok if all settled, warn if any is at a floor."""
+    res = {k: settled(quantities[k], tolerances[k], n) for k in tolerances}
+    states = {k: r["state"] for k, r in res.items()}
+    stop = all(s != "running" for s in states.values())
+    floors = [k for k, s in states.items() if s == "floor"]
+    if not stop:
+        reason = "running: " + ", ".join(k for k, s in states.items() if s == "running")
+    elif floors:
+        reason = "floor reached (changes stopped shrinking) for " + ", ".join(
+            f"{k} (spread {res[k]['spread']:.2g} > tol {tolerances[k]:.2g})" for k in floors)
+    else:
+        reason = "all settled: " + ", ".join(f"{k} {res[k]['spread']:.2g} < {tolerances[k]:.2g}" for k in res)
+    return dict(stop=stop, status="warn" if floors else "ok", reason=reason, quantities=res)
+
+
+class LiveStop:
+    """Ends an OpenFOAM run once a physical check holds. Use: foam.run(cmd, case, watch=LiveStop(case, decide)).
+
+    decide(case_dir) -> None (nothing to judge yet) or a dict with at least stop (bool), status
+    ('ok' / 'warn') and reason, plus t (simulated time); judge() builds one. It reads the run's own
+    output (read_dat_live) and applies the stopping rule written down before the run. Every decision is
+    saved to <case>/live_stop.json, so the record shows when and why the run ended."""
+
+    def __init__(self, case_dir, decide, log=print):
+        self.case, self.decide, self.log = Path(case_dir), decide, log
+        self.history, self.decision = [], None
+        add_stop_switch(self.case)
+
+    def __call__(self):
+        if self.decision is not None:
+            return
+        d = self.decide(self.case)
+        if d is None:
+            return
+        self.history.append(d)
+        self.log(f"live check t = {d.get('t', float('nan')):.4g}: {d['reason']}")
+        if d["stop"]:
+            (self.case / STOP_FILE).write_text("action=writeNow\n")
+            self.decision = d
+            self.log(f"live stop requested ({d['status']}) at t = {d.get('t', float('nan')):.4g}")
+        (self.case / "live_stop.json").write_text(json.dumps(self.summary(), indent=1, default=float))
+
+    def summary(self):
+        return dict(stopped=self.decision is not None, decision=self.decision, checks=len(self.history),
+                    last=self.history[-1] if self.history else None)

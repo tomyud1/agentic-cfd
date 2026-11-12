@@ -10,14 +10,52 @@ moves to a dated entry when it is committed.
 ## In progress
 
 Nothing uncommitted. Next, in this order:
-1. Stop OpenFOAM runs live on a physical check (`cfdlib/monitor.py`), as gpucfd runs now stop.
-2. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
-3. Then the IMEX fix for bodies, a 3D cylinder, and more OpenFOAM problem types
+1. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
+   Success: case 4 drag within 0.25% of the benchmark in less wall time than OpenFOAM's study.
+2. Then the IMEX fix for bodies, a 3D cylinder, and more OpenFOAM problem types
    ([cases/BACKLOG.md](cases/BACKLOG.md)).
 
 ## 2026-11-12
 
-### gpucfd connected to the agent; case 4 run on gpucfd and OpenFOAM, commit hash to be filled in
+### OpenFOAM runs stop live on their physical check, commit hash to be filled in
+- **What:** `cfdlib/monitor.py` gained `LiveStop`. While OpenFOAM runs, it reads the run's own output
+  every 10 s and applies the stopping rule written down before the run. Once the rule holds, it
+  triggers OpenFOAM's `abort` function object, which writes the current step and ends the run
+  normally, in serial and parallel. The planned end time becomes only a maximum. `monitor.judge`
+  and `monitor.settled` turn per-cycle values into a verdict:
+  - **settled:** below tolerance, with no drift left;
+  - **floor:** the changes stopped shrinking above tolerance; the run stops with a warning.
+
+  Case 4 uses it in `run.py live` and checks it in `run.py live_check`. SKILL.md stage 4 now says to
+  stop every run this way.
+- **Why it matters:** a fixed end time is a guess. Too short gives a wrong answer (gpucfd G1 was 16%
+  low after 3 s). Too long wastes the most time on the finest, most expensive grid.
+- **How it was verified:**
+  - **Replay:** the rule was first replayed on case 4's recorded OpenFOAM histories.
+    - It found that **M1 never meets the periodicity rule**: its drag peaks jitter by about 7e-4 per
+      cycle at 9, 12 and 15 s alike, above the 5e-4 tolerance. A plain "change below tolerance" rule
+      would never stop it, hence the floor state.
+    - M2, M3 and M4 meet the rule after 2.7, 2.35 and 2.0 s of their 3 s.
+  - **Live runs:** two live runs passed the rules set before them.
+    - **`live_M1`** (serial): stopped at 7.85 s at its floor, in 30 s instead of 56 s.
+    - **`live_M3`** (4 ranks): stopped at 20.33 s with everything settled, in 211 s instead of 285 s.
+      `reconstructPar` worked after the stop.
+  - **Tests:** `tests/test_tools.py` checks three cases: a converging series is settled, jitter above
+    tolerance is a floor, and equal small one-way steps keep running. That test caught a hole in the
+    first version: a steady drift with every step below tolerance counted as settled. The fixed rule
+    extrapolates a one-way trend at its average decay rate. Its replay gives the same stop times as
+    the first version, which the live runs used.
+- **Key numbers:**
+  - Peaks and frequency of the stopped runs differ from the full-length runs by at most 1.1e-4.
+  - Estimated case 4 OpenFOAM study: about 1740 s instead of 2548 s, about a third less, mostly from
+    M4 (2.0 s of 3 s).
+  - Insight 20 in case 4. Records: `results/dfg_cylinder_re100/live_stop.json`.
+- **Open:**
+  - Steady SIMPLE cases still stop on residual targets. Their per-mesh check that the residuals meet
+    the physical check is unchanged.
+  - The full study was not rerun with the live stop; the saving is the replay's estimate.
+
+### gpucfd connected to the agent; case 4 run on gpucfd and OpenFOAM (`dac661a`)
 - **What:**
   - `cfdlib/gpu.py` lets the agent use gpucfd as a solver:
     - `check_fit` says whether a problem fits gpucfd.

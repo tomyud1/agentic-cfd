@@ -334,16 +334,16 @@
   stage: gpu
   logged: 2026-11-12 19:15
   status: resolved
-  problem: 'gpucfd pre-flight: 10 to 18 ms per time step, two to three times the cost seen on the steady DFG 2D-1 case
-    at the same grid sizes.'
-  diagnosis: Not a fixed cost per call (measured 1 to 128 steps per call, same cost per step). The pressure solve ran
-    to a relative tolerance of \(10^{-10}\), which in a shedding flow (large changes every step) takes about 10
-    iterations per step; OpenFOAM's side uses tolerance \(10^{-7}\) with relTol 0.01.
-  fix: 'Pressure-tolerance study on G1 from its developed field, rule fixed before it ran (loosest tolerance with drag
-    and lift within \(10^{-4}\) of the \(10^{-10}\) run over 1 s): \(10^{-8}\) differs by \(2.6 \times 10^{-5}\) and
-    costs 6.3 instead of 10.6 ms per step; \(10^{-6}\) differs by \(7.9 \times 10^{-3}\) and fails.'
-  lesson: A tolerance chosen for a verification test is not a production setting; tune it per case with a
-    same-answer rule, as was done for OpenFOAM's GAMG.
+  problem: 'gpucfd pre-flight: 10 to 18 ms per time step, two to three times the cost seen on the steady DFG 2D-1
+    case at the same grid sizes.'
+  diagnosis: Not a fixed cost per call (measured 1 to 128 steps per call, same cost per step). The pressure solve
+    ran to a relative tolerance of \(10^{-10}\), which in a shedding flow (large changes every step) takes about
+    10 iterations per step; OpenFOAM's side uses tolerance \(10^{-7}\) with relTol 0.01.
+  fix: 'Pressure-tolerance study on G1 from its developed field, rule fixed before it ran (loosest tolerance with
+    drag and lift within \(10^{-4}\) of the \(10^{-10}\) run over 1 s): \(10^{-8}\) differs by \(2.6 \times 10^{-5}\)
+    and costs 6.3 instead of 10.6 ms per step; \(10^{-6}\) differs by \(7.9 \times 10^{-3}\) and fails.'
+  lesson: A tolerance chosen for a verification test is not a production setting; tune it per case with a same-answer
+    rule, as was done for OpenFOAM's GAMG.
   guideline: When gpucfd is the solver, tune pressure_tol in the pre-flight (\(10^{-10}\), \(10^{-8}\), \(10^{-6}\))
     with a same-answer rule; \(10^{-8}\) was right here.
   resolved: 2026-11-12 19:25
@@ -353,16 +353,17 @@
   status: resolved
   problem: 'gpucfd G2 and G3 were not periodic after the 3 s of the OpenFOAM protocol: G3''s drag still rose (3.151,
     3.165, 3.173 at t = 19, 20, 21 s).'
-  diagnosis: 'The protocol''s fixed 3 s assume the coarser level is close to the finer one. OpenFOAM''s M1 drag was
-    within 0.5 % of M4, gpucfd''s G1 is 16 % low (uniform grid, immersed body, 17.6 cells per diameter), so each finer
-    level has to grow its drag and the wake has to rebuild over several flow-through times.'
-  fix: 'Continued each run from its saved field with the same time step until the case''s periodicity rule held over
-    the last 4 cycles, checked live every second (cfdlib.gpu.run_transient with stop_on_watch): G3 periodic at t = 23 s,
-    G2 at 20 s. Cycle-by-cycle peaks confirmed it (G2 drag maximum changing by \(8\), \(4\) and \(2 \times 10^{-5}\) per cycle).'
+  diagnosis: The protocol's fixed 3 s assume the coarser level is close to the finer one. OpenFOAM's M1 drag was
+    within 0.5 % of M4, gpucfd's G1 is 16 % low (uniform grid, immersed body, 17.6 cells per diameter), so each
+    finer level has to grow its drag and the wake has to rebuild over several flow-through times.
+  fix: 'Continued each run from its saved field with the same time step until the case''s periodicity rule held
+    over the last 4 cycles, checked live every second (cfdlib.gpu.run_transient with stop_on_watch): G3 periodic
+    at t = 23 s, G2 at 20 s. Cycle-by-cycle peaks confirmed it (G2 drag maximum changing by \(8\), \(4\) and \(2
+    \times 10^{-5}\) per cycle).'
   lesson: A fixed run length is only safe when the start field is close to the answer; stop on the physical check
     instead, live.
-  guideline: Make the periodicity (or steadiness) rule the stopping rule of every level, not a fixed length; this is
-    the next step for OpenFOAM runs too (cfdlib.monitor).
+  guideline: Make the periodicity (or steadiness) rule the stopping rule of every level, not a fixed length; this
+    is the next step for OpenFOAM runs too (cfdlib.monitor).
   resolved: 2026-11-12 19:45
 - id: 19
   stage: gpu
@@ -371,15 +372,39 @@
   problem: 'gpucfd ran the whole protocol 8 times faster than OpenFOAM (315 s wall against 2548 s) but its finest
     answer is less accurate: drag 1.0 % and lift maximum 3.4 % below FeatFlow, against 0.25 % and 0.4 % for OpenFOAM''s
     M4; the lift maximum differs between the two by more than both uncertainties combined.'
-  diagnosis: 'gpucfd is about 70 times faster per cell and step (0.023 against 1.64 microseconds), but a uniform grid
-    with an immersed body needs far more cells for the same accuracy: G3 has 442368 cells and 70 cells per diameter,
-    OpenFOAM''s O-grid M2 (13432 cells, 97 s) already has the drag within 0.25 %. The immersed body converges at order
-    1.5 in drag, and the explicit scheme''s viscous limit sets the time step on G3.'
-  fix: None in this case; reported as the result. Reaching OpenFOAM's accuracy would need about 140 to 280 cells per
-    diameter (estimated from order 1.5, not run).
+  diagnosis: 'gpucfd is about 70 times faster per cell and step (0.023 against 1.64 microseconds), but a uniform
+    grid with an immersed body needs far more cells for the same accuracy: G3 has 442368 cells and 70 cells per
+    diameter, OpenFOAM''s O-grid M2 (13432 cells, 97 s) already has the drag within 0.25 %. The immersed body converges
+    at order 1.5 in drag, and the explicit scheme''s viscous limit sets the time step on G3.'
+  fix: None in this case; reported as the result. Reaching OpenFOAM's accuracy would need about 140 to 280 cells
+    per diameter (estimated from order 1.5, not run).
   lesson: Raw speed per cell does not decide the tool; the cost to reach the required accuracy does. Body-fitted
     grids win for thin boundary layers on bodies.
   guideline: 'SKILL.md, choosing the solver: OpenFOAM for bodies with thin boundary layers (here Re 100) until gpucfd
     has stretched grids; gpucfd for flows a uniform grid resolves efficiently (boxes, channels, cavities, periodic
     flows, low Reynolds numbers).'
   resolved: 2026-11-12 19:51
+- id: 20
+  stage: tooling
+  logged: 2026-11-12 20:24
+  status: resolved
+  problem: 'OpenFOAM levels ran a fixed length (15 s on M1, 3 s on M2 to M4) chosen before the runs; the live stop
+    that gpucfd got (insight 18) was missing for OpenFOAM. Replaying the periodicity rule on the recorded drag and
+    lift showed M1 never meets it: its drag peaks change by about \(7 \times 10^{-4}\) from cycle to cycle at 9,
+    12 and 15 s alike, above the \(5 \times 10^{-4}\) tolerance.'
+  diagnosis: 'M1 sits at a floor, not in a slow transient: the cycle-to-cycle changes flip sign and no longer shrink
+    (coarse time sampling of the peaks and solver tolerances on 3358 cells). A rule that only waits for ''change
+    below tolerance'' would never stop it; the finer levels reach the rule well before their 3 s (M2 at 2.7 s, M3
+    at 2.35 s, M4 at 2.0 s).'
+  fix: 'cfdlib.monitor.LiveStop: every 10 s of wall time it reads force.dat, applies the periodicity rule (monitor.judge
+    / settled: settled below tolerance, or at a floor where the changes stopped shrinking, which stops with a warning)
+    and, once it holds, triggers OpenFOAM''s abort function object, which writes the current step and ends the run
+    normally. Live test: live_M1 (serial) stopped at 7.85 s at its floor in 30 s instead of 56 s; live_M3 (4 ranks)
+    stopped at 20.33 s, all settled, in 211 s instead of 285 s, reconstructPar fine. Peaks and frequency differ
+    from the full-length runs by at most \(1.1 \times 10^{-4}\). Replay estimate for the whole OpenFOAM study: about
+    1740 s instead of 2548 s.'
+  lesson: The fixed end time is a guess; the physical rule can be applied while the run goes, and it must recognise
+    a floor above the tolerance, or a coarse level never stops.
+  guideline: 'SKILL.md stage 4: make the physical check the stopping rule with monitor.LiveStop, the planned end
+    time only a maximum; replay the rule on recorded histories before trusting it.'
+  resolved: 2026-11-12 20:24

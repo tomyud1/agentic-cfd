@@ -21,10 +21,13 @@ def foam_env(var):
     return out.stdout.strip()
 
 
-def run(cmd, case_dir, log_name=None, timeout=None):
+def run(cmd, case_dir, log_name=None, timeout=None, watch=None, watch_every=10.0):
     """Run an OpenFOAM command in case_dir, logging to log.<name>. Returns wall time in seconds.
 
     Raises RuntimeError on a non-zero exit, subprocess.TimeoutExpired after `timeout` seconds.
+    watch: called with no arguments every `watch_every` seconds while the command runs (live checks,
+      e.g. cfdlib.monitor.LiveStop, which ends the run cleanly once a physical check holds). An
+      exception inside it is printed and the run continues: a broken check must not kill a good run.
     """
     case_dir = Path(case_dir)
     name = log_name or cmd.split()[0]
@@ -38,6 +41,7 @@ def run(cmd, case_dir, log_name=None, timeout=None):
                              cwd=case_dir, stdout=f, stderr=subprocess.STDOUT, start_new_session=True)
         pidfile.write_text(str(p.pid))
         ru = None
+        t_watch = t0
         try:
             while True:                            # wait4: exit status AND resource use of this run only
                 pid, status, ru = os.wait4(p.pid, os.WNOHANG)
@@ -48,6 +52,12 @@ def run(cmd, case_dir, log_name=None, timeout=None):
                     _killpg(p.pid)
                     p.wait()
                     raise subprocess.TimeoutExpired(cmd, timeout)
+                if watch is not None and time.perf_counter() - t_watch >= watch_every:
+                    t_watch = time.perf_counter()
+                    try:
+                        watch()
+                    except Exception as e:         # noqa: BLE001
+                        print(f"watch failed ({type(e).__name__}: {e}); run continues", flush=True)
                 time.sleep(0.1)
         except subprocess.TimeoutExpired:
             raise
@@ -153,8 +163,13 @@ def read_internal_field(path):
 
 def read_dat(path):
     """Rows of a postProcessing .dat file, skipping '#' comments. Vectors '(a b c)' become tuples."""
+    return parse_dat(Path(path).read_text())
+
+
+def parse_dat(text):
+    """Rows of the text of a postProcessing .dat file (see read_dat)."""
     rows = []
-    for line in Path(path).read_text().splitlines():
+    for line in text.splitlines():
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         tokens = re.findall(r"\([^)]*\)|\S+", line)

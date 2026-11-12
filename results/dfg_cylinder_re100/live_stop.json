@@ -1,0 +1,331 @@
+{
+ "rule": "periodicity tolerances of the acceptance rules over the last cycles_measured cycles, or their floor (cfdlib.monitor.settled); the replay checks every 0.05 s of simulated time",
+ "runs": {
+  "M1": {
+   "start": 0.004,
+   "end": 15.0,
+   "wall": 55.55680906999987,
+   "replay_stop": {
+    "stop": true,
+    "status": "warn",
+    "reason": "floor reached (changes stopped shrinking) for cd_max (spread 0.0005 > tol 0.0005), cd_min (spread 0.00056 > tol 0.0005)",
+    "quantities": {
+     "cl_max": {
+      "state": "settled",
+      "spread": 0.0019911037078610416,
+      "remaining": 0.0
+     },
+     "cl_min": {
+      "state": "settled",
+      "spread": 0.00045252650489713275,
+      "remaining": 0.0
+     },
+     "cd_max": {
+      "state": "floor",
+      "spread": 0.0005036123401849224,
+      "remaining": 0.0
+     },
+     "cd_min": {
+      "state": "floor",
+      "spread": 0.0005577857774650141,
+      "remaining": 0.0
+     },
+     "period": {
+      "state": "settled",
+      "spread": 8.342003421568656e-05,
+      "remaining": 0.0
+     }
+    },
+    "t": 6.704,
+    "cycles": 18,
+    "cd_max": 3.2083700348655753,
+    "cl_max": 1.039248816892397
+   },
+   "replay_fraction": 0.4467858095492131,
+   "replay_wall_est": 24.82199391631096,
+   "full": {
+    "cd_max": 3.2078135506257226,
+    "cd_min": 3.154131983992262,
+    "cl_max": 1.039402139206684,
+    "cl_min": -1.0768605615023028,
+    "f": 2.790147498445182
+   },
+   "replay_vs_full": {
+    "cd_max": 0.0005564842398526615,
+    "cd_min": 0.0002796470244352811,
+    "cl_max": -0.00015332231428688559,
+    "cl_min": 0.00010807546214497421,
+    "f": -2.542031193542016e-06
+   },
+   "live": {
+    "start": 0.004,
+    "end": 7.852,
+    "wall": 30.158110742999998,
+    "decision": {
+     "stop": true,
+     "status": "warn",
+     "reason": "floor reached (changes stopped shrinking) for cd_max (spread 0.00064 > tol 0.0005), cd_min (spread 0.00085 > tol 0.0005)",
+     "quantities": {
+      "cl_max": {
+       "state": "settled",
+       "spread": 0.0014852620299059538,
+       "remaining": 0.0019911037078610416
+      },
+      "cl_min": {
+       "state": "settled",
+       "spread": 0.0011691046689403795,
+       "remaining": 0.0013511133805401698
+      },
+      "cd_max": {
+       "state": "floor",
+       "spread": 0.0006397583293935583,
+       "remaining": 0.000669100937646494
+      },
+      "cd_min": {
+       "state": "floor",
+       "spread": 0.0008520505950686541,
+       "remaining": 0.0009371632186736534
+      },
+      "period": {
+       "state": "settled",
+       "spread": 7.9889282768697e-05,
+       "remaining": 8.328651064470893e-05
+      }
+     },
+     "t": 7.84,
+     "cycles": 21,
+     "cd_max": 3.207777267884798,
+     "cl_max": 1.0393693686958605
+    },
+    "health": "ok",
+    "vs_full": {
+     "cd_max": -3.6282740924598045e-05,
+     "cd_min": -1.2749978450798949e-05,
+     "cl_max": -3.277051082339888e-05,
+     "cl_min": 1.7688163581608407e-05,
+     "f": 4.2165355398360305e-06
+    }
+   }
+  },
+  "M2": {
+   "start": 15.002,
+   "end": 18.0,
+   "wall": 97.10419938099994,
+   "replay_stop": {
+    "stop": true,
+    "status": "ok",
+    "reason": "all settled: cl_max 0.00074 < 0.002, cl_min 0.00053 < 0.002, cd_max 0.0002 < 0.0005, cd_min 0.00028 < 0.0005, period 0.00013 < 0.0005",
+    "quantities": {
+     "cl_max": {
+      "state": "settled",
+      "spread": 0.0007399190501529151,
+      "remaining": 0.00022467679399573726
+     },
+     "cl_min": {
+      "state": "settled",
+      "spread": 0.0005301772041776953,
+      "remaining": 0.0004145433988006628
+     },
+     "cd_max": {
+      "state": "settled",
+      "spread": 0.00020108257219986214,
+      "remaining": 0.0
+     },
+     "cd_min": {
+      "state": "settled",
+      "spread": 0.00027664547957417795,
+      "remaining": 0.0
+     },
+     "period": {
+      "state": "settled",
+      "spread": 0.00013434341805540484,
+      "remaining": 0.0
+     }
+    },
+    "t": 17.702,
+    "cycles": 7,
+    "cd_max": 3.226551487860116,
+    "cl_max": 1.0100196192078648
+   },
+   "replay_fraction": 0.9006004002668451,
+   "replay_wall_est": 87.45208083012008,
+   "full": {
+    "cd_max": 3.226603343445881,
+    "cd_min": 3.1657703022294252,
+    "cl_max": 1.0100808556417507,
+    "cl_min": -1.0459975002801722,
+    "f": 2.9679567747074045
+   },
+   "replay_vs_full": {
+    "cd_max": -5.1855585764926104e-05,
+    "cd_min": -4.789740954125321e-05,
+    "cl_max": -6.123643388589173e-05,
+    "cl_min": -8.65276382027158e-05,
+    "f": -5.193331439024007e-05
+   }
+  },
+  "M3": {
+   "start": 18.001,
+   "end": 21.0,
+   "wall": 285.17045735700003,
+   "replay_stop": {
+    "stop": true,
+    "status": "ok",
+    "reason": "all settled: cl_max 0.00031 < 0.002, cl_min 0.00032 < 0.002, cd_max 6.9e-05 < 0.0005, cd_min 0.00019 < 0.0005, period 4.5e-05 < 0.0005",
+    "quantities": {
+     "cl_max": {
+      "state": "settled",
+      "spread": 0.00031295045562962365,
+      "remaining": 0.0002022580256460361
+     },
+     "cl_min": {
+      "state": "settled",
+      "spread": 0.00031885748053683827,
+      "remaining": 0.00022498726775389176
+     },
+     "cd_max": {
+      "state": "settled",
+      "spread": 6.893708221245021e-05,
+      "remaining": 3.549720720297245e-05
+     },
+     "cd_min": {
+      "state": "settled",
+      "spread": 0.0001855755818604976,
+      "remaining": 4.1646526098393366e-05
+     },
+     "period": {
+      "state": "settled",
+      "spread": 4.493266130944917e-05,
+      "remaining": 0.0
+     }
+    },
+    "t": 20.351,
+    "cycles": 6,
+    "cd_max": 3.2284557600539405,
+    "cl_max": 0.9954178046574251
+   },
+   "replay_fraction": 0.7835945315105031,
+   "replay_wall_est": 223.45801093329433,
+   "full": {
+    "cd_max": 3.2284284253797675,
+    "cd_min": 3.1654695217752074,
+    "cl_max": 0.9952973665161032,
+    "cl_min": -1.0303254114463085,
+    "f": 3.007027231708768
+   },
+   "replay_vs_full": {
+    "cd_max": 2.7334674173040696e-05,
+    "cd_min": 3.0438941772459316e-05,
+    "cl_max": 0.00012043814132189912,
+    "cl_min": -8.661862417169708e-05,
+    "f": -7.0561131462199e-05
+   },
+   "live": {
+    "start": 18.001,
+    "end": 20.33,
+    "wall": 210.681221925,
+    "decision": {
+     "stop": true,
+     "status": "ok",
+     "reason": "all settled: cl_max 0.00031 < 0.002, cl_min 0.00032 < 0.002, cd_max 6.8e-05 < 0.0005, cd_min 0.00019 < 0.0005, period 4.5e-05 < 0.0005",
+     "quantities": {
+      "cl_max": {
+       "state": "settled",
+       "spread": 0.00031351318069228196,
+       "remaining": Infinity
+      },
+      "cl_min": {
+       "state": "settled",
+       "spread": 0.0003187563641366964,
+       "remaining": Infinity
+      },
+      "cd_max": {
+       "state": "settled",
+       "spread": 6.832870960726822e-05,
+       "remaining": Infinity
+      },
+      "cd_min": {
+       "state": "settled",
+       "spread": 0.00018553161202916613,
+       "remaining": Infinity
+      },
+      "period": {
+       "state": "settled",
+       "spread": 4.49593046012442e-05,
+       "remaining": Infinity
+      }
+     },
+     "t": 20.328,
+     "cycles": 6,
+     "cd_max": 3.2284571073009425,
+     "cl_max": 0.9954104929458348
+    },
+    "health": "ok",
+    "vs_full": {
+     "cd_max": 2.8681921175000014e-05,
+     "cd_min": 2.4216206651050953e-05,
+     "cl_max": 0.00011312642973160258,
+     "cl_min": -8.190466706814448e-05,
+     "f": -7.037336008730577e-05
+    }
+   }
+  },
+  "M4": {
+   "start": 21.0005,
+   "end": 24.0,
+   "wall": 2110.4877577280004,
+   "replay_stop": {
+    "stop": true,
+    "status": "ok",
+    "reason": "all settled: cl_max 0.00034 < 0.002, cl_min 0.00018 < 0.002, cd_max 0.00012 < 0.0005, cd_min 0.00019 < 0.0005, period 7.2e-05 < 0.0005",
+    "quantities": {
+     "cl_max": {
+      "state": "settled",
+      "spread": 0.00033711739052066925,
+      "remaining": 9.501938355538364e-05
+     },
+     "cl_min": {
+      "state": "settled",
+      "spread": 0.0001804532143094839,
+      "remaining": 7.595226907630703e-05
+     },
+     "cd_max": {
+      "state": "settled",
+      "spread": 0.00011580191785176552,
+      "remaining": 1.8249152653027068e-05
+     },
+     "cd_min": {
+      "state": "settled",
+      "spread": 0.00019243904384769195,
+      "remaining": 0.0
+     },
+     "period": {
+      "state": "settled",
+      "spread": 7.178789653450313e-05,
+      "remaining": 0.0
+     }
+    },
+    "t": 23.0005,
+    "cycles": 5,
+    "cd_max": 3.2280558529998293,
+    "cl_max": 0.99008578046769
+   },
+   "replay_fraction": 0.6667777962993829,
+   "replay_wall_est": 1407.226376214702,
+   "full": {
+    "cd_max": 3.228032982555586,
+    "cd_min": 3.1648480593923236,
+    "cl_max": 0.9899840943285003,
+    "cl_min": -1.02474946071257,
+    "f": 3.015029626816563
+   },
+   "replay_vs_full": {
+    "cd_max": 2.2870444243316967e-05,
+    "cd_min": 2.17863703841914e-05,
+    "cl_max": 0.00010168613918970504,
+    "cl_min": -7.278349782224858e-05,
+    "f": 1.8524476857351146e-05
+   }
+  }
+ }
+}

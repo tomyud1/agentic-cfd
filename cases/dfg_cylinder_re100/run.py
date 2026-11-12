@@ -6,6 +6,8 @@ Usage (repo root, inside WSL):
   python -m cases.dfg_cylinder_re100.run production NAME ...      # named runs (see RUNS below), in order given
   python -m cases.dfg_cylinder_re100.run scaling [CORES ...]      # MPI scaling test on the finest mesh
   python -m cases.dfg_cylinder_re100.run psolver                  # pressure linear-solver test on M3
+  python -m cases.dfg_cylinder_re100.run live NAME ...            # run NAME with the live periodic stop -> live_NAME
+  python -m cases.dfg_cylinder_re100.run live_check               # replay the stop rule on M1..M4; compare live_ runs
 Outputs: results/dfg_cylinder_re100/{preflight.json, runs/<name>.json + .npz, perf/<name>.json}
 """
 import json
@@ -161,18 +163,19 @@ def map_from(case, source):
     foam.run(f"mapFields {source} -consistent -sourceTime latestTime", case, "mapFields")
 
 
-def solve(case, cores, timeout=None, log_name=None):
+def solve(case, cores, timeout=None, log_name=None, watch=None):
+    """Run pimpleFoam (in parallel if cores > 1). watch: live check (cfdlib.monitor.LiveStop)."""
     solver = "pimpleFoam"
     name = log_name or solver
     if cores > 1:
         foam.run("decomposePar -force", case, "decomposePar")
         hw = " --use-hwthread-cpus" if cores > 8 else ""      # more ranks than physical cores: use the 16 hardware threads
-        wall = foam.run(f"mpirun{hw} -np {cores} {solver} -parallel", case, name, timeout=timeout)
+        wall = foam.run(f"mpirun{hw} -np {cores} {solver} -parallel", case, name, timeout=timeout, watch=watch)
         foam.run("reconstructPar", case, "reconstructPar")
         for d in case.glob("processor*"):
             shutil.rmtree(d)
     else:
-        wall = foam.run(solver, case, name, timeout=timeout)
+        wall = foam.run(solver, case, name, timeout=timeout, watch=watch)
     return wall
 
 
@@ -289,6 +292,120 @@ def do_run(name, timeout=2400):
         map_from(case, run_root() / spec["source"])
     wall = solve(case, spec["cores"], timeout=timeout)
     return record(name, case, prm, spec["cores"], wall, extra=dict(source=spec["source"], dt_factor=spec["factor"]))
+
+
+# ---------------------------------------------------------------------------------------------
+# Live stop (cfdlib.monitor.LiveStop): a level ends once the case's periodicity rule holds
+# ---------------------------------------------------------------------------------------------
+def periodic_rule(problem, numerics, min_length=1.5):
+    """The acceptance periodicity rule as a stopping rule: over the last cycles_measured lift cycles the
+    peaks and the period must change less than the acceptance tolerances (or have reached their floor,
+    see monitor.settled). Needs at least min_length seconds of the run and cycles_measured + 1 cycles."""
+    from . import signals
+    acc, n = numerics["acceptance"], numerics["time"]["cycles_measured"]
+    tol = dict(cl_max=acc["periodic_cl_peak"], cl_min=acc["periodic_cl_peak"], cd_max=acc["periodic_cd_peak"],
+               cd_min=acc["periodic_cd_peak"], period=acc["periodic_period_rel"])
+
+    def rule(t, cd, cl):
+        if len(t) < 10 or t[-1] - t[0] < min_length:
+            return None
+        cyc = signals.cycles(t, cd, cl, window=min(3.0, t[-1] - t[0]))
+        if len(cyc) < n + 1:
+            return None
+        q = {k: [c[k] for c in cyc] for k in ("cl_max", "cl_min", "cd_max", "cd_min")}
+        q["period"] = [c["period"] / cyc[-1]["period"] for c in cyc]   # relative change of the period
+        d = monitor.judge(q, tol, n)
+        d.update(t=float(t[-1]), cycles=len(cyc), cd_max=cyc[-1]["cd_max"], cl_max=cyc[-1]["cl_max"])
+        return d
+    return rule
+
+
+def live_decider(problem, numerics):
+    """decide(case) for monitor.LiveStop: drag and lift from the run's force.dat so far, then periodic_rule."""
+    from . import signals
+    rule, dz = periodic_rule(problem, numerics), numerics["mesh"]["dz"]
+
+    def decide(case):
+        rows = [r for r in monitor.read_dat_live(case, "forcesCyl", "force.dat") if len(r) >= 4]
+        if len(rows) < 10:
+            return None
+        fc = np.array([r[:4] for r in rows], dtype=float)
+        t, cd, cl = signals.coefficients(dict(t=fc[:, 0], Fcyl=fc[:, 1:4]), problem["given"], dz)
+        return rule(t, cd, cl)
+    return decide
+
+
+def do_live(name, timeout=4000):
+    """Run table entry NAME with the live stop, as live_NAME: same mesh, time step and source; it starts
+    from the source's last written time and its planned length becomes the maximum."""
+    problem, numerics = load()
+    spec = run_table(numerics)[name]
+    src = spec["source"]
+    start = float(foam.time_dirs(run_root() / src)[-1].name) if src else 0.0
+    length = spec["end"] - spec["start"]
+    nm = f"live_{name}"
+    dt = dt_of(spec["level"], numerics, spec["factor"])
+    case, prm = build(nm, spec["level"], problem, numerics, start_time=start, dt=dt, end_time=start + length,
+                      write_interval=length, purge=0, cores=spec["cores"], div_U=spec.get("div_U"))
+    if src:
+        map_from(case, run_root() / src)
+    ls = monitor.LiveStop(case, live_decider(problem, numerics), log=lambda m: print(f"{nm}: {m}", flush=True))
+    wall = solve(case, spec["cores"], timeout=timeout, watch=ls)
+    t_end = float(foam.time_dirs(case)[-1].name)
+    return record(nm, case, prm, spec["cores"], wall,
+                  extra=dict(source=src, dt_factor=spec["factor"], live_stop=ls.summary(), t_end_actual=t_end,
+                             max_length=length))
+
+
+KEYS = ("cd_max", "cd_min", "cl_max", "cl_min", "f")
+
+
+def do_live_check(names=("M1", "M2", "M3", "M4"), every=0.05):
+    """Replay the stop rule on the recorded fixed-length runs (when would each have stopped, and with what
+    numbers?) and compare any live_ runs with them. Writes results/dfg_cylinder_re100/live_stop.json."""
+    from . import signals
+    problem, numerics = load()
+    rule, n, dz = periodic_rule(problem, numerics), numerics["time"]["cycles_measured"], numerics["mesh"]["dz"]
+    out = dict(rule="periodicity tolerances of the acceptance rules over the last cycles_measured cycles, or "
+                    "their floor (cfdlib.monitor.settled); the replay checks every 0.05 s of simulated time",
+               runs={})
+    for L in names:
+        d = np.load(RUNS_DIR / f"{L}.npz")
+        meta = json.loads((RUNS_DIR / f"{L}.json").read_text())
+        t, cd, cl = signals.coefficients(d, problem["given"], dz)
+        full = signals.summary(signals.cycles(t, cd, cl), n)
+        hit = None
+        for tc in np.arange(t[0] + every, t[-1] + 1e-9, every):
+            m = t <= tc
+            r = rule(t[m], cd[m], cl[m])
+            if r and r["stop"]:
+                hit = r
+                break
+        frac = (hit["t"] - t[0]) / (t[-1] - t[0]) if hit else 1.0
+        rec = dict(start=float(t[0]), end=float(t[-1]), wall=meta["wall_time"], replay_stop=hit,
+                   replay_fraction=frac, replay_wall_est=frac * meta["wall_time"], full={k: full[k] for k in KEYS})
+        msg = f"{L}: {t[0]:.3f}..{t[-1]:.3f} s, {meta['wall_time']:.0f} s wall; replay: "
+        if hit:
+            m = t <= hit["t"]
+            early = signals.summary(signals.cycles(t[m], cd[m], cl[m]), n)
+            rec["replay_vs_full"] = {k: early[k] - full[k] for k in KEYS}
+            msg += (f"stop at {hit['t']:.3f} ({hit['status']}) -> ~{rec['replay_wall_est']:.0f} s; "
+                    + ", ".join(f"{k} {v:+.1e}" for k, v in rec["replay_vs_full"].items()))
+        else:
+            msg += "never stops"
+        print(msg)
+        lp = RUNS_DIR / f"live_{L}.npz"
+        if lp.exists():
+            lm = json.loads((RUNS_DIR / f"live_{L}.json").read_text())
+            tl, cdl, cll = signals.coefficients(np.load(lp), problem["given"], dz)
+            live = signals.summary(signals.cycles(tl, cdl, cll), n)
+            rec["live"] = dict(start=float(tl[0]), end=float(tl[-1]), wall=lm["wall_time"],
+                               decision=lm["live_stop"]["decision"], health=lm["health"]["status"],
+                               vs_full={k: live[k] - full[k] for k in KEYS})
+            print(f"   live_{L}: {tl[0]:.3f}..{tl[-1]:.3f} s, {lm['wall_time']:.0f} s wall, health "
+                  f"{rec['live']['health']}; " + ", ".join(f"{k} {v:+.1e}" for k, v in rec["live"]["vs_full"].items()))
+        out["runs"][L] = rec
+    (OUT / "live_stop.json").write_text(json.dumps(out, indent=1, default=float))
 
 
 def do_preflight():
@@ -475,6 +592,11 @@ if __name__ == "__main__":
             list(ex.map(lambda j: do_experiment(*j), jobs))
     elif mode == "wake":
         do_wake(args[0])
+    elif mode == "live":
+        for nm in args:
+            do_live(nm)
+    elif mode == "live_check":
+        do_live_check()
     elif mode == "psolver":
         do_psolver(*(args[:1] or []))
     else:

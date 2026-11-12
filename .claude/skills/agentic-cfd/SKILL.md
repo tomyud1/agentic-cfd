@@ -26,7 +26,8 @@ will mostly read the summary and must be able to check every claim. Four rules:
 ```
 cfdlib/                       shared tools (do NOT modify; log needed changes as insights, stage "tooling")
   foam.py        render_case, run (timeout, PID file), stop, running; read fields and postProcessing .dat files
-  monitor.py     parse_log, assess (health checks), preflight (short test run + run-time projection)
+  monitor.py     parse_log, assess (health checks), preflight (short test run + run-time projection),
+                 LiveStop / judge / settled (end a run live once its physical check holds)
   verification.py error norms, observed order, Richardson extrapolation, GCI, level_sequence
                  (convergence of any sequence of levels, including a reference's own)
   signals.py     periodic signals: cycles, refined peaks, periodicity check, FFT frequency
@@ -150,9 +151,17 @@ settings):
 ### 4. Production runs
 - Run meshes coarse to fine. For steady runs, extrapolate the iteration count of the finest mesh from
   the coarser ones (it often grows 3-4x per refinement) before launching it.
-- Stopping must be physical: make the physical check of stage 2 the stopping rule (e.g. a
-  `runTimeControl` function object on probed values, see the primer), or check per mesh that the
-  residual targets actually satisfy it, on the coarse meshes first.
+- Stopping must be physical: make the physical check of stage 2 the stopping rule, and the planned
+  end time only a maximum. Use `monitor.LiveStop(case, decide)` as `foam.run(..., watch=...)`:
+  `decide(case)` reads the run's output so far (`monitor.read_dat_live`) and returns
+  `monitor.judge({quantity: per-cycle or per-chunk values}, {quantity: tol})`; once every quantity is
+  settled the solver writes the current step and ends normally (OpenFOAM's `abort` function object,
+  serial and parallel). A quantity whose changes stop shrinking above its tolerance is at a floor:
+  the run stops with a warning, and that spread becomes its iteration uncertainty (case 4's M1 drag
+  peaks jitter by 7e-4 against a 5e-4 rule; waiting longer never helps). Example:
+  `cases/dfg_cylinder_re100/run.py` (`periodic_rule`, `live_decider`, `do_live`). Replay the rule
+  on recorded histories before trusting it (`do_live_check`). For steady SIMPLE runs, check per mesh
+  that the residual targets actually satisfy the physical check, on the coarse meshes first.
 - Independent runs (different meshes) may run at the same time, up to 6 at once (8 cores). Say so in
   the reproducibility notes, since it inflates per-run wall times.
 - Long runs go in the background; `python -m cfdlib.foam ps` lists solver processes, and
