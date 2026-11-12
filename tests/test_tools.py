@@ -61,3 +61,19 @@ with tempfile.TemporaryDirectory() as tmp:
     txt = (Path(tmp) / "system/controlDict").read_text()
     assert txt.count("type            abort;") == 1 and txt.index("liveStop") < txt.index("f1"), txt
 print("stop switch: ok")
+
+# 6. monitor.DatTail: a force file grown in pieces (cut mid-line) reads the same as in one go
+from cfdlib import foam  # noqa: E402
+src = ROOT / "results/dfg_cylinder_re100"
+with tempfile.TemporaryDirectory() as tmp:
+    d6 = Path(tmp) / "postProcessing/forcesCyl/0"
+    d6.mkdir(parents=True)
+    lines6 = "# Time  total_x total_y total_z\n" + "".join(
+        f"{0.001 * i:.6g}\t({np.sin(i):.8g} {np.cos(i):.8g} 0)\n" for i in range(1, 2001))
+    tail = monitor.DatTail(tmp, "forcesCyl", "force.dat")
+    for cut in sorted(rng.integers(0, len(lines6), 9).tolist()) + [len(lines6)]:
+        (d6 / "force.dat").write_text(lines6[:cut])
+        got = tail()
+    ref = np.array([monitor._flat(r) for r in foam.parse_dat(lines6) if isinstance(r[0], float)])
+    assert got.shape == ref.shape and np.array_equal(got, ref), (got.shape, ref.shape)
+print("DatTail: ok")

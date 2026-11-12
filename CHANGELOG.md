@@ -17,7 +17,24 @@ Nothing uncommitted. Next, in this order:
 
 ## 2026-11-12
 
-### Peek appends to the raw history instead of rewriting it, for very long runs, commit hash to be filled in
+### The live stop's check costs the same at step one million as at step one thousand, commit hash to be filled in
+- **What:**
+  - New `monitor.DatTail` reads a postProcessing file incrementally. Each call parses only the lines
+    added since the last one and keeps the history in a growing array.
+  - Case 4's stopping rule analyses only the last 14 shedding periods. The verdict depends only on
+    the last 9 cycles: 4 for the spread, 5 for the drift test, 9 for the floor test.
+  - Fixed: changes that are exactly zero no longer count as a one-way drift (a division by zero on
+    perfectly periodic signals).
+- **Why it matters:** the check runs every 10 s beside the solver. Before, it re-read the whole force
+  file and re-analysed every cycle each time, which costs more and more as the run grows.
+- **How it was verified:**
+  - Synthetic force history of 1,000,000 steps (80 MB): the old check took 7.2 s each time. The new
+    one took 0.14 s after 20,000 new steps, with the same verdict.
+  - The replay on case 4's recorded runs gives the same stop times on all four grids. Only the
+    number of cycles analysed changed (M1: 18 → 13).
+  - A unit test grows a file in pieces, cut mid-line, and compares with a one-shot read.
+
+### Peek appends to the raw history instead of rewriting it, for very long runs (`f60a49e`)
 - **What:** `cfdlib.monitor.sync` keeps a byte offset per source file (solver log, each
   postProcessing file) in `<case>/peek/.state.json`.
   - Each peek reads only what the run wrote since the last one, and appends those rows to the CSVs.

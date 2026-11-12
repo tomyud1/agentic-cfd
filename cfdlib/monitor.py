@@ -257,6 +257,51 @@ def read_dat_live(case_dir, fo, fname):
     return rows
 
 
+class DatTail:
+    """Incremental reader of a postProcessing .dat file that a running solver keeps writing. Each call
+    returns every row so far as one float array (time first, vectors flattened), but reads and parses
+    only the bytes added since the previous call, so a live check every few seconds costs the same at
+    step 1000 as at step 1000000. Start-time folders (restarts) are read in time order; only complete
+    lines are taken; rows of another width (a header change) are skipped."""
+
+    def __init__(self, case_dir, fo, fname):
+        self.root, self.fname = Path(case_dir) / "postProcessing" / fo, fname
+        self.offsets, self.width = {}, None
+        self.buf, self.n = np.empty((0, 0)), 0
+
+    def __call__(self):
+        def start(p):
+            try:
+                return float(p.parent.name)
+            except ValueError:
+                return math.inf
+        new = []
+        for src in sorted(self.root.glob(f"*/{self.fname}"), key=start):
+            off = self.offsets.get(src, 0)
+            with open(src, "rb") as fh:
+                fh.seek(off)
+                data = fh.read()
+            data = data[:data.rfind(b"\n") + 1]
+            self.offsets[src] = off + len(data)
+            for r in foam.parse_dat(data.decode(errors="replace")):
+                if not r or not isinstance(r[0], float):
+                    continue
+                flat = [x for v in r for x in (v if isinstance(v, tuple) else (v,)) if isinstance(x, float)]
+                if self.width is None:
+                    self.width = len(flat)
+                if len(flat) == self.width:
+                    new.append(flat)
+        if new:
+            if self.n + len(new) > len(self.buf):                # grow by doubling: appends cost O(new)
+                buf = np.empty((max(2 * len(self.buf), self.n + len(new), 1024), self.width))
+                if self.n:
+                    buf[:self.n] = self.buf[:self.n]
+                self.buf = buf
+            self.buf[self.n:self.n + len(new)] = new
+            self.n += len(new)
+        return self.buf[:self.n]
+
+
 def settled(values, tol, n=4):
     """Has a quantity stopped changing? `values`: one number per cycle (periodic flow, e.g. the drag
     maximum of each shedding cycle) or per equal chunk of time or iterations (steady flow).
@@ -284,7 +329,7 @@ def settled(values, tol, n=4):
     # the changes shrink 10x), so it only serves the floor test here.
     d = np.diff(v[-n - 1:])
     remaining = 0.0
-    if len(d) == n and len(np.unique(np.sign(d))) == 1:
+    if len(d) == n and (np.all(d > 0) or np.all(d < 0)):
         rho = max(0.5, float(abs(d[-1] / d[0])) ** (1.0 / (n - 1)))
         remaining = math.inf if rho >= 1.0 else float(abs(d[-1])) * rho / (1.0 - rho)
     drift = remaining > tol

@@ -162,7 +162,12 @@ settings):
   the run stops with a warning, and that spread becomes its iteration uncertainty (case 4's M1 drag
   peaks jitter by 7e-4 against a 5e-4 rule; waiting longer never helps). Example:
   `cases/dfg_cylinder_re100/run.py` (`periodic_rule`, `live_decider`, `do_live`). Replay the rule
-  on recorded histories before trusting it (`do_live_check`). For steady SIMPLE runs, check per mesh
+  on recorded histories before trusting it (`do_live_check`). Keep each check's cost flat however
+  long the run gets:
+  - read the output with `monitor.DatTail`, which parses only the lines added since the last check;
+  - analyse only the stretch of history the verdict depends on (case 4: the last 14 periods).
+
+  On a million-step history this takes a check from 7.2 s to 0.14 s. For steady SIMPLE runs, check per mesh
   that the residual targets actually satisfy the physical check, on the coarse meshes first.
 - Independent runs (different meshes) may run at the same time, up to 6 at once (8 cores). Say so in
   the reproducibility notes, since it inflates per-run wall times.

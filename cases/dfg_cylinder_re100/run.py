@@ -297,21 +297,31 @@ def do_run(name, timeout=2400):
 # ---------------------------------------------------------------------------------------------
 # Live stop (cfdlib.monitor.LiveStop): a level ends once the case's periodicity rule holds
 # ---------------------------------------------------------------------------------------------
-def periodic_rule(problem, numerics, min_length=1.5):
+def periodic_rule(problem, numerics, min_length=1.5, periods_kept=14):
     """The acceptance periodicity rule as a stopping rule: over the last cycles_measured lift cycles the
     peaks and the period must change less than the acceptance tolerances (or have reached their floor,
-    see monitor.settled). Needs at least min_length seconds of the run and cycles_measured + 1 cycles."""
+    see monitor.settled). Needs at least min_length seconds of the run and cycles_measured + 1 cycles.
+
+    The verdict depends only on the last 9 cycles (monitor.settled: 4 for the spread, 5 for the drift
+    test, 9 for the floor test), so once the period is known only the last `periods_kept` periods (at
+    least 3 s, the window of the mid-level of the cycle detection) are analysed: the cost of a check
+    stays the same however long the run gets, and the verdict is the same as on the whole history."""
     from . import signals
     acc, n = numerics["acceptance"], numerics["time"]["cycles_measured"]
     tol = dict(cl_max=acc["periodic_cl_peak"], cl_min=acc["periodic_cl_peak"], cd_max=acc["periodic_cd_peak"],
                cd_min=acc["periodic_cd_peak"], period=acc["periodic_period_rel"])
+    last_period = [None]
 
     def rule(t, cd, cl):
         if len(t) < 10 or t[-1] - t[0] < min_length:
             return None
+        if last_period[0]:
+            i0 = int(np.searchsorted(t, t[-1] - max(3.0, periods_kept * last_period[0])))
+            t, cd, cl = t[i0:], cd[i0:], cl[i0:]
         cyc = signals.cycles(t, cd, cl, window=min(3.0, t[-1] - t[0]))
         if len(cyc) < n + 1:
             return None
+        last_period[0] = cyc[-1]["period"]
         q = {k: [c[k] for c in cyc] for k in ("cl_max", "cl_min", "cd_max", "cd_min")}
         q["period"] = [c["period"] / cyc[-1]["period"] for c in cyc]   # relative change of the period
         d = monitor.judge(q, tol, n)
@@ -321,15 +331,17 @@ def periodic_rule(problem, numerics, min_length=1.5):
 
 
 def live_decider(problem, numerics):
-    """decide(case) for monitor.LiveStop: drag and lift from the run's force.dat so far, then periodic_rule."""
+    """decide(case) for monitor.LiveStop: drag and lift from the run's force.dat so far (read
+    incrementally, monitor.DatTail), then periodic_rule."""
     from . import signals
     rule, dz = periodic_rule(problem, numerics), numerics["mesh"]["dz"]
+    tails = {}
 
     def decide(case):
-        rows = [r for r in monitor.read_dat_live(case, "forcesCyl", "force.dat") if len(r) >= 4]
-        if len(rows) < 10:
+        tail = tails.setdefault(str(case), monitor.DatTail(case, "forcesCyl", "force.dat"))
+        fc = tail()
+        if len(fc) < 10:
             return None
-        fc = np.array([r[:4] for r in rows], dtype=float)
         t, cd, cl = signals.coefficients(dict(t=fc[:, 0], Fcyl=fc[:, 1:4]), problem["given"], dz)
         return rule(t, cd, cl)
     return decide
