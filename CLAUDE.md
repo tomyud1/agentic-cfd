@@ -59,6 +59,11 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
   still needed. Run one GPU job at a time.
 - **Keep verified work safe.** Each verified milestone should get its own commit, separate from
   work in progress. Commit and push only when the student asks.
+- **Keep the changelog current.** Every commit that adds or changes something meaningful also
+  updates [`CHANGELOG.md`](CHANGELOG.md) in that same commit. Add a dated entry, newest first, in the
+  same format: what, why it matters, how it was verified, key numbers, open problems. Fill in the
+  commit hash on the next change. List significant work that isn't committed yet under "In
+  progress". Write it in plain language: the student uses it to report progress to the supervisor.
 - **Explain as you go.** Explain the physics and numerics behind each choice in plain terms, so the
   student can follow, check and present the work.
 - **Be honest.** Report failures, fair comparisons and limits in full. The supervisor is a CFD
@@ -66,6 +71,10 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
 
 ## Where things are
 
+- GitHub: [github.com/tomyud1/agentic-cfd](https://github.com/tomyud1/agentic-cfd) (public; the
+  reports are served by GitHub Pages at
+  [tomyud1.github.io/agentic-cfd](https://tomyud1.github.io/agentic-cfd/)).
+- [`CHANGELOG.md`](CHANGELOG.md): what changed and when. Read it to catch up on recent work.
 - [`README.md`](README.md): results so far (cases 1-5 and the GPU study) with links to the reports.
 - [`.claude/skills/agentic-cfd/SKILL.md`](.claude/skills/agentic-cfd/SKILL.md): the workflow the agent
   follows for each problem.
