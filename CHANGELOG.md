@@ -17,7 +17,30 @@ Nothing uncommitted. Next, in this order:
 
 ## 2026-11-12
 
-### Peek always saves the raw run history for the agent to search, commit hash to be filled in
+### Peek appends to the raw history instead of rewriting it, for very long runs, commit hash to be filled in
+- **What:** `cfdlib.monitor.sync` keeps a byte offset per source file (solver log, each
+  postProcessing file) in `<case>/peek/.state.json`.
+  - Each peek reads only what the run wrote since the last one, and appends those rows to the CSVs.
+    While the solver runs, only complete time steps are taken.
+  - Next to each CSV is a float64 twin (`.f64`) for fast loading. The summary, health and figure are
+    computed from these files, not by re-parsing the log.
+  - `monitor.assess` now has an array core (`assess_arrays`); its results are unchanged.
+- **Why it matters:** many CFD runs are huge. Rewriting the files at every peek would make each look
+  cost more as the run grows. Now the cost of a peek follows what is new, plus a fast binary load.
+- **How it was verified:**
+  - `assess` gives identical output, old against new, on 6 real logs: steady and transient, up to
+    10,864 steps.
+  - A run grown in 13 random chunks, cut mid-line and mid-step, gives the same rows as a one-shot
+    parse: solver log, forces and probes, 2330 rows each.
+  - A real running simulation was peeked and watched to its end.
+- **Key numbers:**
+  - Peek on case 4's `live_M3`: 0.35 s the first time, 0.01 s when nothing is new.
+  - Loading a million rows × 10 columns: 0.034 s from `.f64`, against 2.85 s from the CSV text.
+- **Open:** the live stop's own check (`read_dat_live` plus the cycle analysis) still re-reads its
+  force file every 10 s. That costs a few seconds at a million steps, so it should use the same
+  incremental reader when a run gets that long.
+
+### Peek always saves the raw run history for the agent to search (`7991d62`)
 - **What:** every `peek` writes the full history to `<case>/peek/`, every time step, whatever
   `--files` or `--from` show:
   - `solver_log.csv`: residuals, Courant number, continuity error and solver time;

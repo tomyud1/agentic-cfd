@@ -174,8 +174,10 @@ settings):
   steady oscillation and the start-up transient all show in the rows. Narrow it with `--files` and
   `--from`; use `--windows` for finer rows. Every peek also saves the RAW history, every step, to
   `<case>/peek/`: `solver_log.csv` (residuals, Courant number, continuity error, solver time) and
-  one CSV per postProcessing file. It lists them with row counts and columns. Search or load what
-  you need from there (grep, numpy, pandas) rather than reading values off a figure. `--plot` adds
+  one CSV per postProcessing file. It lists them with sizes and columns. Each peek only appends what
+  the run wrote since the last one, so peeking at a run of millions of steps stays cheap. Search the
+  CSVs with grep, or load them with `cfdlib.monitor.load_csv`, which reads the float64 twin
+  `<name>.f64`: a million rows in about 0.03 s. Do this rather than reading values off a figure. `--plot` adds
   `<case>/peek.png`, the same history as a figure: look at it when the shape matters, and use it to
   show the engineer how the run is going. Between peeks nothing runs, so a run of many hours costs no
   tokens. A sensible
