@@ -37,8 +37,10 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
 ## Bottlenecks to work around
 
 - **Compute.** Development and tests run on one desktop: an RTX 4070 with 12 GB and FP64 at 1/64 of
-  the float rate, a Ryzen 7 7800X3D, and WSL2. Long runs slow everything down. The lab's GPU
-  machines may become available later; their specs are not known yet.
+  the float rate, a Ryzen 7 7800X3D, and WSL2. Long runs slow everything down. Prof. Frankel's lab
+  is expected to give access to a bigger machine with its own local agent in the week after
+  2026-11-12 (specs not known yet). Work will then move between machines through git, so keep setup
+  steps and paths portable, not tied to this PC.
 - **Usage budget.** The student's Claude plan has a small weekly limit (65% of a week's usage went in
   two days with one agent), so only one agent runs at a time. Wasted turns cost days of progress, not
   just minutes.
@@ -64,6 +66,11 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
   same format: what, why it matters, how it was verified, key numbers, open problems. Fill in the
   commit hash on the next change. List significant work that isn't committed yet under "In
   progress". Write it in plain language: the student uses it to report progress to the supervisor.
+- **Keep the README a front door, not a history.** It shows the current state only: what the project
+  is, current results, how to use it. When something changes, replace the affected line or bullet
+  instead of adding sentences to it. History goes in `CHANGELOG.md`, gpucfd details in
+  `gpucfd/DESIGN.md`, and plans in `cases/BACKLOG.md`. Keep it under about 220 lines: a new section must replace or shorten
+  something.
 - **Explain as you go.** Explain the physics and numerics behind each choice in plain terms, so the
   student can follow, check and present the work.
 - **Be honest.** Report failures, fair comparisons and limits in full. The supervisor is a CFD

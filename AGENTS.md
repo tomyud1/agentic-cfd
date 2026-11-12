@@ -1,7 +1,7 @@
 # Instructions for coding agents
 
-This repository's agent instructions are in [`CLAUDE.md`](CLAUDE.md). They apply to every coding
-agent (Claude Code, Codex and others). Read it first.
+Every coding agent starts here. The full instructions are in [`CLAUDE.md`](CLAUDE.md), and they
+apply to every agent (Claude Code, Codex and others), not only Claude. Read it first.
 
 - What changed recently: [`CHANGELOG.md`](CHANGELOG.md).
 - To solve a CFD problem with the project's workflow, follow

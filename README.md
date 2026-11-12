@@ -10,7 +10,10 @@ published benchmark, and explains every choice it made in an HTML report.
 
 Final-year project, Faculty of Mechanical Engineering, Technion, supervised by Prof. Steven Frankel.
 The agent is [Claude Code](https://claude.com/claude-code) following the workflow in
-[`.claude/skills/agentic-cfd/`](.claude/skills/agentic-cfd/SKILL.md).
+[`.claude/skills/agentic-cfd/`](.claude/skills/agentic-cfd/SKILL.md). The project also builds
+faster tools for the agent, starting with a GPU solver ([below](#gpu-solver-gpucfd)).
+
+**What's new:** [CHANGELOG.md](CHANGELOG.md). **What's next:** [cases/BACKLOG.md](cases/BACKLOG.md).
 
 ## Results so far
 
@@ -48,6 +51,26 @@ The report says which check and why. Verdicts are never softened.
 
 Case 5 also has a separate **performance study** report (GPU vs CPU): what is compared, the method,
 results per mesh size, the same-answer check, where the time goes and the insights.
+
+## GPU solver (gpucfd)
+
+Case 5 showed that OpenFOAM's GPU plugins can't go past about 1.5×, because only the linear
+solver runs on the GPU. [`gpucfd/`](gpucfd) is our own solver that keeps the whole time step on the
+GPU.
+
+- **Speed:** on the same 3D flow and grid as OpenFOAM, each with its best settings, it is 47× faster
+  at 262 thousand cells and 235× faster at 2.1 million, with a smaller error (RTX 4070 against
+  8 CPU cores).
+- **Trust:** every feature passes a verification ladder before the next is built: exact solutions,
+  an independent reference code and the order of accuracy. Speed-only changes must give
+  bit-identical results.
+- **What it handles:** incompressible laminar flow in a box with walls, inflow and outflow, and
+  bodies of any shape inside the flow. On the DFG cylinder benchmark (Re 20), drag is within 0.65%
+  at 35 cells per diameter and converging.
+- **Not yet:** turbulence, heat transfer, stretched grids.
+
+Details, status and limits: [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md). History:
+[CHANGELOG.md](CHANGELOG.md).
 
 ## How it works
 
@@ -91,7 +114,9 @@ cases/<case>/                 one folder per problem
   theory.py / analytical.py   theory (SymPy)
   run.py, analyze.py          run the simulations; analyse and write the report
   sketch.py                   the problem sketch
+cases/BACKLOG.md              the next problems, in order
 results/<case>/               report.html, results.json and the extracted run data (runs/)
+gpucfd/                       the GPU solver: CUDA source, Python wrapper, verification ladder, DESIGN.md
 setup/                        install OpenFOAM and Python, re-render all reports, fetch benchmark data
 tests/                        smoke tests of the tools
 dev/                          early exploration scripts and independent checks of the agents' claims
@@ -115,9 +140,6 @@ Then, in the Ubuntu terminal, from the repository folder:
 
 ```bash
 bash setup/install_openfoam.sh
-```
-
-```bash
 sudo apt-get install -y python3-venv && bash setup/make_venv.sh
 ```
 
@@ -141,13 +163,7 @@ Each report's **Reproducibility** section lists the exact commands, in order; ru
 
 ```bash
 ~/venvs/cfd/bin/python -m cases.stokes_first_problem.run preflight
-```
-
-```bash
 ~/venvs/cfd/bin/python -m cases.stokes_first_problem.run production --jobs 4
-```
-
-```bash
 ~/venvs/cfd/bin/python -m cases.stokes_first_problem.analyze
 ```
 
@@ -157,18 +173,13 @@ Windows drive). Cases 1-3 take minutes; case 4 takes a few hours (its finest run
 
 ### 4. View a report
 
-Open `results/<case>/report.html` in a browser (it is one self-contained file; formulas load
-MathJax from a CDN), or serve the folder:
-
-```bash
-python3 -m http.server 8765 --directory results
-```
-
-and go to `http://localhost:8765/<case>/report.html`.
+Open `results/<case>/report.html` in a browser. It is one self-contained file; the formulas load
+MathJax from a CDN.
 
 ### 5. Give the agent a new problem
 
-1. Install [Claude Code](https://claude.com/claude-code) and open this repository in it.
+1. Open this repository in a coding agent ([Claude Code](https://claude.com/claude-code), Codex or
+   any other) and have it start from [AGENTS.md](AGENTS.md).
 2. Write `cases/<new_case>/problem.yaml` in the same format as the existing cases: a short
    description, a `setup` list, the `given` data, the `quantities_of_interest`, and optionally a
    `reference/` folder with benchmark data and its citation.
@@ -181,27 +192,14 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
 
 ## Roadmap
 
-- **A GPU-resident solver** ([`gpucfd/`](gpucfd), in progress): case 5 showed that offloading only
-  OpenFOAM's pressure solve is capped near 1.5 times, so this solver keeps the whole time step on the
-  GPU (staggered grid, projection method, geometric multigrid, mixed precision). It is built rung by
-  rung against a verification ladder (exact solutions, independent reference code, order of
-  accuracy); see [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md) for the plan, current status and
-  limitations. Periodic 2D/3D flows pass. On the same 3D flow and grid as OpenFOAM (each with its
-  best settings), it is 47 times faster at 262 thousand cells and 235 times faster at 2.1 million,
-  with a smaller error. Walls work too: on the lid-driven cavity its solution and OpenFOAM's converge
-  to each other at second order. Two rounds of speed work (implicit diffusion, whole time steps as
-  CUDA graphs with the solver loops decided on the GPU, larger steady time steps) took that small
-  steady problem from 396 s to 5 s (OpenFOAM, case 2: 46 s), with results checked to be bit-for-bit
-  unchanged by each speed-only change. Inflow and outflow boundaries are verified against exact
-  solutions (Poiseuille channel, Kovasznay flow). Bodies of any shape can sit in the flow (immersed
-  boundary, verified against exact curved-wall solutions), with forces from an exact momentum
-  balance; on the DFG cylinder benchmark (Re 20) the drag is within 0.65 % of the reference at 35
-  cells per diameter and converging. Not yet possible: stretched grids, turbulence and heat transfer.
-- **Smarter studies**: start each finer mesh from the coarser solution, stop when the extrapolated
-  answer settles, faster algorithms for steady problems.
-- **GPU setup instructions** for OGL are in [`setup/gpu/`](setup/gpu) (CUDA check, build script,
-  smoke test).
-- More problem types: heat transfer, turbulence models, problems without a benchmark.
+- **More problem types:** heat transfer and turbulence (RANS) first. The ordered list, with sources:
+  [cases/BACKLOG.md](cases/BACKLOG.md).
+- **gpucfd as a tool for the agent:** the agent picks it when a problem fits, and documents that
+  choice like any other decision.
+- **Smarter runs:** finer meshes start from the coarser solution; the agent watches runs live and
+  stops them once the answer has settled.
+
+GPU setup instructions for OpenFOAM's OGL plugin are in [`setup/gpu/`](setup/gpu).
 
 ## Background papers
 

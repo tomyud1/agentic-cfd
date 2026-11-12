@@ -41,8 +41,11 @@ moves to a dated entry when it is committed.
     pipe, buoyancy cavity), the first RANS case (NASA TMR turbulent flat plate), harder laminar
     cases that gpucfd can also run, and TMR turbulence cases.
   - It also proposes adopting manufactured solutions (MMS) for verification.
-  - The changelog, AGENTS.md (for non-Claude agents such as Codex) and the changelog rule in
+  - The changelog, AGENTS.md (the starting point for every coding agent) and the changelog rule in
     CLAUDE.md came in `ba626b8`.
+  - The README now shows only the current state. gpucfd has its own short section next to the
+    results, and the roadmap points to the backlog. A new rule in CLAUDE.md says to replace README
+    text instead of adding to it.
 - **Why it matters:** each next case adds one new capability. The sources (NASA TMR, and Luminary's
   V&V catalogue, suggested by Dhanush from Prof. Frankel's lab) come with grid families and
   reference results, and some with a commercial result to compare against.
