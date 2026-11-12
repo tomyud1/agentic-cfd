@@ -9,12 +9,49 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing uncommitted. Next: connect gpucfd to the agent through cfdlib, starting with case 4
-(DFG 2D-2), against OpenFOAM.
+Nothing uncommitted. Next, in this order:
+1. Stop OpenFOAM runs live on a physical check (`cfdlib/monitor.py`), as gpucfd runs now stop.
+2. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
+3. Then the IMEX fix for bodies, a 3D cylinder, and more OpenFOAM problem types
+   ([cases/BACKLOG.md](cases/BACKLOG.md)).
 
 ## 2026-11-12
 
-### gpucfd: grid studies for steady flows, 20× faster (rung 11), commit hash to be filled in
+### gpucfd connected to the agent; case 4 run on gpucfd and OpenFOAM, commit hash to be filled in
+- **What:**
+  - `cfdlib/gpu.py` lets the agent use gpucfd as a solver:
+    - `check_fit` says whether a problem fits gpucfd.
+    - `run_transient` runs it with live health checks and a live stopping rule.
+    - `write_run` records the run like an OpenFOAM run.
+  - The skill (SKILL.md, stage 2) now says when to choose gpucfd and how to verify it.
+  - Case 4 (cylinder at Re 100, vortex shedding) was run on gpucfd (`gpu_run.py`) and compared with
+    the OpenFOAM result by case 4's own rules (`gpu_compare.py`).
+- **Why it matters:** this is the first time the agent can choose between two solvers, with
+  measured numbers on the same problem.
+- **How it was verified:** three grids (17.6, 35 and 70 cells per diameter) and a time-step check,
+  with all rules set before the runs.
+  - **Pressure tolerance:** tuned with a same-answer rule, as OpenFOAM's solver settings were (1.7×
+    less time per step).
+  - **Stopping:** each grid stops once case 4's periodicity rule holds, checked live.
+- **Key numbers:**
+  - **Time:** gpucfd ran the whole study in 315 s against OpenFOAM's 2548 s (8×). Per cell and
+    time step it is about 70× faster.
+  - **Accuracy:** gpucfd's drag is 1.0% and its lift maximum 3.4% below the benchmark, against
+    0.25% and 0.4% for OpenFOAM. The Strouhal number is within 0.3% on both.
+  - **Same answer?** The two tools agree within their uncertainties on everything except the lift
+    maximum. Those uncertainty bands are wide, though, because gpucfd's coarsest grid is far off.
+  - **Verdict:** WARN by case 4's rules. The drag target set before the runs (within 0.3%) was
+    missed.
+- **Problems found:**
+  - A tight solver tolerance copied from the tests made each step 1.7× slower than needed.
+  - OpenFOAM's fixed 3 s per grid was too short for gpucfd: its coarse grid starts 16% low, so the
+    finer grids need longer to settle. They are now stopped by the periodicity check instead.
+- **Open:** at equal accuracy OpenFOAM is faster here. Its body-fitted grid reaches 0.25% with 13
+  thousand cells in 97 s. gpucfd's uniform grid would need roughly 140 to 280 cells per diameter
+  (estimated, not run). Stretched grids are the next gpucfd step.
+- **Next:** the same live stop for OpenFOAM runs; then stretched grids for gpucfd.
+
+### gpucfd: grid studies for steady flows, 20× faster (rung 11), `507ebeb`
 - **What:** `gpucfd/steady.py` makes steady grid studies faster and self-stopping. gpucfd still
   marches in time to steady state; it is not a direct steady solver. Two changes make the march
   cheaper:

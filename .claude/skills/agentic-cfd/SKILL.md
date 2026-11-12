@@ -36,6 +36,8 @@ cfdlib/                       shared tools (do NOT modify; log needed changes as
   perf.py        performance numbers per run (summarize, machine) for the performance appendix
   contract.py    the report contract checker (also --decisions mode)
   study.py       a second, focused report for a performance study (render_study), e.g. GPU vs CPU
+  gpu.py         gpucfd as a solver: check_fit (does the problem fit it?), run_transient (sampled run with
+                 health checks and a live watch), write_run (runs/<name>.json + .npz like OpenFOAM runs)
   insights.py    the live insight log (checks typesetting when you log; refuses to overwrite a filled entry)
   foamdict.py    OpenFOAM dictionary parser (used by the checker)
 cases/<name>/                 one folder per problem
@@ -92,6 +94,21 @@ settings):
   problem, and the formula with the numbers substituted (hand-check).
 
 ### 2. Setup and decisions
+- **Choose the solver first, and record it as a decision (kind `solver`).** OpenFOAM is the default. Consider
+  gpucfd (`cfdlib.gpu.check_fit`, limits in `gpucfd/DESIGN.md`) when the problem is incompressible, laminar,
+  in a box (bodies inside it allowed) and a uniform grid can resolve it. What decides is the cost to reach
+  the required accuracy, not speed per cell. Case 4 (DFG 2D-2, `gpu_run.py`, `gpu_compare.py`) measured both:
+  gpucfd is about 70 times faster per cell and step, but its uniform grid with an immersed cylinder needed
+  442368 cells for drag within 1.0 % of the benchmark, while OpenFOAM's O-grid had it within 0.25 % at
+  13432 cells (97 s). So: OpenFOAM for bodies with thin boundary layers (Re about 100 and up on a cylinder)
+  until gpucfd has stretched grids; gpucfd for flows a uniform grid resolves well (periodic boxes,
+  channels, cavities, low Reynolds numbers) and for steady flows with `gpucfd.steady` (grid sequencing).
+- When gpucfd is the solver: grids n0 times 2^k with multigrid-friendly sizes (powers of 2 times 3 or 9);
+  time step from `NavierStokes.max_dt`; tune `pressure_tol` in the pre-flight with a same-answer rule (case
+  4: \(10^{-8}\), 1.7 times faster than \(10^{-10}\)); run with `cfdlib.gpu.run_transient`, which samples,
+  checks health and records the run like an OpenFOAM run; stop each level on the physical check
+  (`stop_on_watch`), not after a fixed time: a coarse gpucfd level can be far from the fine answer (case 4:
+  G1 drag 16 % low), and the next level then takes several flow-through times to settle.
 - Find the closest OpenFOAM tutorial (`$FOAM_TUTORIALS`) and start from it; make minimal changes.
 - Read `references/openfoam-primer.md` for what each file controls and the known pitfalls.
 - Templates may contain Jinja loops: generating a whole `blockMeshDict` from Python is fine and is

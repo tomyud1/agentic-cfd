@@ -62,6 +62,35 @@ acceptance:
   secondary: [cd_amp, cl_mean]
   order_range: [1.0, 3.0]     # observed order of the primary quantities outside -> WARN
   drag_freq_ratio_tol: 0.01   # theory: drag oscillates at twice the lift frequency (|f_D / f_L - 2| / 2)
+gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.gpu), added 2026-11-12
+  # Uniform Cartesian grid over the whole channel; the cylinder is an immersed body (gpucfd has no
+  # body-fitted grids). n = n_G1 * 2^k, cells nearly square (h_x / h_y = 1.006), D/h = 17.6, 35, 70.
+  levels: [G1, G2, G3]
+  n_G1: [384, 72]
+  scheme: rk3                 # bodies need the explicit RK3 scheme (IMEX with bodies is unstable, DESIGN.md)
+  cfl: 0.8                    # dt = min(cfl h / u_dt, 0.15 h^2 / nu) (gcfd.max_dt); on G3 the viscous limit sets it
+  u_dt: 2.25                  # velocity scale for the time step: 1.5 Um
+  sample_dt: 0.0025           # forces and probe every 2.5 ms: 133 samples per shedding period, peaks parabola-refined
+  force_box: [[0.1, 0.3], [0.1, 0.3]]   # control volume around the cylinder for the force (exact discrete momentum balance)
+  pressure_tol: 1.0e-8        # relative tolerance of the pressure solve; tuned on G1 (gpu_run.py ptol), rule fixed
+                              # before the study: the loosest of 1e-10, 1e-8, 1e-6, 1e-4 whose cd and cl stay within
+                              # 1e-4 of the 1e-10 run over 1 s of developed shedding (OpenFOAM side: tuned GAMG, tol 1e-7).
+                              # Result (results/.../gpu_tuning/ptol.json): 1e-8 differs by 2.6e-5 at 1.7x less time per
+                              # step; 1e-6 by 7.9e-3 (fails)
+  # Same protocol as the OpenFOAM levels: G1 from rest 0..15 s, each finer level starts from the last
+  # field of the next coarser one and runs 3 s. Time-step check: G2 again with dt / 2 (from G1).
+  # CHANGED after the first runs (2026-11-12): 3 s were not enough on gpucfd. G1's drag is 16 % low (OpenFOAM's
+  # M1 was 0.5 % off), so G2 and G3 were still drifting at the end (G3: cd 3.151, 3.165, 3.173 at t = 19, 20, 21).
+  # Each finer run is continued from its saved field with the same time step (gpu_run.py extend) until the
+  # case's periodicity rule (acceptance) holds over its last 4 cycles, checked live every second, at most 12 s
+  # more. Same result as one longer run; the time counted is the whole run.
+  dt_check: {level: G2, factor: 0.5}
+  # Decided BEFORE the runs (2026-11-12):
+  #  - accuracy: the case's own rule (acceptance above) applied to G3, with U_sim = GCI of G1..G3;
+  #  - same answer as OpenFOAM: |G3 - M4| <= U_G3 + U_M4 (each side's GCI band) for every primary quantity;
+  #  - expected: cd_max within 0.3 % and St within 1 % of FeatFlow on G3 (DFG 2D-1 drag was 0.14 % off
+  #    at D/h 70); all levels periodic; total GPU time below 5 minutes (OpenFOAM: 42 min wall, M4 on 16 ranks).
+  #  - FAIL if a run blows up or a primary quantity is more than 2 bands off.
 sensitivity:                  # extra run on M3: linear-upwind convection instead of central
   mesh: M3
   div_U: 'Gauss linearUpwind grad(U)'

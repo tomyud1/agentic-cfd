@@ -67,7 +67,9 @@ GPU.
 - **What it handles:** incompressible laminar flow in a box with walls, inflow and outflow, and
   bodies of any shape inside the flow. On the DFG cylinder benchmark (Re 20), drag is within 0.14%
   at 70 cells per diameter; the three-grid study takes 6 GPU-minutes.
-- **Not yet:** turbulence, heat transfer, stretched grids.
+- **Not yet:** turbulence, heat transfer, stretched grids. Without stretched grids, OpenFOAM's
+  body-fitted grid is the better choice for bodies at Re 100 (case 4: drag within 0.25% at 13 thousand
+  cells, against 1.0% at 442 thousand for gpucfd).
 
 Details, status and limits: [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md). History:
 [CHANGELOG.md](CHANGELOG.md).
@@ -194,8 +196,9 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
 
 - **More problem types:** heat transfer and turbulence (RANS) first. The ordered list, with sources:
   [cases/BACKLOG.md](cases/BACKLOG.md).
-- **gpucfd as a tool for the agent:** the agent picks it when a problem fits, and documents that
-  choice like any other decision.
+- **gpucfd as a tool for the agent:** connected (`cfdlib/gpu.py`, guidance in the skill). On case 4
+  it ran the whole grid study 8× faster than OpenFOAM, but its uniform grid needs about 30× more cells
+  around the body for the same accuracy. Next: stretched grids.
 - **Smarter runs:** done for gpucfd steady flows (each finer grid starts from the coarser one and stops
   once its answer has settled: 20× faster). Next: the same live stop for OpenFOAM runs.
 

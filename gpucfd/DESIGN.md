@@ -365,6 +365,61 @@ What the third grid shows (reference cD 5.57954, cL 0.010619, dP 0.117520):
   1.9e-2, 6.8e-3, 9.8e-3). Drag and lift come from the momentum balance away from the body and do not
   show it. Rung 10 runs only D/h 17.6 and 35, so it does not see this.
 
+### gpucfd as the agent's solver: case 4, DFG 2D-2 (2026-11-12)
+
+`cfdlib/gpu.py` (check_fit, run_transient, write_run), `cases/dfg_cylinder_re100/gpu_run.py` and
+`gpu_compare.py` (numbers in `results/dfg_cylinder_re100/gpu_compare.json`). The unsteady cylinder at
+Re 100 that case 4 solved with OpenFOAM, run by gpucfd and judged by case 4's own rules.
+
+**Set-up**: uniform grids over the whole channel, n = (384, 72) x 2^k (D/h 17.6, 35, 70), cylinder as an
+immersed body, RK3 (bodies need it), dt = min(0.8 h / 1.5 Um, 0.15 h^2 / nu); forces from the momentum
+balance on a box around the cylinder, sampled every 2-2.5 ms (about 150 samples per period, peaks
+parabola-refined as in case 4). The same protocol as OpenFOAM: G1 from rest for 15 s, each finer level from
+the coarser one's last field (prolonged). Rules fixed before the runs (numerics.yaml, gpucfd block).
+
+**Two changes after the first runs, both recorded in numerics.yaml and the case's insights 17 and 18**:
+- Pressure tolerance tuned like OpenFOAM's GAMG: 1e-8 instead of 1e-10 (drag and lift within 2.6e-5 of the
+  strict run over 1 s, 1.7x less time per step; 1e-6 is off by 7.9e-3).
+- Each level stops on case 4's periodicity rule, checked live every second, instead of after OpenFOAM's
+  fixed 3 s. G1's drag is 16 % low, so G2 and G3 were still drifting at 3 s (G3 periodic at 5 s).
+
+**Result** (FeatFlow level 6 reference; OpenFOAM M4 = case 4's finest O-grid):
+
+| Quantity | gpucfd G3 | vs FeatFlow | OpenFOAM M4 | vs FeatFlow | G3 - M4 within both bands? |
+|---|---|---|---|---|---|
+| cd max | 3.1866 | -1.04 % | 3.2280 | +0.25 % | yes (bands wide) |
+| cd mean | 3.1569 | -0.99 % | 3.1964 | +0.25 % | yes (bands wide) |
+| cl max | 0.9528 | -3.36 % | 0.9900 | +0.41 % | **no** |
+| cl amplitude | 1.9446 | -3.16 % | 2.0147 | +0.33 % | yes (bands wide) |
+| St | 0.30276 | +0.29 % | 0.30150 | -0.13 % | yes |
+
+- Verdict by case 4's rules: WARN (lift maximum more than one band off; lift minimum order 0.78). Every
+  primary quantity is inside two bands, but only because the bands are wide: they are the GCI of G1-G3,
+  and G1 is far from converged (drag -16 %), so the "ok" statuses prove little. The expectation set
+  before the runs (drag within 0.3 %) was missed: -1.0 %.
+- Drag converges at order 1.5 (as on DFG 2D-1: 1.65), the Strouhal number at 1.9. Richardson from
+  G1-G3 overshoots (drag +1.3 %): G1 is outside the asymptotic range.
+- Time error: G2 against G2 with dt / 2 differs by 2e-5 in the drag peaks; negligible.
+- Mass: in the developed flow, inflow and outflow differ by 2.7e-3 of the flow on G1 and 4e-5 on G3
+  (flow into the cells cut by the body; it shrinks with the grid). The largest values, right after each
+  start, are 2.5e-2 and 3.3e-4.
+
+**Cost** (wall time for each tool's whole protocol on this PC):
+
+| | gpucfd (RTX 4070) | OpenFOAM (Ryzen 7 7800X3D) |
+|---|---|---|
+| levels | G1, G2, G3: 27648, 110592, 442368 cells | M1-M4: 3358 to 214912 cells, up to 16 ranks |
+| total | 255 s GPU, 315 s wall | 2548 s wall (M4 alone 2110 s on 16 ranks) |
+| per cell and step | 0.023 microseconds (G3) | 1.64 microseconds (M4, wall, 16 ranks) |
+| finest drag error | -1.0 % | +0.25 % (M2 already +0.24 %, 97 s on one core) |
+
+So gpucfd ran the protocol 8 times faster and is about 70 times faster per cell and step, but it is not
+faster at equal accuracy: OpenFOAM's O-grid reaches 0.25 % at 13432 cells in 97 s, which gpucfd would
+need roughly 140-280 cells per diameter for (estimated from order 1.5; not run: D/h 140 is 1.8 million
+cells with a viscous time-step limit, about 40 GPU-minutes). The cost is in the grid, not the solver:
+a uniform grid has to resolve the boundary layer everywhere, and the immersed body converges at order
+1.5. Stretched grids (next steps) attack exactly that.
+
 ## Limitations (2026-11-12)
 
 **Problems it cannot solve yet**
@@ -418,9 +473,15 @@ What the third grid shows (reference cD 5.57954, cL 0.010619, dP 0.117520):
    Open: IMEX with bodies (instability with the incremental pressure).
    Steady studies: grid sequencing and an error-based stop (done 2026-11-12, rung 11, above). Open:
    the surface pressure difference on the finest DFG grid.
-6. gpucfd as a backend of the agent's pipeline (cfdlib): the DFG 2D-2 case (Re 100, case 4) run by
-   gpucfd and compared with case 4's OpenFOAM result and time.
-7. Stretched grids (boundary layers without refining everywhere).
+6. ~~gpucfd as a backend of the agent's pipeline (cfdlib)~~ (done 2026-11-12, case 4, above): 8x faster
+   than OpenFOAM over the protocol, but less accurate per cell (drag -1.0 % against +0.25 %).
+7. Stretched grids (boundary layers without refining everywhere). Case 4 shows this is what decides
+   whether gpucfd beats OpenFOAM on bodies: the solver is 70x faster per cell and step, the uniform grid
+   needs about 30x more cells. Measure of success: case 4's drag within 0.25 % of FeatFlow (OpenFOAM's
+   M4) in less wall time than OpenFOAM's study.
+8. IMEX with bodies (the time step on fine grids is set by the explicit viscous limit; on case 4's G3
+   it is 0.6 times the convective one).
+9. 3D cylinder (DFG 3D, case 5) once stretched grids work.
 
 ## Comparison with OpenFOAM (2026-11-12)
 

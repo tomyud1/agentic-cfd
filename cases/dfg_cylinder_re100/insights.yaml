@@ -330,3 +330,56 @@
     values''; cfdlib.contract could cross-check a few decision texts against the case files (e.g. nOuterCorrectors,
     deltaT); cfdlib.perf should count the final pressure solve per step by position, not by the name pFinal.'
   resolved: 2026-11-11 03:26
+- id: 17
+  stage: gpu
+  logged: 2026-11-12 19:15
+  status: resolved
+  problem: 'gpucfd pre-flight: 10 to 18 ms per time step, two to three times the cost seen on the steady DFG 2D-1 case
+    at the same grid sizes.'
+  diagnosis: Not a fixed cost per call (measured 1 to 128 steps per call, same cost per step). The pressure solve ran
+    to a relative tolerance of \(10^{-10}\), which in a shedding flow (large changes every step) takes about 10
+    iterations per step; OpenFOAM's side uses tolerance \(10^{-7}\) with relTol 0.01.
+  fix: 'Pressure-tolerance study on G1 from its developed field, rule fixed before it ran (loosest tolerance with drag
+    and lift within \(10^{-4}\) of the \(10^{-10}\) run over 1 s): \(10^{-8}\) differs by \(2.6 \times 10^{-5}\) and
+    costs 6.3 instead of 10.6 ms per step; \(10^{-6}\) differs by \(7.9 \times 10^{-3}\) and fails.'
+  lesson: A tolerance chosen for a verification test is not a production setting; tune it per case with a
+    same-answer rule, as was done for OpenFOAM's GAMG.
+  guideline: When gpucfd is the solver, tune pressure_tol in the pre-flight (\(10^{-10}\), \(10^{-8}\), \(10^{-6}\))
+    with a same-answer rule; \(10^{-8}\) was right here.
+  resolved: 2026-11-12 19:25
+- id: 18
+  stage: gpu
+  logged: 2026-11-12 19:35
+  status: resolved
+  problem: 'gpucfd G2 and G3 were not periodic after the 3 s of the OpenFOAM protocol: G3''s drag still rose (3.151,
+    3.165, 3.173 at t = 19, 20, 21 s).'
+  diagnosis: 'The protocol''s fixed 3 s assume the coarser level is close to the finer one. OpenFOAM''s M1 drag was
+    within 0.5 % of M4, gpucfd''s G1 is 16 % low (uniform grid, immersed body, 17.6 cells per diameter), so each finer
+    level has to grow its drag and the wake has to rebuild over several flow-through times.'
+  fix: 'Continued each run from its saved field with the same time step until the case''s periodicity rule held over
+    the last 4 cycles, checked live every second (cfdlib.gpu.run_transient with stop_on_watch): G3 periodic at t = 23 s,
+    G2 at 20 s. Cycle-by-cycle peaks confirmed it (G2 drag maximum changing by \(8\), \(4\) and \(2 \times 10^{-5}\) per cycle).'
+  lesson: A fixed run length is only safe when the start field is close to the answer; stop on the physical check
+    instead, live.
+  guideline: Make the periodicity (or steadiness) rule the stopping rule of every level, not a fixed length; this is
+    the next step for OpenFOAM runs too (cfdlib.monitor).
+  resolved: 2026-11-12 19:45
+- id: 19
+  stage: gpu
+  logged: 2026-11-12 19:50
+  status: resolved
+  problem: 'gpucfd ran the whole protocol 8 times faster than OpenFOAM (315 s wall against 2548 s) but its finest
+    answer is less accurate: drag 1.0 % and lift maximum 3.4 % below FeatFlow, against 0.25 % and 0.4 % for OpenFOAM''s
+    M4; the lift maximum differs between the two by more than both uncertainties combined.'
+  diagnosis: 'gpucfd is about 70 times faster per cell and step (0.023 against 1.64 microseconds), but a uniform grid
+    with an immersed body needs far more cells for the same accuracy: G3 has 442368 cells and 70 cells per diameter,
+    OpenFOAM''s O-grid M2 (13432 cells, 97 s) already has the drag within 0.25 %. The immersed body converges at order
+    1.5 in drag, and the explicit scheme''s viscous limit sets the time step on G3.'
+  fix: None in this case; reported as the result. Reaching OpenFOAM's accuracy would need about 140 to 280 cells per
+    diameter (estimated from order 1.5, not run).
+  lesson: Raw speed per cell does not decide the tool; the cost to reach the required accuracy does. Body-fitted
+    grids win for thin boundary layers on bodies.
+  guideline: 'SKILL.md, choosing the solver: OpenFOAM for bodies with thin boundary layers (here Re 100) until gpucfd
+    has stretched grids; gpucfd for flows a uniform grid resolves efficiently (boxes, channels, cavities, periodic
+    flows, low Reynolds numbers).'
+  resolved: 2026-11-12 19:51
