@@ -394,12 +394,32 @@ def _series(case, t_from=None):
     return out
 
 
-def peek(case_dir, plot=True, t_from=None, files=None, courant_limit=1.0):
-    """Snapshot of an OpenFOAM run from its first step to now: progress and time left, health so far,
-    the live stopping rule's last verdict, and every monitored series (postProcessing). Returns
-    dict(text, png, ...); text is a compact summary (about 20 lines), png a figure of the whole
-    history (residuals, Courant number, every series) to look at. files: substrings selecting
-    postProcessing series (default all); t_from: only show the history from this time on."""
+def _digest(label, t, cols, windows, ncols=3):
+    """Numbers, not a picture: the shown history cut into `windows` equal time windows, each column as
+    min / mean / max per window. Trends, growth or decay of an oscillation, jumps and the start-up
+    transient all show in the rows; an agent reads these more reliably than a figure."""
+    keys = list(cols)[:ncols]
+    edges = np.linspace(t[0], t[-1], windows + 1)
+    head = f"{label}: {windows} windows of {edges[1] - edges[0]:.4g}, min / mean / max per window" + (
+        f" (first {ncols} of {len(cols)} columns)" if len(cols) > ncols else "")
+    rows = [head, "  " + f"{'t_end':>10}" + "".join(f"  {k[:29]:>29}" for k in keys)]
+    for a, b in zip(edges[:-1], edges[1:]):
+        m = (t >= a) & (t <= b)
+        if not m.any():
+            continue
+        rows.append(f"  {b:>10.5g}" + "".join(
+            f"  {np.min(cols[k][m]):>9.4g} {np.mean(cols[k][m]):>9.4g} {np.max(cols[k][m]):>9.4g}" for k in keys))
+    return rows
+
+
+def peek(case_dir, plot=False, t_from=None, files=None, courant_limit=1.0, windows=8, csv_dir=None):
+    """Snapshot of an OpenFOAM run from its first step to now, as numbers: state, progress and time
+    left, health so far, the live stopping rule's last verdict, then the history of the residuals,
+    the Courant number and every monitored series (postProcessing) as min / mean / max over `windows`
+    equal time windows (_digest; windows=0: one line per series). Returns dict(text, png, csv, ...).
+    files: substrings selecting postProcessing series (default all); t_from: show the history from
+    this time on; csv_dir: also write the selected series at full resolution, one CSV per file;
+    plot: also write <case>/peek.png, a figure for a human (see watch())."""
     case = Path(case_dir)
     logs = [p for p in case.glob("log.*") if p.name.endswith("Foam")]
     if not logs:
@@ -435,19 +455,68 @@ def peek(case_dir, plot=True, t_from=None, files=None, courant_limit=1.0):
         lines.append(f"live stop: {'stop requested' if ls.get('stopped') else 'watching'} after {ls.get('checks')} checks; "
                      f"last verdict at t = {last.get('t', float('nan')):.5g}: {last.get('reason', '-')}")
     ser = [x for x in _series(case, t_from) if not files or any(f in x[0] for f in files)]
+    if windows and len(s) >= windows:
+        t = np.array([x["time"] for x in s])
+        keep = t >= t_from if t_from is not None else np.ones(len(t), bool)
+        lc = {f"res {f}": np.array([x["res"].get(f, np.nan) for x in s])[keep]
+              for f in sorted({f for x in s for f in x["res"]})}
+        lc["Courant max"] = np.array([x["co"] if x["co"] is not None else np.nan for x in s])[keep]
+        lc = {k: v for k, v in lc.items() if len(v) and np.isfinite(v).all()}
+        if lc and keep.sum() >= windows:
+            lines += _digest("solver log", t[keep], lc, windows, ncols=4)
     for label, t, cols in ser:
         if len(t) < 4:
             continue
-        late = t >= t[-1] - 0.25 * (t[-1] - t[0])
-        parts = [f"{k} {v[-1]:.5g} [{v[late].min():.5g}, {v[late].max():.5g}]" for k, v in list(cols.items())[:3]]
-        lines.append(f"{label}: " + "; ".join(parts) + (f"; +{len(cols) - 3} columns" if len(cols) > 3 else ""))
-    if ser:
-        lines.append("(series: last value [min, max over the last quarter of the shown history])")
+        if windows and len(t) >= windows:
+            lines += _digest(label, t, cols, windows)
+        else:
+            late = t >= t[-1] - 0.25 * (t[-1] - t[0])
+            parts = [f"{k} {v[-1]:.5g} [{v[late].min():.5g}, {v[late].max():.5g}]" for k, v in list(cols.items())[:3]]
+            lines.append(f"{label}: " + "; ".join(parts) + (f"; +{len(cols) - 3} columns" if len(cols) > 3 else "")
+                         + "  (last value [min, max over the last quarter])")
+    csvs = []
+    if csv_dir:
+        out = Path(csv_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        for label, t, cols in ser:
+            f = out / (label.replace("/", "_").replace(".dat", "") + ".csv")
+            np.savetxt(f, np.column_stack([t] + list(cols.values())), delimiter=",", fmt="%.10g",
+                       header="t," + ",".join(cols), comments="")
+            csvs.append(str(f))
+        lines.append(f"raw series (CSV, full resolution): {', '.join(csvs)}")
     png = None
     if plot and (s or ser):
         png = _peek_plot(case, log.name, s, ser, t_from)
         lines.append(f"figure: {png}")
-    return dict(text="\n".join(lines), png=str(png) if png else None, state=state, health=a["status"])
+    return dict(text="\n".join(lines), png=str(png) if png else None, csv=csvs, state=state, health=a["status"])
+
+
+def watch(case_dir, every=60.0, **kw):
+    """For a human engineer: refresh <case>/peek.png and <case>/peek.html (the figure plus the text,
+    reloading itself every `every` seconds in a browser) until the run is no longer running. Prints
+    the page's path once. The agent does not need this: it calls peek() when it chooses."""
+    import html
+    import os
+    import time as _time
+    case = Path(case_dir).resolve()
+    page = case / "peek.html"
+    distro = os.environ.get("WSL_DISTRO_NAME")
+    where = ("\\\\wsl.localhost\\" + distro + str(page).replace("/", "\\")) if distro else str(page)
+    print(f"open in a browser (reloads every {every:g} s): {where}", flush=True)
+    while True:
+        r = peek(case, plot=True, **kw)
+        name, state = html.escape(case.name), html.escape(str(r.get("state", "?")))
+        page.write_text(
+            f'<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="{every:g}">'
+            f"<title>{name}: {state}</title>"
+            '<body style="font-family:sans-serif;background:#fcfcfb;color:#0b0b0b;margin:16px">'
+            f"<h3>{name}: {state}, updated {_time.strftime('%H:%M:%S')}</h3>"
+            f'<img src="peek.png?{int(_time.time())}" style="max-width:100%">'
+            f'<pre style="font-size:12px;overflow-x:auto">{html.escape(r["text"])}</pre></body>')
+        if r.get("state") != "running":
+            print(f"run {r.get('state')}; page left at its last state", flush=True)
+            return r
+        _time.sleep(every)
 
 
 def _peek_plot(case, title, steps, ser, t_from):
@@ -489,16 +558,23 @@ def _peek_plot(case, title, steps, ser, t_from):
 
 
 if __name__ == "__main__":
-    # python -m cfdlib.monitor peek <case dir> [--from T] [--files forcesCyl,probes] [--courant-limit C] [--no-plot]
+    # python -m cfdlib.monitor peek  <case dir> [--files forcesCyl,probes] [--from T] [--windows N] [--csv DIR] [--plot]
+    # python -m cfdlib.monitor watch <case dir> [--every S] [--files ...]        (a live page for a human)
     import argparse
     ap = argparse.ArgumentParser(description="Look into an OpenFOAM run: progress, health, live-stop verdict, history")
-    ap.add_argument("cmd", choices=["peek"])
+    ap.add_argument("cmd", choices=["peek", "watch"])
     ap.add_argument("case")
     ap.add_argument("--from", dest="t_from", type=float)
     ap.add_argument("--files", help="comma-separated substrings of postProcessing series to show")
+    ap.add_argument("--windows", type=int, default=8, help="time windows of the history table (0: one line per series)")
+    ap.add_argument("--csv", dest="csv_dir", help="also write the selected series in full as CSV files to this directory")
     ap.add_argument("--courant-limit", type=float, default=1.0)
-    ap.add_argument("--no-plot", action="store_true")
+    ap.add_argument("--plot", action="store_true", help="also write <case>/peek.png (a figure for a human)")
+    ap.add_argument("--every", type=float, default=60.0, help="watch: seconds between page updates")
     a = ap.parse_args()
-    r = peek(a.case, plot=not a.no_plot, t_from=a.t_from, files=a.files.split(",") if a.files else None,
-             courant_limit=a.courant_limit)
-    print(r["text"])
+    kw = dict(t_from=a.t_from, files=a.files.split(",") if a.files else None, courant_limit=a.courant_limit,
+              windows=a.windows)
+    if a.cmd == "watch":
+        watch(a.case, every=a.every, **kw)
+    else:
+        print(peek(a.case, plot=a.plot, csv_dir=a.csv_dir, **kw)["text"])

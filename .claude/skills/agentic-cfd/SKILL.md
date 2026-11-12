@@ -28,7 +28,8 @@ cfdlib/                       shared tools (do NOT modify; log needed changes as
   foam.py        render_case, run (timeout, PID file), stop, running; read fields and postProcessing .dat files
   monitor.py     parse_log, assess (health checks), preflight (short test run + run-time projection),
                  LiveStop / judge / settled (end a run live once its physical check holds),
-                 peek (look into a run at any moment: progress, health, verdict, history figure)
+                 peek (look into a run at any moment: progress, health, verdict, history as numbers),
+                 watch (a self-refreshing page with the history figure, for the human engineer)
   verification.py error norms, observed order, Richardson extrapolation, GCI, level_sequence
                  (convergence of any sequence of levels, including a reference's own)
   signals.py     periodic signals: cycles, refined peaks, periodicity check, FFT frequency
@@ -165,14 +166,21 @@ settings):
   that the residual targets actually satisfy the physical check, on the coarse meshes first.
 - Independent runs (different meshes) may run at the same time, up to 6 at once (8 cores). Say so in
   the reproducibility notes, since it inflates per-run wall times.
-- Look into a running case when YOU choose, not on a fixed clock:
-  `python -m cfdlib.monitor peek <case dir> [--files forcesCyl,probes] [--from T] [--courant-limit C]`.
-  It prints about 10 lines: state, progress and time left, health so far, the live stop's last
-  verdict, and each monitored series (last value, range over the last quarter). It also writes
-  `<case>/peek.png` with the whole history: residuals, Courant number and every series. Open the
-  figure when the numbers look odd. Between peeks nothing runs, so a run of many hours costs no
-  tokens: peek early (is the start healthy?), then at intervals matched to the projected run time,
-  then at the end. A Monitor on the run's own log should only report the stop, the end and errors.
+- Look into a running case whenever you judge it useful:
+  `python -m cfdlib.monitor peek <case dir> [--files forcesCyl,probes] [--from T] [--windows N] [--csv DIR]`.
+  It prints the state, progress and time left, health so far, and the live stop's last verdict. It
+  then gives the whole history as numbers: residuals, Courant number and each monitored series as
+  min / mean / max over N equal time windows (default 8). Rising or falling means, a growing or
+  steady oscillation and the start-up transient all show in the rows. Narrow it with `--files` and
+  `--from`; use `--windows` for finer rows. Use `--csv` to read the raw series at full resolution
+  with your own code. Between peeks nothing runs, so a run of many hours costs no tokens. A sensible
+  rhythm: early (is the start healthy?), then at intervals matched to the projected run time, then at
+  the end; peek more often when something looks wrong. A Monitor on the run's own log should only
+  report the stop, the end and errors.
+- For the human engineer: `python -m cfdlib.monitor watch <case dir> --every 60` keeps
+  `<case>/peek.html` up to date until the run ends: a figure of the whole history plus the same text,
+  reloading itself in a browser. Start it in the background and give the engineer the printed
+  path. `peek --plot` writes the figure once.
 - Long runs go in the background; `python -m cfdlib.foam ps` lists solver processes, and
   `python -m cfdlib.foam stop <case dir>` kills one (stopping the Python wrapper alone leaves an
   orphan solver). Record per run: health (`monitor.assess`), the physical check, wall time.

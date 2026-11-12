@@ -17,7 +17,26 @@ Nothing uncommitted. Next, in this order:
 
 ## 2026-11-12
 
-### Peek: the agent can look into a running simulation whenever it chooses, commit hash to be filled in
+### Peek gives the agent numbers; a live page shows the human engineer the figure, commit hash to be filled in
+- **What:**
+  - `peek` now gives the history as numbers by default. Residuals, Courant number and each
+    monitored series appear as min / mean / max over 8 equal time windows (`--windows N`).
+  - `--csv DIR` writes the selected series at full resolution for the agent's own analysis.
+  - The figure is now opt-in (`--plot`).
+  - New `python -m cfdlib.monitor watch <case> --every 60` keeps `<case>/peek.html` up to date
+    until the run ends. The page holds the figure plus the text and reloads itself in a browser, so
+    the human engineer can follow the run.
+- **Why it matters:** an agent reads exact numbers more reliably than a picture, and a table costs
+  fewer tokens than an image. A figure is still the fastest way for a person to see a run. The
+  agent can still peek whenever it judges it useful.
+- **How it was verified:**
+  - On case 4's `live_M1`, the table shows the shedding develop in numbers: the lift amplitude grows
+    from 4e-5 to 5.2e-4 by t ≈ 3.9 s and then holds, and the residuals level off at the same time.
+  - On a running scratch run, the watch page was refreshed while the run went (state "running") and
+    left at "finished" when it ended.
+  - The CSV export holds every time step.
+
+### Peek: the agent can look into a running simulation whenever it chooses (`57c45a3`)
 - **What:** `python -m cfdlib.monitor peek <case dir>` gives a snapshot of an OpenFOAM run from its
   first step to now:
   - the state (running, finished, crashed) and progress, with the time left;
