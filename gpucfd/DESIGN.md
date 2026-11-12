@@ -12,8 +12,9 @@ solve to the GPU, copies matrices through host memory every solve, and is capped
 - Projection method: predict velocity, solve a pressure Poisson equation, correct.
 - Pressure Poisson equation: geometric multigrid (red-black Gauss-Seidel smoother, cell averaging
   restriction, (bi/tri)linear prolongation), alone or as the preconditioner of conjugate gradients.
-- Boundaries: periodic, walls (no-slip, moving lid), later inflow/outflow.
-- Curved bodies (the DFG cylinders) need a later step (immersed boundary or curvilinear blocks).
+- Boundaries: periodic, walls (no-slip, moving lid), inflow (prescribed velocity profile), outflow
+  (pressure zero, zero velocity gradient).
+- Immersed bodies of any shape given by a signed distance (ghost-cell method), with forces.
 
 Not in scope: everything else OpenFOAM does. OpenFOAM stays the reference to check against.
 
@@ -32,7 +33,8 @@ optimisation that breaks anything is caught at once.
 | 6 | Navier-Stokes, periodic | Taylor-Green vortex (exact solution) | order 2 in space and time; divergence at round-off |
 | 7 | Walls, steady | lid-driven cavity Re 100 against Ghia et al. and our case 2 OpenFOAM results | within case 2's bands |
 | 8 | Transient with walls | Stokes' first problem (case 3), Poiseuille (case 1) | exact solutions, order 2 |
-| 9 | 3D | duct flow, then the DFG cylinders once curved bodies exist | benchmark bands of cases 4 and 5 |
+| 9 | Open boundaries | Poiseuille channel with inflow and outflow in every direction; Kovasznay flow (exact Navier-Stokes) with inflow profiles on all sides | order 2; the discrete fully developed flow kept to round-off; flow out = flow in |
+| 10 | Immersed bodies | circular Couette flow between immersed cylinders and a tilted channel (exact), 3D extrusions, DFG benchmark 2D-1 | velocity order 2 (mean over the grids); 3D = 2D; drag, pressure difference and lift converge to the benchmark; forces independent of the box |
 
 The numpy references are written separately from the CUDA code, not translated from it, so a shared
 mistake is unlikely.
@@ -72,10 +74,10 @@ gpucfd/
 ## Status (2026-11-11)
 
 Built and verified: the pressure Poisson solver (rungs 0-5), Navier-Stokes on periodic boxes
-(rung 6), walls (rung 7), reproducibility (rung 8), and two time schemes: explicit RK3 and IMEX
-(implicit diffusion). Run the whole ladder with `bash gpucfd/run_ladder.sh` (or
-`python -m gpucfd.tests.test_poisson | test_ns | test_walls | test_reproducible`); results in
-`gpucfd/tests/results/`.
+(rung 6), walls (rung 7), reproducibility (rung 8), inflow and outflow (rung 9), immersed bodies
+(rung 10), and two time schemes: explicit RK3 and IMEX (implicit diffusion). Run the whole ladder
+with `bash gpucfd/run_ladder.sh` (or `python -m gpucfd.tests.test_poisson | test_ns | test_walls |
+test_open | test_bodies | test_reproducible`); results in `gpucfd/tests/results/`.
 
 | Rung | Result |
 |---|---|
@@ -89,7 +91,9 @@ Built and verified: the pressure Poisson solver (rungs 0-5), Navier-Stokes on pe
 | 7a | Walls against exact solutions: Couette flow (moving wall) stays exact to 1e-16 in 2D and 3D; decaying channel mode order 2.00 (2D, and 3D with walls in another direction); Poiseuille flow from rest with a body force order 2.00; zero flow through wall faces, divergence 0 |
 | 7b | Lid-driven cavity Re 100 (`python -m gpucfd.compare.cavity [imex] 32 64 128`): GPU and OpenFOAM (case 2) solutions converge to each other at second order (centreline difference 0.0027, 0.0007, 0.0002 U on 32^2, 64^2, 128^2); both stay 0.009 U from Ghia et al., as case 2 found (Ghia's own error). Both time schemes (all wall tests are run with each) |
 | 7c | Both time schemes reach the same steady cavity: 5e-9 U apart on 16^2 and 32^2 |
-| 8 | Reproducibility: two identical runs are bit-identical, and CUDA graphs on/off are bit-identical (Poisson double/mixed, cavity and 3D periodic flow with each scheme) |
+| 8 | Reproducibility: two identical runs are bit-identical, and CUDA graphs on/off are bit-identical (Poisson double/mixed; cavity, 3D periodic flow and a channel with inflow/outflow, each with both schemes; immersed bodies in an open channel and a closed Couette cell) |
+| 9 | Open boundaries (`test_open`), each check with both schemes: Poiseuille channel with parabolic inflow and outflow along +x, -x, +y and z (3D) converges at order 1.84, 1.93 (N = 16, 32, 64; error = 0.99 h^2 - 2.84 h^3, so coarse pairs read low); fed the discrete equations' own fully developed profile (computed separately in numpy), the whole channel keeps it to 6e-16 (RK3) / 1e-14 (IMEX, diffusion solves to 1e-14); flow out = flow in exactly; the -x channel equals the mirrored +x channel to 2e-14; started from rest it reaches the same state. Kovasznay flow (Re 40, exact Navier-Stokes with convection; velocity profiles prescribed on all four sides): L2 order 2.02, 2.01 (32^2-128^2); the max error, in the first cell row along a side, converges at 1.90-1.92 out to 256^2 while the interior converges at 2.00 |
+| 10 | Immersed bodies (`test_bodies`, explicit scheme): circular Couette flow between immersed cylinders, velocity order 2.50, 2.10 (rms), pressure away from the walls 2.37, 1.48; channel at atan(1/2) to the grid, mean order 2.24; 3D extrusions equal 2D; DFG 2D-1 drag -2.26 % / -0.65 % (D/h 17.6 / 35), pressure difference -0.23 % at D/h 35; forces exact discrete momentum balance (box-independent to 2e-18). Details: Immersed bodies, below |
 
 Bugs the ladder caught while building (each would have produced plausible-looking wrong results):
 1. Multigrid corrections on coarse levels started from leftover memory (rung 2 and 4 failures).
@@ -202,13 +206,108 @@ several runs). Small grids are now limited by latency: about 1200 dependent GPU 
 at 1-2 us each. Nsight Systems under WSL records API calls but not kernel times, which made this
 harder to see; the step costs were measured with microbenchmarks instead.
 
+### Open boundaries (2026-11-12)
+Each bounded side is a **velocity side** (wall or inflow: velocity prescribed, pressure gradient
+zero) or an **outflow** (pressure zero, zero normal gradient of the velocity: OpenFOAM's usual
+outlet). Prescribed values can vary along a side; they are stored per side and component on the
+side's plane, sampled where that component lives (`NavierStokes.side_coords`).
+
+On the staggered grid the normal velocity of the low side is face 0 of the stored array, and that of
+the high side is face n, which is not stored: it lives in the side's plane array. Boundary faces are
+never evolved by the momentum equation. On an outflow side the boundary face is set from the next
+interior face before every projection and then corrected by the projection like any interior face,
+with the pressure's ghost value -phi beyond the side. That correction is exactly the one the
+Dirichlet pressure stencil assumes, so the projected velocity is divergence-free and the flow out
+equals the flow in to round-off with no rescaling. With an outflow the pressure problem is no longer
+singular; without one, the prescribed velocities must carry zero net flow (`NavierStokes` refuses
+otherwise). For the implicit diffusion (IMEX), the high side's boundary values enter the
+right-hand side (the operator stays linear and symmetric) and are refreshed every stage when there
+is an outflow.
+
+The wall-only paths are unchanged: all 18 results of `tests/same_as_build.py` are bit-identical
+to the build before this change.
+
+### Immersed bodies (2026-11-12)
+`NavierStokes(..., bodies=[...])` with shapes from `gpucfd/bodies.py` (Cylinder, Sphere, Box,
+HalfSpace, Inside for fluid inside a shape, SDF for any exact signed distance), each optionally with
+a velocity field (`bodies.rotation`). The geometry is fixed in time; surfaces may move tangentially.
+
+**Velocity: sharp-interface ghost-cell method.** Every face of a velocity component where the signed
+distance is <= 0 is not fluid. A ghost face G (within 1.5 h of the surface) takes the value on the
+straight line along the surface normal through the body's velocity at the closest surface point B and
+the fluid velocity at the image point I = B + s_I n:  u_G = U_B + (u_I - U_B) phi_G / s_I. u_I is
+interpolated (bi- or trilinear) from fluid faces only, which s_I >= sqrt(dim) h guarantees for an exact
+signed distance (the build checks every stencil and moves I out if needed). Deeper faces take the
+body's velocity. The rules are built once in Python (`bodies.build`) as lists of (face, a0, 4 or 8
+weighted neighbours) and applied on the GPU before every projection (`k_ib_set`). The fluid faces then
+see the bodies through their usual stencils: nothing else in the momentum equation changes.
+
+**Pressure.** The projection solves the Poisson equation with a zero coefficient on every face in a
+body (zero pressure gradient through it: a staircase wall for the pressure, the usual choice of
+ghost-cell methods) and corrects only fluid faces. So the faces in bodies keep their rules after the
+projection, and with an incremental projection (the explicit scheme carries the pressure between
+stages when bodies are present) the increment vanishes at a steady state: the ghost rules and the
+divergence constraint then hold exactly together. Cells with no fluid face are decoupled.
+
+Found while building (each a measured failure first):
+1. With only the finest multigrid level masked and the one-block tail ignoring the masks, a 32^2 grid
+   (which lives entirely in the tail) took 200 CG iterations: the tail and the coarsest solve now
+   honour masks (and remove the mean over the fluid cells only).
+2. Masks averaged onto coarser levels made the preconditioner fail outright for a cylinder in an
+   open channel (200 iterations, the cap): averaged coefficients create coarse cells that are nearly
+   cut off, whose corrections overshoot. Only the finest level is masked now: 14-15 iterations per
+   projection at 128^2 and 256^2 (7 without bodies), independent of the grid.
+3. A closed fluid region (Couette cell) is singular, and the extrapolated rim velocities carry a small
+   net flow into it, so the leftover divergence was spread uniformly over the flow (5e-5 after one
+   step) and the CG tolerance became unreachable. The rim faces now get the least correction that
+   makes the net flow exactly zero (`k_ib_cons`): divergence at the solver tolerance.
+4. Near a steady state the projection's right-hand side tends to zero and a tolerance relative to it
+   asks for more digits than round-off leaves (200 iterations instead of 2). With bodies the tolerance
+   is relative to max(|div u*|, sqrt(n) max|u| / h): an rms divergence of ptol max|u| / h.
+5. **IMEX with bodies is unstable and refused** (`scheme="rk3"` is required). Measured: about 25 %
+   growth per step, also with convection negligible, with the diffusion fully implicit, with the wall
+   rules as exact rows of the diffusion solve (BiCGStab), with or without re-extrapolating after the
+   projection; it disappears when the incremental pressure is switched off, which would leave a
+   time-step-dependent slip at the walls. RK3, with the same incremental pressure, is stable. Not
+   understood yet; the cost is that diffusion limits RK3's time step on fine grids (DFG at D/h 70:
+   8 times below the convective limit).
+
+**Forces.** `forces(box)`: summed over the fluid faces in a box around the bodies, the solver's own
+discrete momentum equation telescopes to the fluxes through the box surface plus those into the
+bodies, so F = -[sum_box (rhs - grad p - g) vol + sum_surface (flux out) area] with the solver's
+fluxes is the exact discrete force, including the unsteady term. For a random field and no body it
+returns 6e-16; two different boxes around the DFG cylinder agree to 2e-18. `surface_pressure(points)`
+extrapolates the pressure to the surface along the normal (quadratic through samples at 1.5, 2.5,
+3.5 h in the fluid).
+
+**Rung 10 results** (`test_bodies`, RK3):
+
+| Check | Result |
+|---|---|
+| Circular Couette flow between a rotating inner and a fixed outer immersed cylinder (closed region), exact | velocity rms error 6.0e-3, 1.1e-3, 2.5e-4 (N = 32, 64, 128 across the box): order 2.50, 2.10; max error order 2.79, 1.71 |
+| Couette pressure | rms error beyond 1.5 h of the walls: order 2.37, 1.48 (mean 1.9). The max error sits in the cells next to the walls (within 0.02-0.3 h) and does not converge cleanly: 1.9e-2, 6.8e-3, 9.8e-3 |
+| Poiseuille flow in a channel at atan(1/2) to the grid (flat walls, generic angle) | rms error 2.8e-3, 3.3e-4, 1.3e-4: pairs 3.12, 1.36, mean 2.24 |
+| 3D: Couette flow extruded along z and along x | equals the 2D solution to 8e-13 / 1e-12 (with the 3D image distance in both: it is sqrt(dim) h, so the default 2D and 3D discretisations differ, by 9e-3 at N = 32) |
+| Started from rest | same steady state to 1.4e-12 |
+| DFG 2D-1 (Re 20), reference cD 5.57954, cL 0.010619, dP 0.117520 (Nabh 1998) | D/h 17.6: cD -2.26 %, dP -3.24 %, cL 4.3 times the reference; D/h 35: cD -0.65 % (order 1.8), dP -0.23 %, cL +15 % |
+
+Immersed-boundary errors fluctuate with how the surface cuts each grid (a single grid pair can read
+1.4 or 3), so the orders are judged on the mean over the range. The lift in 2D-1 is 0.2 % of the drag,
+so its relative error is large on coarse grids; it falls with refinement.
+
 ## Limitations (2026-11-12)
 
 **Problems it cannot solve yet**
-- Geometry: a box only. Uniform Cartesian grids (no stretching, so a boundary layer forces a fine
-  grid everywhere), no bodies inside the domain (no cylinders, no curved walls).
-- Boundaries: periodic, or no-slip walls that can slide tangentially (a moving lid). No inflow,
-  outflow, symmetry, slip or pressure boundaries, so no channel with an inlet, no external flow.
+- Geometry: a box with immersed bodies of fixed shape (any exact signed distance; surfaces may move
+  tangentially, bodies may not translate). Uniform Cartesian grids (no stretching, so a boundary layer
+  forces a fine grid everywhere, around a body too). Bodies need the explicit scheme (IMEX with bodies
+  is unstable, see above), and the pressure next to a body surface converges irregularly in the max
+  norm (the cells next to it; forces come from the momentum balance away from them).
+- Boundaries: periodic; no-slip walls that can slide tangentially (a moving lid); inflow with any
+  steady velocity profile; outflow with zero pressure and zero velocity gradient. No symmetry/slip
+  boundaries, no prescribed-pressure inlets, no time-varying inflow (the profile is fixed per run;
+  it can be changed between runs), no convective outflow condition (vortices leaving the domain may
+  reflect more than with one).
 - Physics: incompressible, single phase, constant density and viscosity, laminar. No turbulence
   model (only resolved simulations at low Reynolds number), no heat transfer or transported scalars,
   no buoyancy, no free surface, no compressibility. Body force constant in space and time.
@@ -218,8 +317,9 @@ harder to see; the step costs were measured with microbenchmarks instead.
 - Grid sizes: periodic directions need even cell counts, and multigrid works well only when each
   direction halves several times (sizes like 2^k or 3 x 2^k). An awkward size leaves a large coarsest
   grid, which is solved slowly by one thread block.
-- Tooling: no field output for ParaView, no restart files, no probes or force coefficients; data
-  comes out through Python (`NavierStokes.get`). One GPU, no MPI.
+- Tooling: no field output for ParaView, no restart files; forces on bodies and surface pressure
+  come from Python (`NavierStokes.forces`, `surface_pressure`), fields through `get` and `pressure`.
+  One GPU, no MPI.
 
 **Speed limits**
 - Small grids are latency-bound: a time step is about 1200 dependent GPU operations of a few
@@ -242,7 +342,12 @@ harder to see; the step costs were measured with microbenchmarks instead.
 3. ~~Speed, round 2~~ (done 2026-11-12, above). Left for later: a true steady solver (implicit
    convection, Newton), fewer pressure solves per step, fused CG kernels, and running on a GPU with
    full-rate FP64 or on native Linux.
-4. Stretched grids, inflow/outflow, then curved bodies (immersed boundary) for the DFG cylinders.
+4. ~~Inflow/outflow~~ (done 2026-11-12, rung 9, below).
+5. ~~Curved bodies (immersed boundary) with force coefficients~~ (done 2026-11-12, rung 10, above).
+   Open: IMEX with bodies (instability with the incremental pressure).
+6. gpucfd as a backend of the agent's pipeline (cfdlib): the DFG 2D-2 case (Re 100, case 4) run by
+   gpucfd and compared with case 4's OpenFOAM result and time.
+7. Stretched grids (boundary layers without refining everywhere).
 
 ## Comparison with OpenFOAM (2026-11-12)
 

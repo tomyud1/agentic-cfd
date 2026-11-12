@@ -21,6 +21,7 @@ _lib = None
 
 _dp = np.ctypeslib.ndpointer(dtype=np.float64, flags="C_CONTIGUOUS")
 _ip = np.ctypeslib.ndpointer(dtype=np.int32, flags="C_CONTIGUOUS")
+_lp = np.ctypeslib.ndpointer(dtype=np.int64, flags="C_CONTIGUOUS")
 
 
 def lib():
@@ -46,6 +47,11 @@ def lib():
         L.gcfd_device.argtypes = [ctypes.c_char_p, ctypes.c_int]
         L.gcfd_ns_create.restype = ctypes.c_void_p
         L.gcfd_ns_create.argtypes = [_ip, _dp, ctypes.c_double, ctypes.c_int, _ip, _dp, _dp]
+        if hasattr(L, "gcfd_ns_create2"):  # inflow/outflow (absent in builds before 2026-11-12)
+            L.gcfd_ns_create2.restype = ctypes.c_void_p
+            L.gcfd_ns_create2.argtypes = [_ip, _dp, ctypes.c_double, ctypes.c_int, _ip, _dp]
+            L.gcfd_ns_set_bnd.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, _dp]
+            L.gcfd_ns_get_bnd.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, _dp]
         L.gcfd_ns_destroy.argtypes = [ctypes.c_void_p]
         L.gcfd_ns_set.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp]
         L.gcfd_ns_get.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp]
@@ -54,6 +60,11 @@ def lib():
         L.gcfd_set_graphs.argtypes = [ctypes.c_int]
         if hasattr(L, "gcfd_set_tail"):  # absent in builds before 2026-11-12 (compared by same_as_build)
             L.gcfd_set_tail.argtypes = [ctypes.c_longlong]
+        if hasattr(L, "gcfd_ns_body"):  # immersed bodies, pressure and right-hand side (from 2026-11-12)
+            L.gcfd_ns_body.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp, ctypes.c_int, _lp, _dp, _lp, _dp]
+            L.gcfd_ns_body_done.argtypes = [ctypes.c_void_p]
+            L.gcfd_ns_get_p.argtypes = [ctypes.c_void_p, _dp]
+            L.gcfd_ns_rhs.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp]
         L.gcfd_ns_project.restype = ctypes.c_double
         L.gcfd_ns_project.argtypes = [ctypes.c_void_p]
         _lib = L
@@ -143,32 +154,163 @@ class NavierStokes:
     the normal component's face 0 is the low wall and stays zero.
     wall_velocity: {"x-"|"x+"|"y-"|"y+"|"z-"|"z+": (ux, uy, uz)} for moving walls (tangential part used).
     force: constant body force per unit mass (gx, gy, gz).
+    boundaries: per side, overriding walls: {"x-": spec, ...} with spec one of
+        "wall" or ("wall", (ux, uy, uz))      no slip (moving wall: tangential part used)
+        ("inflow", (u, v, w))                 prescribed velocity, uniform
+        ("inflow", f)                         prescribed velocity profile: f(x, y, z) -> (u, v, w), called
+                                              with arrays of the points on the side
+        "outflow"                             pressure zero, zero normal gradient of the velocity
+      Both sides of a direction must be set (or neither: periodic). Without an outflow the prescribed
+      velocities must carry zero net flow (incompressible), else ValueError.
     scheme: "rk3" (explicit, third order, time step limited by 0.15 h^2 / nu as well as the flow speed)
     or "imex" (diffusion implicit by Crank-Nicolson, second order, time step limited by the flow speed
-    only). htol: relative tolerance of the implicit diffusion solves."""
+    only). htol: relative tolerance of the implicit diffusion solves.
+    bodies: immersed solid bodies (gpucfd.bodies: Cylinder, Sphere, Box, HalfSpace, Inside, SDF), no
+    slip on their surfaces (with their velocity if given). See bodies.py for the method; forces() gives
+    the force on them, surface_pressure() the pressure on their surface. image_distance: distance of the
+    ghost faces' image points from the surface, in cells (default sqrt(dim) + 0.05, the least that keeps
+    their interpolation stencils in the fluid)."""
 
     SIDES = ("x-", "x+", "y-", "y+", "z-", "z+")
 
     def __init__(self, n, length, nu, pressure="mixed", walls=(False, False, False), wall_velocity=None,
-                 force=(0.0, 0.0, 0.0), scheme="rk3", htol=1e-10):
+                 force=(0.0, 0.0, 0.0), scheme="rk3", htol=1e-10, boundaries=None, bodies=None, image_distance=None):
         self.n = tuple(int(v) for v in n)
         self.shape = (self.n[2], self.n[1], self.n[0])
         self.length = tuple(float(v) for v in length)
         self.ncomp = 3 if self.n[2] > 1 else 2
         self.walls = tuple(bool(w) for w in walls)
-        uw = np.zeros((6, 3))
-        for side, vel in (wall_velocity or {}).items():
-            uw[self.SIDES.index(side)] = vel
-        h = lib().gcfd_ns_create(np.array(self.n, np.int32), np.array(length, np.float64), float(nu),
-                                 PRECISION[pressure], np.array(self.walls, np.int32), uw.ravel(),
-                                 np.array(force, np.float64))
-        if not h:
-            raise ValueError("gcfd: invalid grid (periodic directions need even cell counts; at least 2 cells "
-                             "in x and y; no z walls in 2D)")
-        self.h = h
+        if boundaries is None:  # walls only: the original interface (also understood by older builds)
+            self.kinds = [1 if self.walls[s // 2] else 0 for s in range(6)]
+            uw = np.zeros((6, 3))
+            for side, vel in (wall_velocity or {}).items():
+                uw[self.SIDES.index(side)] = vel
+            h = lib().gcfd_ns_create(np.array(self.n, np.int32), np.array(length, np.float64), float(nu),
+                                     PRECISION[pressure], np.array(self.walls, np.int32), uw.ravel(),
+                                     np.array(force, np.float64))
+            if not h:
+                raise ValueError("gcfd: invalid grid (periodic directions need even cell counts; at least 2 "
+                                 "cells in x and y; no z walls in 2D)")
+            self.h = h
+        else:
+            kinds, planes = self._sides(wall_velocity or {}, boundaries)
+            self.kinds = kinds
+            h = lib().gcfd_ns_create2(np.array(self.n, np.int32), np.array(length, np.float64), float(nu),
+                                      PRECISION[pressure], np.array(kinds, np.int32), np.array(force, np.float64))
+            if not h:
+                raise ValueError("gcfd: invalid set-up (see stderr)")
+            self.h = h
+            for (side, comp), a in planes.items():
+                lib().gcfd_ns_set_bnd(h, side, comp, np.ascontiguousarray(a, np.float64).ravel())
         self.nu = float(nu)
         self.scheme = scheme
+        self.g = tuple(float(v) for v in force)
         lib().gcfd_ns_scheme(h, {"rk3": 0, "imex": 1}[scheme], float(htol))
+        self.bodies = list(bodies or [])
+        self.fluid = None  # per component: True on fluid faces (bodies only)
+        if self.bodies:
+            if scheme != "rk3":
+                # Measured 2026-11-12: IMEX with bodies grows unstably (about 25 % per step, also with
+                # convection negligible and with the diffusion fully implicit) unless its incremental
+                # pressure is switched off, which would leave a time-step-dependent slip at the walls.
+                # Not resolved yet: see DESIGN.md, immersed bodies.
+                raise ValueError('bodies need scheme="rk3" (IMEX with bodies is not stable yet)')
+            from gpucfd import bodies as _b
+            rules = _b.build(self, self.bodies, s_image=image_distance)
+            for c, r in enumerate(rules):
+                lib().gcfd_ns_body(h, c, r["mask"], int(r["idx"].size), r["idx"], r["a0"],
+                                   np.ascontiguousarray(r["nb"].ravel()), np.ascontiguousarray(r["w"].ravel()))
+            lib().gcfd_ns_body_done(h)
+            self.fluid = [r["mask"].reshape(self.shape) > 0 for r in rules]
+            self.n_ghost = [r["n_ghost"] for r in rules]
+
+    def _sides(self, wall_velocity, boundaries):
+        spec = {}
+        for s, side in enumerate(self.SIDES):
+            if self.walls[s // 2]:
+                spec[side] = ("wall", wall_velocity.get(side, (0.0, 0.0, 0.0)))
+        for side, b in boundaries.items():
+            if side not in self.SIDES:
+                raise ValueError(f"unknown side {side!r} (one of {self.SIDES})")
+            spec[side] = (b, None) if isinstance(b, str) else tuple(b)
+        kinds, planes = [0] * 6, {}
+        for s, side in enumerate(self.SIDES):
+            if side not in spec:
+                continue
+            kind, val = spec[side]
+            if kind == "outflow":
+                kinds[s] = 2
+                continue
+            if kind not in ("wall", "inflow"):
+                raise ValueError(f"{side}: unknown boundary {kind!r} (wall, inflow or outflow)")
+            kinds[s] = 1
+            d = s // 2
+            for comp in range(3):
+                X, Y, Z = self.side_coords(side, comp)
+                if val is None:
+                    v = 0.0
+                elif callable(val):
+                    r = val(X, Y, Z)
+                    v = r[comp] if comp < len(r) else 0.0
+                else:
+                    v = val[comp] if comp < len(val) else 0.0
+                if kind == "wall" and comp == d:
+                    v = 0.0  # a wall carries no flow through it
+                planes[(s, comp)] = np.broadcast_to(np.asarray(v, np.float64), X.shape).copy()
+        for d in range(3):
+            if (kinds[2 * d] == 0) != (kinds[2 * d + 1] == 0):
+                raise ValueError(f"direction {'xyz'[d]}: set both sides (or neither, for periodic)")
+        if 2 not in kinds:
+            net = sum(self._plane_flux(s, planes[(s, s // 2)]) for s in range(6) if kinds[s] == 1)
+            scale = sum(abs(self._plane_flux(s, planes[(s, s // 2)])) for s in range(6) if kinds[s] == 1)
+            if abs(net) > 1e-12 * max(scale, 1e-300) and abs(net) > 1e-300:
+                raise ValueError(f"no outflow side, but the prescribed velocities carry a net outflow of {net:.3g}: "
+                                 "an incompressible flow needs zero (add an outflow side or balance the inflow)")
+        return kinds, planes
+
+    def side_coords(self, side, comp):
+        """Coordinates (X, Y, Z) where component comp is prescribed on a side: the side's plane, at that
+        component's face positions along the side (shape (n_b, n_a) over the two other directions a < b)."""
+        s = self.SIDES.index(side)
+        d = s // 2
+        c = []
+        for e in range(3):
+            h = self.length[e] / self.n[e]
+            if e == d:
+                c.append(np.array([0.0 if s % 2 == 0 else self.length[e]]))
+            else:
+                c.append(np.arange(self.n[e]) * h + (0.0 if e == comp else 0.5 * h))
+        Z, Y, X = np.meshgrid(c[2], c[1], c[0], indexing="ij")
+        a, b = [e for e in range(3) if e != d]
+        shp = (self.n[b], self.n[a])
+        return X.reshape(shp), Y.reshape(shp), Z.reshape(shp)
+
+    def _plane_flux(self, s, un):
+        """Volume flow OUT of the domain through side s for normal velocity un on its plane."""
+        d = s // 2
+        area = np.prod([self.length[e] / self.n[e] for e in range(3) if e != d])
+        return float(np.sum(un) * area) * (1.0 if s % 2 else -1.0)
+
+    def get_boundary(self, side, comp):
+        """Boundary data of a side: the prescribed velocity component, or on an outflow side the current
+        normal velocity on the boundary face (comp = the side's direction)."""
+        s = self.SIDES.index(side)
+        a, b = [e for e in range(3) if e != s // 2]
+        out = np.zeros((self.n[b], self.n[a]))
+        lib().gcfd_ns_get_bnd(self.h, s, comp, out.ravel())
+        return out
+
+    def flux(self, side):
+        """Volume flow out of the domain through a side (negative: inflow). 2D: per unit depth times lz."""
+        s = self.SIDES.index(side)
+        d = s // 2
+        if self.kinds[s] == 0:
+            raise ValueError(f"{side} is periodic")
+        if s % 2 == 0:  # the low boundary face is stored: face 0 of the normal component
+            un = np.take(self.get()[d], 0, axis=2 - d)
+        else:
+            un = self.get_boundary(side, d)
+        return self._plane_flux(s, un)
 
     def close(self):
         if getattr(self, "h", None):
@@ -178,7 +320,7 @@ class NavierStokes:
     __del__ = close
 
     def face_coords(self, comp):
-        """Coordinates (Z, Y, X) of the faces where component comp is stored."""
+        """Coordinates (X, Y, Z) of the faces where component comp is stored (each of shape (nz, ny, nx))."""
         c = []
         for d in range(3):
             h = self.length[d] / self.n[d]
@@ -220,3 +362,145 @@ class NavierStokes:
         h = min(self.length[d] / self.n[d] for d in range(3) if self.n[d] > 1)
         dt = cfl * h / umax
         return dt if self.scheme == "imex" else min(dt, 0.15 * h * h / self.nu)
+
+    # ----------------------------------------------------------------- pressure, forces (post-processing)
+    def pressure(self):
+        """Pressure per unit density at the cell centres (shape (nz, ny, nx)), defined up to a constant
+        unless there is an outflow. Inside bodies the values are meaningless (cells decoupled there)."""
+        p = np.empty(self.shape)
+        lib().gcfd_ns_get_p(self.h, p.ravel())
+        return p
+
+    def rhs(self, comp):
+        """Explicit momentum right-hand side of component comp at its faces: - convection + nu Laplacian +
+        body force (no pressure term), from the current velocity."""
+        out = np.empty(self.shape)
+        lib().gcfd_ns_rhs(self.h, int(comp), out.ravel())
+        return out
+
+    def cell_coords(self):
+        c = [(np.arange(self.n[d]) + 0.5) * self.length[d] / self.n[d] for d in range(3)]
+        Z, Y, X = np.meshgrid(c[2], c[1], c[0], indexing="ij")
+        return X, Y, Z
+
+    def forces(self, box):
+        """Force per unit density of the fluid on whatever lies inside box = ((x0, x1), (y0, y1), (z0, z1))
+        (2D: per unit depth; any z range). The box must lie in the fluid and away from non-periodic sides.
+
+        Exact discrete momentum balance: summed over the fluid faces in the box, the solver's own momentum
+        equation telescopes to the fluxes through the box surface plus those into the bodies, so
+            F_on_body = - [ sum_box (rhs - grad p - g) vol + sum_surface (flux out) area ]
+        with the solver's discrete fluxes (convection, viscous stress, pressure). It includes the unsteady
+        term (rhs - grad p is the momentum change rate) and gives the same force for any box around the
+        same bodies, to round-off (rung 10 checks it)."""
+        q = self.get()
+        p = self.pressure()
+        act = [d for d in range(3) if self.n[d] > 1]
+        h = [self.length[d] / self.n[d] for d in range(3)]
+        vol = float(np.prod([h[d] for d in act]))
+        per = [self.kinds[2 * d] == 0 for d in range(3)]
+        F = np.zeros(3)
+
+        def take(a, idx):  # a[k, j, i] at index triples (lists over directions), wrapped if periodic
+            I = []
+            for d in range(3):
+                i = np.asarray(idx[d])
+                if per[d]:
+                    i = np.mod(i, self.n[d])
+                elif np.any(i < 0) or np.any(i >= self.n[d]):
+                    raise ValueError("forces: the box reaches a non-periodic side")
+                I.append(i)
+            return a[I[2], I[1], I[0]]
+
+        for c in range(self.ncomp):
+            R = self.rhs(c) - self.g[c]
+            rng = []
+            for d in range(3):
+                if self.n[d] == 1:
+                    rng.append(np.array([0]))
+                    continue
+                off = 0.0 if d == c else 0.5 * h[d]
+                lo = int(np.ceil((box[d][0] - off) / h[d] - 1e-9))
+                hi = int(np.floor((box[d][1] - off) / h[d] + 1e-9))
+                if hi < lo:
+                    raise ValueError("forces: empty box")
+                rng.append(np.arange(lo, hi + 1))
+            K, J, I = np.meshgrid(rng[2], rng[1], rng[0], indexing="ij")
+            idx = [I, J, K]
+            e = [np.eye(3, dtype=int)[d] for d in range(3)]
+
+            def sh(ix, v):
+                return [ix[d] + v[d] for d in range(3)]
+            fl = take(self.fluid[c], idx) if self.fluid is not None else np.ones(I.shape, bool)
+            gp = (take(p, idx) - take(p, sh(idx, -e[c]))) / h[c]
+            S = np.sum(np.where(fl, take(R, idx) - gp, 0.0)) * vol
+
+            def flux(d, ix):  # flux of c-momentum in direction d at the + side of faces ix
+                qf, qp = take(q[c], ix), take(q[c], sh(ix, e[d]))
+                if d == c:
+                    U = 0.5 * (qf + qp)
+                    return U * U - self.nu * (qp - qf) / h[d] + take(p, ix)
+                a = 0.5 * (take(q[d], sh(ix, e[d])) + take(q[d], sh(ix, e[d] - e[c])))
+                return a * 0.5 * (qf + qp) - self.nu * (qp - qf) / h[d]
+            out = 0.0
+            for d in act:
+                top = [x.take([-1], axis=2 - d) for x in idx]
+                bot = [x.take([0], axis=2 - d) for x in idx]
+                bot = sh(bot, -e[d])
+                if self.fluid is not None:
+                    for ix in (top, sh(top, e[d]), bot):
+                        if not np.all(take(self.fluid[c], ix)):
+                            raise ValueError("forces: the box surface cuts a body")
+                out += np.sum(flux(d, top) - flux(d, bot)) * vol / h[d]
+            F[c] = -(S + out)
+        return F
+
+    def pressure_at(self, points):
+        """Pressure interpolated (bi- or trilinear, from cell centres) at points (array (m, 3))."""
+        P = np.atleast_2d(np.asarray(points, np.float64))
+        p = self.pressure()
+        act = [d for d in range(3) if self.n[d] > 1]
+        lo, fr = [], []
+        for d in range(3):
+            if d not in act:
+                lo.append(np.zeros(len(P), int))
+                fr.append(np.zeros(len(P)))
+                continue
+            t = P[:, d] / (self.length[d] / self.n[d]) - 0.5
+            i0 = np.floor(t).astype(int)
+            lo.append(i0)
+            fr.append(t - i0)
+        out = np.zeros(len(P))
+        for c2 in (0, 1) if 2 in act else (0,):
+            for c1 in (0, 1):
+                for c0 in (0, 1):
+                    cm = (c0, c1, c2)
+                    w = np.ones(len(P))
+                    ix = []
+                    for d in range(3):
+                        w = w * ((fr[d] if cm[d] else 1 - fr[d]) if d in act else 1.0)
+                        i = lo[d] + (cm[d] if d in act else 0)
+                        i = np.mod(i, self.n[d]) if self.kinds[2 * d] == 0 else np.clip(i, 0, self.n[d] - 1)
+                        ix.append(i)
+                    out += w * p[ix[2], ix[1], ix[0]]
+        return out
+
+    def surface_pressure(self, points, s=(1.5, 2.5, 3.5)):
+        """Pressure on a body's surface at points (on or near the surface): sampled along the outward
+        normal at distances s (times the largest cell size) in the fluid, extrapolated to the surface by
+        the quadratic through the samples (the interpolation stencils then hold fluid cells only)."""
+        from gpucfd import bodies as _b
+        P = np.atleast_2d(np.asarray(points, np.float64))
+        act = [d for d in range(3) if self.n[d] > 1]
+        hmax = max(self.length[d] / self.n[d] for d in act)
+        X = [P[:, d] for d in range(3)]
+        ph, which = _b.phi(self.bodies, *X)
+        nrm = _b.normals(self.bodies, which, X, act, 1e-6 * hmax)
+        B = [X[d] - ph * nrm[d] for d in range(3)]
+        sv = np.asarray(s, np.float64) * hmax
+        vals = [self.pressure_at(np.stack([B[d] + si * nrm[d] for d in range(3)], 1)) for si in sv]
+        out = np.zeros(len(P))
+        for a, si in enumerate(sv):  # Lagrange weights at distance 0
+            w = np.prod([(0.0 - sj) / (si - sj) for b, sj in enumerate(sv) if b != a])
+            out += w * vals[a]
+        return out

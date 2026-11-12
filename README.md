@@ -192,8 +192,11 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
   to each other at second order. Two rounds of speed work (implicit diffusion, whole time steps as
   CUDA graphs with the solver loops decided on the GPU, larger steady time steps) took that small
   steady problem from 396 s to 5 s (OpenFOAM, case 2: 46 s), with results checked to be bit-for-bit
-  unchanged by each speed-only change. Not yet possible: inflow/outflow, bodies in the flow,
-  stretched grids, turbulence and heat transfer.
+  unchanged by each speed-only change. Inflow and outflow boundaries are verified against exact
+  solutions (Poiseuille channel, Kovasznay flow). Bodies of any shape can sit in the flow (immersed
+  boundary, verified against exact curved-wall solutions), with forces from an exact momentum
+  balance; on the DFG cylinder benchmark (Re 20) the drag is within 0.65 % of the reference at 35
+  cells per diameter and converging. Not yet possible: stretched grids, turbulence and heat transfer.
 - **Smarter studies**: start each finer mesh from the coarser solution, stop when the extrapolated
   answer settles, faster algorithms for steady problems.
 - **GPU setup instructions** for OGL are in [`setup/gpu/`](setup/gpu) (CUDA check, build script,

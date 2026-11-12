@@ -40,6 +40,10 @@ struct Level {
 template <typename T>
 struct Coef {
   T c[3];  // 1/h^2 per active direction, 0 for an inactive one
+  // Immersed bodies: coefficient of each cell's low face per direction (1 between fluid, 0 where the
+  // face lies in a body: zero pressure gradient through it, so the bodies are walls for the pressure).
+  // Coarser levels average the fine faces they cover. Null: no bodies, every face 1.
+  const T* b[3] = {nullptr, nullptr, nullptr};
 };
 
 static const dim3 B3(32, 4, 2);
@@ -89,9 +93,19 @@ __device__ __forceinline__ void stencil(const T* p, const Level& L, const Coef<T
     int sm, sp;
     const T vm = nbr(p, L, c, ii[d], d, -1, sm);
     const T vp = nbr(p, L, c, ii[d], d, +1, sp);
-    off += K.c[d] * (vm + vp);
-    diag += K.c[d] * T(2 - sm - sp);
+    if (K.b[d]) {  // face coefficients (bodies); a non-periodic side keeps its own rule (coefficient 1)
+      const int n = L.n[d];
+      const size_t s = L.stride(d);
+      const T wm = (ii[d] > 0 || L.bc[2 * d] == PERIODIC) ? K.b[d][c] : T(1);
+      const T wp = ii[d] < n - 1 ? K.b[d][c + s] : (L.bc[2 * d + 1] == PERIODIC ? K.b[d][c - size_t(n - 1) * s] : T(1));
+      off += K.c[d] * (wm * vm + wp * vp);
+      diag += K.c[d] * (wm * T(1 - sm) + wp * T(1 - sp));
+    } else {
+      off += K.c[d] * (vm + vp);
+      diag += K.c[d] * T(2 - sm - sp);
+    }
   }
+  if (diag == T(0)) diag = T(2) * (K.c[0] + K.c[1] + K.c[2]);  // no fluid face (inside a body): decoupled
 }
 
 template <typename T>
@@ -232,11 +246,70 @@ __device__ double block_sum(double v) {
     __syncthreads();                                                              \
   }
 
+// With bodies: does cell c have a face with a non-zero coefficient (else it is decoupled)?
+template <typename T>
+__device__ __forceinline__ bool is_active(const Level& L, const Coef<T>& K, size_t c, int i, int j, int k) {
+  const int ii[3] = {i, j, k};
+  for (int d = 0; d < 3; ++d) {
+    if (K.c[d] == T(0)) continue;
+    if (!K.b[d]) return true;
+    const int n = L.n[d];
+    const size_t s = L.stride(d);
+    const bool per = L.bc[2 * d] == PERIODIC;
+    const T wm = (ii[d] > 0 || per) ? K.b[d][c] : T(L.bc[2 * d] == DIRICHLET ? 1 : 0);
+    const T wp = ii[d] < n - 1 ? K.b[d][c + s] : (per ? K.b[d][c - size_t(n - 1) * s] : T(L.bc[2 * d + 1] == DIRICHLET ? 1 : 0));
+    if (wm > T(0) || wp > T(0)) return true;
+  }
+  return false;
+}
+
 // Coarsest level: one thread block, many red-black sweeps from x = 0. For a singular problem the
-// right-hand side is shifted to zero mean first and the solution returned with zero mean.
+// right-hand side is shifted to zero mean first and the solution returned with zero mean (with bodies:
+// the mean over the cells with fluid faces, the region the constant lives on).
 template <typename T>
 __device__ void coarse_solve(T* x, const T* b, const Level& L, const Coef<T>& K, int sweeps, int singular) {
   const size_t N = L.cells();
+  if (K.b[0] || K.b[1] || K.b[2]) {
+    double sb = 0.0, cnt = 0.0, mb = 0.0;
+    if (singular) {
+      for (unsigned c = threadIdx.x; c < N; c += blockDim.x) {
+        const unsigned r = c / unsigned(L.n[0]);
+        const int i = int(c - r * unsigned(L.n[0])), j = int(r % unsigned(L.n[1])), k = int(r / unsigned(L.n[1]));
+        if (is_active(L, K, c, i, j, k)) {
+          sb += double(b[c]);
+          cnt += 1.0;
+        }
+      }
+      const double tb = block_sum(sb), tc = block_sum(cnt);
+      mb = tc > 0.0 ? tb / tc : 0.0;
+    }
+    for (size_t c = threadIdx.x; c < N; c += blockDim.x) x[c] = T(0);
+    __syncthreads();
+    for (int s = 0; s < sweeps; ++s)
+      for (int color = 0; color < 2; ++color) BLOCK_CELLS(L, {
+          if (((i + j + k) & 1) != color) continue;
+          T off, diag;
+          stencil(x, L, K, c, i, j, k, off, diag);
+          const T bb = is_active(L, K, c, i, j, k) ? b[c] - T(mb) : T(0);
+          x[c] = (off - bb) / diag;
+        })
+    if (singular) {
+      double sx = 0.0, cn = 0.0;
+      BLOCK_CELLS(L, {
+        if (is_active(L, K, c, i, j, k)) {
+          sx += double(x[c]);
+          cn += 1.0;
+        }
+      })
+      const double tx = block_sum(sx), tn = block_sum(cn);
+      const double mx = tn > 0.0 ? tx / tn : 0.0;
+      BLOCK_CELLS(L, {
+        if (is_active(L, K, c, i, j, k)) x[c] -= T(mx);
+      })
+    }
+    __syncthreads();
+    return;
+  }
   double mb = 0.0;
   if (singular) {
     double s = 0.0;
@@ -558,9 +631,18 @@ __global__ void k_sub_mean(T* a, const double* sum, size_t n) {
   for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
     a[q] += T(-m);
 }
+// Mean over the cells marked in act (1 or 0) removed from those cells (bodies: only the fluid region
+// carries the constant that the pressure is undetermined by).
+template <typename T>
+__global__ void k_sub_mean_m(T* a, const T* act, const double* sum, double nact, size_t n) {
+  const double m = *sum / nact;
+  for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
+    a[q] += T(-m) * act[q];
+}
 
-__global__ void k_pcg_start(CGState* g, double tol, int maxit) {
-  g->fn = sqrt(g->s) + 1e-300;
+// fmin (optional): a floor under the norm the tolerance is relative to (see NS::project)
+__global__ void k_pcg_start(CGState* g, double tol, int maxit, const double* fmin = nullptr) {
+  g->fn = (fmin ? fmax(sqrt(g->s), *fmin) : sqrt(g->s)) + 1e-300;
   g->tol = tol;
   g->maxit = maxit;
   g->it = 0;
@@ -626,6 +708,110 @@ struct Solver : Base {
   int hist_n = 0;
   int tail_from = 0;
   GraphCache graphs;
+  std::vector<T*> mb;      // face coefficients of all levels (bodies), freed with the solver
+  T* act = nullptr;        // finest level: 1 on cells that have a fluid face, 0 inside bodies
+  double n_act = 0.0;
+
+  // Bodies: fine[d] = coefficient of each cell's low d-face (1 fluid, 0 in a body; null for an inactive
+  // direction). Coarser levels (if mask_levels() > 1) get the average of the fine faces they cover.
+  // A closed fluid region (no outflow) makes the problem singular, and its right-hand side has to sum
+  // to zero over the region. The divergence there sums to the net flow through the faces in the bodies,
+  // which are extrapolated, not projected, so that sum is a small discretization error, not exactly 0.
+  // It is removed in the cut cells (active cells with a face in a body), where the error arises, rather
+  // than spread over the whole flow as a uniform divergence.
+  T* cut = nullptr;
+  double n_cut = 0.0;
+  // How many of the finest levels get the coefficients. Measured (rung 10 set-ups, 128^2 and 256^2):
+  // finest level only, 14-15 CG iterations per projection at both sizes (7 without bodies); coefficients
+  // averaged onto coarser levels too, CG stalled at 200 iterations for a cylinder in an open channel.
+  // Averaged coefficients make coarse cells that are nearly cut off, whose correction overshoots, and the
+  // V-cycle stops being a positive definite preconditioner. Coarse levels that see no body are stiffer
+  // than the true operator, which only slows the correction down.
+  static int& mask_levels() {
+    static int m = 1;
+    return m;
+  }
+  void set_mask(const double* const* fine) {
+    std::vector<std::vector<double>> cur(3);
+    for (int d = 0; d < 3; ++d)
+      if (fine[d] && L[0].n[d] > 1) cur[d].assign(fine[d], fine[d] + L[0].cells());
+    for (size_t l = 0; l < L.size(); ++l) {
+      const Level& F = L[l];
+      for (int d = 0; d < 3; ++d) {
+        if (cur[d].empty() || int(l) >= mask_levels()) continue;
+        T* a;
+        CK(cudaMalloc(&a, F.cells() * sizeof(T)));
+        upload(cur[d].data(), a, F.cells());
+        mb.push_back(a);
+        K[l].b[d] = a;
+      }
+      if (l == 0) {  // active cells: the stencil's diagonal is not zero (same rule as stencil())
+        std::vector<double> ac(F.cells(), 0.0), cu(F.cells(), 0.0);
+        n_act = 0.0;
+        n_cut = 0.0;
+        for (int k = 0; k < F.n[2]; ++k)
+          for (int j = 0; j < F.n[1]; ++j)
+            for (int i = 0; i < F.n[0]; ++i) {
+              const int ii[3] = {i, j, k};
+              const size_t c = i + size_t(F.n[0]) * (j + size_t(F.n[1]) * k);
+              bool on = false, blocked = false;
+              for (int d = 0; d < 3; ++d) {
+                if (F.n[d] == 1) continue;
+                const size_t s = F.stride(d);
+                const int n = F.n[d];
+                const bool per = F.bc[2 * d] == PERIODIC;
+                const double one = 1.0;
+                const double wm = cur[d].empty() ? one : ((ii[d] > 0 || per) ? cur[d][c] : (F.bc[2 * d] == DIRICHLET ? one : 0.0));
+                const double wp = cur[d].empty() ? one : (ii[d] < n - 1 ? cur[d][c + s] : (per ? cur[d][c - size_t(n - 1) * s] : (F.bc[2 * d + 1] == DIRICHLET ? one : 0.0)));
+                on = on || wm > 0.0 || wp > 0.0;
+                if (!cur[d].empty()) {  // a face inside the domain (or across a periodic side) in a body
+                  if ((ii[d] > 0 || per) && cur[d][c] == 0.0) blocked = true;
+                  if ((ii[d] < n - 1 || per) && wp == 0.0) blocked = true;
+                }
+              }
+              ac[c] = on ? 1.0 : 0.0;
+              cu[c] = (on && blocked) ? 1.0 : 0.0;
+              n_act += ac[c];
+              n_cut += cu[c];
+            }
+        CK(cudaMalloc(&act, F.cells() * sizeof(T)));
+        upload(ac.data(), act, F.cells());
+        if (n_cut == 0.0) {  // no cut cell (a body that touches no fluid face): spread over the region
+          cu = ac;
+          n_cut = n_act;
+        }
+        CK(cudaMalloc(&cut, F.cells() * sizeof(T)));
+        upload(cu.data(), cut, F.cells());
+      }
+      if (l + 1 == L.size()) break;
+      const Level& C = L[l + 1];
+      std::vector<std::vector<double>> nxt(3);
+      for (int d = 0; d < 3; ++d) {
+        if (cur[d].empty()) continue;
+        nxt[d].assign(C.cells(), 0.0);
+        const int cf[3] = {F.coarsen[0], F.coarsen[1], F.coarsen[2]};
+        for (int k = 0; k < C.n[2]; ++k)
+          for (int j = 0; j < C.n[1]; ++j)
+            for (int i = 0; i < C.n[0]; ++i) {
+              const int I[3] = {i, j, k};
+              int lo[3], cnt[3];
+              for (int e = 0; e < 3; ++e) {
+                lo[e] = cf[e] * I[e];
+                cnt[e] = e == d ? 1 : cf[e];  // the coarse low d-face covers the first child's low face
+              }
+              double s = 0.0;
+              for (int dz = 0; dz < cnt[2]; ++dz)
+                for (int dy = 0; dy < cnt[1]; ++dy)
+                  for (int dx = 0; dx < cnt[0]; ++dx)
+                    s += cur[d][(lo[0] + dx) + size_t(F.n[0]) * ((lo[1] + dy) + size_t(F.n[1]) * (lo[2] + dz))];
+              nxt[d][i + size_t(C.n[0]) * (j + size_t(C.n[1]) * k)] = s / double(cnt[0] * cnt[1] * cnt[2]);
+            }
+      }
+      cur = nxt;
+    }
+    for (auto& x : graphs.e) CK(cudaGraphExecDestroy(x.exec));
+    graphs.e.clear();
+  }
 
   Solver(const int* n, const double* len, const int* bc, int nu1_, int nu2_) : nu1(nu1_), nu2(nu2_) {
     Level f;
@@ -691,6 +877,9 @@ struct Solver : Base {
       cudaFree(r[l]);
     }
     for (T* a : {p_, q_, z_, rr_}) cudaFree(a);
+    for (T* a : mb) cudaFree(a);
+    cudaFree(act);
+    cudaFree(cut);
     cudaFree(cg);
     cudaFree(part);
     cudaFree(hist);
@@ -741,6 +930,11 @@ struct Solver : Base {
     for (size_t q = 0; q < n; ++q) h[q] = double(t[q]);
   }
   void remove_mean(T* a, size_t n) {
+    if (act) {
+      dot_dev<T>(a, act, n, part, &cg->s);
+      k_sub_mean_m<T><<<lin_blocks(n), 256, 0, gs()>>>(a, act, &cg->s, n_act, n);
+      return;
+    }
     dot_dev<T>(a, nullptr, n, part, &cg->s);
     k_sub_mean<T><<<lin_blocks(n), 256, 0, gs()>>>(a, &cg->s, n);
   }
@@ -778,7 +972,7 @@ struct Solver : Base {
       t.n = last - l + 1;
       for (int m = 0; m < t.n; ++m) {
         t.L[m] = L[l + m];
-        t.K[m] = K[l + m];
+        t.K[m] = K[l + m];  // with bodies the face coefficients are read from global memory
       }
       t.x = X;
       t.b = B;
@@ -835,19 +1029,24 @@ struct Solver : Base {
 
   // Solve with right-hand side and solution on the GPU (X: initial guess in, solution out; F is
   // overwritten when the problem is singular: its mean is removed). Queued, no CPU sync; can be recorded.
-  void solve_dev(T* F, T* X, double tol, int maxit) { iterate(F, X, tol, maxit, 1); }
+  void solve_dev(T* F, T* X, double tol, int maxit, const double* fmin = nullptr) { iterate(F, X, tol, maxit, 1, fmin); }
 
   // The iteration itself, all decisions on the GPU.
-  void iterate(T* F, T* X, double tol, int maxit, int method) {
+  void iterate(T* F, T* X, double tol, int maxit, int method, const double* fmin = nullptr) {
     const size_t N = L[0].cells();
     if (maxit + 1 > hist_n) {
       fprintf(stderr, "gcfd: maxit %d above the prepared %d\n", maxit, hist_n - 1);
       abort();
     }
     T* R = b[0];  // residual (the level-0 rhs array is free: the V-cycle takes its own arguments)
-    if (singular) remove_mean(F, N);
+    if (singular && act) {  // bodies: the sum over the fluid region is taken out in its cut cells
+      dot_dev<T>(F, act, N, part, &cg->s);
+      k_sub_mean_m<T><<<lin_blocks(N), 256, 0, gs()>>>(F, cut, &cg->s, n_cut, N);
+    } else if (singular) {
+      remove_mean(F, N);
+    }
     dot_dev<T>(F, F, N, part, &cg->s);
-    k_pcg_start<<<1, 1, 0, gs()>>>(cg, tol, maxit);
+    k_pcg_start<<<1, 1, 0, gs()>>>(cg, tol, maxit, fmin);
     k_residual<T><<<grid3(L[0]), B3, 0, gs()>>>(X, F, R, L[0], K[0]);
     dot_dev<T>(R, R, N, part, &cg->rr);
     k_pcg_test<<<1, 1, 0, gs()>>>(cg, hist, 0);
@@ -915,20 +1114,65 @@ struct Solver : Base {
 // Laplacian, time stepping with the 3-stage strong-stability-preserving Runge-Kutta scheme, and a
 // pressure projection after every stage (Laplacian(phi) = div(u*), u = u* - grad(phi)).
 //
-// Each direction is periodic or bounded by a wall at both ends (L.bc = NEUMANN there, for the
-// pressure). On a wall the normal velocity is zero: for the normal component, face 0 IS the low wall
-// (kept at zero) and face n (not stored) is the high wall. A tangential component sees the ghost value
-// 2 U_wall - q beyond a wall, so that its average on the wall equals the wall's speed (no slip; a
-// moving lid has U_wall != 0).
+// Each direction is periodic or bounded at both ends. A bounded side is one of two kinds:
+// - velocity side (a wall, moving or not, or an inflow; L.bc = NEUMANN there for the pressure): the
+//   velocity on the side is prescribed. For the normal component, face 0 IS the low side (its stored
+//   value is kept at the prescribed one) and face n (not stored) is the high side, whose value comes
+//   from the boundary data. A tangential component sees the ghost value 2 U_b - q beyond the side, so
+//   that its average on the side equals the prescribed U_b (no slip on a wall).
+// - outflow side (L.bc = DIRICHLET: pressure zero on the side, as OpenFOAM's usual outlet): zero normal
+//   gradient of the velocity. The normal component on the boundary face is set from the next interior
+//   face before each projection and then corrected by the projection like any other face (so the flow
+//   out balances the flow in); a tangential component sees the ghost value q (zero gradient).
+// The prescribed values can vary along the side (an inflow profile): they are stored per side and per
+// component on the side's plane (Bnd), sampled where that component lives.
 // ================================================================================================
-struct Walls {
-  double U[6][3];  // velocity of each wall: x-, x+, y-, y+, z-, z+
+// Boundary data of each side (x-, x+, y-, y+, z-, z+) and velocity component, sampled on the side's
+// plane: index I[a] + n[a] I[b] over the two other directions a < b. Velocity side: the prescribed
+// velocity (normal component zero on a wall). Outflow side: only the normal component is used (the
+// current value on the high boundary face, which is not stored in the velocity array). Periodic: null.
+struct Bnd {
+  double* u[6][3];
 };
 struct Force {
   double g[3];  // constant body force per unit mass (drives channel flows)
 };
 
 __device__ __forceinline__ bool wall_dir(const Level& L, int d) { return L.bc[2 * d] != PERIODIC; }
+__device__ __forceinline__ bool outflow(const Level& L, int side) { return L.bc[side] == DIRICHLET; }
+__host__ __device__ __forceinline__ int plane_idx(const Level& L, int d, int i, int j, int k) {
+  return d == 0 ? j + L.n[1] * k : (d == 1 ? i + L.n[0] * k : i + L.n[0] * j);
+}
+
+// Normal component a (of direction d) at face (i,j,k), periodic directions wrapped. Face n[d] of a
+// bounded direction is the high side, taken from the boundary data (0 on a wall, as before).
+template <typename T>
+__device__ __forceinline__ T face_n(const T* a, const Level& L, const Bnd& W, int d, int i, int j, int k) {
+  int I[3] = {i, j, k};
+#pragma unroll
+  for (int e = 0; e < 3; ++e) {
+    if (I[e] >= 0 && I[e] < L.n[e]) continue;
+    if (L.bc[2 * e] == PERIODIC) {
+      I[e] = (I[e] + L.n[e]) % L.n[e];
+    } else if (e == d && I[e] == L.n[e]) {
+      continue;
+    } else {
+      return T(0);  // not reached: face -1 would only be read by a boundary face, which is not evolved
+    }
+  }
+  if (I[d] == L.n[d]) return T(W.u[2 * d + 1][d][plane_idx(L, d, I[0], I[1], I[2])]);
+  return a[I[0] + size_t(L.n[0]) * (I[1] + size_t(L.n[1]) * I[2])];
+}
+
+// Ghost value of tangential component comp (value qc at face (i,j,k)) beyond side (d, hi).
+// homog = 1 drops the prescribed velocity: the linear part of the operator.
+template <typename T>
+__device__ __forceinline__ T ghost(T qc, const Level& L, const Bnd& W, int d, int hi, int comp, int i, int j, int k,
+                                   int homog) {
+  const int s = 2 * d + hi;
+  if (outflow(L, s)) return qc;  // zero gradient
+  return (homog ? T(0) : T(2.0 * W.u[s][comp][plane_idx(L, d, i, j, k)])) - qc;
+}
 
 // Linear index of (i,j,k), wrapped in periodic directions; -1 if it lies beyond a wall.
 __device__ __forceinline__ long long at(const Level& L, int i, int j, int k) {
@@ -951,10 +1195,10 @@ __device__ __forceinline__ T normal_at(const T* a, long long m) {
 
 template <typename T>
 __global__ void k_ns_rhs(const T* __restrict__ u, const T* __restrict__ v, const T* __restrict__ w, T* F,
-                         Level L, int comp, T nu, Walls W, Force G) {
+                         Level L, int comp, T nu, Bnd W, Force G) {
   CELL(L)
   const int I[3] = {i, j, k};
-  if (wall_dir(L, comp) && I[comp] == 0) {  // a wall face: the normal velocity stays zero
+  if (wall_dir(L, comp) && I[comp] == 0) {  // a boundary face: prescribed (or set from the interior), not evolved
     F[c] = T(0);
     return;
   }
@@ -971,16 +1215,17 @@ __global__ void k_ns_rhs(const T* __restrict__ u, const T* __restrict__ v, const
     const long long mp = at(L, i + ed[0], j + ed[1], k + ed[2]);
     const long long mm = at(L, i - ed[0], j - ed[1], k - ed[2]);
     T qp, qm;
-    if (d == comp) {  // along its own direction: the wall faces are zero
-      qp = normal_at(q, mp);
+    if (d == comp) {  // along its own direction: the high boundary face comes from the boundary data
+      qp = face_n(q, L, W, d, i + ed[0], j + ed[1], k + ed[2]);
       qm = normal_at(q, mm);
       const T Up = T(0.5) * (qc + qp), Um = T(0.5) * (qm + qc);  // cell-centre values right and left
       conv += (Up * Up - Um * Um) * ih;
-    } else {  // across direction d: ghost values beyond walls carry the wall speed
-      qp = mp >= 0 ? q[mp] : T(2.0 * W.U[2 * d + 1][comp]) - qc;
-      qm = mm >= 0 ? q[mm] : T(2.0 * W.U[2 * d][comp]) - qc;
-      const T* a = V[d];  // advecting component at the face's edges; zero on a wall (no flow through it)
-      const T aup = T(0.5) * (normal_at(a, mp) + normal_at(a, at(L, i + ed[0] - ec[0], j + ed[1] - ec[1], k + ed[2] - ec[2])));
+    } else {  // across direction d: ghost values beyond a side carry its prescribed velocity
+      qp = mp >= 0 ? q[mp] : ghost(qc, L, W, d, 1, comp, i, j, k, 0);
+      qm = mm >= 0 ? q[mm] : ghost(qc, L, W, d, 0, comp, i, j, k, 0);
+      const T* a = V[d];  // advecting component at the face's edges
+      const T aup = T(0.5) * (face_n(a, L, W, d, i + ed[0], j + ed[1], k + ed[2]) +
+                              face_n(a, L, W, d, i + ed[0] - ec[0], j + ed[1] - ec[1], k + ed[2] - ec[2]));
       const T alo = T(0.5) * (a[c] + normal_at(a, at(L, i - ec[0], j - ec[1], k - ec[2])));
       conv += (aup * T(0.5) * (qc + qp) - alo * T(0.5) * (qm + qc)) * ih;
     }
@@ -990,57 +1235,92 @@ __global__ void k_ns_rhs(const T* __restrict__ u, const T* __restrict__ v, const
 }
 
 template <typename T>
-__global__ void k_ns_div(const T* u, const T* v, const T* w, T* dv, Level L) {
+__global__ void k_ns_div(const T* u, const T* v, const T* w, T* dv, Level L, Bnd W) {
   CELL(L)
   const T* V[3] = {u, v, w};
   const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
   T s = T(0);
   for (int d = 0; d < 3; ++d) {
     if (L.n[d] == 1) continue;
-    s += (normal_at(V[d], at(L, i + E[d][0], j + E[d][1], k + E[d][2])) - V[d][c]) * T(L.ih[d]);
+    s += (face_n(V[d], L, W, d, i + E[d][0], j + E[d][1], k + E[d][2]) - V[d][c]) * T(L.ih[d]);
   }
   dv[c] = s;
 }
 
-// q -= scale * d(phi)/dx_comp at the comp-faces (wall faces: untouched)
+// q -= scale * d(phi)/dx_comp at the comp-faces (boundary faces: untouched here; outflow faces are
+// corrected by k_outflow_correct)
 template <typename T>
-__global__ void k_ns_correct(T* q, const T* phi, Level L, int comp, double scale = 1.0) {
+__global__ void k_ns_correct(T* q, const T* phi, Level L, int comp, double scale = 1.0, const T* fl = nullptr) {
   CELL(L)
   const int I[3] = {i, j, k};
-  if (wall_dir(L, comp) && I[comp] == 0) return;  // wall face: no correction (zero pressure gradient there)
+  if (wall_dir(L, comp) && I[comp] == 0) return;  // boundary face (velocity side: zero pressure gradient there)
+  if (fl && fl[c] == T(0)) return;                 // a face in a body: set by the body (k_ib_set)
   const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
   q[c] -= T(scale) * (phi[c] - phi[at(L, i - E[comp][0], j - E[comp][1], k - E[comp][2])]) * T(L.ih[comp]);
 }
 
+// One thread per point of side (d, hi)'s plane: its index p and the cell index c next to the side.
+#define PLANE(L, d, hi)                                                                 \
+  const int a_ = (d) == 0 ? 1 : 0, b_ = (d) == 2 ? 1 : 2;                               \
+  const int p = blockIdx.x * blockDim.x + threadIdx.x;                                  \
+  if (p >= L.n[a_] * L.n[b_]) return;                                                   \
+  int I_[3];                                                                            \
+  I_[a_] = p % L.n[a_];                                                                 \
+  I_[b_] = p / L.n[a_];                                                                 \
+  I_[d] = (hi) ? L.n[d] - 1 : 0;                                                        \
+  const size_t c = I_[0] + size_t(L.n[0]) * (I_[1] + size_t(L.n[1]) * I_[2]);
+static int plane_blocks(const Level& L, int d) {
+  const int a = d == 0 ? 1 : 0, b = d == 2 ? 1 : 2;
+  return (L.n[a] * L.n[b] + 255) / 256;
+}
+
+// Velocity side, low: the stored boundary face takes the prescribed normal velocity.
 template <typename T>
-__global__ void k_zero_wall(T* q, Level L, int comp) {
-  CELL(L)
-  const int I[3] = {i, j, k};
-  if (wall_dir(L, comp) && I[comp] == 0) q[c] = T(0);
+__global__ void k_fix_low(T* q, const double* ub, Level L, int d) {
+  PLANE(L, d, 0)
+  q[c] = T(ub[p]);
+}
+// Outflow side: normal velocity on the boundary face = that of the next interior face (zero gradient).
+// Low side: face 0 (stored) from face 1. High side: face n (boundary data) from face n-1.
+template <typename T>
+__global__ void k_outflow(T* q, double* ub, Level L, int d, int hi) {
+  PLANE(L, d, hi)
+  if (hi) ub[p] = double(q[c]);
+  else q[c] = q[c + L.stride(d)];
+}
+// Projection on an outflow face: the pressure is zero on the side (ghost value -phi beyond it).
+template <typename T>
+__global__ void k_outflow_correct(T* q, double* ub, const T* phi, Level L, int d, int hi) {
+  PLANE(L, d, hi)
+  if (hi) ub[p] -= double((-phi[c] - phi[c]) * T(L.ih[d]));
+  else q[c] -= (phi[c] - (-phi[c])) * T(L.ih[d]);
 }
 
 // ---------------------------------------------------------------- implicit diffusion (IMEX scheme)
 // Laplacian of velocity component comp at its face (i,j,k), with the same wall rules as k_ns_rhs.
-// homog = 1 drops the wall speed (ghost -q instead of 2 U_wall - q): the linear part of the operator.
+// homog = 1 drops the prescribed boundary velocities (ghost -q instead of 2 U_b - q, and 0 for the high
+// boundary face of the normal component): the linear part of the operator. The low boundary face is
+// part of q itself (kept fixed by the Helmholtz solve, so the operator stays linear on what it changes).
 template <typename T>
-__device__ __forceinline__ T lap_at(const T* q, const Level& L, int comp, const Walls& W, int homog, int i, int j,
+__device__ __forceinline__ T lap_at(const T* q, const Level& L, int comp, const Bnd& W, int homog, int i, int j,
                                     int k, size_t c) {
   const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+  const int I[3] = {i, j, k};
   const T qc = q[c];
   T s = T(0);
   for (int d = 0; d < 3; ++d) {
     if (L.n[d] == 1) continue;
     const int* ed = E[d];
-    const T ih = T(L.ih[d]), ih2 = T(L.ih2[d]);
+    const T ih2 = T(L.ih2[d]);
     const long long mp = at(L, i + ed[0], j + ed[1], k + ed[2]);
     const long long mm = at(L, i - ed[0], j - ed[1], k - ed[2]);
     T qp, qm;
     if (d == comp) {
-      qp = normal_at(q, mp);
+      qp = (homog && wall_dir(L, d) && I[d] == L.n[d] - 1) ? T(0) : face_n(q, L, W, d, i + ed[0], j + ed[1], k + ed[2]);
       qm = normal_at(q, mm);
     } else {
-      qp = mp >= 0 ? q[mp] : (homog ? T(0) : T(2.0 * W.U[2 * d + 1][comp])) - qc;
-      qm = mm >= 0 ? q[mm] : (homog ? T(0) : T(2.0 * W.U[2 * d][comp])) - qc;
+      qp = mp >= 0 ? q[mp] : ghost(qc, L, W, d, 1, comp, i, j, k, homog);
+      qm = mm >= 0 ? q[mm] : ghost(qc, L, W, d, 0, comp, i, j, k, homog);
     }
     s += (qp - T(2) * qc + qm) * ih2;
   }
@@ -1048,18 +1328,52 @@ __device__ __forceinline__ T lap_at(const T* q, const Level& L, int comp, const 
 }
 
 template <typename T>
-__global__ void k_ns_lap(const T* q, T* out, Level L, int comp, Walls W, int homog) {
+__global__ void k_ns_lap(const T* q, T* out, Level L, int comp, Bnd W, int homog) {
   CELL(L)
   const int I[3] = {i, j, k};
   out[c] = (wall_dir(L, comp) && I[comp] == 0) ? T(0) : lap_at(q, L, comp, W, homog, i, j, k, c);
 }
 
-// Helmholtz operator A x = x - cnu * Laplacian_homogeneous(x); the identity on wall faces (kept at zero).
+// Helmholtz operator A x = x - cnu * Laplacian_homogeneous(x); the identity on the low boundary faces.
 template <typename T>
-__global__ void k_helm(const T* x, T* Ax, Level L, int comp, Walls W, double cnu) {
+__global__ void k_helm(const T* x, T* Ax, Level L, int comp, Bnd W, double cnu) {
   CELL(L)
   const int I[3] = {i, j, k};
   Ax[c] = (wall_dir(L, comp) && I[comp] == 0) ? x[c] : x[c] - T(cnu) * lap_at(x, L, comp, W, 1, i, j, k, c);
+}
+
+// ---------------------------------------------------------------- immersed bodies
+// Every face of a velocity component that lies in a body (not fluid) gets its value from a list:
+//   q[idx] = a0 + sum_k w_k q[nb_k]   (ns = 4 terms in 2D, 8 in 3D)
+// A face near the surface (a ghost face) carries the linear extrapolation along the surface normal
+// through the body's velocity at the surface point B and the fluid velocity at the image point
+// I = B + s_I n, interpolated (bi- or trilinear) from fluid faces only; faces deeper inside take the
+// body's velocity (w = 0). The fluid faces then see the body through their usual stencils (sharp
+// interface, ghost-cell method). The lists are built on the CPU (gcfd.py) from signed distances.
+template <typename T>
+__global__ void k_ib_set(T* q, const long long* idx, const double* a0, const long long* nb, const double* w, int n,
+                         int ns) {
+  const int g = blockIdx.x * blockDim.x + threadIdx.x;
+  if (g >= n) return;
+  double s = a0[g];
+  for (int k = 0; k < ns; ++k) s += w[size_t(ns) * g + k] * double(q[nb[size_t(ns) * g + k]]);
+  q[idx[g]] = T(s);  // the nb are fluid faces, never written here
+}
+// Closed fluid region (no outflow): the faces in bodies on its rim carry the extrapolated velocity,
+// whose net flow into the region is a small discretization error; incompressibility needs exactly zero.
+// So the rim faces are corrected by the least change that removes it: q -= Q * sa, with Q = sum of the
+// divergence over the region's cells and sa = sign * area * cell volume / sum(area^2) per rim face
+// (sign +1 if the region's cell is on the face's low side, -1 if on its high side).
+template <typename T>
+__global__ void k_ib_cons(T* q, const long long* idx, const double* sa, int n, const double* Q) {
+  const int g = blockIdx.x * blockDim.x + threadIdx.x;
+  if (g < n) q[idx[g]] -= T(*Q * sa[g]);
+}
+__global__ void k_scale(double* a, double f) { *a *= f; }
+template <typename T>
+__global__ void k_mul(T* a, const T* m, size_t n) {
+  for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
+    a[q] *= m[q];
 }
 
 // Right-hand side of an IMEX stage: b = q + dt (gam N + zeta N_old + alpha nu Lap(q)) + beta dt nu B,
@@ -1119,7 +1433,9 @@ struct NS {
   T *phi = nullptr, *dv = nullptr;
   double* dmax = nullptr;
   Solver<double>* P;
-  Walls W;
+  Bnd W = {};  // boundary data (device arrays, one per bounded side and component)
+  int kind[6];  // 0 periodic, 1 velocity side (wall or inflow), 2 outflow
+  bool has_outflow = false;
   Force G;
   // scheme 0: explicit SSP-RK3 for everything. scheme 1 (IMEX): convection and body force by the
   // low-storage RK3 of Spalart, Moser & Rogers (1991), diffusion by Crank-Nicolson within each stage
@@ -1136,19 +1452,50 @@ struct NS {
   // round. The parity is passed explicitly, so recording a step changes nothing on the CPU side.
   int parity = 0;
   GraphCache graphs;  // one recorded time step per (dt, parity, tolerances, scheme)
+  // Immersed bodies (see k_ib_set). fl: 1 on fluid faces, 0 on faces in a body, per component. With
+  // bodies the explicit scheme also carries the pressure between stages (incremental projection, as
+  // IMEX does): then the projection increment vanishes at a steady state, so the faces in the bodies,
+  // which the projection does not change, stay exactly consistent with the fluid next to them.
+  bool has_body = false;
+  T* fl[3] = {nullptr, nullptr, nullptr};
+  std::vector<double> flh[3];
+  struct IBList {
+    long long *idx = nullptr, *nb = nullptr;
+    double *a0 = nullptr, *w = nullptr;
+    int n = 0;
+  } ib[3];
+  int ib_ns = 4;
+  double last_dt = 0.0;
+  std::vector<long long> idxh[3];  // host copies of the lists' face indices
+  struct Rim {
+    long long* idx = nullptr;
+    double* sa = nullptr;
+    int n = 0;
+  } rim[3];  // closed region only (see k_ib_cons)
+  bool closed = false;
+  double* dsum = nullptr;
+  // With bodies the pressure tolerance is relative to max(|div u*|, sqrt(n_fluid) max|u| / h): near a
+  // steady state the incremental projection's right-hand side tends to zero, and a tolerance relative
+  // to it alone asks for more digits than round-off leaves (measured: 200 iterations, the cap, instead
+  // of ~15). The floor still asks for an rms divergence of ptol max|u| / h.
+  double* fscale = nullptr;
+  double fscale_f = 0.0;
 
-  NS(const int* n, const double* len, double nu_, int precision, const int* walls, const double* uwall,
-     const double* g)
-      : nu(nu_) {
+  // kinds: 6 ints (x-, x+, y-, y+, z-, z+): 0 periodic, 1 velocity side, 2 outflow. The boundary data
+  // start at zero (walls at rest); set them with set_plane, then refresh.
+  NS(const int* n, const double* len, double nu_, int precision, const int* kinds, const double* g) : nu(nu_) {
     int bc[6];
-    for (int d = 0; d < 3; ++d) bc[2 * d] = bc[2 * d + 1] = walls[d] ? NEUMANN : PERIODIC;
-    for (int s = 0; s < 6; ++s)
-      for (int d = 0; d < 3; ++d) W.U[s][d] = uwall[3 * s + d];
+    for (int s = 0; s < 6; ++s) {
+      kind[s] = kinds[s];
+      bc[s] = kinds[s] == 0 ? PERIODIC : (kinds[s] == 2 ? DIRICHLET : NEUMANN);
+      has_outflow = has_outflow || kinds[s] == 2;
+    }
     for (int d = 0; d < 3; ++d) G.g[d] = g[d];
     P = new Solver<double>(n, len, bc, 2, 2);
     if (precision == 6) P->pre = new Solver<float>(n, len, bc, 2, 2);
     L = P->L[0];
     ncomp = n[2] > 1 ? 3 : 2;
+    ib_ns = ncomp == 3 ? 8 : 4;
     const size_t N = L.cells();
     for (int s = 0; s < 3; ++s) {
       CK(cudaMalloc(&q[s], N * sizeof(T)));
@@ -1168,10 +1515,39 @@ struct NS {
       CK(cudaMalloc(&Fo[s], N * sizeof(T)));
       CK(cudaMalloc(&Bw[s], N * sizeof(T)));
       CK(cudaMemset(Fo[s], 0, N * sizeof(T)));
-      // wall terms of the Laplacian: Lap(0) with the walls' speeds
-      CK(cudaMemset(tmp, 0, N * sizeof(T)));
-      k_ns_lap<T><<<grid3(L), B3, 0, gs()>>>(tmp, Bw[s], L, s, W, 0);
     }
+    for (int side = 0; side < 6; ++side) {
+      if (kind[side] == 0) continue;
+      for (int s = 0; s < 3; ++s) {
+        CK(cudaMalloc(&W.u[side][s], plane_cells(side / 2) * sizeof(double)));
+        CK(cudaMemset(W.u[side][s], 0, plane_cells(side / 2) * sizeof(double)));
+      }
+    }
+    refresh();
+  }
+  size_t plane_cells(int d) const { return L.cells() / L.n[d]; }
+  void set_plane(int side, int comp, const double* h) {
+    CK(cudaMemcpy(W.u[side][comp], h, plane_cells(side / 2) * sizeof(double), cudaMemcpyHostToDevice));
+  }
+  void get_plane(int side, int comp, double* h) {
+    CK(cudaMemcpy(h, W.u[side][comp], plane_cells(side / 2) * sizeof(double), cudaMemcpyDeviceToHost));
+  }
+  // Terms of the implicit Laplacian from the boundary data: Bw = Lap(0) with the prescribed velocities.
+  void boundary_terms() {
+    CK(cudaMemsetAsync(tmp, 0, L.cells() * sizeof(T), gs()));
+    for (int s = 0; s < 3; ++s) k_ns_lap<T><<<grid3(L), B3, 0, gs()>>>(tmp, Bw[s], L, s, W, 0);
+  }
+  // The stored boundary faces of component comp: prescribed value on a low velocity side, the interior
+  // value on an outflow side.
+  void boundary_faces(int comp) {
+    const int d = comp;
+    if (kind[2 * d] == 1) k_fix_low<T><<<plane_blocks(L, d), 256, 0, gs()>>>(q[comp], W.u[2 * d][d], L, d);
+    for (int hi = 0; hi < 2; ++hi)
+      if (kind[2 * d + hi] == 2) k_outflow<T><<<plane_blocks(L, d), 256, 0, gs()>>>(q[comp], W.u[2 * d + hi][d], L, d, hi);
+  }
+  void refresh() {  // after the boundary data changed
+    boundary_terms();
+    for (int s = 0; s < ncomp; ++s) boundary_faces(s);
     CK(cudaDeviceSynchronize());
   }
   ~NS() {
@@ -1182,11 +1558,110 @@ struct NS {
       cudaFree(Fo[s]);
       cudaFree(Bw[s]);
     }
+    for (int side = 0; side < 6; ++side)
+      for (int s = 0; s < 3; ++s) cudaFree(W.u[side][s]);
+    cudaFree(dsum);
+    cudaFree(fscale);
+    for (int s = 0; s < 3; ++s) {
+      cudaFree(rim[s].idx);
+      cudaFree(rim[s].sa);
+      cudaFree(fl[s]);
+      cudaFree(ib[s].idx);
+      cudaFree(ib[s].nb);
+      cudaFree(ib[s].a0);
+      cudaFree(ib[s].w);
+    }
     for (T* a : {phi, dv, tmp, cr, cp, cAp, pres}) cudaFree(a);
     cudaFree(dmax);
     cudaFree(hc);
     cudaFree(hpart);
     delete P;
+  }
+  // Bodies, one component at a time: fluid mask (N values) and the list of faces in bodies (see k_ib_set).
+  void set_body(int comp, const double* mask, int n, const long long* idx, const double* a0, const long long* nb,
+                const double* w) {
+    const size_t N = L.cells();
+    flh[comp].assign(mask, mask + N);
+    idxh[comp].assign(idx, idx + n);
+    if (!fl[comp]) CK(cudaMalloc(&fl[comp], N * sizeof(T)));
+    CK(cudaMemcpy(fl[comp], mask, N * sizeof(T), cudaMemcpyHostToDevice));
+    IBList& b = ib[comp];
+    for (void* a : {(void*)b.idx, (void*)b.nb, (void*)b.a0, (void*)b.w}) cudaFree(a);
+    b = IBList();
+    b.n = n;
+    if (n == 0) return;
+    CK(cudaMalloc(&b.idx, n * sizeof(long long)));
+    CK(cudaMalloc(&b.a0, n * sizeof(double)));
+    CK(cudaMalloc(&b.nb, size_t(n) * ib_ns * sizeof(long long)));
+    CK(cudaMalloc(&b.w, size_t(n) * ib_ns * sizeof(double)));
+    CK(cudaMemcpy(b.idx, idx, n * sizeof(long long), cudaMemcpyHostToDevice));
+    CK(cudaMemcpy(b.a0, a0, n * sizeof(double), cudaMemcpyHostToDevice));
+    CK(cudaMemcpy(b.nb, nb, size_t(n) * ib_ns * sizeof(long long), cudaMemcpyHostToDevice));
+    CK(cudaMemcpy(b.w, w, size_t(n) * ib_ns * sizeof(double), cudaMemcpyHostToDevice));
+  }
+  void body_done() {  // after set_body for every component: masks into the pressure solver
+    const double* f[3] = {nullptr, nullptr, nullptr};
+    for (int s = 0; s < ncomp; ++s) f[s] = flh[s].empty() ? nullptr : flh[s].data();
+    P->set_mask(f);
+    if (P->pre) static_cast<Solver<float>*>(P->pre)->set_mask(f);
+    has_body = true;
+    if (!fscale) CK(cudaMalloc(&fscale, sizeof(double)));
+    {
+      double hmin = 1e300;
+      for (int d = 0; d < 3; ++d)
+        if (L.n[d] > 1) hmin = std::min(hmin, L.h[d]);
+      fscale_f = std::sqrt(P->n_act) / hmin;
+    }
+    closed = P->singular;
+    if (closed) {  // the rim faces of the fluid region and their correction weights (k_ib_cons)
+      std::vector<double> ac(L.cells());
+      CK(cudaMemcpy(ac.data(), P->act, L.cells() * sizeof(double), cudaMemcpyDeviceToHost));
+      double vol = 1.0;
+      for (int d = 0; d < 3; ++d)
+        if (L.n[d] > 1) vol *= L.h[d];
+      std::vector<long long> ri[3];
+      std::vector<double> rs[3];
+      double den = 0.0;
+      for (int s = 0; s < ncomp; ++s) {
+        const double area = vol / L.h[s];
+        for (long long f : idxh[s]) {
+          const int i = int(f % L.n[0]), j = int((f / L.n[0]) % L.n[1]), k = int(f / (L.n[0] * (long long)L.n[1]));
+          const int I[3] = {i, j, k};
+          if (wall_dir_h(s) && I[s] == 0) continue;  // a boundary face: not part of the region's rim
+          int J[3] = {i, j, k};
+          J[s] = (I[s] - 1 + L.n[s]) % L.n[s];
+          const size_t lo = J[0] + size_t(L.n[0]) * (J[1] + size_t(L.n[1]) * J[2]);
+          const double sg = ac[lo] - ac[f];  // +1: region on the low side (this is its cell's high face)
+          if (sg == 0.0) continue;
+          ri[s].push_back(f);
+          rs[s].push_back(sg * area);
+          den += area * area;
+        }
+      }
+      if (!dsum) CK(cudaMalloc(&dsum, sizeof(double)));
+      for (int s = 0; s < ncomp; ++s) {
+        Rim& r = rim[s];
+        cudaFree(r.idx);
+        cudaFree(r.sa);
+        r = Rim();
+        r.n = int(ri[s].size());
+        if (!r.n) continue;
+        for (double& v : rs[s]) v *= vol / den;
+        CK(cudaMalloc(&r.idx, r.n * sizeof(long long)));
+        CK(cudaMalloc(&r.sa, r.n * sizeof(double)));
+        CK(cudaMemcpy(r.idx, ri[s].data(), r.n * sizeof(long long), cudaMemcpyHostToDevice));
+        CK(cudaMemcpy(r.sa, rs[s].data(), r.n * sizeof(double), cudaMemcpyHostToDevice));
+      }
+    }
+    for (auto& x : graphs.e) CK(cudaGraphExecDestroy(x.exec));
+    graphs.e.clear();
+    ib_set();
+    CK(cudaDeviceSynchronize());
+  }
+  void ib_set() {
+    for (int s = 0; s < ncomp; ++s)
+      if (ib[s].n)
+        k_ib_set<T><<<(ib[s].n + 255) / 256, 256, 0, gs()>>>(q[s], ib[s].idx, ib[s].a0, ib[s].nb, ib[s].w, ib[s].n, ib_ns);
   }
   void rhs(T* const* Fs) {  // explicit scheme: convection + diffusion + force; IMEX: convection + force only
     const T nu_explicit = scheme == 0 ? T(nu) : T(0);
@@ -1232,6 +1707,7 @@ struct NS {
     }
     for (int k = 0; k < 3; ++k) {
       const double cdt = 2.0 * ab[k] * dt;  // (alpha + beta) dt: converts the increment phi to pressure
+      if (has_outflow) boundary_terms();    // the outflow faces' values changed in the last projection
       rhs(Fn);                              // Fn = N(u_{k-1})
       for (int s = 0; s < ncomp; ++s) {
         k_ns_lap<T><<<grid3(L), B3, 0, gs()>>>(q[s], tmp, L, s, W, 0);
@@ -1245,16 +1721,40 @@ struct NS {
       k_axpy<T><<<lin_blocks(n), 256, 0, gs()>>>(pres, phi, 1.0 / cdt, n);  // p += phi / ((alpha+beta) dt)
     }
   }
+  bool wall_dir_h(int d) const { return L.bc[2 * d] != PERIODIC; }
   void project() {
-    k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q[0], q[1], q[2], dv, L);
-    P->solve_dev(dv, phi, ptol, 200);  // phi from the last projection is the initial guess
-    for (int s = 0; s < ncomp; ++s) k_ns_correct<T><<<grid3(L), B3, 0, gs()>>>(q[s], phi, L, s);
+    if (has_body) ib_set();  // faces in bodies from the predicted fluid velocity
+    if (has_outflow)  // outflow faces from the predicted interior velocity (zero gradient)
+      for (int s = 0; s < ncomp; ++s) boundary_faces(s);
+    if (closed) {  // zero net flow into the closed fluid region (k_ib_cons)
+      k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q[0], q[1], q[2], dv, L, W);
+      dot_dev<T>(dv, P->act, L.cells(), hpart, dsum);
+      for (int s = 0; s < ncomp; ++s)
+        if (rim[s].n) k_ib_cons<T><<<(rim[s].n + 255) / 256, 256, 0, gs()>>>(q[s], rim[s].idx, rim[s].sa, rim[s].n, dsum);
+    }
+    k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q[0], q[1], q[2], dv, L, W);
+    if (has_body) k_mul<T><<<lin_blocks(L.cells()), 256, 0, gs()>>>(dv, P->act, L.cells());  // cells in bodies: decoupled
+    if (has_body) {  // tolerance floor: rms divergence ptol * max|u| / h (see fscale)
+      CK(cudaMemsetAsync(fscale, 0, sizeof(double), gs()));
+      for (int s = 0; s < ncomp; ++s) k_absmax<T><<<lin_blocks(L.cells()), 256, 0, gs()>>>(q[s], L.cells(), fscale);
+      k_scale<<<1, 1, 0, gs()>>>(fscale, fscale_f);
+    }
+    P->solve_dev(dv, phi, ptol, 200, has_body ? fscale : nullptr);  // phi from the last projection: initial guess
+    for (int s = 0; s < ncomp; ++s) k_ns_correct<T><<<grid3(L), B3, 0, gs()>>>(q[s], phi, L, s, 1.0, fl[s]);
+    for (int side = 0; side < 6; ++side)
+      if (kind[side] == 2) {
+        const int d = side / 2;
+        k_outflow_correct<T><<<plane_blocks(L, d), 256, 0, gs()>>>(q[d], W.u[side][d], phi, L, d, side & 1);
+      }
   }
   void stage(double a, double b, double dt) {
     rhs(F);
     for (int s = 0; s < ncomp; ++s)
       k_rk<T><<<lin_blocks(L.cells()), 256, 0, gs()>>>(q[s], q0[s], F[s], a, b, dt, L.cells());
+    if (has_body)  // incremental projection (see has_body): the stage includes - b dt grad p
+      for (int s = 0; s < ncomp; ++s) k_ns_correct<T><<<grid3(L), B3, 0, gs()>>>(q[s], pres, L, s, b * dt, fl[s]);
     project();
+    if (has_body) k_axpy<T><<<lin_blocks(L.cells()), 256, 0, gs()>>>(pres, phi, 1.0 / (b * dt), L.cells());
   }
   void step_body(double dt, int par) {
     if (scheme == 1) {
@@ -1281,7 +1781,8 @@ struct NS {
     if (scheme == 1) parity = 1 - parity;
   }
   double max_div() {
-    k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q[0], q[1], q[2], dv, L);
+    k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q[0], q[1], q[2], dv, L, W);
+    if (has_body) k_mul<T><<<lin_blocks(L.cells()), 256, 0, gs()>>>(dv, P->act, L.cells());  // cells with fluid faces
     CK(cudaMemsetAsync(dmax, 0, sizeof(double), gs()));
     k_absmax<T><<<lin_blocks(L.cells()), 256, 0, gs()>>>(dv, L.cells(), dmax);
     double m;
@@ -1292,22 +1793,67 @@ struct NS {
 
 extern "C" {
 
-// walls: 3 ints (1: walls at both ends of that direction, 0: periodic). uwall: 18 doubles, the velocity
-// of each wall (x-, x+, y-, y+, z-, z+; only tangential components are used). g: body force (3).
+// kinds: 6 ints (x-, x+, y-, y+, z-, z+): 0 periodic (both sides of a direction), 1 velocity side (wall
+// or inflow; its velocity set with gcfd_ns_set_bnd, zero until then), 2 outflow (pressure zero, zero
+// normal velocity gradient). g: body force (3). Returns null for an invalid set-up (reason on stderr).
+void* gcfd_ns_create2(const int* n, const double* len, double nu, int precision, const int* kinds, const double* g) {
+  for (int d = 0; d < 3; ++d) {
+    const char* ax = "xyz";
+    if (n[d] < 1) return nullptr;
+    if ((kinds[2 * d] == 0) != (kinds[2 * d + 1] == 0)) {
+      fprintf(stderr, "gcfd: direction %c: periodic must be set on both sides\n", ax[d]);
+      return nullptr;
+    }
+    if (kinds[2 * d] == 0 && n[d] > 1 && n[d] % 2) {
+      fprintf(stderr, "gcfd: direction %c: periodic needs an even cell count\n", ax[d]);
+      return nullptr;
+    }
+    if (kinds[2 * d] != 0 && n[d] < 2) {
+      fprintf(stderr, "gcfd: direction %c: a bounded direction needs at least 2 cells\n", ax[d]);
+      return nullptr;
+    }
+    for (int s = 0; s < 2; ++s)
+      if (kinds[2 * d + s] < 0 || kinds[2 * d + s] > 2) return nullptr;
+  }
+  if (n[0] < 2 || n[1] < 2) return nullptr;
+  return new NS(n, len, nu, precision, kinds, g);
+}
+// Legacy form. walls: 3 ints (1: walls at both ends of that direction, 0: periodic). uwall: 18 doubles,
+// the velocity of each wall (x-, x+, y-, y+, z-, z+; only tangential components are used).
 void* gcfd_ns_create(const int* n, const double* len, double nu, int precision, const int* walls,
                      const double* uwall, const double* g) {
-  for (int d = 0; d < 3; ++d) {
-    if (n[d] < 1) return nullptr;
-    if (!walls[d] && n[d] > 1 && n[d] % 2) return nullptr;  // periodic: even (red-black ordering)
+  int kinds[6];
+  for (int d = 0; d < 3; ++d) kinds[2 * d] = kinds[2 * d + 1] = walls[d] ? 1 : 0;
+  if (n[2] == 1 && walls[2]) return nullptr;
+  NS* m = static_cast<NS*>(gcfd_ns_create2(n, len, nu, precision, kinds, g));
+  if (!m) return nullptr;
+  for (int side = 0; side < 6; ++side) {
+    if (!kinds[side]) continue;
+    for (int c = 0; c < 3; ++c) {
+      const double v = c == side / 2 ? 0.0 : uwall[3 * side + c];  // a wall carries no flow through it
+      std::vector<double> h(m->plane_cells(side / 2), v);
+      m->set_plane(side, c, h.data());
+    }
   }
-  if (n[0] < 2 || n[1] < 2 || (n[2] == 1 && walls[2])) return nullptr;
-  return new NS(n, len, nu, precision, walls, uwall, g);
+  m->refresh();
+  return m;
 }
 void gcfd_ns_destroy(void* s) { delete static_cast<NS*>(s); }
+// Boundary data of one side and component (plane array, see Bnd), then the derived terms are updated.
+void gcfd_ns_set_bnd(void* s, int side, int comp, const double* h) {
+  NS* m = static_cast<NS*>(s);
+  if (!m->W.u[side][comp]) return;
+  m->set_plane(side, comp, h);
+  m->refresh();
+}
+void gcfd_ns_get_bnd(void* s, int side, int comp, double* h) {
+  NS* m = static_cast<NS*>(s);
+  if (m->W.u[side][comp]) m->get_plane(side, comp, h);
+}
 void gcfd_ns_set(void* s, int comp, const double* h) {
   NS* m = static_cast<NS*>(s);
   CK(cudaMemcpy(m->q[comp], h, m->L.cells() * sizeof(double), cudaMemcpyHostToDevice));
-  k_zero_wall<double><<<grid3(m->L), B3, 0, gs()>>>(m->q[comp], m->L, comp);  // a wall face carries no flow
+  if (comp < m->ncomp) m->boundary_faces(comp);  // boundary faces: prescribed, or from the interior (outflow)
   CK(cudaStreamSynchronize(gs()));
 }
 void gcfd_ns_get(void* s, int comp, double* h) {
@@ -1319,6 +1865,7 @@ void gcfd_ns_get(void* s, int comp, double* h) {
 void gcfd_ns_run(void* s, double dt, int nsteps, double ptol, double* stats) {
   NS* m = static_cast<NS*>(s);
   m->ptol = ptol;
+  m->last_dt = dt;
   m->prepare(dt);
   k_cg_reset<<<1, 1, 0, gs()>>>(m->P->cg);
   k_cg_reset<<<1, 1, 0, gs()>>>(m->hc);
@@ -1345,12 +1892,45 @@ void gcfd_ns_run(void* s, double dt, int nsteps, double ptol, double* stats) {
 void gcfd_set_graphs(int on) { g_use_graphs = on != 0; }
 // Levels with at most this many cells run as one thread block (the V-cycle tail); 0 switches it off.
 void gcfd_set_tail(long long cells) { g_tail_cells = size_t(cells < 0 ? 0 : cells); }
+// Bodies: how many of the finest multigrid levels carry the body's face coefficients (the coarser ones
+// see no body). Applies to solvers given bodies afterwards.
+void gcfd_set_mask_levels(int m) {
+  Solver<double>::mask_levels() = m;
+  Solver<float>::mask_levels() = m;
+}
 
 // scheme 0: explicit RK3; 1: IMEX (implicit diffusion). htol: relative tolerance of the diffusion solves.
 void gcfd_ns_scheme(void* s, int scheme, double htol) {
   NS* m = static_cast<NS*>(s);
   m->scheme = scheme;
   m->htol = htol;
+}
+// Immersed bodies, component comp: mask (N values: 1 fluid face, 0 face in a body) and the n faces in
+// bodies with their rule q[idx] = a0 + sum_k w[ns g + k] q[nb[ns g + k]] (ns = 4 in 2D, 8 in 3D).
+// Call for every component, then gcfd_ns_body_done (before the first run).
+void gcfd_ns_body(void* s, int comp, const double* mask, int n, const long long* idx, const double* a0,
+                  const long long* nb, const double* w) {
+  static_cast<NS*>(s)->set_body(comp, mask, n, idx, a0, nb, w);
+}
+void gcfd_ns_body_done(void* s) { static_cast<NS*>(s)->body_done(); }
+// Pressure (per unit density) at the cell centres. IMEX, or with bodies: the pressure carried by the
+// incremental projection. Explicit scheme without bodies: from the last projection of the last step.
+void gcfd_ns_get_p(void* s, double* h) {
+  NS* m = static_cast<NS*>(s);
+  const size_t N = m->L.cells();
+  CK(cudaMemcpy(h, (m->scheme == 1 || m->has_body) ? m->pres : m->phi, N * sizeof(double), cudaMemcpyDeviceToHost));
+  if (!(m->scheme == 1 || m->has_body)) {  // phi = (2/3) dt p in the last stage of SSP-RK3
+    const double f = m->last_dt > 0.0 ? 1.5 / m->last_dt : 0.0;
+    for (size_t q = 0; q < N; ++q) h[q] *= f;
+  }
+}
+// Explicit right-hand side of the momentum equation for component comp at the current velocity:
+// - convection + nu Laplacian + body force (no pressure), at every face (meaningless on faces in bodies).
+void gcfd_ns_rhs(void* s, int comp, double* h) {
+  NS* m = static_cast<NS*>(s);
+  k_ns_rhs<double><<<grid3(m->L), B3, 0, gs()>>>(m->q[0], m->q[1], m->q[2], m->tmp, m->L, comp, m->nu, m->W, m->G);
+  CK(cudaStreamSynchronize(gs()));
+  CK(cudaMemcpy(h, m->tmp, m->L.cells() * sizeof(double), cudaMemcpyDeviceToHost));
 }
 double gcfd_ns_project(void* s) {  // project the current velocity (initial data), return max |div u| after
   NS* m = static_cast<NS*>(s);

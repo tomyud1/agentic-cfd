@@ -8,7 +8,7 @@
    With graphs on, whole solves and time steps run as recorded graphs whose loops the GPU decides;
    with graphs off, the CPU launches every kernel and reads each loop's stop flag.
 Checked for the Poisson solver (double and mixed precision) and Navier-Stokes (both time schemes, with
-walls and 3D periodic).
+walls, 3D periodic, and a channel with inflow and outflow).
 """
 import sys
 
@@ -60,6 +60,37 @@ def abc3d(scheme, graphs, N=32, steps=20):
     return q
 
 
+def channel(scheme, graphs, N=16, steps=100):
+    """Open boundaries: parabolic inflow at x-, outflow at x+, walls at y-, y+, started from rest."""
+    gcfd.use_graphs(graphs)
+    prof = lambda X, Y, Z: (4 * Y * (1 - Y), 0.0 * X, 0.0 * X)
+    s = gcfd.NavierStokes((2 * N, N, 1), (2.0, 1.0, 1.0), 0.1, scheme=scheme,
+                          boundaries={"x-": ("inflow", prof), "x+": "outflow", "y-": "wall", "y+": "wall"})
+    s.run(s.max_dt(1.0), steps, 1e-6)
+    q = s.get() + [s.get_boundary("x+", 0)]
+    s.close()
+    return q
+
+
+def bodies_case(graphs, N=32, steps=100):
+    """Immersed bodies: a cylinder in the open channel and a closed Couette cell (rim correction)."""
+    from gpucfd import bodies as B
+    gcfd.use_graphs(graphs)
+    prof = lambda X, Y, Z: (4 * Y * (1 - Y), 0.0 * X, 0.0 * X)
+    s = gcfd.NavierStokes((2 * N, N, 1), (2.0, 1.0, 1.0), 0.05, bodies=[B.Cylinder((0.5, 0.5), 0.15)],
+                          boundaries={"x-": ("inflow", prof), "x+": "outflow", "y-": "wall", "y+": "wall"})
+    s.run(s.max_dt(1.5), steps, 1e-10)
+    q = s.get() + [s.pressure(), s.forces(((0.25, 0.75), (0.25, 0.75), (0, 1)))]
+    s.close()
+    c = (0.5, 0.5)
+    s = gcfd.NavierStokes((N, N, 1), (1.0, 1.0, 1.0), 0.025, walls=(True, True, False),
+                          bodies=[B.Cylinder(c, 0.2, velocity=B.rotation(c, 5.0)), B.Inside(B.Cylinder(c, 0.45))])
+    s.run(s.max_dt(1.0), steps, 1e-10)
+    q += s.get() + [s.pressure()]
+    s.close()
+    return q
+
+
 def same(a, b):
     return all(np.array_equal(x, y) for x, y in zip(a, b))
 
@@ -67,7 +98,10 @@ def same(a, b):
 if __name__ == "__main__":
     for name, fn in (("Poisson double", lambda g: poisson("double", g)), ("Poisson mixed", lambda g: poisson("mixed", g)),
                      ("cavity rk3", lambda g: cavity("rk3", g)), ("cavity imex", lambda g: cavity("imex", g)),
-                     ("3D periodic rk3", lambda g: abc3d("rk3", g)), ("3D periodic imex", lambda g: abc3d("imex", g))):
+                     ("3D periodic rk3", lambda g: abc3d("rk3", g)), ("3D periodic imex", lambda g: abc3d("imex", g)),
+                     ("channel inflow/outflow rk3", lambda g: channel("rk3", g)),
+                     ("channel inflow/outflow imex", lambda g: channel("imex", g)),
+                     ("immersed bodies (open channel, closed Couette cell) rk3", bodies_case)):
         off1, off2, on = fn(False), fn(False), fn(True)
         check(f"rung 8: {name}, two runs bit-identical", same(off1, off2), "")
         check(f"rung 8: {name}, CUDA graphs on = off (bit-identical)", same(off1, on), "")

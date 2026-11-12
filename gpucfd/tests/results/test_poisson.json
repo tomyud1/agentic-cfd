@@ -4,7 +4,7 @@
    "name": "NVIDIA GeForce RTX 4070",
    "compute_capability": 8.9
   },
-  "bandwidth_GBs": 402.50118699880807
+  "bandwidth_GBs": 170.38933987702063
  },
  "rung1": {
   "double": 1.770385888603005e-16,
