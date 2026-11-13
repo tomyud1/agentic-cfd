@@ -1,9 +1,9 @@
 # Setup: start here
 
 How to install everything, re-create the reports, re-run the simulations and build the GPU solver,
-on a fresh machine. Agents: also read
-[`environment.md`](../.claude/skills/agentic-cfd/references/environment.md), which lists the
-machine-specific paths and pitfalls of the development PC; on another machine, check each one.
+on a fresh machine. After installing, describe the machine in one file in
+[`workflow/machines/`](../workflow/machines/README.md) (hardware, paths, launch commands): agents
+read it before running anything. `dev-pc.md` there is the development PC.
 
 **Tested on:** Windows 11 with WSL2 (Ubuntu 24.04), ESI OpenFOAM v2606 and Python 3.12, an AMD
 Ryzen 7 7800X3D (8 cores, 16 threads) and an NVIDIA RTX 4070. A native Ubuntu 24.04 machine works

@@ -1,5 +1,8 @@
 #!/bin/bash
-cd "/mnt/d/Projects/Agentic CFD"; PY=/home/tomyud/venvs/cfd/bin/python
+cd "$(dirname "$0")/.." || exit 1
+PY="${PY:-$HOME/venvs/cfd/bin/python}"
+export RUN="$($PY -c 'from cfdlib import foam; print(foam.foam_env("FOAM_RUN"))')/agentic"   # where case runs live on this machine
+export CFD_RERENDER=1   # rebuild the reports without re-stamping their date and machine record
 for c in plane_poiseuille lid_driven_cavity_re100 stokes_first_problem; do echo "== $c"; $PY -m cases.$c.analyze 2>&1 | grep -iE "error|warning|Report:|Traceback|PASS|WARN|FAIL" | head -8; done
 echo "== insights guard"; mkdir -p cases/zz_smoke
 $PY - <<'P'
@@ -12,4 +15,4 @@ try: insights.resolve("zz_smoke", i, fix="other")
 except ValueError as e: print("overwrite guard ok")
 P
 rm -rf cases/zz_smoke
-echo "== perf"; $PY -c "from cfdlib import perf; import json; print(json.dumps(perf.summarize('/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/stokes_first_problem/N2000_dt2.5ms', 'pimpleFoam', 2000), indent=0)); print(perf.machine())"
+echo "== perf"; $PY -c "from cfdlib import perf; import json, os; print(json.dumps(perf.summarize(os.environ['RUN'] + '/stokes_first_problem/N2000_dt2.5ms', 'pimpleFoam', 2000), indent=0)); print(perf.machine())"

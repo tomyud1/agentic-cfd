@@ -9,9 +9,10 @@ simulation, runs mesh and time-step studies, compares the result with the exact 
 published benchmark, and explains every choice it made in an HTML report.
 
 Final-year project, Faculty of Mechanical Engineering, Technion, supervised by Prof. Steven Frankel.
-The agent is [Claude Code](https://claude.com/claude-code) following the workflow in
-[`.claude/skills/agentic-cfd/`](.claude/skills/agentic-cfd/SKILL.md). The project also builds
-faster tools for the agent, starting with a GPU solver ([below](#gpu-solver-gpucfd)).
+The agent here is [Claude Code](https://claude.com/claude-code); the workflow in
+[`workflow/`](workflow/WORKFLOW.md) is written for any coding agent. The project also builds faster
+tools for the agent, starting with a GPU solver ([below](#gpu-solver-gpucfd)). Every problem it
+solves is used to improve it ([how it works](#how-it-works)).
 
 ## Start here
 
@@ -20,8 +21,8 @@ faster tools for the agent, starting with a GPU solver ([below](#gpu-solver-gpuc
 | See what the agent solved: every case, its verdict and its report | [cases/README.md](cases/README.md) (or the [report gallery](https://tomyud1.github.io/agentic-cfd/)) |
 | Install it, re-create the reports, re-run a case | [setup/README.md](setup/README.md) |
 | Solve your own CFD problem with a coding agent | [AGENTS.md](AGENTS.md) (for the agent) and [cases/README.md](cases/README.md#give-the-agent-a-new-problem) (for you) |
-| Develop the project itself (tools, gpucfd, the workflow) | [CLAUDE.md](CLAUDE.md) |
-| See what changed recently | [CHANGELOG.md](CHANGELOG.md) |
+| Develop the project itself (tools, gpucfd, the workflow) | [CLAUDE.md](CLAUDE.md), then [dev/LOOP.md](dev/LOOP.md) |
+| See what changed recently, and what is planned | [CHANGELOG.md](CHANGELOG.md), [ROADMAP.md](ROADMAP.md) |
 | See which problems come next, and every candidate | [cases/BACKLOG.md](cases/BACKLOG.md) |
 | Read how the GPU solver works and how it is verified | [gpucfd/DESIGN.md](gpucfd/DESIGN.md) |
 
@@ -55,52 +56,48 @@ GPU.
 
 ## How it works
 
-Three layers, so the agent can solve problems it has not seen before:
+Three parts, and a loop that improves them:
 
-1. **Tools** ([`cfdlib/`](cfdlib)): deterministic Python that runs OpenFOAM or gpucfd, reads their
-   output, computes errors, observed order, Richardson extrapolation and GCI, draws figures (and
-   refuses ones with overlapping text), and renders the report. Rule: **code computes every
-   number**; the agent never types a result.
-2. **Guidelines** ([`.claude/skills/agentic-cfd/`](.claude/skills/agentic-cfd)): the workflow
-   (intake, theory, setup, pre-flight, production, analysis, report, visual review), an OpenFOAM
-   primer with every pitfall met so far, the report contract and the machine setup.
-3. **Worked examples** ([`cases/`](cases)): the solved cases. The agent copies their structure, not
-   their numbers.
+1. **Workflow** ([`workflow/`](workflow)): the stages an agent follows (intake, theory, setup,
+   pre-flight, production, analysis, report, visual review), an OpenFOAM primer with every pitfall
+   met so far, and the report contract. The solved [`cases/`](cases) are its worked examples: the
+   agent copies their structure, not their numbers.
+2. **Tools** ([`cfdlib/`](cfdlib), OpenFOAM, [`gpucfd/`](gpucfd)): deterministic code that runs the
+   solvers, reads their output, computes errors, observed order, Richardson extrapolation and GCI,
+   draws figures (and refuses ones with overlapping text), and renders the report. Rule: **code
+   computes every number**; the agent never types a result. A report contract
+   ([`cfdlib/contract.py`](cfdlib/contract.py)) is checked before any report is written.
+3. **Agent**: any coding agent that can read files and run commands. What differs between computers
+   is kept in one file per machine ([`workflow/machines/`](workflow/machines)).
 
-A **report contract** ([`cfdlib/contract.py`](cfdlib/contract.py)) is checked before any report is
-written: required sections, every setting covered by a decision, math typeset as LaTeX, figure
-references valid.
-
-The **insight log** is how the workflow improves: agents record problems as they meet them, and the
-lessons go into the guidelines for the next agent. Example: in case 4 the agent found that
+**The loop** ([`dev/LOOP.md`](dev/LOOP.md)): a fresh agent solves a problem with a known answer and
+logs every limitation it meets; a second agent then reviews the report and the log, and improves
+the workflow and the tools before the next problem. Example: in case 4 the agent found that
 OpenFOAM's PISO algorithm was only first-order accurate in time for this flow, which made the lift
-10 % wrong; the guidelines now require a time-step study in the pre-flight of every unsteady
-nonlinear problem.
+10 % wrong; the workflow now puts a time-step study in the pre-flight of every unsteady nonlinear
+problem.
 
 ## Repository map
 
 ```
 AGENTS.md                     for an agent solving a user's CFD problem with this repository
-CLAUDE.md                     the project's direction and rules, for agents developing it
-.claude/skills/agentic-cfd/   the agent's workflow (SKILL.md) and references
+CLAUDE.md, ROADMAP.md         the project's direction and rules, for agents developing it; the next steps
+workflow/                     WORKFLOW.md (the stages), references/ (primer, contract), machines/ (one file per computer)
 cfdlib/                       shared tools: run OpenFOAM and gpucfd, verification, plots, report, contract
+gpucfd/                       the GPU solver: CUDA source, Python wrapper, verification ladder, DESIGN.md
 cases/                        one folder per problem; catalogue.yaml (every case), README.md (solved), BACKLOG.md (next)
 results/                      one report per case, with the extracted run data
-gpucfd/                       the GPU solver: CUDA source, Python wrapper, verification ladder, DESIGN.md
-setup/                        install, re-render all reports, GPU setup, benchmark data (README.md)
-tests/, dev/                  smoke tests; early exploration and independent checks of the agents' claims
+dev/                          LOOP.md (how a solved case improves the project), review script, old experiments
+setup/, tests/                install, re-render all reports, GPU setup, benchmark data; tool tests
 index.html                    the report gallery served by GitHub Pages (generated from cases/catalogue.yaml)
 ```
 
 ## Roadmap
 
-- **More problem types:** turbulence (RANS) next: [cases/BACKLOG.md](cases/BACKLOG.md).
-- **gpucfd as a tool for the agent:** connected (`cfdlib/gpu.py`, guidance in the skill). On case 4
-  it ran the whole grid study 8× faster than OpenFOAM, but its uniform grid needs about 30× more cells
-  around the body for the same accuracy. Next: stretched grids.
-- **Smarter runs:** runs stop live on their physical check, not at a guessed end time (case 4: a
-  third shorter). Steady runs reach the same answer sooner: OpenFOAM 3-11× (case 2, 128² to 512²),
-  gpucfd 20×.
+The ordered plan is in [ROADMAP.md](ROADMAP.md). In short: stretched grids for gpucfd, so that it
+competes with OpenFOAM on flows around bodies; turbulence (RANS) as the next problem type; a
+shorter workflow that offers its records to the agent instead of prescribing them; then a second
+machine and a second agent.
 
 ## Background papers
 

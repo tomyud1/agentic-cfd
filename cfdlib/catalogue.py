@@ -6,6 +6,7 @@ show it.
 
 Generated parts (between `<!-- catalogue:NAME -->` and `<!-- /catalogue:NAME -->` markers):
   cases/README.md   solved   table of solved cases
+  cases/README.md   examples what each solved case folder shows, for agents choosing one to study
   cases/BACKLOG.md  backlog  the tiers and the catalogue of candidates
   index.html        cards    the report gallery served by GitHub Pages
 
@@ -74,6 +75,15 @@ def solved_table(cases: list[dict]) -> str:
             rows.append(f"| {c['id']} | {cell(c['title'])} | {cell(c['tests'])} | "
                         f"{VERDICT_MD[verdict(r)]} | {cell(c['headline'])} | [view]({PAGES}{r['path']}) |")
     return "\n".join(rows)
+
+
+def examples(cases: list[dict]) -> str:
+    """One line per solved case that has `shows`: where it is and what can be learned from it."""
+    out = []
+    for c in cases:
+        if c["status"] == "solved" and c.get("shows"):
+            out.append(f"- **`cases/{c['folder']}/`** (case {c['id']}, {cell(c['tests'])}). {cell(c['shows'])}.")
+    return "\n".join(out)
 
 
 def source(c: dict) -> str:
@@ -148,8 +158,12 @@ def targets(cases: list[dict]) -> dict[Path, str]:
     """New contents of every generated file."""
     spec = [(ROOT / "cases/README.md", "solved", solved_table(cases), False),
             (ROOT / "cases/BACKLOG.md", "backlog", backlog(cases), False),
+            (ROOT / "cases/README.md", "examples", examples(cases), False),
             (ROOT / "index.html", "cards", cards(cases), True)]
-    return {p: replace_block(p.read_text(encoding="utf-8"), name, body, h) for p, name, body, h in spec}
+    out: dict[Path, str] = {}
+    for p, name, body, h in spec:   # a file may hold several blocks: each builds on the previous one
+        out[p] = replace_block(out.get(p) or p.read_text(encoding="utf-8"), name, body, h)
+    return out
 
 
 def unlisted(cases: list[dict]) -> list[str]:

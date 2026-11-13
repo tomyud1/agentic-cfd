@@ -9,17 +9,68 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Next, in this order:
-1. Case 7 (turbulent flat plate, SA, NASA TMR): the problem statement, reference data and a tool-gap
-   check before a fresh agent gets it.
-2. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
-   They are tied to the IMEX fix for bodies: on a stretched grid the smallest cell sets the explicit
-   viscous time step everywhere.
-3. A 3D cylinder and more OpenFOAM problem types ([cases/BACKLOG.md](cases/BACKLOG.md)).
+What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-13
 
-### Everything case 6 exposed, fixed: steady stop, process safety, solver check, guidance, commit hash to be filled in
+### Repository aligned with the goal: workflow, tools, agent, and the loop, commit hash to be filled in
+- **What:**
+  - **The workflow moved to an agent-neutral folder.** `.claude/skills/agentic-cfd/SKILL.md` is now
+    [`workflow/WORKFLOW.md`](workflow/WORKFLOW.md), with its references in `workflow/references/`.
+    The skill file that Claude Code loads is a short pointer to it. The text of the workflow is
+    unchanged except for the machine-specific phrases.
+  - **Machine facts are split from the workflow.** The old `environment.md` mixed three things. They
+    are now three files:
+    - [`workflow/machines/dev-pc.md`](workflow/machines/dev-pc.md): this PC's hardware, paths, limits
+      and the WSL launch commands;
+    - [`workflow/references/environment.md`](workflow/references/environment.md): what holds on every
+      machine;
+    - [`workflow/references/gpu-linear-solvers.md`](workflow/references/gpu-linear-solvers.md): the
+      OGL notes from case 5.
+
+    [`workflow/machines/README.md`](workflow/machines/README.md) says how to describe a new machine.
+  - **The improvement loop is written down:** [`dev/LOOP.md`](dev/LOOP.md). It has the two roles
+    (solver agent, dev agent), the seven steps from choosing a case to recording it, the launch
+    prompt, and the review checklist. Until now it existed only in the changelog's history.
+  - `dev/review_case.sh <case>` replaces the three per-case review scripts: contract, leftover
+    solver processes, problem and reference unchanged, shared files untouched, verdict, insights.
+  - Tests and setup scripts no longer contain this PC's paths (`tests/smoke_*.sh`,
+    `tests/test_tools.py`, `setup/fetch_featflow.sh`): they find the repository from their own
+    location and the run folder from OpenFOAM's `$FOAM_RUN`.
+  - CLAUDE.md states the goal as three parts (workflow, tools, agent) and the loop, and has a new
+    rule: keep the workflow lean. README, AGENTS.md and `setup/README.md` follow.
+  - **Solved cases are a library, not a reading list.** The workflow no longer tells the agent to
+    read all files of every solved case. Each solved case has a `shows` line in
+    `cases/catalogue.yaml` (what its folder teaches), and `cfdlib/catalogue.py` generates the list
+    "What each solved case shows" in [`cases/README.md`](cases/README.md). The agent decides what
+    to open. CLAUDE.md has the rule behind it: give the agent agency.
+  - New [`ROADMAP.md`](ROADMAP.md): the next steps in order, what was decided, and the questions
+    for Prof. Frankel.
+- **Why it matters:** the lab machine and a second student's local agent are about to use this
+  repository. Before this change the workflow sat in a Claude-only folder, told every agent to use
+  one user's home directory, and the way a solved case turns into improvements was not written
+  anywhere.
+- **Not changed:** `cfdlib/`, `gpucfd/`, `cases/` and `results/` stay where they are. The commands
+  printed in the published reports depend on them.
+- **How it was verified:**
+  - `tests/test_tools.py`, `test_catalogue.py`, `test_layout.py`, `test_study.py` and both smoke
+    scripts pass with the portable paths.
+  - Every relative link in the Markdown files resolves (19 files, 0 broken).
+  - `dev/review_case.sh heated_pipe_re200` runs clean: contract OK, no leftover solver, WARN, 16
+    insights, none unresolved.
+  - **Clean copy:** the files a `git clone` would contain (613) were copied to a new folder with a
+    different path. There `setup/rerender_all.sh` rebuilt all six reports and the GPU study with
+    every contract OK and the same verdicts, and the tool, catalogue and layout tests passed.
+  - No simulation was re-run and no report changed.
+- **Open:**
+  - The loop in `dev/LOOP.md` describes how cases 2-6 were handled. No fresh agent has been launched
+    with the new launch prompt or the pointer skill file yet; case 7 will be the first.
+  - `tests/smoke_all.sh` rebuilds three reports and leaves them changed in git, although their
+    content is the same: matplotlib stamps each figure with the time and random ids. Restore them
+    with `git checkout -- results` after running it (a fix is listed in ROADMAP under "Measuring
+    the method").
+
+### Everything case 6 exposed, fixed: steady stop, process safety, solver check, guidance (`3cf874b`)
 - **What:** all 16 insights of case 6 were acted on.
   - **Steady stop (insights 9, 15):** `monitor.steady_check` now handles values converged to their
     printed digits. When the fitted geometric estimate has no answer, two conservative fallbacks are

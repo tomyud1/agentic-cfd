@@ -32,7 +32,9 @@ print("  case 4 report: cl max 0.98998, cl min -1.02475, cd min 3.16485, St 0.30
 print("level_sequence:", verification.level_sequence([3.1308, 3.1645, 3.1807, 3.1884]))
 
 # 3. perf: pressure solves by position (v2606 names them all "p")
-run = Path("/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/dfg_cylinder_re100/psolver_M3_GAMG_1e-07_0.01")
+from cfdlib import foam  # noqa: E402
+RUN = Path(foam.foam_env("FOAM_RUN")) / "agentic"   # where case runs live on this machine
+run = RUN / "dfg_cylinder_re100/psolver_M3_GAMG_1e-07_0.01"
 if run.exists():
     p = perf.summarize(run, "pimpleFoam", cells=53728)
     print("perf: steps", p["steps"], "p by solve", {k: round(v, 2) for k, v in p["lin_iters_by_solve"].get("p", {}).items()})
@@ -181,7 +183,7 @@ with tempfile.TemporaryDirectory() as tmp:
     w10b = foam.ignored_settings(case10)
     print("ignored settings: buoyantBoussinesqSimpleFoam ->", len(w10), "warning(s); simpleFoam ->", len(w10b))
     assert len(w10) == 1 and "SIMPLE" in w10[0] and w10b == [], (w10, w10b)
-run10 = Path(os.path.expanduser("~/OpenFOAM/tomyud-v2606/run/agentic/lid_driven_cavity_re100"))
+run10 = RUN / "lid_driven_cavity_re100"
 if (run10 / "N128").exists() and (run10 / "N256").exists():
     tgt = run10.parent / "_test_map_fields"
     shutil.rmtree(tgt, ignore_errors=True)

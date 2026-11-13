@@ -1,6 +1,6 @@
 """Report contract: what every agentic-CFD report must contain, and a checker that enforces it.
 
-The full human-readable specification is .claude/skills/agentic-cfd/references/report-contract.md.
+The full human-readable specification is workflow/references/report-contract.md.
 report.render() refuses to write a report that fails this check.
 
 CLI:

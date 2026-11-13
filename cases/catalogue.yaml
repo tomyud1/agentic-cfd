@@ -22,6 +22,8 @@
 #   gpucfd    yes | no | maybe: can the GPU solver run it today (laminar, incompressible, box or bodies)
 #   folder    solved cases: cases/<folder>/ and results/<folder>/
 #   tests     solved cases: what the case tests
+#   shows     solved cases: what a later agent can learn from the case folder (techniques, not results);
+#             it becomes the list of worked examples in cases/README.md
 #   headline  solved cases: the key result in one sentence (plain text)
 #   reports   solved cases: list of {path, verdict_from}; verdict_from defaults to results.json in
 #             the report's folder
@@ -33,6 +35,7 @@ cases:
     status: solved
     folder: plane_poiseuille
     tests: Steady, linear, exact solution
+    shows: "The smallest complete case: every file a case needs. Exact solution derived and self-checked with SymPy; verification against it"
     headline: Velocity profile within 0.0061 % of the exact solution, 2nd-order convergence
     reports: [{path: results/plane_poiseuille/report.html}]
 
@@ -41,6 +44,7 @@ cases:
     status: solved
     folder: lid_driven_cavity_re100
     tests: Steady, nonlinear, benchmark (Ghia et al. 1982)
+    shows: "No exact solution: what theory can still say; comparison with a published benchmark; Richardson extrapolation; SIMPLEC stopped on residuals; separate pre-flight and production commands"
     headline: Velocity profiles within 0.009 U of the benchmark; the remaining gap is traced to the benchmark's own mesh
     reports: [{path: results/lid_driven_cavity_re100/report.html}]
 
@@ -49,6 +53,7 @@ cases:
     status: solved
     folder: stokes_first_problem
     tests: Transient, linear, exact solution
+    shows: "Transient: combined and separate mesh and time-step studies; a momentum balance checked at every step; several runs at once"
     headline: Velocity within 0.002 % of U, 2nd-order convergence
     reports: [{path: results/stokes_first_problem/report.html}]
     luminary: stokes_first_problem
@@ -58,6 +63,7 @@ cases:
     status: solved
     folder: dfg_cylinder_re100
     tests: Transient, nonlinear, vortex shedding, benchmark (FeatFlow)
+    shows: "Vortex shedding: curved-body O-grid mesh generated in Python; a benchmark with several reference levels; a live stop rule for a periodic flow; MPI runs and a performance appendix; the same case on gpucfd (gpu_run.py, gpu_compare.py). Key lesson: PISO was first order in time"
     headline: Drag, lift and Strouhal number all inside their uncertainty bands (St 0.3015 vs 0.3019); MPI scaling study
     reports: [{path: results/dfg_cylinder_re100/report.html}]
 
@@ -66,6 +72,7 @@ cases:
     status: solved
     folder: dfg_cylinder_3d_re20
     tests: Steady, 3D, up to 2.4 million cells, benchmark (FeatFlow)
+    shows: "3D: O-grid extruded with wall grading; a second mesh family for a sensitive output (lift); a GPU vs CPU performance study with its own report (gpu_study.py, OGL tuning, timing by profiling)"
     headline: Drag within 0.08 % of the reference; lift 1.7 % off, outside its band. A second mesh family shows the lift depends on the cell grading around the cylinder
     reports: [{path: results/dfg_cylinder_3d_re20/report.html}]
 
@@ -82,6 +89,7 @@ cases:
     status: solved
     folder: heated_pipe_re200
     tests: Steady, first heat transfer, exact solution (thermal entrance series)
+    shows: "Heat transfer (buoyantBoussinesqSimpleFoam) on an axisymmetric wedge; an exact series solution checked by an independent method; extraction bias measured on the exact solution; buoyancy tested with a same-mesh on/off pair in 3D"
     headline: Local Nusselt number within 0.005 % RMS of the exact solution; fully developed Nu 0.011 % off, just outside the agent's own 0.01 % rule; gravity tested with a 3D run
     reports: [{path: results/heated_pipe_re200/report.html}]
     luminary: heated_pipe

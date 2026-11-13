@@ -89,10 +89,10 @@ cells per core, communication dominates): measure; a common rule of thumb is tha
 10-20 thousand cells per core scaling flattens, but find this machine's value.
 - More than 8 ranks needs `mpirun --use-hwthread-cpus -np N` (Open MPI counts only the 8 physical
   cores as slots; without it: "not enough slots available").
-- Measured on this machine (case 4, pimpleFoam, 215 thousand cells, GAMG pressure): speed-up 1.6, 2.8,
+- Measured on the development PC (case 4, pimpleFoam, 215 thousand cells, GAMG pressure): speed-up 1.6, 2.8,
   4.2 and 5.4 on 2, 4, 8 and 16 ranks; 16 (all hardware threads) was fastest. The limit is memory
   bandwidth, and GAMG needs more pressure iterations on more subdomains (5.5 on 4, 8.2 on 8).
-- Measured on this machine (case 5, simpleFoam, steady 3D, 0.3-4.75 million cells): 8 ranks beat 16
+- Measured on the development PC (case 5, simpleFoam, steady 3D, 0.3-4.75 million cells): 8 ranks beat 16
   on every mesh (2.4 million cells: 1.72 against 1.90 s per iteration). A steady 3D SIMPLE iteration
   is memory-bandwidth bound; hyper-threads add MPI traffic without adding bandwidth. So the best rank
   count depends on the case: measure 8 and 16.
