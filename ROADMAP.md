@@ -13,18 +13,16 @@ change the order.
 | Part | Works today | Missing |
 |---|---|---|
 | Workflow | Problem statement to checked report, on laminar flow (steady, unsteady, 2D, 3D) and heat transfer | Turbulence, real geometry, a problem with no reference answer |
-| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box | gpucfd has uniform grids only, so on bodies it needs about 30× more cells than OpenFOAM for the same accuracy. No meshing beyond `blockMesh` |
+| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box | gpucfd's grids are uniform around bodies (stretched grids work in boxes with walls only), so on bodies it needs about 30× more cells than OpenFOAM for the same accuracy. No meshing beyond `blockMesh` |
 | Agent | Claude Opus 5.5, high effort, on one PC | Never tried with another agent or on another machine |
 
 ## Now: until the meeting (development PC)
 
 ### 1. Ready for an outside tester
 
-A PhD student of Prof. Frankel will install and test the repository next week. Before that:
-commit the restructure, and prove on a clean copy in a different folder that the install steps,
-`setup/rerender_all.sh` and the tests work without this PC's paths.
-
-*Done when:* a clean copy rebuilds all six reports.
+A PhD student of Prof. Frankel will install and test the repository next week. **Done
+(2026-11-13):** the restructure is committed and pushed, and a clean copy in a different folder
+rebuilt all six reports and passed the tests without this PC's paths.
 
 ### 2. Tools: stretched grids for gpucfd
 
@@ -38,18 +36,20 @@ what that is worth: gpucfd is about 70× faster per cell and step, but its unifo
 In stages, each one verified on the ladder before the next (plan in
 [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md)):
 
-1. **Stretched grids with walls, no bodies.** The discretisation on unequal cells, checked for
-   second order against the exact channel solution and the cavity benchmark. The hard part is the
-   pressure solver: multigrid slows down badly on long thin cells unless its smoother is changed
-   (line relaxation or semi-coarsening). Measure pressure iterations against cell aspect ratio.
-2. **Bodies on stretched grids.**
+1. **Stretched grids with walls, no bodies. Done (2026-11-13).** Second order on four exact
+   solutions; with line relaxation the pressure solver holds 7 to 10 iterations up to cell aspect
+   ratio 64. Not a speed win yet: a stretched step costs about twice a uniform one, and on the
+   Re 100 cavity (thick wall layers) stretching took 1.9× the time. Open: grids clustered in two
+   directions in 3D converge slowly.
+2. **Bodies on stretched grids.** This is the stage that tests the target below. Measure early,
+   on case 4's cylinder, whether fewer cells outweigh the dearer step.
 3. **The IMEX scheme with bodies** (unstable today). On a stretched grid the smallest cell sets the
    explicit viscous time step for the whole domain, so without this the speed is lost again.
 
 *Success, fixed in advance:* case 4's drag within 0.25 % of the benchmark in less wall time than
 OpenFOAM's whole study (about 1740 s with the live stop). Speed-only changes stay bit-identical on
-uniform grids. If stage 1's pressure solver is not converging well after two working sessions,
-write down what was found and move to step 3 first.
+uniform grids. If stage 2 has not brought case 4's wall time below gpucfd's own uniform-grid run
+after two working sessions, write down what was found and move to step 3 first.
 
 ### 3. Case 7: turbulent flat plate (RANS, Spalart-Allmaras, NASA TMR)
 

@@ -67,6 +67,14 @@ def lib():
             L.gcfd_ns_rhs.argtypes = [ctypes.c_void_p, ctypes.c_int, _dp]
         L.gcfd_ns_project.restype = ctypes.c_double
         L.gcfd_ns_project.argtypes = [ctypes.c_void_p]
+        if hasattr(L, "gcfd_ns_create3"):  # stretched grids (from 2026-11-13)
+            vp = ctypes.c_void_p
+            L.gcfd_ns_create3.restype = ctypes.c_void_p
+            L.gcfd_ns_create3.argtypes = [_ip, _dp, ctypes.c_double, ctypes.c_int, _ip, _dp, vp, vp, vp]
+            L.gcfd_poisson_create_s.restype = ctypes.c_void_p
+            L.gcfd_poisson_create_s.argtypes = [_ip, _dp, _ip, ctypes.c_int, ctypes.c_int, ctypes.c_int, vp, vp, vp]
+            L.gcfd_set_lines.argtypes = [ctypes.c_int]
+            L.gcfd_set_ns_sweeps.argtypes = [ctypes.c_int]
         _lib = L
     return _lib
 
@@ -90,6 +98,34 @@ def set_tail(cells=4096):
     lib().gcfd_set_tail(int(cells))
 
 
+def set_lines(directions="xyz"):
+    """Stretched grids, for experiments: the directions whose bounded sides may use zebra line relaxation
+    in the pressure multigrid ("xyz", the default: every bounded direction; "": the point smoother).
+    Applies to solvers created afterwards."""
+    lib().gcfd_set_lines(sum(1 << "xyz".index(c) for c in directions))
+
+
+def set_ns_sweeps(sweeps=2):
+    """Stretched grids: smoothing sweeps before and after the coarse-grid correction in the pressure
+    solver of NavierStokes objects created afterwards."""
+    lib().gcfd_set_ns_sweeps(int(sweeps))
+
+
+def _faces(n, length, grid):
+    """Per direction: None (uniform) or the n + 1 face positions as a float64 array; and the C arguments."""
+    faces = [None, None, None]
+    for d, g in enumerate(grid or ()):
+        if g is None:
+            continue
+        a = np.ascontiguousarray(g, np.float64)
+        if a.shape != (n[d] + 1,):
+            raise ValueError(f"grid[{d}]: {n[d] + 1} face positions expected (n + 1), got shape {a.shape}")
+        if n[d] == 1:
+            raise ValueError(f"grid[{d}]: a direction with one cell cannot be stretched")
+        faces[d] = a
+    return faces, [None if a is None else a.ctypes.data_as(ctypes.c_void_p) for a in faces]
+
+
 def bandwidth(mbytes=512, reps=20):
     """Measured device copy bandwidth (GB/s, read + write)."""
     return lib().gcfd_bandwidth(float(mbytes), int(reps))
@@ -98,16 +134,27 @@ def bandwidth(mbytes=512, reps=20):
 class Poisson:
     """Laplacian(p) = f on a box of n = (nx, ny, nz) cells and size length = (lx, ly, lz).
     bc: 6 names (x-, x+, y-, y+, z-, z+) from BC. nz = 1 makes it 2D. precision: "double" or "float".
-    nu: smoothing sweeps before and after the coarse-grid correction."""
+    nu: smoothing sweeps before and after the coarse-grid correction.
+    grid: stretched grid, per direction None (uniform) or the n + 1 face positions from 0 to the length
+    (gpucfd.grids makes them); bounded directions only. The equation is then Laplacian(p) = f with the
+    cell sizes from the lists, the residual norms are volume-weighted, and a singular problem needs
+    sum(f * cell volume) = 0 and returns p with zero volume-weighted mean."""
 
-    def __init__(self, n, length, bc, precision="double", nu=(2, 2)):
+    def __init__(self, n, length, bc, precision="double", nu=(2, 2), grid=None):
         self.n = tuple(int(v) for v in n)
         self.shape = (self.n[2], self.n[1], self.n[0])
         self.bc = list(bc)
         self.precision = precision
-        h = lib().gcfd_poisson_create(np.array(self.n, np.int32), np.array(length, np.float64),
-                                      np.array([BC[b] for b in bc], np.int32), PRECISION[precision],
-                                      int(nu[0]), int(nu[1]))
+        self.faces, fargs = _faces(self.n, length, grid)
+        self.stretched = any(a is not None for a in self.faces)
+        if self.stretched:
+            h = lib().gcfd_poisson_create_s(np.array(self.n, np.int32), np.array(length, np.float64),
+                                            np.array([BC[b] for b in bc], np.int32), PRECISION[precision],
+                                            int(nu[0]), int(nu[1]), *fargs)
+        else:
+            h = lib().gcfd_poisson_create(np.array(self.n, np.int32), np.array(length, np.float64),
+                                          np.array([BC[b] for b in bc], np.int32), PRECISION[precision],
+                                          int(nu[0]), int(nu[1]))
         if not h:
             raise ValueError("gcfd: invalid grid or boundary conditions (see stderr)")
         self.h = h
@@ -169,18 +216,37 @@ class NavierStokes:
     slip on their surfaces (with their velocity if given). See bodies.py for the method; forces() gives
     the force on them, surface_pressure() the pressure on their surface. image_distance: distance of the
     ghost faces' image points from the surface, in cells (default sqrt(dim) + 0.05, the least that keeps
-    their interpolation stencils in the fluid)."""
+    their interpolation stencils in the fluid).
+    grid: stretched grid, per direction None (uniform) or the n + 1 face positions from 0 to the length
+    (gpucfd.grids.tanh clusters cells toward walls); bounded directions only, no bodies yet. Use
+    dt_cfl() for the time step: max_dt() takes the smallest cell with the largest velocity."""
 
     SIDES = ("x-", "x+", "y-", "y+", "z-", "z+")
 
     def __init__(self, n, length, nu, pressure="mixed", walls=(False, False, False), wall_velocity=None,
-                 force=(0.0, 0.0, 0.0), scheme="rk3", htol=1e-10, boundaries=None, bodies=None, image_distance=None):
+                 force=(0.0, 0.0, 0.0), scheme="rk3", htol=1e-10, boundaries=None, bodies=None, image_distance=None,
+                 grid=None):
         self.n = tuple(int(v) for v in n)
         self.shape = (self.n[2], self.n[1], self.n[0])
         self.length = tuple(float(v) for v in length)
         self.ncomp = 3 if self.n[2] > 1 else 2
         self.walls = tuple(bool(w) for w in walls)
-        if boundaries is None:  # walls only: the original interface (also understood by older builds)
+        self.faces, fargs = _faces(self.n, self.length, grid)
+        self.stretched = any(a is not None for a in self.faces)
+        if self.stretched and bodies:
+            raise ValueError("immersed bodies on stretched grids are not built yet (stage 2, see DESIGN.md)")
+        if self.stretched:
+            kinds, planes = self._sides(wall_velocity or {}, boundaries or {})
+            self.kinds = kinds
+            h = lib().gcfd_ns_create3(np.array(self.n, np.int32), np.array(length, np.float64), float(nu),
+                                      PRECISION[pressure], np.array(kinds, np.int32), np.array(force, np.float64),
+                                      *fargs)
+            if not h:
+                raise ValueError("gcfd: invalid set-up (see stderr)")
+            self.h = h
+            for (side, comp), a in planes.items():
+                lib().gcfd_ns_set_bnd(h, side, comp, np.ascontiguousarray(a, np.float64).ravel())
+        elif boundaries is None:  # walls only: the original interface (also understood by older builds)
             self.kinds = [1 if self.walls[s // 2] else 0 for s in range(6)]
             uw = np.zeros((6, 3))
             for side, vel in (wall_velocity or {}).items():
@@ -275,19 +341,39 @@ class NavierStokes:
         d = s // 2
         c = []
         for e in range(3):
-            h = self.length[e] / self.n[e]
             if e == d:
                 c.append(np.array([0.0 if s % 2 == 0 else self.length[e]]))
             else:
-                c.append(np.arange(self.n[e]) * h + (0.0 if e == comp else 0.5 * h))
+                c.append(self._axis(e, e == comp))
         Z, Y, X = np.meshgrid(c[2], c[1], c[0], indexing="ij")
         a, b = [e for e in range(3) if e != d]
         shp = (self.n[b], self.n[a])
         return X.reshape(shp), Y.reshape(shp), Z.reshape(shp)
 
+    def _axis(self, d, face):
+        """Positions along direction d: the low faces of the cells (face=True) or the cell centres."""
+        if self.faces[d] is None:
+            h = self.length[d] / self.n[d]
+            return np.arange(self.n[d]) * h + (0.0 if face else 0.5 * h)
+        f = self.faces[d]
+        return f[:-1].copy() if face else 0.5 * (f[:-1] + f[1:])
+
+    def widths(self, d):
+        """Cell widths along direction d (n values)."""
+        if self.faces[d] is None:
+            return np.full(self.n[d], self.length[d] / self.n[d])
+        return np.diff(self.faces[d])
+
+    def _hmin(self):
+        return min(float(self.widths(d).min()) for d in range(3) if self.n[d] > 1)
+
     def _plane_flux(self, s, un):
         """Volume flow OUT of the domain through side s for normal velocity un on its plane."""
         d = s // 2
+        if self.stretched:
+            a, b = [e for e in range(3) if e != d]
+            area = np.outer(self.widths(b), self.widths(a))
+            return float(np.sum(np.asarray(un).reshape(area.shape) * area)) * (1.0 if s % 2 else -1.0)
         area = np.prod([self.length[e] / self.n[e] for e in range(3) if e != d])
         return float(np.sum(un) * area) * (1.0 if s % 2 else -1.0)
 
@@ -321,10 +407,7 @@ class NavierStokes:
 
     def face_coords(self, comp):
         """Coordinates (X, Y, Z) of the faces where component comp is stored (each of shape (nz, ny, nx))."""
-        c = []
-        for d in range(3):
-            h = self.length[d] / self.n[d]
-            c.append(np.arange(self.n[d]) * h + (0.0 if d == comp else 0.5 * h))
+        c = [self._axis(d, d == comp) for d in range(3)]
         Z, Y, X = np.meshgrid(c[2], c[1], c[0], indexing="ij")
         return X, Y, Z
 
@@ -350,7 +433,7 @@ class NavierStokes:
         st = np.zeros(4)
         lib().gcfd_ns_run(self.h, float(dt), int(nsteps), float(ptol), st)
         if not np.isfinite(st[1]):
-            hmin = min(self.length[d] / self.n[d] for d in range(3) if self.n[d] > 1)
+            hmin = self._hmin()
             limit = "dt < 0.8 h / max|u|" + (" and dt < 0.2 h^2 / nu" if self.scheme == "rk3" else "")
             raise FloatingPointError(f"gcfd: solution blew up (dt {dt:g}; stability needs roughly {limit} "
                                      f"with h = {hmin:g})")
@@ -359,9 +442,30 @@ class NavierStokes:
     def max_dt(self, umax, cfl=0.8):
         """Largest stable time step for velocity scale umax: convective limit, plus the explicit
         diffusion limit for scheme "rk3"."""
-        h = min(self.length[d] / self.n[d] for d in range(3) if self.n[d] > 1)
+        h = self._hmin() if self.stretched else min(self.length[d] / self.n[d] for d in range(3) if self.n[d] > 1)
         dt = cfl * h / umax
         return dt if self.scheme == "imex" else min(dt, 0.15 * h * h / self.nu)
+
+    def dt_cfl(self, cfl=0.8):
+        """Convective time-step limit from the current velocity: cfl / max over cells of
+        (|u| / dx + |v| / dy + |w| / dz), each velocity the larger of the cell's two faces. On a stretched
+        grid this is far less strict than max_dt (small cells at a no-slip wall carry small velocities).
+        Infinite for a fluid at rest. Scheme "rk3" also needs dt < 0.15 h_min^2 / nu (included)."""
+        q = self.get()
+        rate = np.zeros(self.shape)
+        for d in range(self.ncomp):
+            a = np.abs(q[d])
+            ax = 2 - d
+            if self.kinds[2 * d] == 0:
+                hi = np.roll(a, -1, axis=ax)
+            else:  # the high boundary face is not stored: the last cell uses its low face
+                hi = np.concatenate((np.take(a, range(1, self.n[d]), axis=ax), np.take(a, [-1], axis=ax)), axis=ax)
+            shp = [1, 1, 1]
+            shp[ax] = -1
+            rate += np.maximum(a, hi) / self.widths(d).reshape(shp)
+        r = float(rate.max())
+        dt = np.inf if r == 0.0 else cfl / r
+        return dt if self.scheme == "imex" else min(dt, 0.15 * self._hmin() ** 2 / self.nu)
 
     # ----------------------------------------------------------------- pressure, forces (post-processing)
     def pressure(self):
@@ -379,7 +483,10 @@ class NavierStokes:
         return out
 
     def cell_coords(self):
-        c = [(np.arange(self.n[d]) + 0.5) * self.length[d] / self.n[d] for d in range(3)]
+        if self.stretched:
+            c = [self._axis(d, False) for d in range(3)]
+        else:
+            c = [(np.arange(self.n[d]) + 0.5) * self.length[d] / self.n[d] for d in range(3)]
         Z, Y, X = np.meshgrid(c[2], c[1], c[0], indexing="ij")
         return X, Y, Z
 
@@ -393,6 +500,8 @@ class NavierStokes:
         with the solver's discrete fluxes (convection, viscous stress, pressure). It includes the unsteady
         term (rhs - grad p is the momentum change rate) and gives the same force for any box around the
         same bodies, to round-off (rung 10 checks it)."""
+        if self.stretched:
+            raise NotImplementedError("forces: not on stretched grids yet (stage 2, with bodies)")
         q = self.get()
         p = self.pressure()
         act = [d for d in range(3) if self.n[d] > 1]
@@ -457,6 +566,8 @@ class NavierStokes:
 
     def pressure_at(self, points):
         """Pressure interpolated (bi- or trilinear, from cell centres) at points (array (m, 3))."""
+        if self.stretched:
+            raise NotImplementedError("pressure_at: not on stretched grids yet (stage 2, with bodies)")
         P = np.atleast_2d(np.asarray(points, np.float64))
         p = self.pressure()
         act = [d for d in range(3) if self.n[d] > 1]

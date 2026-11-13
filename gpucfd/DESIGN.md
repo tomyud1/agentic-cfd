@@ -6,12 +6,14 @@ solve to the GPU, copies matrices through host memory every solve, and is capped
 
 ## Scope (first version)
 - Incompressible, single phase, laminar (constant density and viscosity).
-- Structured Cartesian grids (uniform first, stretched later), 2D or 3D (2D = one cell in z).
+- Structured Cartesian grids, uniform or stretched per direction (cells clustered toward walls;
+  stage 1, 2026-11-13: without bodies), 2D or 3D (2D = one cell in z).
 - Staggered (MAC) grid: pressure at cell centres, each velocity component on its faces. Discretely
   divergence-free velocity, no pressure checkerboarding.
 - Projection method: predict velocity, solve a pressure Poisson equation, correct.
 - Pressure Poisson equation: geometric multigrid (red-black Gauss-Seidel smoother, cell averaging
   restriction, (bi/tri)linear prolongation), alone or as the preconditioner of conjugate gradients.
+  On stretched grids: zebra line relaxation and the transposed prolongation as restriction.
 - Boundaries: periodic, walls (no-slip, moving lid), inflow (prescribed velocity profile), outflow
   (pressure zero, zero velocity gradient).
 - Immersed bodies of any shape given by a signed distance (ghost-cell method), with forces.
@@ -36,6 +38,7 @@ optimisation that breaks anything is caught at once.
 | 9 | Open boundaries | Poiseuille channel with inflow and outflow in every direction; Kovasznay flow (exact Navier-Stokes) with inflow profiles on all sides | order 2; the discrete fully developed flow kept to round-off; flow out = flow in |
 | 10 | Immersed bodies | circular Couette flow between immersed cylinders and a tilted channel (exact), 3D extrusions, DFG benchmark 2D-1 | velocity order 2 (mean over the grids); 3D = 2D; drag, pressure difference and lift converge to the benchmark; forces independent of the box |
 | 11 | Steady-state tooling | iteration-error estimator on sequences with a known limit; prolongation of a converged Couette flow; three-grid Couette study sequenced and from rest | estimate exact for one mode, never too small otherwise, noise floors recognised; prolongation keeps the coarse accuracy; sequenced = from rest within the stop tolerances, and cheaper |
+| 12 | Stretched grids (cells clustered toward walls) | the new code path with uniform face positions against the uniform code; Laplacian against numpy; direct solve; manufactured solutions; multigrid against the cell aspect ratio; kinetic energy of convection; Poiseuille, channel mode, Kovasznay, open channel; cavity Re 100 | equal to round-off; order 2; iterations independent of the grid and within twice the uniform count up to aspect ratio 64; energy conserved to round-off; cavity within 0.01 U of Ghia and converging to the uniform solution |
 
 The numpy references are written separately from the CUDA code, not translated from it, so a shared
 mistake is unlikely.
@@ -57,6 +60,7 @@ gpucfd/
   build.sh         compiles src/ into build/libgcfd.so (nvcc, run inside WSL)
   src/             CUDA C++ (header-only pieces + one .cu with the C API)
   gcfd.py          Python wrapper (ctypes); numpy arrays in and out
+  grids.py         face positions for stretched grids (tanh clustering)
   tests/           the verification ladder (python -m gpucfd.tests.<name>)
   bench/           benchmarks; results as JSON in bench/results/
 ```
@@ -78,7 +82,8 @@ Built and verified: the pressure Poisson solver (rungs 0-5), Navier-Stokes on pe
 (rung 6), walls (rung 7), reproducibility (rung 8), inflow and outflow (rung 9), immersed bodies
 (rung 10), and two time schemes: explicit RK3 and IMEX (implicit diffusion). Run the whole ladder
 with `bash gpucfd/run_ladder.sh` (or `python -m gpucfd.tests.test_poisson | test_ns | test_walls |
-test_open | test_bodies | test_reproducible`); results in `gpucfd/tests/results/`.
+test_open | test_bodies | test_steady | test_stretched | test_reproducible`); results in
+`gpucfd/tests/results/`. Stretched grids (rung 12) were added on 2026-11-13.
 
 | Rung | Result |
 |---|---|
@@ -96,6 +101,7 @@ test_open | test_bodies | test_reproducible`); results in `gpucfd/tests/results/
 | 9 | Open boundaries (`test_open`), each check with both schemes: Poiseuille channel with parabolic inflow and outflow along +x, -x, +y and z (3D) converges at order 1.84, 1.93 (N = 16, 32, 64; error = 0.99 h^2 - 2.84 h^3, so coarse pairs read low); fed the discrete equations' own fully developed profile (computed separately in numpy), the whole channel keeps it to 6e-16 (RK3) / 1e-14 (IMEX, diffusion solves to 1e-14); flow out = flow in exactly; the -x channel equals the mirrored +x channel to 2e-14; started from rest it reaches the same state. Kovasznay flow (Re 40, exact Navier-Stokes with convection; velocity profiles prescribed on all four sides): L2 order 2.02, 2.01 (32^2-128^2); the max error, in the first cell row along a side, converges at 1.90-1.92 out to 256^2 while the interior converges at 2.00 |
 | 10 | Immersed bodies (`test_bodies`, explicit scheme): circular Couette flow between immersed cylinders, velocity order 2.50, 2.10 (rms), pressure away from the walls 2.37, 1.48; channel at atan(1/2) to the grid, mean order 2.24; 3D extrusions equal 2D; DFG 2D-1 drag -2.26 % / -0.65 % (D/h 17.6 / 35), pressure difference -0.23 % at D/h 35; forces exact discrete momentum balance (box-independent to 2e-18). Details: Immersed bodies, below |
 | 11 | Steady-state tooling (`test_steady`, `gpucfd/steady.py`): iteration-error estimator exact for one geometric mode, conservative (9x) for an oscillating one, never too small while a fast mode dies out once the slow rate is known, noise floors recognised in 97 % of noisy histories and sized (covers the true error 97 % of the time); prolongation 32^2 -> 64^2 of the Couette flow keeps the coarse error (5.5e-3 vs 6.0e-3); Couette 32/64/128 sequenced vs from rest: same answers (worst 0.29 of the allowance), 7.1 s vs 14.2 s GPU on the refined grids. DFG 2D-1 study (one-off): 20x at D/h 35. Details: Steady flows, below |
+| 12 | Stretched grids (`test_stretched`, 2026-11-13): with uniform face positions the new code path equals the uniform code (Laplacian exactly, solutions 1.5e-11, Navier-Stokes 1e-14 / 7e-16); stretched Laplacian equals the numpy reference to 6e-15, solutions equal a direct solve to 2e-12; manufactured solutions order 1.99-2.01 (2D and 3D, cell ratio 8); pressure iterations 9 / 10-11 / 11-12 at wall aspect ratio 4 / 16 / 64 on 64^2 to 512^2 (uniform 8-9); convection conserves kinetic energy to 1e-17; Poiseuille from rest order 2.03 (IMEX) and 2.05 (RK3), decaying channel mode 2.03-2.04 (2D and 3D, both schemes), Kovasznay L2 order 2.07, 2.02, open channel 2.04 with flow out = flow in exactly; both schemes reach the same steady state (cavity 5e-9 U, Kovasznay 2e-8, open channel 1e-9); cavity Re 100 on clustered grids within 0.005 (u) / 0.009 (v) U of Ghia and 0.0052, 0.0013, 0.00025 U from the uniform 256^2 solution at N = 32, 64, 128; reproducible bit for bit. Details: Stretched grids, below |
 
 Bugs the ladder caught while building (each would have produced plausible-looking wrong results):
 1. Multigrid corrections on coarse levels started from leftover memory (rung 2 and 4 failures).
@@ -420,12 +426,256 @@ cells with a viscous time-step limit, about 40 GPU-minutes). The cost is in the 
 a uniform grid has to resolve the boundary layer everywhere, and the immersed body converges at order
 1.5. Stretched grids (next steps) attack exactly that.
 
+### Stretched grids, stage 1: boxes with walls, no bodies (2026-11-13)
+
+**Why.** On a uniform grid one thin layer at a wall sets the cell size for the whole domain. A
+stretched grid keeps the same number of cells per direction but lets their widths vary: small at
+the walls, large in the middle. This is stage 1 of three (ROADMAP step 2): the discretisation and
+the pressure solver on such grids, for boxes with walls, inflow/outflow and periodic sides. Bodies
+on stretched grids and IMEX with bodies are stages 2 and 3 and are refused for now.
+
+**Design, written before any code was run.**
+
+*The grid.* Still a box of nx x ny x nz cells in rows and columns (a "rectilinear" or
+"tensor-product" grid): direction d has n+1 face positions x_0 = 0 < x_1 < ... < x_n = L, and cell i
+lies between faces i and i+1. Every row of cells has the same widths, so the grid is described by
+three short lists, not by a mesh file. Two lengths per direction appear everywhere below:
+- the cell width dc_i = x_(i+1) - x_i;
+- the distance between neighbouring cell centres dm_i = (dc_(i-1) + dc_i) / 2, which belongs to
+  face i. On a bounded side the neighbour beyond the wall is the mirror image of the first cell,
+  so dm = dc there.
+
+On a uniform grid both are h and every formula below turns into the existing one.
+
+*Python API.* `NavierStokes(..., grid=(gx, gy, gz))` and `Poisson(..., grid=...)`: each entry is
+`None` (uniform) or an array of the n+1 face positions. `gpucfd/grids.py` makes the usual ones, with
+the parameter an engineer thinks in: `grids.tanh(n, L, ratio)` clusters toward both ends with
+`ratio` = largest cell / smallest cell (hyperbolic-tangent spacing, the standard for channel
+flows), `grids.tanh(n, L, ratio, side="low")` toward one end. `grids.describe(faces)` returns the
+smallest and largest cell and the largest step between neighbouring cells. Periodic directions must
+stay uniform. `s.dt_cfl(cfl)` gives the convective time-step limit from the actual velocity in each
+cell (small cells at a no-slip wall carry small velocities, so the smallest cell times the largest
+velocity would be far too strict).
+
+*How the cell sizes enter the equations (the "metric terms").* The staggered layout does not
+change: pressure in the cell centre, each velocity component in the middle of its faces. Each
+unknown still owns a small box (its control volume), and every term is still a balance of what
+crosses that box's sides, divided by the box's size. Only the sizes now come from the lists:
+- Divergence of a cell: (flow out - flow in) / dc per direction. Exact for any widths.
+- Pressure gradient at a face: (p_i - p_(i-1)) / dm_i.
+- The pressure Laplacian is the divergence of that gradient, so the projection still makes the
+  velocity divergence-free to round-off.
+- Diffusion of a velocity component: across its own direction its box runs from cell centre to cell
+  centre (width dm), and the gradients on the box's sides use dc; across the other directions the
+  box is the cell (width dc) and the gradients use dm. Beyond a wall the ghost value sits at the
+  mirror distance, as before.
+- Convection: the momentum flux through a box side is (flow through the side) x (velocity carried).
+  The flow through a side that spans two half cells is the sum of the two half-cell flows, so the
+  box of every velocity unknown is itself exactly divergence-free (mass-conserving); the carried
+  velocity is the plain average of the two neighbours. This is the "symmetry-preserving" form of
+  Verstappen & Veldman (2003): like the uniform scheme, convection neither creates nor destroys
+  kinetic energy, on any grid.
+
+Accuracy: the face is no longer midway between the two cell centres, so a single difference is
+formally first order. On a *smooth* grid, where neighbouring widths differ by O(h) (the tanh grids
+do), the errors of neighbouring cells cancel and the solution is second order. The ladder checks
+that by measurement.
+
+*Symmetry and the iterative solvers.* Conjugate gradients needs a symmetric matrix. Row i of the
+Laplacian is divided by dc_i, so with unequal cells the matrix is no longer symmetric; multiplied
+by the cell volume it is. So the solvers keep the plain operator and weight every dot product by the
+volume (cell volume for the pressure, the velocity's box volume for the implicit diffusion): the
+same thing, done without changing the operator. A singular pressure problem needs the
+volume-weighted sum of its right-hand side to vanish (it does: that sum is the net flow through the
+boundary) and the pressure is returned with zero volume-weighted mean.
+
+*The pressure solver on long thin cells (the hard part).* Multigrid works by letting a cheap
+"smoother" remove the error that changes from cell to cell and leaving the smooth remainder to
+coarser grids. The red-black Gauss-Seidel smoother updates one cell at a time from its neighbours.
+In a cell 64 times longer than it is thin, the two neighbours across the thin direction are
+(64)^2 = 4096 times more strongly coupled than the other two. The point smoother then only smooths
+along the thin direction; errors that wiggle along the long direction survive, the coarse grid
+cannot represent them, and convergence stalls. The two classic cures:
+1. **Line relaxation.** Update a whole line of cells along the strongly coupled direction at once,
+   by solving the small tridiagonal system that couples them exactly. The strong coupling is then
+   solved, not iterated. Alternate lines are coloured like a zebra so that all lines of one colour
+   are independent and can run in parallel.
+2. **Semi-coarsening.** Keep the point smoother but coarsen only along the strongly coupled
+   direction, until the cells are roughly square.
+
+**Choice: alternating zebra line relaxation with the existing full coarsening.** Reason: on a
+wall-clustered grid the strong direction changes from place to place (thin in y at the bottom wall,
+thin in x at the side walls, square in the corners and the middle), and case 4 will cluster in both
+directions around the cylinder. One coarsening rule for the whole grid cannot follow that;
+semi-coarsening would need several coarse grids per level. Line relaxation along x and then along y
+handles any 2D mix, and it keeps the grid hierarchy unchanged. Lines run along every bounded
+direction (a periodic direction is uniform and would need a cyclic line solve; not built).
+
+On the GPU: one thread block per line. Its threads build the line's tridiagonal system in parallel
+(the memory traffic), one thread solves it by the Thomas algorithm in shared memory (a short
+sequential job on fast memory), and all threads write the result back. The coarsest level (a few
+cells) is solved exactly: its inverse matrix is computed once on the CPU. The one-block V-cycle
+tail is not used on stretched grids yet.
+
+Known weak spot, stated before measuring: in 3D a cell that is thin in two directions (along an
+edge of a duct) is strongly coupled in a plane, which needs plane relaxation; lines are then not
+enough. If line relaxation fails the criteria, the second strategy to try is semi-coarsening; if
+both fail after a serious attempt, the work stops and what was measured is written down. (Outcome: it did not fail; see Results.)
+
+*Uniform grids.* Every kernel keeps its uniform code path and takes the new one only when face
+positions were given, so uniform results must stay bit-identical.
+
+**Pass criteria, fixed in advance.**
+1. Uniform grids stay bit-identical to the build before this change (`tests/same_as_build.py`
+   against the old library; `tests/test_reproducible.py`), and the whole existing ladder still
+   passes (`bash gpucfd/run_ladder.sh`).
+2. New rung 12 (`tests/test_stretched.py`) on wall-clustered grids:
+   - the stretched code path given uniform face positions equals the uniform code to round-off;
+   - the Laplacian equals an independent numpy reference to round-off; solutions equal a direct
+     solve; manufactured solutions converge at order 2 (1.9 to 2.1 on the finest pair);
+   - plane Poiseuille flow from rest (walls clustered, both time schemes): order 2; Kovasznay flow
+     (exact, with convection, clustered in both directions): order 2 in L2; channel with inflow and
+     outflow: flow out = flow in to round-off;
+   - lid-driven cavity at Re 100 on clustered grids: centreline velocities within 0.01 U of Ghia
+     (the uniform rule) and converging to the uniform-grid solution;
+   - two identical runs bit-identical, CUDA graphs on = off.
+3. Pressure-solver cost against the cell aspect ratio at the wall (1, 4, 16, 64; cavity grids):
+   iterations per solve and time per time step, as a table here, for the point smoother and the
+   line smoother. Wanted: iterations independent of grid size and within 2x of the uniform count
+   at every aspect ratio. Where it degrades is stated.
+4. A first fair number for the benefit. Test: the Re 100 cavity (the ladder's wall benchmark).
+   Error = largest difference of the two centreline velocity profiles from a fine uniform
+   reference (512^2, interpolated with cubic splines), at the grid's own points. Reported: the
+   cells and GPU wall time the best clustered grid needs to reach the error of the uniform 256^2
+   grid, both with IMEX at the same CFL number. Whatever comes out is reported, also if the
+   stretched grid loses.
+
+Each run's stop: the tests stop on their own steady/time criteria as the existing rungs do; the
+cavity runs stop when the velocity changes by less than 1e-7 U per time unit (the rung 7b rule) or
+at t = 80.
+
+**Results (2026-11-13).** All four criteria were measured; 1 to 3 pass, 4 gave an honest "not here".
+
+*What changed from the plan while building, each from a measurement:*
+1. **The restriction had to become the exact transpose of the interpolation.** With line relaxation
+   and the usual averaging of the four children, plain multigrid converged (factor 0.1 per cycle)
+   but conjugate gradients stalled (30 iterations for what multigrid alone did in 10). Measured as a
+   matrix: the V-cycle was not symmetric, antisymmetric part 10-17 % and growing with the grid,
+   against 1.5 % with the point smoother. Cause: a zebra sweep leaves the residual on one row of
+   each coarse cell only, a quarter cell off its centre, and averaging assigns it to that coarse
+   cell alone. Now a coarse cell collects the residual of every fine cell whose interpolated value
+   it enters (weights 3/8 and 1/8 per direction on a uniform grid). Antisymmetric part: zero to
+   round-off; eigenvalues of the preconditioned operator within 0.85-1.0.
+2. **One alternating line sweep before and after the coarse correction, not two:** 9-12 iterations
+   against 7-10, at half the cost per iteration (6-8 ms per solve to 1e-10 on 256^2, against 10-13).
+3. **At most 128 threads per line.** With one block of 1024 threads per line only one thread works
+   during the line solve and each block fills a whole multiprocessor: 23 ms per V-cycle on 1024^2.
+4. **A one-block tail for the small levels was built and removed.** Bit-identical to the separate
+   kernels but slower (2.1 against 1.5 ms per solve on 32^2, 7.0 against 6.4 ms on 256^2): a single
+   GPU thread working through a line cell by cell is slow.
+5. **Test rules.** The Kovasznay and open-channel studies with the explicit scheme were replaced
+   by "the explicit scheme reaches the IMEX steady state on one grid" (2e-8, 1e-9). As first
+   written (N = 16, 32, 64) the explicit Kovasznay study took 131 s and failed my extra rule on the
+   max-norm order of the coarsest pair (1.69 at N = 16; L2 orders 2.16, 2.07; the errors equal the
+   IMEX ones on the same grids to 3 digits). The pre-set criterion (order 2 in L2) is judged on the
+   IMEX study. With velocities prescribed on every side of a clustered grid, the exact profiles
+   balance the discrete flow only to O(h^2) (1.2e-3 on 32^2), which the solver refuses; the test
+   shifts the outlet by the missing flow.
+
+*Criterion 1: uniform grids unchanged.* `same_as_build`: 18 of 18 arrays bit-identical to the
+library built before this change (Poisson double and mixed, cavity and 3D flow, both schemes). The
+whole ladder passes, `test_reproducible` included.
+
+*Criterion 2: rung 12,* in the status table above. Not in the pre-set list but added: convection
+conserves kinetic energy to round-off on a clustered grid (1e-17 relative, 2D and 3D), which
+pins down the weights of the convective fluxes; an order test alone would not.
+
+*Criterion 3: pressure-solver cost against the cell aspect ratio* (`python -m
+gpucfd.bench.bench_stretched cost`, numbers in `bench/results/bench_stretched.json`). Lid-driven
+cavity, Re 100, IMEX, cells clustered toward all four walls; ratio = largest / smallest cell = the
+aspect ratio of the cells at the middle of each wall. Flow developed for 2 time units, then 200
+steps timed (best of 3), pressure tolerance 1e-8, time step at CFL 0.8 of the local velocities.
+
+| Grid | Aspect ratio | Pressure iterations per projection, lines | same, point smoother | ms per step, lines | ms per step, point |
+|---|---|---|---|---|---|
+| 128^2 | uniform code | 7.0 | | 4.3 | |
+| 128^2 | 1 (stretched code, uniform faces) | 7.0 | | 8.5 | |
+| 128^2 | 4 | 7.0 | 20.7 | 9.0 | 8.0 |
+| 128^2 | 16 | 8.0 | 60.2 | 10.1 | 21.1 |
+| 128^2 | 64 | 9.9 | 157 | 12.2 | 50.8 |
+| 256^2 | uniform code | 7.0 | | 6.7 | |
+| 256^2 | 1 (stretched code, uniform faces) | 7.0 | | 15.6 | |
+| 256^2 | 4 | 7.3 | 21.7 | 17.1 | 13.8 |
+| 256^2 | 16 | 8.7 | 67.0 | 20.1 | 35.7 |
+| 256^2 | 64 | 9.7 | 192 | 22.9 | 95.7 |
+
+- **Iterations:** with line relaxation 7 to 10 per projection from aspect ratio 1 to 64, the same on
+  both grids. The wanted "within twice the uniform count, independent of the grid" holds. The
+  Poisson test shows the same out to 512^2 (9 / 10-11 / 11-12 to 1e-10, uniform 8-9) and 14-15 at
+  aspect ratio 256 (one check, 64^2 to 1024^2). The point smoother needs 3, 8 and 16-20 times more.
+- **Where it degrades, 1: cost per step.** The stretched code path costs about twice the uniform
+  one at the same cell count before any stretching (8.5 against 4.3 ms, 15.6 against 6.7 ms): a
+  line-relaxation V-cycle is 2.5 to 3 times the price of a point-smoother one (one thread block per
+  line, a 16-point restriction, no one-block tail). So at aspect ratio 4 the point smoother is
+  still cheaper per step with 3 times the iterations; lines pay from about 8 up. The diffusion
+  solves also need more iterations on thin cells (4 at ratio 1, 11-12 at 64; plain CG, no
+  preconditioner). From aspect ratio 1 to 64 a step grows by another 45 %.
+- **Where it degrades, 2: 3D grids clustered in two directions.** A box clustered toward all its
+  walls (thin in two directions along the edges; the weak spot named in the design): 11-14
+  iterations at ratio 4 but 23, 31, 38 at ratio 16 on 32^3, 64^3, 128^3, growing with the grid.
+  Lines are not enough there; it needs plane relaxation or semi-coarsening. 3D grids clustered in
+  one direction only are not affected by this (not measured separately).
+- Single-precision line solves were not tested beyond aspect ratio 256.
+
+*Criterion 4: a first fair number for the benefit* (`bench_stretched benefit`, `match`). Lid-driven
+cavity at Re 100 to steady state, IMEX at CFL 2 on every grid, error against the uniform 512^2
+solution (97.6 GPU-s) as fixed above.
+
+| Grid | Cells | Error (U) | Steps | GPU time |
+|---|---|---|---|---|
+| uniform 64^2 | 4 096 | 1.53e-3 | 864 | 2.1 s |
+| uniform 128^2 | 16 384 | 3.47e-4 | 1 728 | 5.5 s |
+| uniform 256^2 | 65 536 | 6.82e-5 | 3 456 | 19.2 s |
+| ratio 2, 64^2 | 4 096 | 9.46e-4 | 1 092 | 3.9 s |
+| ratio 2, 128^2 | 16 384 | 2.23e-4 | 2 235 | 12.5 s |
+| ratio 2, 224^2 | 50 176 | 5.99e-5 | 4 080 | 36.6 s |
+| ratio 4, 128^2 | 16 384 | 2.29e-4 | 3 496 | 20.2 s |
+| ratio 8, 128^2 | 16 384 | 2.78e-4 | 5 689 | 33.8 s |
+
+**To reach the accuracy of the uniform 256^2 grid (6.8e-5 U), the best clustered grid (ratio 2)
+needs 224^2 = 50 thousand cells instead of 66 thousand (23 % fewer) and 36.6 GPU-s instead of 19.2
+(1.9 times longer).** On this problem stretching does not pay. The reasons, all measured:
+- The gain in accuracy is small: at the same cell count the error falls to 0.6 of the uniform
+  one with ratio 2 or 4, and less with ratio 8. At Re 100 the wall layers are a tenth of the box
+  or more; there is no thin layer to concentrate cells in, and clustering coarsens the middle.
+- Each step costs about twice as much (criterion 3), and grids this small are latency-bound, so
+  fewer cells do not make a step cheaper.
+- More steps: the smallest cells sit in the lid corners, where the velocity is the lid's, so the
+  convective time step shrinks with the smallest cell (1.3 to 3.3 times more steps for ratio 2 to 8).
+
+*Added after seeing that result, and chosen for it: where stretching does pay* (`bench_stretched
+layer`). Stokes' first problem (case 3: a wall set in motion under fluid at rest, exact solution),
+run until the layer's 1 % depth is a tenth of the domain height, 2D with 8 cells along the wall,
+same time step on every grid (halving it changes nothing to 3 digits).
+
+| Grid across the layer | Error (U) | Cells in the layer |
+|---|---|---|
+| uniform 128 / 256 / 512 | 2.6e-3 / 6.6e-4 / 1.6e-4 | 12 / 25 / 51 |
+| clustered to the wall, ratio 16: 32 / 64 / 128 | 1.5e-3 / 3.8e-4 / 9.6e-5 | 11 / 22 / 45 |
+| clustered to the wall, ratio 64: 32 / 64 / 128 | 7.7e-4 / 1.9e-4 / 4.9e-5 | 15 / 31 / 61 |
+
+For the error of the uniform 256-cell grid the ratio-64 grid needs about 35 cells, 7 times fewer
+(ratio 16: about 48, 5 times fewer; both read off at order 2 between the measured grids). This is a property of the problem (a layer a tenth of the domain
+thick), not a general factor, and it says nothing about time: the grids are too small for that.
+It is the regime of a body's boundary layer in a large domain, which stage 2 has to measure on
+case 4.
+
 ## Limitations (2026-11-12)
 
 **Problems it cannot solve yet**
 - Geometry: a box with immersed bodies of fixed shape (any exact signed distance; surfaces may move
-  tangentially, bodies may not translate). Uniform Cartesian grids (no stretching, so a boundary layer
-  forces a fine grid everywhere, around a body too). Bodies need the explicit scheme (IMEX with bodies
+  tangentially, bodies may not translate). Stretched grids only without bodies (stage 1, 2026-11-13),
+  so around a body the grid is still uniform and a boundary layer forces it fine everywhere. Bodies need the explicit scheme (IMEX with bodies
   is unstable, see above), and the pressure next to a body surface converges irregularly in the max
   norm (the cells next to it; forces come from the momentum balance away from them).
 - Boundaries: periodic; no-slip walls that can slide tangentially (a moving lid); inflow with any
@@ -442,6 +692,13 @@ a uniform grid has to resolve the boundary layer everywhere, and the immersed bo
 - Grid sizes: periodic directions need even cell counts, and multigrid works well only when each
   direction halves several times (sizes like 2^k or 3 x 2^k). An awkward size leaves a large coarsest
   grid, which is solved slowly by one thread block.
+- Stretched grids (2026-11-13): bounded directions only (a periodic direction must be uniform); at
+  most 3072 cells along a stretched direction (1536 with a double-precision pressure solver); cell
+  counts must coarsen to at most 1024 cells; no bodies, and `forces`, `pressure_at` and
+  `surface_pressure` refuse; a 3D grid clustered in two directions converges slowly (23-38 pressure
+  iterations at ratio 16, growing with the grid); grid sequencing (`steady.prolong`) reads the
+  stretched positions but has not been tested on them. With the explicit scheme the smallest cell
+  sets the viscous time step for the whole domain (0.15 h_min^2 / nu): use IMEX.
 - Tooling: no field output for ParaView, no restart files; forces on bodies and surface pressure
   come from Python (`NavierStokes.forces`, `surface_pressure`), fields through `get` and `pressure`.
   One GPU, no MPI.
@@ -454,6 +711,8 @@ a uniform grid has to resolve the boundary layer everywhere, and the immersed bo
   double; only the pressure multigrid runs in float (mixed precision).
 - Large grids are limited by memory bandwidth, and the pressure is solved three times per time
   step (once per Runge-Kutta stage).
+- Stretched grids cost about twice the time per step of a uniform grid with the same cells (line
+  relaxation; 8.5 against 4.3 ms on 128^2), and another 45 % at wall aspect ratio 64.
 - Steady problems are time-marched: the number of time units to settle is set by the physics (27
   for the Re 100 cavity; in a grid study, sequencing and the error-based stop of `steady.py` cut the
   finer grids to a few time units, 20x at DFG D/h 35), and convection is explicit, so the time step is bounded by the flow speed
@@ -479,8 +738,19 @@ a uniform grid has to resolve the boundary layer everywhere, and the immersed bo
    whether gpucfd beats OpenFOAM on bodies: the solver is 70x faster per cell and step, the uniform grid
    needs about 30x more cells. Measure of success: case 4's drag within 0.25 % of FeatFlow (OpenFOAM's
    M4) in less wall time than OpenFOAM's study.
+   - ~~Stage 1: grids with walls, no bodies~~ (done 2026-11-13, rung 12, above). The pressure solver
+     holds 7-10 iterations up to aspect ratio 64 in 2D.
+   - Stage 2: bodies on stretched grids. Needs: the ghost-cell rules of `bodies.py` on unequal cells
+     (image distance and interpolation weights from the local cell sizes), the body's face
+     coefficients in the stretched stencil and in the line solves, the force balance and the
+     surface pressure with the cell sizes. Then case 4 with cells clustered around the cylinder.
+   - Speed of the stretched code path, now 2 times the uniform one per step. Candidates, each to be
+     measured: both zebra colours and both directions in fewer kernels, parallel cyclic reduction
+     in place of one thread per line solve, a diagonal preconditioner for the diffusion solves.
+   - 3D grids clustered in two directions: plane relaxation or semi-coarsening (needed for case 5).
 8. IMEX with bodies (the time step on fine grids is set by the explicit viscous limit; on case 4's G3
-   it is 0.6 times the convective one).
+   it is 0.6 times the convective one). On a stretched grid with a body this is no longer optional:
+   the explicit limit follows the smallest cell squared.
 9. 3D cylinder (DFG 3D, case 5) once stretched grids work.
 
 ## Comparison with OpenFOAM (2026-11-12)

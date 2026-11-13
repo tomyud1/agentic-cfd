@@ -50,9 +50,10 @@ GPU.
 - **What it handles:** incompressible laminar flow in a box with walls, inflow and outflow, and
   bodies of any shape inside the flow. On the DFG cylinder benchmark (Re 20), drag is within 0.14%
   at 70 cells per diameter; the three-grid study takes 6 GPU-minutes.
-- **Not yet:** turbulence, heat transfer, stretched grids. Without stretched grids, OpenFOAM's
-  body-fitted grid is the better choice for bodies at Re 100 (case 4: drag within 0.25% at 13 thousand
-  cells, against 1.0% at 442 thousand for gpucfd).
+- **Not yet:** turbulence, heat transfer, stretched grids around bodies (cells clustered toward
+  walls work in boxes without bodies). Until then OpenFOAM's body-fitted grid is the better choice
+  for bodies at Re 100 (case 4: drag within 0.25% at 13 thousand cells, against 1.0% at 442 thousand
+  for gpucfd).
 
 ## How it works
 

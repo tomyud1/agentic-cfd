@@ -31,15 +31,40 @@ struct Level {
   double h[3];     // cell size
   double ih[3];    // 1/h and 1/h^2: kernels multiply instead of dividing (a double division costs about
   double ih2[3];   // 10 FP64 operations, and consumer GPUs run FP64 at 1/64 of the float rate)
+  // Stretched grids (null: uniform, and every kernel takes its original path). One device array of
+  // doubles holding, per direction d with n = n[d] cells, a block of 6 n + 2 values (see GEO_*):
+  //   idc[n]    1 / cell width
+  //   idm[n+1]  1 / distance between the cell centres on either side of face i (beyond a bounded side
+  //             the neighbour is the mirror image of the first cell, so the distance is that cell's width)
+  //   fw[n+1]   share of cell i in the flow through a box side centred on face i: dc_i / (dc_(i-1) + dc_i)
+  //   ra[n]     restriction: weight of this cell's residual in its parent, and
+  //   rb[n]     in the parent's neighbour on this cell's side (the transpose of the prolongation, times
+  //             the ratio of the widths; 3/8 and 1/8 on a uniform grid; 1 and 0 if not coarsened)
+  //   pw[n]     prolongation: weight of the parent's neighbour (1/4 on a uniform grid)
+  const double* geo = nullptr;
   __host__ __device__ size_t stride(int d) const {
     return d == 0 ? size_t(1) : (d == 1 ? size_t(n[0]) : size_t(n[0]) * n[1]);
   }
   __host__ __device__ size_t cells() const { return size_t(n[0]) * n[1] * n[2]; }
 };
 
+__host__ __device__ __forceinline__ int geo_off(const Level& L, int d) {
+  return d == 0 ? 0 : (d == 1 ? 6 * L.n[0] + 2 : 6 * (L.n[0] + L.n[1]) + 4);
+}
+__host__ __device__ __forceinline__ int geo_size(const Level& L) { return 6 * (L.n[0] + L.n[1] + L.n[2]) + 6; }
+#define GEO_IDC(L, d) ((L).geo + geo_off(L, d))
+#define GEO_IDM(L, d) ((L).geo + geo_off(L, d) + (L).n[d])
+#define GEO_FW(L, d) ((L).geo + geo_off(L, d) + 2 * (L).n[d] + 1)
+#define GEO_RA(L, d) ((L).geo + geo_off(L, d) + 3 * (L).n[d] + 2)
+#define GEO_RB(L, d) ((L).geo + geo_off(L, d) + 4 * (L).n[d] + 2)
+#define GEO_PW(L, d) ((L).geo + geo_off(L, d) + 5 * (L).n[d] + 2)
+
 template <typename T>
 struct Coef {
-  T c[3];  // 1/h^2 per active direction, 0 for an inactive one
+  T c[3];  // 1/h^2 per active direction, 0 for an inactive one (stretched grids: 1 or 0, a flag only)
+  // Stretched grids (null: uniform): idc[n] then idm[n+1] of each direction in turn, in the solver's
+  // precision (the multigrid runs in float; see Level::geo for the meaning).
+  const T* s = nullptr;
   // Immersed bodies: coefficient of each cell's low face per direction (1 between fluid, 0 where the
   // face lies in a body: zero pressure gradient through it, so the bodies are walls for the pressure).
   // Coarser levels average the fine faces they cover. Null: no bodies, every face 1.
@@ -80,10 +105,39 @@ __device__ __forceinline__ T nbr(const T* p, const Level& L, size_t c, int ii, i
   return T(0);
 }
 
+// Stretched grids: Laplacian(p)[c] = sum over directions of
+//   (1 / dc_i) [ (p_(i+1) - p_i) / dm_(i+1) - (p_i - p_(i-1)) / dm_i ]
+// the divergence (per cell width) of the gradient (per centre distance). Same boundary rules as below.
+template <typename T>
+__device__ __forceinline__ void stencil_s(const T* p, const Level& L, const Coef<T>& K, size_t c, int i, int j,
+                                          int k, T& off, T& diag) {
+  const int ii[3] = {i, j, k};
+  off = T(0);
+  diag = T(0);
+  const T* blk = K.s;
+#pragma unroll
+  for (int d = 0; d < 3; ++d) {
+    const T* w = blk;
+    const T* g = blk + L.n[d];
+    blk += 2 * L.n[d] + 1;
+    if (K.c[d] == T(0)) continue;
+    int sm, sp;
+    const T vm = nbr(p, L, c, ii[d], d, -1, sm);
+    const T vp = nbr(p, L, c, ii[d], d, +1, sp);
+    const T gm = g[ii[d]], gp = g[ii[d] + 1], wc = w[ii[d]];
+    off += wc * (gm * vm + gp * vp);
+    diag += wc * (gm * T(1 - sm) + gp * T(1 - sp));
+  }
+}
+
 // Laplacian(p)[c] = off - diag * p[c]
 template <typename T>
 __device__ __forceinline__ void stencil(const T* p, const Level& L, const Coef<T>& K, size_t c, int i, int j,
                                         int k, T& off, T& diag) {
+  if (K.s) {
+    stencil_s(p, L, K, c, i, j, k, off, diag);
+    return;
+  }
   const int ii[3] = {i, j, k};
   off = T(0);
   diag = T(0);
@@ -134,6 +188,113 @@ __global__ void k_rbgs(T* x, const T* b, Level L, Coef<T> K, int color) {
   x[c] = (off - b[c]) / diag;
 }
 
+// Zebra line relaxation (stretched grids). One thread block per line of cells along direction dir;
+// the lines whose position in the other two directions has parity `color` are solved exactly, all at
+// once (their neighbours are lines of the other colour). In a long thin cell the neighbours across the
+// thin direction are coupled (aspect ratio)^2 times more strongly than the others; a point smoother
+// then leaves errors that wiggle along the long direction, and multigrid stalls. Solving each line's
+// tridiagonal system removes exactly that strong coupling.
+// The block's threads build the line's system in parallel (lower, diagonal, upper, right-hand side, in
+// shared memory), one thread solves it by the Thomas algorithm, and all threads write the result back.
+// Row m of the tridiagonal system of the line through I along dir:  l x_(m-1) + di x_m + h x_(m+1) = rh.
+template <typename T>
+__device__ __forceinline__ void line_row(const T* x, const T* b, const Level& L, const Coef<T>& K, const T* const* w,
+                                         const T* const* g, const int* I, int dir, size_t c, T& l, T& di, T& h, T& rh) {
+  const int m = I[dir], n = L.n[dir];
+  T off = T(0), diag = T(0);
+  l = T(0);
+  h = T(0);
+#pragma unroll
+  for (int d = 0; d < 3; ++d) {
+    if (K.c[d] == T(0)) continue;
+    const T wc = w[d][I[d]], gm = g[d][I[d]], gp = g[d][I[d] + 1];
+    if (d == dir) {  // neighbours in the line are unknowns; a side keeps its rule (bounded directions only)
+      if (m > 0) {
+        l = wc * gm;
+        diag += l;
+      } else {
+        diag += wc * gm * T(L.bc[2 * d] == NEUMANN ? 0 : 2);
+      }
+      if (m < n - 1) {
+        h = wc * gp;
+        diag += h;
+      } else {
+        diag += wc * gp * T(L.bc[2 * d + 1] == NEUMANN ? 0 : 2);
+      }
+    } else {
+      int sm, sp;
+      const T vm = nbr(x, L, c, I[d], d, -1, sm);
+      const T vp = nbr(x, L, c, I[d], d, +1, sp);
+      off += wc * (gm * vm + gp * vp);
+      diag += wc * (gm * T(1 - sm) + gp * T(1 - sp));
+    }
+  }
+  di = -diag;
+  rh = b[c] - off;  // l x_(m-1) - diag x_m + h x_(m+1) = b - (the other lines' part)
+}
+
+template <typename T>
+__global__ void k_line(T* x, const T* b, Level L, Coef<T> K, int dir, int color) {
+  extern __shared__ __align__(16) unsigned char smem[];
+  const int n = L.n[dir];
+  T* lo = reinterpret_cast<T*>(smem);
+  T* di = lo + n;
+  T* hi = di + n;
+  T* rh = hi + n;
+  const int a = dir == 0 ? 1 : 0, bq = dir == 2 ? 1 : 2;
+  const int ia = int(blockIdx.x % unsigned(L.n[a])), ib = int(blockIdx.x / unsigned(L.n[a]));
+  if (((ia + ib) & 1) != color) return;
+  int I[3];
+  I[a] = ia;
+  I[bq] = ib;
+  I[dir] = 0;
+  const size_t c0 = I[0] + size_t(L.n[0]) * (I[1] + size_t(L.n[1]) * I[2]);
+  const size_t st = L.stride(dir);
+  const T* w[3];
+  const T* g[3];
+  {
+    const T* blk = K.s;
+    for (int d = 0; d < 3; ++d) {
+      w[d] = blk;
+      g[d] = blk + L.n[d];
+      blk += 2 * L.n[d] + 1;
+    }
+  }
+  for (int m = threadIdx.x; m < n; m += blockDim.x) {
+    int J[3] = {I[0], I[1], I[2]};
+    J[dir] = m;
+    line_row(x, b, L, K, w, g, J, dir, c0 + size_t(m) * st, lo[m], di[m], hi[m], rh[m]);
+  }
+  __syncthreads();
+  if (threadIdx.x == 0) {
+    T cp = hi[0] / di[0], dp = rh[0] / di[0];
+    hi[0] = cp;
+    rh[0] = dp;
+    for (int m = 1; m < n; ++m) {
+      const T inv = T(1) / (di[m] - lo[m] * cp);
+      cp = hi[m] * inv;
+      hi[m] = cp;
+      dp = (rh[m] - lo[m] * dp) * inv;
+      rh[m] = dp;
+    }
+    for (int m = n - 2; m >= 0; --m) rh[m] -= hi[m] * rh[m + 1];
+  }
+  __syncthreads();
+  for (int m = threadIdx.x; m < n; m += blockDim.x) x[c0 + size_t(m) * st] = rh[m];
+}
+
+// Coarsest level of a stretched grid: x = inv b with the inverse matrix computed once on the CPU (for a
+// singular problem the inverse on right-hand sides of zero volume-weighted sum, giving the solution of
+// zero volume-weighted mean). Exact, so long thin coarse cells cost nothing.
+template <typename T>
+__global__ void k_coarse_inv(T* x, const T* b, const T* inv, int n) {
+  for (int r = threadIdx.x; r < n; r += blockDim.x) {
+    T s = T(0);
+    for (int q = 0; q < n; ++q) s += inv[size_t(r) * n + q] * b[q];
+    x[r] = s;
+  }
+}
+
 // Coarse value = average of its fine children.
 template <typename T>
 __global__ void k_restrict(const T* r, T* bc, Level F, Level C) {
@@ -173,6 +334,59 @@ __global__ void k_residual_restrict(const T* x, const T* b, T* bc, Level F, Coef
   bc[c] = resres_cell(x, b, F, K, i, j, k);
 }
 
+// Stretched grids: restriction as the exact transpose of the prolongation below (in the volume-weighted
+// sum): a coarse cell collects the residual of every fine cell whose interpolated value it enters, its
+// two children and the next fine cell on either side, per direction. Then the V-cycle is a symmetric
+// operator, which conjugate gradients needs. Plain averaging of the children is not enough with line
+// relaxation: a zebra sweep leaves the residual on one row of each coarse cell only, off its centre,
+// and the V-cycle's antisymmetric part was measured at 10-17 % (1.5 % with the point smoother); CG stalled.
+__device__ __forceinline__ int rstencil(const Level& F, int d, int I, int* idx, double* w) {
+  if (F.coarsen[d] != 2) {
+    idx[0] = I;
+    w[0] = 1.0;
+    return 1;
+  }
+  const int n = F.n[d];
+  const bool per = F.bc[2 * d] == PERIODIC;
+  const double *ra = GEO_RA(F, d), *rb = GEO_RB(F, d);
+  int m = 0;
+  idx[m] = 2 * I;
+  w[m++] = ra[2 * I];
+  idx[m] = 2 * I + 1;
+  w[m++] = ra[2 * I + 1];
+  int lo = 2 * I - 1, hi = 2 * I + 2;
+  if (lo < 0 && per) lo = n - 1;
+  if (hi >= n && per) hi = 0;
+  if (lo >= 0) {
+    idx[m] = lo;
+    w[m++] = rb[lo];
+  }
+  if (hi < n) {
+    idx[m] = hi;
+    w[m++] = rb[hi];
+  }
+  return m;
+}
+template <typename T>
+__device__ __forceinline__ T restrict_cell(const T* r, const Level& F, int i, int j, int k) {
+  int ix[4], iy[4], iz[4];
+  double wx[4], wy[4], wz[4];
+  const int mx = rstencil(F, 0, i, ix, wx), my = rstencil(F, 1, j, iy, wy), mz = rstencil(F, 2, k, iz, wz);
+  double s = 0.0;
+  for (int c3 = 0; c3 < mz; ++c3)
+    for (int c2 = 0; c2 < my; ++c2) {
+      const double w23 = wy[c2] * wz[c3];
+      const size_t row = size_t(F.n[0]) * (iy[c2] + size_t(F.n[1]) * iz[c3]);
+      for (int c1 = 0; c1 < mx; ++c1) s += w23 * wx[c1] * double(r[ix[c1] + row]);
+    }
+  return T(s);
+}
+template <typename T>
+__global__ void k_restrict_s(const T* r, T* bc, Level F, Level C) {
+  CELL(C)
+  bc[c] = restrict_cell(r, F, i, j, k);
+}
+
 // Linear interpolation weights along one direction for a cell-centred fine cell i: 3/4 from its
 // parent, 1/4 from the parent's other neighbour (boundary: periodic wrap, or the parent itself with
 // +1/4 for Neumann and -1/4 for Dirichlet, which puts the interpolated value to zero at the face).
@@ -202,6 +416,15 @@ __device__ __forceinline__ double prolong_cell(const T* e, const Level& F, const
   double w[3][2];
 #pragma unroll
   for (int d = 0; d < 3; ++d) weights1(ii[d], F.coarsen[d], C.n[d], F.bc[2 * d], F.bc[2 * d + 1], I[d], w[d]);
+  if (F.geo) {  // stretched: linear in the true positions of the cell centres (same neighbours and signs)
+#pragma unroll
+    for (int d = 0; d < 3; ++d) {
+      if (F.coarsen[d] != 2) continue;
+      const double wo = GEO_PW(F, d)[ii[d]];
+      w[d][1] = w[d][1] < 0.0 ? -wo : wo;
+      w[d][0] = 1.0 - wo;
+    }
+  }
   double s = 0.0;
 #pragma unroll
   for (int a = 0; a < 2; ++a)
@@ -346,7 +569,9 @@ __global__ void k_coarse(T* x, const T* b, Level L, Coef<T> K, int sweeps, int s
 // not depend on each other, so the order within a colour does not matter): bit-identical results.
 static size_t g_tail_cells = 1024;          // levels this small or smaller go into the tail (0: none)
 static const size_t TAIL_SHARED = 40 * 1024;  // bytes of shared memory the tail may use (x and b per level)
-static const int MAX_LEVELS = 24;
+// Levels in the tail. The whole Tail is a kernel argument (at most 4096 bytes). A tail holds at most
+// TAIL_SHARED bytes of cells that at least halve from level to level, so it never has more than 13 levels.
+static const int MAX_LEVELS = 16;
 template <typename T>
 struct Tail {
   Level L[MAX_LEVELS];
@@ -405,6 +630,17 @@ __global__ void k_dot(const T* a, const T* b, size_t n, double* part) {  // one 
   double s = 0.0;
   for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
     s += double(a[q]) * (b ? double(b[q]) : 1.0);
+  s = block_sum(s);
+  if (threadIdx.x == 0) part[blockIdx.x] = s;
+}
+
+// Stretched grids: sum of a b w with w the volume of each unknown's box. The operators there are
+// symmetric in this weighted sum (not in the plain one), which is what conjugate gradients needs.
+template <typename T>
+__global__ void k_dotw(const T* a, const T* b, const T* w, size_t n, double* part) {
+  double s = 0.0;
+  for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
+    s += double(a[q]) * (b ? double(b[q]) : 1.0) * double(w[q]);
   s = block_sum(s);
   if (threadIdx.x == 0) part[blockIdx.x] = s;
 }
@@ -613,6 +849,23 @@ void dot_dev(const T* a, const T* b, size_t n, double* part, double* out) {
 }
 
 template <typename T>
+void dotw_dev(const T* a, const T* b, const T* w, size_t n, double* part, double* out) {  // w null: plain
+  if (!w) {
+    dot_dev<T>(a, b, n, part, out);
+    return;
+  }
+  const int nb = lin_blocks(n);
+  k_dotw<T><<<nb, 256, 0, gs()>>>(a, b, w, n, part);
+  k_sum_parts<<<1, 1024, 0, gs()>>>(part, nb, out);
+}
+template <typename T>
+__global__ void k_sub_wmean(T* a, const double* sum, double denom, size_t n) {  // a -= sum / denom
+  const double m = *sum / denom;
+  for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
+    a[q] += T(-m);
+}
+
+template <typename T>
 __global__ void k_axpy_d(T* y, const T* x, const double* a, double sign, size_t n) {  // y += sign a x
   const double s = sign * *a;
   for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
@@ -721,6 +974,219 @@ struct Solver : Base {
   // than spread over the whole flow as a uniform divergence.
   T* cut = nullptr;
   double n_cut = 0.0;
+  // Stretched grids (see Level::geo): device arrays per level, the cell volumes of the finest level
+  // (weights of the dot products and of the mean), and the inverse matrix of the coarsest level.
+  bool stretched = false;
+  std::vector<double*> geo_d;
+  std::vector<T*> s_d;
+  T* vol = nullptr;
+  double vtot = 0.0;
+  T* cinv = nullptr;
+  int line_dirs = 0;        // bit d: zebra line relaxation along direction d
+  const char* error = nullptr;  // set-up refused (reason), checked by the C API
+  // Which directions may use line relaxation (bit mask; experiments: 0 = point smoother on stretched grids).
+  static int& line_mask() {
+    static int m = 7;
+    return m;
+  }
+  static const int LINE_SHARED = 48 * 1024;  // shared memory of one line: 4 arrays of n values
+
+  // Builds every level's lists from the face positions (xf[d] null: that direction is uniform). Coarser
+  // levels keep every second face, so their cells are the unions of two fine cells.
+  void build_geo(const double* len, const double* const* xf) {
+    std::vector<std::vector<double>> faces(3), nxt(3);
+    for (int d = 0; d < 3; ++d) {
+      const int n = L[0].n[d];
+      faces[d].resize(n + 1);
+      for (int i = 0; i <= n; ++i) faces[d][i] = xf[d] ? xf[d][i] : len[d] * i / n;
+    }
+    std::vector<double> glast;
+    for (size_t l = 0; l < L.size(); ++l) {
+      Level& F = L[l];
+      const bool has_c = l + 1 < L.size();
+      std::vector<double> g(geo_size(F), 0.0), st;
+      std::vector<std::vector<double>> dcs(3);
+      for (int d = 0; d < 3; ++d) {
+        const int n = F.n[d];
+        const std::vector<double>& x = faces[d];
+        const bool per = F.bc[2 * d] == PERIODIC;
+        double* idc = g.data() + geo_off(F, d);
+        double *idm = idc + n, *fw = idc + 2 * n + 1, *ra = idc + 3 * n + 2, *rb = idc + 4 * n + 2, *pw = idc + 5 * n + 2;
+        std::vector<double>& dc = dcs[d];
+        dc.resize(n);
+        for (int i = 0; i < n; ++i) {
+          dc[i] = x[i + 1] - x[i];
+          idc[i] = 1.0 / dc[i];
+        }
+        for (int i = 1; i < n; ++i) {
+          idm[i] = 2.0 / (dc[i - 1] + dc[i]);
+          fw[i] = dc[i] / (dc[i - 1] + dc[i]);
+        }
+        if (per) {
+          idm[0] = idm[n] = 2.0 / (dc[n - 1] + dc[0]);
+          fw[0] = fw[n] = dc[0] / (dc[n - 1] + dc[0]);
+        } else {  // mirror cell beyond the side
+          idm[0] = 1.0 / dc[0];
+          idm[n] = 1.0 / dc[n - 1];
+          fw[0] = fw[n] = 0.5;
+        }
+        const int cf = has_c ? F.coarsen[d] : 1;
+        nxt[d].clear();
+        if (cf == 2)
+          for (int I = 0; I <= n / 2; ++I) nxt[d].push_back(x[2 * I]);
+        else
+          nxt[d] = x;
+        for (int i = 0; i < n; ++i) {
+          if (cf != 2) {
+            ra[i] = 1.0;
+            rb[i] = 0.0;
+            pw[i] = 0.0;
+            continue;
+          }
+          const std::vector<double>& X = nxt[d];
+          const int Ic = i >> 1, Nc = n / 2;
+          const double wc = X[Ic + 1] - X[Ic];
+          const double xc = 0.5 * (x[i] + x[i + 1]), Xc = 0.5 * (X[Ic] + X[Ic + 1]);
+          int o = (i & 1) ? Ic + 1 : Ic - 1;
+          double dist;
+          bool outside = false;
+          if (o >= 0 && o < Nc) {
+            dist = std::fabs(0.5 * (X[o] + X[o + 1]) - Xc);
+          } else if (per) {
+            o = o < 0 ? Nc - 1 : 0;
+            dist = 0.5 * (wc + (X[o + 1] - X[o]));
+          } else {
+            dist = wc;  // mirror cell
+            outside = true;
+          }
+          pw[i] = std::fabs(xc - Xc) / dist;
+          // Transpose of the prolongation, times (fine width / coarse width). Beyond a bounded side the
+          // neighbour is the parent itself: weight 1 in all (zero gradient) or 1 - 2 pw (zero value).
+          if (outside) {
+            const int b = F.bc[2 * d + (o < 0 ? 0 : 1)];
+            ra[i] = (b == NEUMANN ? 1.0 : 1.0 - 2.0 * pw[i]) * dc[i] / wc;
+            rb[i] = 0.0;
+          } else {
+            ra[i] = (1.0 - pw[i]) * dc[i] / wc;
+            rb[i] = pw[i] * dc[i] / (X[o + 1] - X[o]);
+          }
+        }
+        st.insert(st.end(), idc, idc + n);
+        st.insert(st.end(), idm, idm + n + 1);
+      }
+      double* gd;
+      CK(cudaMalloc(&gd, g.size() * sizeof(double)));
+      CK(cudaMemcpy(gd, g.data(), g.size() * sizeof(double), cudaMemcpyHostToDevice));
+      geo_d.push_back(gd);
+      F.geo = gd;
+      T* sd;
+      CK(cudaMalloc(&sd, st.size() * sizeof(T)));
+      upload(st.data(), sd, st.size());
+      s_d.push_back(sd);
+      if (l == 0) {  // cell volumes of the finest level
+        const size_t N = F.cells();
+        std::vector<double> v(N);
+        vtot = 0.0;
+        for (int k = 0; k < F.n[2]; ++k)
+          for (int j = 0; j < F.n[1]; ++j)
+            for (int i = 0; i < F.n[0]; ++i) {
+              const double q = (F.n[0] > 1 ? dcs[0][i] : 1.0) * (F.n[1] > 1 ? dcs[1][j] : 1.0) * (F.n[2] > 1 ? dcs[2][k] : 1.0);
+              v[i + size_t(F.n[0]) * (j + size_t(F.n[1]) * k)] = q;
+              vtot += q;
+            }
+        CK(cudaMalloc(&vol, N * sizeof(T)));
+        upload(v.data(), vol, N);
+      }
+      if (!has_c) glast = g;
+      faces = nxt;
+    }
+    build_coarse_inverse(glast);
+  }
+
+  // Coarsest level: dense matrix of the stretched Laplacian, inverted on the CPU. Singular problem
+  // (no Dirichlet side): with S = V A (symmetric; V the cell volumes) and v the vector of volumes,
+  // (S - c v v^T) x = V (b - mean_V(b)) has a unique solution, with zero volume-weighted mean, that
+  // solves A x = b - mean_V(b).
+  void build_coarse_inverse(const std::vector<double>& g) {
+    const Level& C = L.back();
+    const size_t N = C.cells();
+    if (N > 1024) {
+      error = "stretched grid: the coarsest multigrid level has more than 1024 cells (use cell counts that halve "
+              "several times, like 2^k or 3 x 2^k)";
+      return;
+    }
+    std::vector<double> A(N * N, 0.0), v(N, 1.0);
+    for (int k = 0; k < C.n[2]; ++k)
+      for (int j = 0; j < C.n[1]; ++j)
+        for (int i = 0; i < C.n[0]; ++i) {
+          const int ii[3] = {i, j, k};
+          const size_t c = i + size_t(C.n[0]) * (j + size_t(C.n[1]) * k);
+          for (int d = 0; d < 3; ++d) {
+            const int n = C.n[d];
+            if (n == 1) continue;
+            const double* idc = g.data() + geo_off(C, d);
+            const double* idm = idc + n;
+            const size_t st = C.stride(d);
+            v[c] *= 1.0 / idc[ii[d]];
+            for (int hi = 0; hi < 2; ++hi) {
+              const double coef = idc[ii[d]] * idm[ii[d] + hi];
+              const int nb = ii[d] + (hi ? 1 : -1);
+              if (nb >= 0 && nb < n) {
+                A[c * N + (hi ? c + st : c - st)] += coef;
+                A[c * N + c] -= coef;
+              } else if (C.bc[2 * d + hi] == PERIODIC) {
+                A[c * N + (hi ? c - size_t(n - 1) * st : c + size_t(n - 1) * st)] += coef;
+                A[c * N + c] -= coef;
+              } else if (C.bc[2 * d + hi] == DIRICHLET) {
+                A[c * N + c] -= 2.0 * coef;
+              }
+            }
+          }
+        }
+    std::vector<double> M(N * N), B(N * N, 0.0);
+    if (singular) {
+      double vt = 0.0, sd = 0.0;
+      for (size_t r = 0; r < N; ++r) {
+        vt += v[r];
+        sd += std::fabs(v[r] * A[r * N + r]);
+      }
+      const double cc = (sd / N) / (N * (vt / N) * (vt / N));
+      for (size_t r = 0; r < N; ++r)
+        for (size_t q = 0; q < N; ++q) {
+          M[r * N + q] = v[r] * A[r * N + q] - cc * v[r] * v[q];
+          B[r * N + q] = v[r] * ((r == q ? 1.0 : 0.0) - v[q] / vt);
+        }
+    } else {
+      M = A;
+      for (size_t r = 0; r < N; ++r) B[r * N + r] = 1.0;
+    }
+    for (size_t col = 0; col < N; ++col) {  // Gauss-Jordan with partial pivoting: B becomes M^-1 B
+      size_t piv = col;
+      for (size_t r = col + 1; r < N; ++r)
+        if (std::fabs(M[r * N + col]) > std::fabs(M[piv * N + col])) piv = r;
+      if (piv != col)
+        for (size_t q = 0; q < N; ++q) {
+          std::swap(M[col * N + q], M[piv * N + q]);
+          std::swap(B[col * N + q], B[piv * N + q]);
+        }
+      const double inv = 1.0 / M[col * N + col];
+      for (size_t q = 0; q < N; ++q) {
+        M[col * N + q] *= inv;
+        B[col * N + q] *= inv;
+      }
+      for (size_t r = 0; r < N; ++r) {
+        if (r == col) continue;
+        const double f = M[r * N + col];
+        if (f == 0.0) continue;
+        for (size_t q = 0; q < N; ++q) {
+          M[r * N + q] -= f * M[col * N + q];
+          B[r * N + q] -= f * B[col * N + q];
+        }
+      }
+    }
+    CK(cudaMalloc(&cinv, N * N * sizeof(T)));
+    upload(B.data(), cinv, N * N);
+  }
   // How many of the finest levels get the coefficients. Measured (rung 10 set-ups, 128^2 and 256^2):
   // finest level only, 14-15 CG iterations per projection at both sizes (7 without bodies); coefficients
   // averaged onto coarser levels too, CG stalled at 200 iterations for a cylinder in an open channel.
@@ -813,7 +1279,8 @@ struct Solver : Base {
     graphs.e.clear();
   }
 
-  Solver(const int* n, const double* len, const int* bc, int nu1_, int nu2_) : nu1(nu1_), nu2(nu2_) {
+  Solver(const int* n, const double* len, const int* bc, int nu1_, int nu2_, const double* const* xf = nullptr)
+      : nu1(nu1_), nu2(nu2_) {
     Level f;
     for (int d = 0; d < 3; ++d) {
       f.n[d] = n[d];
@@ -849,9 +1316,26 @@ struct Solver : Base {
     for (int d = 0; d < 3; ++d) maxn = L.back().n[d] > maxn ? L.back().n[d] : maxn;
     coarse_sweeps = 2 * maxn * maxn + 20;
     if (coarse_sweeps > 5000) coarse_sweeps = 5000;
+    stretched = xf && (xf[0] || xf[1] || xf[2]);
+    if (stretched) {
+      build_geo(len, xf);
+      for (int d = 0; d < 3; ++d) {  // lines along every bounded direction (a periodic one would be cyclic)
+        if (L[0].n[d] < 2 || L[0].bc[2 * d] == PERIODIC || !(line_mask() >> d & 1)) continue;
+        if (4 * size_t(L[0].n[d]) * sizeof(T) > size_t(LINE_SHARED)) {
+          error = "stretched grid: too many cells along a bounded direction for the line smoother (at most 3072; "
+                  "1536 with pressure=\"double\")";
+          continue;
+        }
+        line_dirs |= 1 << d;
+      }
+    }
     for (auto& l : L) {
       Coef<T> k;
       for (int d = 0; d < 3; ++d) k.c[d] = l.n[d] > 1 ? T(1.0 / (l.h[d] * l.h[d])) : T(0);
+      if (stretched) {
+        for (int d = 0; d < 3; ++d) k.c[d] = l.n[d] > 1 ? T(1) : T(0);
+        k.s = s_d[K.size()];
+      }
       K.push_back(k);
       T *a, *bb, *cc;
       CK(cudaMalloc(&a, l.cells() * sizeof(T)));
@@ -878,6 +1362,10 @@ struct Solver : Base {
     }
     for (T* a : {p_, q_, z_, rr_}) cudaFree(a);
     for (T* a : mb) cudaFree(a);
+    for (double* a : geo_d) cudaFree(a);
+    for (T* a : s_d) cudaFree(a);
+    cudaFree(vol);
+    cudaFree(cinv);
     cudaFree(act);
     cudaFree(cut);
     cudaFree(cg);
@@ -930,6 +1418,11 @@ struct Solver : Base {
     for (size_t q = 0; q < n; ++q) h[q] = double(t[q]);
   }
   void remove_mean(T* a, size_t n) {
+    if (vol) {  // stretched: the volume-weighted mean
+      dot_dev<T>(a, vol, n, part, &cg->s);
+      k_sub_wmean<T><<<lin_blocks(n), 256, 0, gs()>>>(a, &cg->s, vtot, n);
+      return;
+    }
     if (act) {
       dot_dev<T>(a, act, n, part, &cg->s);
       k_sub_mean_m<T><<<lin_blocks(n), 256, 0, gs()>>>(a, act, &cg->s, n_act, n);
@@ -940,6 +1433,25 @@ struct Solver : Base {
   }
 
   void smooth(int l, T* X, const T* B, int sweeps, bool forward) {
+    const int nact = (L[l].n[0] > 1) + (L[l].n[1] > 1) + (L[l].n[2] > 1);
+    if (stretched && line_dirs && nact > 1) {
+      // Alternating zebra line relaxation: along each chosen direction in turn, two colours each. The
+      // backward sweep runs the same steps in reverse order.
+      for (int s = 0; s < sweeps; ++s)
+        for (int q = 0; q < 3; ++q) {
+          const int d = forward ? q : 2 - q;
+          const int n = L[l].n[d];
+          if (!(line_dirs >> d & 1) || n < 2) continue;
+          const int a = d == 0 ? 1 : 0, bq = d == 2 ? 1 : 2;
+          const unsigned lines = unsigned(L[l].n[a]) * unsigned(L[l].n[bq]);
+          // At most 128 threads per line: only one thread works during the line solve, and a block of
+          // 1024 mostly idle threads fills a whole multiprocessor (measured on 1024^2: 23 ms per V-cycle).
+          const int th = n >= 128 ? 128 : ((n + 31) / 32) * 32;
+          for (int cq = 0; cq < 2; ++cq)
+            k_line<T><<<lines, th, 4 * size_t(n) * sizeof(T), gs()>>>(X, B, L[l], K[l], d, forward ? cq : 1 - cq);
+        }
+      return;
+    }
     for (int s = 0; s < sweeps; ++s) {
       k_rbgs<T><<<grid3(L[l]), B3, 0, gs()>>>(X, B, L[l], K[l], forward ? 0 : 1);
       k_rbgs<T><<<grid3(L[l]), B3, 0, gs()>>>(X, B, L[l], K[l], forward ? 1 : 0);
@@ -962,14 +1474,25 @@ struct Solver : Base {
   }
   void vcycle(int l, T* X, const T* B) {
     const int last = int(L.size()) - 1;
-    if (l == 0) tail_from = first_tail();
+    // Stretched grids: no one-block tail. It was built (each thread solving whole lines in shared memory,
+    // bit-identical to the separate kernels) and measured slower: 2.1 against 1.5 ms per solve on 32^2,
+    // 7.0 against 6.4 ms on 256^2. A single GPU thread working through a line cell by cell is slow; the
+    // separate kernels build each line's system in parallel.
+    if (l == 0) tail_from = stretched ? last + 1 : first_tail();
     if (l == last) {
-      k_coarse<T><<<1, COARSE_THREADS, 0, gs()>>>(X, B, L[l], K[l], coarse_sweeps, singular ? 1 : 0);
+      if (stretched)
+        k_coarse_inv<T><<<1, 256, 0, gs()>>>(X, B, cinv, int(L[l].cells()));
+      else
+        k_coarse<T><<<1, COARSE_THREADS, 0, gs()>>>(X, B, L[l], K[l], coarse_sweeps, singular ? 1 : 0);
       return;
     }
     if (l >= tail_from) {  // this level and all coarser ones: one thread block, in shared memory
       Tail<T> t;
       t.n = last - l + 1;
+      if (t.n > MAX_LEVELS) {
+        fprintf(stderr, "gcfd: %d levels in the V-cycle tail (at most %d)\n", t.n, MAX_LEVELS);
+        abort();
+      }
       for (int m = 0; m < t.n; ++m) {
         t.L[m] = L[l + m];
         t.K[m] = K[l + m];  // with bodies the face coefficients are read from global memory
@@ -984,7 +1507,12 @@ struct Solver : Base {
       return;
     }
     smooth(l, X, B, nu1, true);
-    k_residual_restrict<T><<<grid3(L[l + 1]), B3, 0, gs()>>>(X, B, b[l + 1], L[l], K[l], L[l + 1]);
+    if (stretched) {
+      k_residual<T><<<grid3(L[l]), B3, 0, gs()>>>(X, B, r[l], L[l], K[l]);
+      k_restrict_s<T><<<grid3(L[l + 1]), B3, 0, gs()>>>(r[l], b[l + 1], L[l], L[l + 1]);
+    } else {
+      k_residual_restrict<T><<<grid3(L[l + 1]), B3, 0, gs()>>>(X, B, b[l + 1], L[l], K[l], L[l + 1]);
+    }
     CK(cudaMemsetAsync(x[l + 1], 0, L[l + 1].cells() * sizeof(T), gs()));  // the correction starts from zero
     vcycle(l + 1, x[l + 1], b[l + 1]);
     k_prolong_add<T><<<grid3(L[l]), B3, 0, gs()>>>(X, x[l + 1], L[l], L[l + 1]);
@@ -1045,10 +1573,10 @@ struct Solver : Base {
     } else if (singular) {
       remove_mean(F, N);
     }
-    dot_dev<T>(F, F, N, part, &cg->s);
+    dotw_dev<T>(F, F, vol, N, part, &cg->s);
     k_pcg_start<<<1, 1, 0, gs()>>>(cg, tol, maxit, fmin);
     k_residual<T><<<grid3(L[0]), B3, 0, gs()>>>(X, F, R, L[0], K[0]);
-    dot_dev<T>(R, R, N, part, &cg->rr);
+    dotw_dev<T>(R, R, vol, N, part, &cg->rr);
     k_pcg_test<<<1, 1, 0, gs()>>>(cg, hist, 0);
     if (method == 0) {
       // multigrid as defect correction: x += M (f - A x). With pre set, M runs in single precision
@@ -1057,7 +1585,7 @@ struct Solver : Base {
         precondition(R, z_);
         k_axpy<T><<<lin_blocks(N), 256, 0, gs()>>>(X, z_, 1.0, N);
         k_residual<T><<<grid3(L[0]), B3, 0, gs()>>>(X, F, R, L[0], K[0]);
-        dot_dev<T>(R, R, N, part, &cg->rr);
+        dotw_dev<T>(R, R, vol, N, part, &cg->rr);
         k_pcg_test<<<1, 1, 0, gs()>>>(cg, hist, 1);
       });
     } else {
@@ -1065,20 +1593,20 @@ struct Solver : Base {
       // a V-cycle it would not use (the first version did; same iterates otherwise).
       dev_while(&cg->go, [&] {
         precondition(R, z_);
-        dot_dev<T>(R, z_, N, part, &cg->rznew);
+        dotw_dev<T>(R, z_, vol, N, part, &cg->rznew);
         k_pcg_beta<<<1, 1, 0, gs()>>>(cg);
         k_xpby_d<T><<<lin_blocks(N), 256, 0, gs()>>>(p_, z_, &cg->beta, &cg->first, N);  // p = z first time
         k_apply<T><<<grid3(L[0]), B3, 0, gs()>>>(p_, q_, L[0], K[0]);
-        dot_dev<T>(p_, q_, N, part, &cg->pq);
+        dotw_dev<T>(p_, q_, vol, N, part, &cg->pq);
         k_pcg_alpha<<<1, 1, 0, gs()>>>(cg);
         k_axpy_d<T><<<lin_blocks(N), 256, 0, gs()>>>(X, p_, &cg->alpha, 1.0, N);
         k_axpy_d<T><<<lin_blocks(N), 256, 0, gs()>>>(R, q_, &cg->alpha, -1.0, N);
-        dot_dev<T>(R, R, N, part, &cg->rr);
+        dotw_dev<T>(R, R, vol, N, part, &cg->rr);
         k_pcg_test<<<1, 1, 0, gs()>>>(cg, hist, 1);
       });
       // the recursively updated residual drifts from the true one in single precision: report the true one
       k_residual<T><<<grid3(L[0]), B3, 0, gs()>>>(X, F, R, L[0], K[0]);
-      dot_dev<T>(R, R, N, part, &cg->rr);
+      dotw_dev<T>(R, R, vol, N, part, &cg->rr);
       k_pcg_final<<<1, 1, 0, gs()>>>(cg, hist);
     }
     k_cg_done<<<1, 1, 0, gs()>>>(cg);
@@ -1193,6 +1721,58 @@ __device__ __forceinline__ T normal_at(const T* a, long long m) {
   return m < 0 ? T(0) : a[m];
 }
 
+// Stretched grids: the same balance over each velocity unknown's box, with the box sizes from the lists
+// (Level::geo). Along its own direction the box of component comp runs from cell centre to cell centre
+// (width dm at its face); across the other directions it is the cell (width dc).
+// - Convection, own direction: the box sides are cell centres, exactly midway between two faces.
+// - Convection, other directions: the flow through a box side is the sum of the flows through the two
+//   half cells it spans (shares fw and 1 - fw), which makes the box itself divergence-free; the carried
+//   velocity is the plain average of the two neighbours (symmetry-preserving form, Verstappen & Veldman
+//   2003: convection neither creates nor destroys kinetic energy on any grid).
+// - Diffusion: difference of the gradients on the two box sides, each over the distance between the two
+//   values it uses, divided by the box width.
+template <typename T>
+__device__ __forceinline__ T rhs_s(const T* u, const T* v, const T* w, const Level& L, int comp, T nu, const Bnd& W,
+                                   const Force& G, int i, int j, int k, size_t c) {
+  const int I[3] = {i, j, k};
+  const T* V[3] = {u, v, w};
+  const T* q = V[comp];
+  const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+  const int* ec = E[comp];
+  const T fwc = T(GEO_FW(L, comp)[I[comp]]), fwl = T(1) - fwc;
+  T conv = T(0), diff = T(0);
+  const T qc = q[c];
+  for (int d = 0; d < 3; ++d) {
+    if (L.n[d] == 1) continue;
+    const int* ed = E[d];
+    const int id = I[d], nd = L.n[d];
+    const double* idc = GEO_IDC(L, d);
+    const double* idm = GEO_IDM(L, d);
+    const long long mp = at(L, i + ed[0], j + ed[1], k + ed[2]);
+    const long long mm = at(L, i - ed[0], j - ed[1], k - ed[2]);
+    T qp, qm;
+    if (d == comp) {
+      qp = face_n(q, L, W, d, i + ed[0], j + ed[1], k + ed[2]);
+      qm = normal_at(q, mm);
+      const T Up = T(0.5) * (qc + qp), Um = T(0.5) * (qm + qc);
+      const T im = T(idm[id]);
+      conv += (Up * Up - Um * Um) * im;
+      diff += ((qp - qc) * T(idc[id]) - (qc - qm) * T(idc[id > 0 ? id - 1 : nd - 1])) * im;
+    } else {
+      qp = mp >= 0 ? q[mp] : ghost(qc, L, W, d, 1, comp, i, j, k, 0);
+      qm = mm >= 0 ? q[mm] : ghost(qc, L, W, d, 0, comp, i, j, k, 0);
+      const T* a = V[d];
+      const T aup = fwc * face_n(a, L, W, d, i + ed[0], j + ed[1], k + ed[2]) +
+                    fwl * face_n(a, L, W, d, i + ed[0] - ec[0], j + ed[1] - ec[1], k + ed[2] - ec[2]);
+      const T alo = fwc * a[c] + fwl * normal_at(a, at(L, i - ec[0], j - ec[1], k - ec[2]));
+      const T ic = T(idc[id]);
+      conv += (aup * T(0.5) * (qc + qp) - alo * T(0.5) * (qm + qc)) * ic;
+      diff += ((qp - qc) * T(idm[id + 1]) - (qc - qm) * T(idm[id])) * ic;
+    }
+  }
+  return -conv + nu * diff + T(G.g[comp]);
+}
+
 template <typename T>
 __global__ void k_ns_rhs(const T* __restrict__ u, const T* __restrict__ v, const T* __restrict__ w, T* F,
                          Level L, int comp, T nu, Bnd W, Force G) {
@@ -1200,6 +1780,10 @@ __global__ void k_ns_rhs(const T* __restrict__ u, const T* __restrict__ v, const
   const int I[3] = {i, j, k};
   if (wall_dir(L, comp) && I[comp] == 0) {  // a boundary face: prescribed (or set from the interior), not evolved
     F[c] = T(0);
+    return;
+  }
+  if (L.geo) {
+    F[c] = rhs_s(u, v, w, L, comp, nu, W, G, i, j, k, c);
     return;
   }
   const T* V[3] = {u, v, w};
@@ -1240,9 +1824,11 @@ __global__ void k_ns_div(const T* u, const T* v, const T* w, T* dv, Level L, Bnd
   const T* V[3] = {u, v, w};
   const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
   T s = T(0);
+  const int I[3] = {i, j, k};
   for (int d = 0; d < 3; ++d) {
     if (L.n[d] == 1) continue;
-    s += (face_n(V[d], L, W, d, i + E[d][0], j + E[d][1], k + E[d][2]) - V[d][c]) * T(L.ih[d]);
+    const T ih = L.geo ? T(GEO_IDC(L, d)[I[d]]) : T(L.ih[d]);  // (flow out - flow in) / cell width
+    s += (face_n(V[d], L, W, d, i + E[d][0], j + E[d][1], k + E[d][2]) - V[d][c]) * ih;
   }
   dv[c] = s;
 }
@@ -1256,7 +1842,8 @@ __global__ void k_ns_correct(T* q, const T* phi, Level L, int comp, double scale
   if (wall_dir(L, comp) && I[comp] == 0) return;  // boundary face (velocity side: zero pressure gradient there)
   if (fl && fl[c] == T(0)) return;                 // a face in a body: set by the body (k_ib_set)
   const int E[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
-  q[c] -= T(scale) * (phi[c] - phi[at(L, i - E[comp][0], j - E[comp][1], k - E[comp][2])]) * T(L.ih[comp]);
+  const T ih = L.geo ? T(GEO_IDM(L, comp)[I[comp]]) : T(L.ih[comp]);  // over the distance between the two centres
+  q[c] -= T(scale) * (phi[c] - phi[at(L, i - E[comp][0], j - E[comp][1], k - E[comp][2])]) * ih;
 }
 
 // One thread per point of side (d, hi)'s plane: its index p and the cell index c next to the side.
@@ -1292,8 +1879,9 @@ __global__ void k_outflow(T* q, double* ub, Level L, int d, int hi) {
 template <typename T>
 __global__ void k_outflow_correct(T* q, double* ub, const T* phi, Level L, int d, int hi) {
   PLANE(L, d, hi)
-  if (hi) ub[p] -= double((-phi[c] - phi[c]) * T(L.ih[d]));
-  else q[c] -= (phi[c] - (-phi[c])) * T(L.ih[d]);
+  const T ih = L.geo ? T(GEO_IDM(L, d)[hi ? L.n[d] : 0]) : T(L.ih[d]);
+  if (hi) ub[p] -= double((-phi[c] - phi[c]) * ih);
+  else q[c] -= (phi[c] - (-phi[c])) * ih;
 }
 
 // ---------------------------------------------------------------- implicit diffusion (IMEX scheme)
@@ -1308,6 +1896,28 @@ __device__ __forceinline__ T lap_at(const T* q, const Level& L, int comp, const 
   const int I[3] = {i, j, k};
   const T qc = q[c];
   T s = T(0);
+  if (L.geo) {  // stretched: the diffusion term of rhs_s
+    for (int d = 0; d < 3; ++d) {
+      if (L.n[d] == 1) continue;
+      const int* ed = E[d];
+      const int id = I[d], nd = L.n[d];
+      const double* idc = GEO_IDC(L, d);
+      const double* idm = GEO_IDM(L, d);
+      const long long mp = at(L, i + ed[0], j + ed[1], k + ed[2]);
+      const long long mm = at(L, i - ed[0], j - ed[1], k - ed[2]);
+      T qp, qm;
+      if (d == comp) {
+        qp = (homog && wall_dir(L, d) && id == nd - 1) ? T(0) : face_n(q, L, W, d, i + ed[0], j + ed[1], k + ed[2]);
+        qm = normal_at(q, mm);
+        s += ((qp - qc) * T(idc[id]) - (qc - qm) * T(idc[id > 0 ? id - 1 : nd - 1])) * T(idm[id]);
+      } else {
+        qp = mp >= 0 ? q[mp] : ghost(qc, L, W, d, 1, comp, i, j, k, homog);
+        qm = mm >= 0 ? q[mm] : ghost(qc, L, W, d, 0, comp, i, j, k, homog);
+        s += ((qp - qc) * T(idm[id + 1]) - (qc - qm) * T(idm[id])) * T(idc[id]);
+      }
+    }
+    return s;
+  }
   for (int d = 0; d < 3; ++d) {
     if (L.n[d] == 1) continue;
     const int* ed = E[d];
@@ -1480,10 +2090,22 @@ struct NS {
   // of ~15). The floor still asks for an rms divergence of ptol max|u| / h.
   double* fscale = nullptr;
   double fscale_f = 0.0;
+  // Stretched grids: volume of each velocity unknown's box, per component (weights of the dot products
+  // of the implicit diffusion solves, whose operator is symmetric in that weighted sum). Null: uniform.
+  T* wq[3] = {nullptr, nullptr, nullptr};
+  // Smoothing sweeps before and after the coarse correction on stretched grids. One alternating line
+  // sweep each: measured on 256^2 clustered grids, 9-12 CG iterations against 7-10 with two sweeps, at
+  // half the cost per iteration (6-8 ms per solve to 1e-10 against 10-13 ms).
+  static int& mg_sweeps() {
+    static int m = 1;
+    return m;
+  }
 
   // kinds: 6 ints (x-, x+, y-, y+, z-, z+): 0 periodic, 1 velocity side, 2 outflow. The boundary data
   // start at zero (walls at rest); set them with set_plane, then refresh.
-  NS(const int* n, const double* len, double nu_, int precision, const int* kinds, const double* g) : nu(nu_) {
+  NS(const int* n, const double* len, double nu_, int precision, const int* kinds, const double* g,
+     const double* const* xf = nullptr)
+      : nu(nu_) {
     int bc[6];
     for (int s = 0; s < 6; ++s) {
       kind[s] = kinds[s];
@@ -1491,8 +2113,10 @@ struct NS {
       has_outflow = has_outflow || kinds[s] == 2;
     }
     for (int d = 0; d < 3; ++d) G.g[d] = g[d];
-    P = new Solver<double>(n, len, bc, 2, 2);
-    if (precision == 6) P->pre = new Solver<float>(n, len, bc, 2, 2);
+    const bool str = xf && (xf[0] || xf[1] || xf[2]);
+    const int nsm = str ? mg_sweeps() : 2;
+    P = new Solver<double>(n, len, bc, nsm, nsm, xf);
+    if (precision == 6) P->pre = new Solver<float>(n, len, bc, nsm, nsm, xf);
     L = P->L[0];
     ncomp = n[2] > 1 ? 3 : 2;
     ib_ns = ncomp == 3 ? 8 : 4;
@@ -1521,6 +2145,27 @@ struct NS {
       for (int s = 0; s < 3; ++s) {
         CK(cudaMalloc(&W.u[side][s], plane_cells(side / 2) * sizeof(double)));
         CK(cudaMemset(W.u[side][s], 0, plane_cells(side / 2) * sizeof(double)));
+      }
+    }
+    if (L.geo) {  // box volumes of the velocity unknowns: dm along the component's direction, dc across
+      std::vector<double> g(geo_size(L));
+      CK(cudaMemcpy(g.data(), L.geo, g.size() * sizeof(double), cudaMemcpyDeviceToHost));
+      std::vector<double> v(N);
+      for (int s = 0; s < ncomp; ++s) {
+        for (int k = 0; k < L.n[2]; ++k)
+          for (int j = 0; j < L.n[1]; ++j)
+            for (int i = 0; i < L.n[0]; ++i) {
+              const int I[3] = {i, j, k};
+              double q = 1.0;
+              for (int d = 0; d < 3; ++d) {
+                if (L.n[d] == 1) continue;
+                const double* idc = g.data() + geo_off(L, d);
+                q *= 1.0 / (d == s ? idc[L.n[d] + I[d]] : idc[I[d]]);
+              }
+              v[i + size_t(L.n[0]) * (j + size_t(L.n[1]) * k)] = q;
+            }
+        CK(cudaMalloc(&wq[s], N * sizeof(T)));
+        CK(cudaMemcpy(wq[s], v.data(), N * sizeof(T), cudaMemcpyHostToDevice));
       }
     }
     refresh();
@@ -1557,6 +2202,7 @@ struct NS {
       cudaFree(F[s]);
       cudaFree(Fo[s]);
       cudaFree(Bw[s]);
+      cudaFree(wq[s]);
     }
     for (int side = 0; side < 6; ++side)
       for (int s = 0; s < 3; ++s) cudaFree(W.u[side][s]);
@@ -1676,16 +2322,16 @@ struct NS {
     CK(cudaMemcpyAsync(cr, b, n * sizeof(T), cudaMemcpyDeviceToDevice, gs()));
     k_axpy<T><<<lin_blocks(n), 256, 0, gs()>>>(cr, cAp, -1.0, n);  // r = b - A x
     CK(cudaMemcpyAsync(cp, cr, n * sizeof(T), cudaMemcpyDeviceToDevice, gs()));
-    dot_dev<T>(cr, cr, n, hpart, &hc->rr);
-    dot_dev<T>(b, b, n, hpart, &hc->s);
+    dotw_dev<T>(cr, cr, wq[comp], n, hpart, &hc->rr);
+    dotw_dev<T>(b, b, wq[comp], n, hpart, &hc->s);
     k_helm_start<<<1, 1, 0, gs()>>>(hc, htol);
     dev_while(&hc->go, [&] {
       k_helm<T><<<grid3(L), B3, 0, gs()>>>(cp, cAp, L, comp, W, cnu);
-      dot_dev<T>(cp, cAp, n, hpart, &hc->pq);
+      dotw_dev<T>(cp, cAp, wq[comp], n, hpart, &hc->pq);
       k_helm_alpha<<<1, 1, 0, gs()>>>(hc);
       k_axpy_d<T><<<lin_blocks(n), 256, 0, gs()>>>(x, cp, &hc->alpha, 1.0, n);
       k_axpy_d<T><<<lin_blocks(n), 256, 0, gs()>>>(cr, cAp, &hc->alpha, -1.0, n);
-      dot_dev<T>(cr, cr, n, hpart, &hc->rznew);
+      dotw_dev<T>(cr, cr, wq[comp], n, hpart, &hc->rznew);
       k_helm_beta<<<1, 1, 0, gs()>>>(hc);
       k_xpby_d<T><<<lin_blocks(n), 256, 0, gs()>>>(cp, cr, &hc->beta, &hc->first, n);
     });
@@ -1791,12 +2437,48 @@ struct NS {
   }
 };
 
+// Face positions of a stretched direction: n + 1 increasing values from 0 to len. Returns the reason
+// they are refused, or null.
+static const char* bad_faces(const double* x, int n, double len, bool periodic) {
+  if (!x) return nullptr;
+  if (periodic) return "a periodic direction must be uniform (no face positions)";
+  if (std::fabs(x[0]) > 1e-12 * len || std::fabs(x[n] - len) > 1e-12 * len) return "face positions must run from 0 to the length";
+  for (int i = 0; i < n; ++i)
+    if (!(x[i + 1] > x[i])) return "face positions must increase";
+  return nullptr;
+}
+template <class S>
+static bool refused(S* s) {
+  if (!s || !s->error) return false;
+  fprintf(stderr, "gcfd: %s\n", s->error);
+  return true;
+}
+
 extern "C" {
 
 // kinds: 6 ints (x-, x+, y-, y+, z-, z+): 0 periodic (both sides of a direction), 1 velocity side (wall
 // or inflow; its velocity set with gcfd_ns_set_bnd, zero until then), 2 outflow (pressure zero, zero
 // normal velocity gradient). g: body force (3). Returns null for an invalid set-up (reason on stderr).
+void* gcfd_ns_create3(const int* n, const double* len, double nu, int precision, const int* kinds, const double* g,
+                      const double* xf, const double* yf, const double* zf);
 void* gcfd_ns_create2(const int* n, const double* len, double nu, int precision, const int* kinds, const double* g) {
+  return gcfd_ns_create3(n, len, nu, precision, kinds, g, nullptr, nullptr, nullptr);
+}
+// As gcfd_ns_create2, on a grid stretched along any bounded direction: xf, yf, zf are the face positions
+// of that direction (n + 1 values from 0 to len) or null for a uniform direction. All null: the uniform
+// solver, unchanged.
+void* gcfd_ns_create3(const int* n, const double* len, double nu, int precision, const int* kinds, const double* g,
+                      const double* xf, const double* yf, const double* zf) {
+  const double* faces[3] = {xf, yf, zf};
+  for (int d = 0; d < 3; ++d) {
+    if (n[d] >= 1) {
+      const char* why = bad_faces(faces[d], n[d], len[d], kinds[2 * d] == 0);
+      if (why) {
+        fprintf(stderr, "gcfd: direction %c: %s\n", "xyz"[d], why);
+        return nullptr;
+      }
+    }
+  }
   for (int d = 0; d < 3; ++d) {
     const char* ax = "xyz";
     if (n[d] < 1) return nullptr;
@@ -1816,8 +2498,22 @@ void* gcfd_ns_create2(const int* n, const double* len, double nu, int precision,
       if (kinds[2 * d + s] < 0 || kinds[2 * d + s] > 2) return nullptr;
   }
   if (n[0] < 2 || n[1] < 2) return nullptr;
-  return new NS(n, len, nu, precision, kinds, g);
+  NS* m = new NS(n, len, nu, precision, kinds, g, faces);
+  if (refused(m->P) || refused(static_cast<Solver<float>*>(m->P->pre))) {
+    delete m;
+    return nullptr;
+  }
+  return m;
 }
+// Stretched grids, experiments: bit mask of the directions that may use line relaxation (7: every
+// bounded direction, the default; 0: the point smoother), and the smoothing sweeps before and after
+// the coarse correction in the Navier-Stokes pressure solver. Apply to solvers created afterwards.
+void gcfd_set_lines(int mask) {
+  Solver<double>::line_mask() = mask;
+  Solver<float>::line_mask() = mask;
+}
+void gcfd_set_ns_sweeps(int sweeps) { NS::mg_sweeps() = sweeps < 1 ? 1 : sweeps; }
+int gcfd_ns_stretched(void* s) { return static_cast<NS*>(s)->L.geo ? 1 : 0; }
 // Legacy form. walls: 3 ints (1: walls at both ends of that direction, 0: periodic). uwall: 18 doubles,
 // the velocity of each wall (x-, x+, y-, y+, z-, z+; only tangential components are used).
 void* gcfd_ns_create(const int* n, const double* len, double nu, int precision, const int* walls,
@@ -1910,6 +2606,10 @@ void gcfd_ns_scheme(void* s, int scheme, double htol) {
 // Call for every component, then gcfd_ns_body_done (before the first run).
 void gcfd_ns_body(void* s, int comp, const double* mask, int n, const long long* idx, const double* a0,
                   const long long* nb, const double* w) {
+  if (static_cast<NS*>(s)->L.geo) {
+    fprintf(stderr, "gcfd: immersed bodies on stretched grids are not built yet\n");
+    abort();
+  }
   static_cast<NS*>(s)->set_body(comp, mask, n, idx, a0, nb, w);
 }
 void gcfd_ns_body_done(void* s) { static_cast<NS*>(s)->body_done(); }
@@ -1939,9 +2639,24 @@ double gcfd_ns_project(void* s) {  // project the current velocity (initial data
 }
 
 // bc: 6 ints (x-, x+, y-, y+, z-, z+), 0 periodic, 1 Neumann, 2 Dirichlet. precision: 4 or 8 bytes.
+void* gcfd_poisson_create_s(const int* n, const double* len, const int* bc, int precision, int nu1, int nu2,
+                            const double* xf, const double* yf, const double* zf);
 void* gcfd_poisson_create(const int* n, const double* len, const int* bc, int precision, int nu1, int nu2) {
+  return gcfd_poisson_create_s(n, len, bc, precision, nu1, nu2, nullptr, nullptr, nullptr);
+}
+// As gcfd_poisson_create, on a stretched grid (face positions per direction, or null: see gcfd_ns_create3).
+void* gcfd_poisson_create_s(const int* n, const double* len, const int* bc, int precision, int nu1, int nu2,
+                            const double* xf, const double* yf, const double* zf) {
+  const double* faces[3] = {xf, yf, zf};
   for (int d = 0; d < 3; ++d) {
     if (n[d] < 1) return nullptr;
+    {
+      const char* why = bad_faces(faces[d], n[d], len[d], bc[2 * d] == PERIODIC || bc[2 * d + 1] == PERIODIC);
+      if (why) {
+        fprintf(stderr, "gcfd: direction %d: %s\n", d, why);
+        return nullptr;
+      }
+    }
     const bool periodic = bc[2 * d] == PERIODIC || bc[2 * d + 1] == PERIODIC;
     if (periodic && (bc[2 * d] != PERIODIC || bc[2 * d + 1] != PERIODIC)) {
       fprintf(stderr, "gcfd: direction %d: periodic must be set on both sides\n", d);
@@ -1952,12 +2667,18 @@ void* gcfd_poisson_create(const int* n, const double* len, const int* bc, int pr
       return nullptr;
     }
   }
-  if (precision == 4) return new Solver<float>(n, len, bc, nu1, nu2);
-  if (precision == 8) return new Solver<double>(n, len, bc, nu1, nu2);
-  if (precision == 6) {  // mixed: double outer iteration, single-precision multigrid inside
-    auto* s = new Solver<double>(n, len, bc, nu1, nu2);
-    s->pre = new Solver<float>(n, len, bc, nu1, nu2);
-    return s;
+  if (precision == 4) {
+    auto* s = new Solver<float>(n, len, bc, nu1, nu2, faces);
+    if (!refused(s)) return s;
+    delete s;
+    return nullptr;
+  }
+  if (precision == 8 || precision == 6) {  // 6, mixed: double outer iteration, single-precision multigrid inside
+    auto* s = new Solver<double>(n, len, bc, nu1, nu2, faces);
+    if (precision == 6) s->pre = new Solver<float>(n, len, bc, nu1, nu2, faces);
+    if (!refused(s) && !refused(static_cast<Solver<float>*>(s->pre))) return s;
+    delete s;
+    return nullptr;
   }
   return nullptr;
 }

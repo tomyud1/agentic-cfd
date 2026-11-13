@@ -13,7 +13,54 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-13
 
-### Repository aligned with the goal: workflow, tools, agent, and the loop, commit hash to be filled in
+### gpucfd: stretched grids, stage 1 (walls, no bodies), commit hash to be filled in
+- **What:** the GPU solver can now use cells of unequal size, for example small at the walls and
+  large in the middle (ROADMAP step 2, stage 1 of 3).
+  - A direction is described by its face positions: `NavierStokes(..., grid=(None, y, None))` with
+    `y = grids.tanh(64, 1.0, ratio=8)` from the new `gpucfd/grids.py` (ratio = largest / smallest
+    cell). Works with walls, inflow, outflow and both time schemes; periodic directions stay
+    uniform. `dt_cfl()` gives the time step from the local velocities.
+  - The equations use the true cell sizes in every term. Convection is written so that it neither
+    creates nor destroys kinetic energy on any grid.
+  - **Pressure solver.** On long thin cells the old smoother stalls (157-192 iterations per solve
+    at aspect ratio 64). It now solves whole lines of cells at once (zebra line relaxation, along
+    x and y in turn), and the restriction is the exact transpose of the interpolation.
+  - Immersed bodies on stretched grids are refused for now (stage 2).
+- **Why it matters:** this is the first of the three stages toward case 4's target (drag within
+  0.25 % in less time than OpenFOAM). It shows the hard part, the pressure solver, works.
+- **How it was verified** (design and pass criteria were written in `gpucfd/DESIGN.md` before any
+  run):
+  - Uniform grids are bit-identical to the build before the change (18 of 18 arrays), and the whole
+    ladder passes.
+  - New rung 12 (`gpucfd/tests/test_stretched.py`, 48 checks): the new code fed uniform positions
+    equals the old code to round-off; Laplacian against an independent numpy reference (6e-15);
+    direct solve; order 1.99-2.01 for the pressure equation; Poiseuille, a decaying channel mode,
+    Kovasznay flow and an open channel at order 2.02-2.07; kinetic energy of convection conserved
+    to 1e-17; cavity Re 100 on clustered grids within 0.009 U of Ghia and converging to the
+    uniform solution; runs reproducible bit for bit.
+- **Key numbers:**
+  - Pressure iterations per projection (cavity): 7.0 uniform, 7.0 / 8.0-8.7 / 9.7-9.9 at wall
+    aspect ratio 4 / 16 / 64, the same on 128^2 and 256^2. The old smoother: 21 / 60-67 / 157-192.
+  - Cost: a step on the stretched code path takes about twice a uniform step with the same cells
+    (8.5 against 4.3 ms on 128^2), and 45 % more at aspect ratio 64.
+  - Benefit, first fair number (cavity Re 100, same accuracy as uniform 256^2): the best clustered
+    grid needs 23 % fewer cells (50 against 66 thousand) but 1.9 times the time (36.6 against
+    19.2 GPU-s). On this flow stretching does not pay: its wall layers are not thin.
+  - Where it does pay (added afterwards, exact solution, a wall layer a tenth of the domain thick):
+    7 times fewer cells across the layer for the same error.
+- **Found while building:** conjugate gradients stalled with line relaxation although plain
+  multigrid converged. The multigrid cycle was not symmetric (10-17 %); averaging the residual
+  onto the coarse grid is the cause. Fixed with the transposed interpolation. A one-block version
+  of the small levels was built, measured slower, and removed.
+- **Open:**
+  - The benefit for bodies is not measured yet: that is stage 2 (bodies on stretched grids), then
+    stage 3 (IMEX with bodies).
+  - The stretched code path is 2 times slower per step than the uniform one.
+  - 3D grids clustered in two directions converge slowly (23-38 iterations at ratio 16, growing
+    with the grid); they need plane relaxation. 3D clustering in one direction is fine in the
+    tests that ran (channel mode), but its solver cost was not measured.
+
+### Repository aligned with the goal: workflow, tools, agent, and the loop (`96553e7`)
 - **What:**
   - **The workflow moved to an agent-neutral folder.** `.claude/skills/agentic-cfd/SKILL.md` is now
     [`workflow/WORKFLOW.md`](workflow/WORKFLOW.md), with its references in `workflow/references/`.

@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from gpucfd import gcfd
+from gpucfd import gcfd, grids
 
 ROOT = Path(__file__).resolve().parents[2]
 NU, U = 0.01, 1.0
@@ -32,16 +32,26 @@ def ghia():
     return u[np.argsort(u[:, 0])], v[np.argsort(v[:, 0])]
 
 
-def gpu_cavity(N, ptol=1e-4, tmax=80.0, settle=1e-7, scheme="rk3", cfl=0.8):
+def gpu_cavity(N, ptol=1e-4, tmax=80.0, settle=1e-7, scheme="rk3", cfl=0.8, ratio=1.0):
+    """ratio > 1: cells clustered toward all four walls (tanh spacing, largest / smallest cell = ratio).
+    The time step then follows the local velocities (dt_cfl), re-evaluated every time unit: the smallest
+    cells sit at the walls, where the flow is slow."""
+    g = grids.tanh(N, 1.0, ratio) if ratio > 1.0 else None
     s = gcfd.NavierStokes((N, N, 1), (1.0, 1.0, 1.0), NU, walls=(True, True, False), wall_velocity={"y+": (U, 0, 0)},
-                          scheme=scheme)
+                          scheme=scheme, grid=None if g is None else (g, g, None))
     h = 1.0 / N
     per_unit = int(np.ceil(1.0 / s.max_dt(U, cfl)))
     t, loop, change, hist = 0.0, 0.0, np.inf, []
+    steps, pits, hits = 0, 0.0, 0.0
     old = [np.zeros(s.shape), np.zeros(s.shape)]
     t0 = time.time()
     while t < tmax and change > settle:
+        if g is not None and t > 0:
+            per_unit = int(np.ceil(1.0 / s.dt_cfl(cfl)))
         st = s.run(1.0 / per_unit, per_unit, ptol)
+        steps += per_unit
+        pits += st["poisson_its"] * per_unit
+        hits += st["helm_its"] * per_unit
         loop += st["ms"] / 1e3
         t += 1.0
         new = s.get()
@@ -50,14 +60,17 @@ def gpu_cavity(N, ptol=1e-4, tmax=80.0, settle=1e-7, scheme="rk3", cfl=0.8):
         old = new
     u, v = old[0][0], old[1][0]                       # 2D arrays [j, i]
     # u on the vertical centreline x = 0.5: x-faces i = N/2; positions y = (j + 1/2) h, plus the walls
-    yu = np.concatenate([[0.0], (np.arange(N) + 0.5) * h, [1.0]])
+    # (a clustered grid is symmetric, so face N/2 is still the centreline; positions = its cell centres)
+    cen = (np.arange(N) + 0.5) * h if g is None else 0.5 * (g[:-1] + g[1:])
+    yu = np.concatenate([[0.0], cen, [1.0]])
     ul = np.concatenate([[0.0], u[:, N // 2], [U]])
     # v on the horizontal centreline y = 0.5: y-faces j = N/2; positions x = (i + 1/2) h
-    xv = np.concatenate([[0.0], (np.arange(N) + 0.5) * h, [1.0]])
+    xv = np.concatenate([[0.0], cen, [1.0]])
     vl = np.concatenate([[0.0], v[N // 2, :], [0.0]])
     s.close()
-    return dict(N=N, scheme=scheme, t_steady=t, steps=int(t * per_unit), loop_s=loop, wall_s=time.time() - t0, last_change=change,
-                max_div=st["max_div"], line_u=(yu, ul), line_v=(xv, vl))
+    return dict(N=N, scheme=scheme, ratio=ratio, t_steady=t, steps=steps if g is not None else int(t * per_unit),
+                loop_s=loop, wall_s=time.time() - t0, last_change=change, max_div=st["max_div"],
+                poisson_its=pits / max(steps, 1), helm_its=hits / max(steps, 1), line_u=(yu, ul), line_v=(xv, vl))
 
 
 def openfoam_lines(N):

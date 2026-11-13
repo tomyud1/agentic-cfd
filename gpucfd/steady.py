@@ -28,8 +28,7 @@ def _axes(s, comp):
     """1D face coordinates of component comp per direction (z, y, x order) and the periodic flags."""
     ax, per = [], []
     for d in (2, 1, 0):
-        h = s.length[d] / s.n[d]
-        ax.append(np.arange(s.n[d]) * h + (0.0 if d == comp else 0.5 * h))
+        ax.append(s._axis(d, d == comp))  # uniform or stretched
         per.append(s.kinds[2 * d] == 0)
     return ax, per
 
