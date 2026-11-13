@@ -19,7 +19,8 @@ fluid (phi <= 0 at the face) gets its value from a rule built here.
 - Deeper faces: the body's velocity (they only enter the pressure equation's decoupled cells).
 The pressure equation is solved with zero gradient through every face in a body (a staircase wall for
 the pressure, the usual choice of ghost-cell methods); the velocity on those faces is never changed by
-the projection, so at a steady state the rules above hold exactly.
+the projection, so at a steady state the rules above hold exactly. (Scheme "imex": the projection
+includes the ghost faces, so the rules hold after every step: DESIGN.md, "IMEX with immersed bodies".)
 
 Shapes: Cylinder, Sphere, Box, HalfSpace, Inside (fluid inside a shape: a pipe, the outer cylinder of a
 Couette cell) and SDF (any exact signed distance function). Bodies must not cross a periodic side (the

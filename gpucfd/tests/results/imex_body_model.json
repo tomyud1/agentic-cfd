@@ -1,0 +1,454 @@
+{
+ "limits": {
+  "imex": 0.27936072678779794,
+  "equal_substeps": 0.33333372228704783,
+  "rk3": 0.6826589431571929
+ },
+ "feedback": [
+  {
+   "case": "channel 64 x 32, cylinder at 8 cells per diameter",
+   "mu": [
+    [
+     0.25871255694219925,
+     0.0
+    ],
+    [
+     0.16554344363060505,
+     0.0
+    ],
+    [
+     0.16300062075000174,
+     0.0
+    ],
+    [
+     0.13709139483150504,
+     0.0
+    ],
+    [
+     0.07120038959937075,
+     0.0
+    ],
+    [
+     0.05598131670526598,
+     0.0
+    ]
+   ],
+   "growth_imex": 0.844954639479207,
+   "growth_rk3": 0.4309234736550105
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "mu": [
+    [
+     0.30012508237964985,
+     0.0
+    ],
+    [
+     0.2564778892847095,
+     0.0
+    ],
+    [
+     0.24729440690704807,
+     0.0
+    ],
+    [
+     0.2235929428560673,
+     0.0
+    ],
+    [
+     0.18785293316406368,
+     0.0
+    ],
+    [
+     0.17001888885479685,
+     0.0
+    ]
+   ],
+   "growth_imex": 1.1749710981751869,
+   "growth_rk3": 0.4801368957875178
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "mu": [
+    [
+     0.3439924679918814,
+     0.0
+    ],
+    [
+     0.2762666980721663,
+     0.0
+    ],
+    [
+     0.21901980992661266,
+     0.0
+    ],
+    [
+     0.18175654920078732,
+     0.0
+    ],
+    [
+     0.16389647013754707,
+     0.0
+    ],
+    [
+     0.14704920496909016,
+     0.0
+    ]
+   ],
+   "growth_imex": 1.5978446576421137,
+   "growth_rk3": 0.5235531258544615
+  },
+  {
+   "case": "closed Couette cell 32 x 32 (rung 10)",
+   "mu": [
+    [
+     0.3331025047899686,
+     0.0
+    ],
+    [
+     0.33310250471580294,
+     0.0
+    ],
+    [
+     0.32723018726892683,
+     0.0
+    ],
+    [
+     0.279812519239648,
+     0.0
+    ],
+    [
+     0.23435825471374536,
+     0.0
+    ],
+    [
+     0.22658942582977246,
+     0.0
+    ]
+   ],
+   "growth_imex": 1.4855263349333236,
+   "growth_rk3": 0.5136413697534387
+  },
+  {
+   "case": "closed Couette cell 64 x 64",
+   "mu": [
+    [
+     0.33057419343072036,
+     0.0
+    ],
+    [
+     0.32815106956203866,
+     0.0
+    ],
+    [
+     0.3183955168874576,
+     0.0
+    ],
+    [
+     0.31415836299038113,
+     0.0
+    ],
+    [
+     0.30309683596792036,
+     0.0
+    ],
+    [
+     0.2959368033826936,
+     0.0
+    ]
+   ],
+   "growth_imex": 1.4601547972872546,
+   "growth_rk3": 0.5112574893342476
+  }
+ ],
+ "variants": [
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.02,
+   "variant": "as first coded: faces in bodies free in the solve, pressure gradient on every face",
+   "growth": 1.0356623239770977
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.02,
+   "variant": "pressure gradient on fluid faces only",
+   "growth": 1.1730958250623016
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.02,
+   "variant": "faces in bodies fixed during the solve",
+   "growth": 1.1730836717650988
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.02,
+   "variant": "ghost rule as rows of the solve",
+   "growth": 1.1726835838006557
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.02,
+   "variant": "ghost rule as rows, ghost faces set again after the projection",
+   "growth": 1.1724483554767149
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.02,
+   "variant": "ghost rule as rows, consistent projection (the design)",
+   "growth": 0.9954822668657248
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.31,
+   "variant": "as first coded: faces in bodies free in the solve, pressure gradient on every face",
+   "growth": 3.0260755001505655
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.31,
+   "variant": "pressure gradient on fluid faces only",
+   "growth": 1.1356603725017969
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.31,
+   "variant": "faces in bodies fixed during the solve",
+   "growth": 1.1326538530811676
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.31,
+   "variant": "ghost rule as rows of the solve",
+   "growth": 1.1161978487377842
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.31,
+   "variant": "ghost rule as rows, ghost faces set again after the projection",
+   "growth": 1.1066700948274777
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 0.31,
+   "variant": "ghost rule as rows, consistent projection (the design)",
+   "growth": 0.9981139417745354
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 1.0,
+   "variant": "as first coded: faces in bodies free in the solve, pressure gradient on every face",
+   "growth": 4.680264545900817
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 1.0,
+   "variant": "pressure gradient on fluid faces only",
+   "growth": 1.033303515155349
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 1.0,
+   "variant": "faces in bodies fixed during the solve",
+   "growth": 1.011043781252238
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 1.0,
+   "variant": "ghost rule as rows of the solve",
+   "growth": 0.9937013177917835
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 1.0,
+   "variant": "ghost rule as rows, ghost faces set again after the projection",
+   "growth": 0.9937012892699454
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 1.0,
+   "variant": "ghost rule as rows, consistent projection (the design)",
+   "growth": 0.993701643614226
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 4.0,
+   "variant": "as first coded: faces in bodies free in the solve, pressure gradient on every face",
+   "growth": 104.44450421619285
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 4.0,
+   "variant": "pressure gradient on fluid faces only",
+   "growth": 0.9845854545591968
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 4.0,
+   "variant": "faces in bodies fixed during the solve",
+   "growth": 0.9845868204835835
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 4.0,
+   "variant": "ghost rule as rows of the solve",
+   "growth": 0.9845867982874058
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 4.0,
+   "variant": "ghost rule as rows, ghost faces set again after the projection",
+   "growth": 0.9845868266813605
+  },
+  {
+   "case": "DFG channel 384 x 72 (17.6 cells per diameter)",
+   "d": 4.0,
+   "variant": "ghost rule as rows, consistent projection (the design)",
+   "growth": 0.9845867488337633
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.02,
+   "variant": "as first coded: faces in bodies free in the solve, pressure gradient on every face",
+   "growth": 1.5075226816106597
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.02,
+   "variant": "pressure gradient on fluid faces only",
+   "growth": 1.5942264374615007
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.02,
+   "variant": "faces in bodies fixed during the solve",
+   "growth": 1.5942035966355363
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.02,
+   "variant": "ghost rule as rows of the solve",
+   "growth": 1.5937155100265108
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.02,
+   "variant": "ghost rule as rows, ghost faces set again after the projection",
+   "growth": 1.59343402829603
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.02,
+   "variant": "ghost rule as rows, consistent projection (the design)",
+   "growth": 0.9954819086515513
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.31,
+   "variant": "as first coded: faces in bodies free in the solve, pressure gradient on every face",
+   "growth": 2.7343717811035115
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.31,
+   "variant": "pressure gradient on fluid faces only",
+   "growth": 1.532617741048987
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.31,
+   "variant": "faces in bodies fixed during the solve",
+   "growth": 1.528041990188014
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.31,
+   "variant": "ghost rule as rows of the solve",
+   "growth": 1.50836399898186
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.31,
+   "variant": "ghost rule as rows, ghost faces set again after the projection",
+   "growth": 1.4971703821355702
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 0.31,
+   "variant": "ghost rule as rows, consistent projection (the design)",
+   "growth": 0.9981219568029143
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 1.0,
+   "variant": "as first coded: faces in bodies free in the solve, pressure gradient on every face",
+   "growth": 3.799017870366619
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 1.0,
+   "variant": "pressure gradient on fluid faces only",
+   "growth": 1.375007283415778
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 1.0,
+   "variant": "faces in bodies fixed during the solve",
+   "growth": 1.3463561795785235
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 1.0,
+   "variant": "ghost rule as rows of the solve",
+   "growth": 1.2551616261328264
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 1.0,
+   "variant": "ghost rule as rows, ghost faces set again after the projection",
+   "growth": 1.203413140555868
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 1.0,
+   "variant": "ghost rule as rows, consistent projection (the design)",
+   "growth": 0.9937079636902488
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 4.0,
+   "variant": "as first coded: faces in bodies free in the solve, pressure gradient on every face",
+   "growth": 92.26417521022614
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 4.0,
+   "variant": "pressure gradient on fluid faces only",
+   "growth": 0.9845837318952076
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 4.0,
+   "variant": "faces in bodies fixed during the solve",
+   "growth": 0.9845844327035873
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 4.0,
+   "variant": "ghost rule as rows of the solve",
+   "growth": 0.9845850141627401
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 4.0,
+   "variant": "ghost rule as rows, ghost faces set again after the projection",
+   "growth": 0.9845850389734986
+  },
+  {
+   "case": "DFG channel 384 x 72, cylinder moved 0.37 cell",
+   "d": 4.0,
+   "variant": "ghost rule as rows, consistent projection (the design)",
+   "growth": 0.984585018486561
+  }
+ ]
+}

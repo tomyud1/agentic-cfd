@@ -6,6 +6,8 @@ Usage (repo root, inside WSL):
   python -m cases.dfg_cylinder_re100.gpu_run ptol          # pressure-tolerance study on G1 from its developed field
   python -m cases.dfg_cylinder_re100.gpu_run clustered [C1 C2 C3]   # the protocol on grids clustered around the cylinder
   python -m cases.dfg_cylinder_re100.gpu_run timing C3     # cost per step of a level before running it
+  python -m cases.dfg_cylinder_re100.gpu_run clustered C3i # a trailing i: the level with the IMEX scheme (from C2's field)
+  python -m cases.dfg_cylinder_re100.gpu_run tolcheck C3i C2   # pressure tolerance of a level, from run C2's last field
 Outputs: results/dfg_cylinder_re100/runs/<G..>.json + .npz (cfdlib.gpu.write_run), gpu_preflight.json;
 final velocity fields in ~/gpucfd_runs/dfg_cylinder_re100/ (outside git, like OpenFOAM's run directories).
 
@@ -36,12 +38,20 @@ def load():
 
 def split_level(level, C):
     """A clustered level name: the level (C1, C2, C3) and the changes of its variant suffix, if any
-    (numerics.yaml, gpucfd.clustered.variants: C3s = C3 with variant s)."""
+    (numerics.yaml, gpucfd.clustered.variants: C3s = C3 with variant s). A trailing i is the IMEX scheme
+    (gpucfd.clustered.imex): C3i, C3si, C3wi."""
     for base in C["levels"]:
-        if level == base:
-            return base, {}
-        if level.startswith(base) and level[len(base):] in C.get("variants", {}):
-            return base, C["variants"][level[len(base):]]
+        if not level.startswith(base):
+            continue
+        suf = level[len(base):]
+        imex = suf.endswith("i") and "imex" in C
+        v = suf[:-1] if imex else suf
+        if v and v not in C.get("variants", {}):
+            continue
+        var = dict(C["variants"][v]) if v else {}
+        if imex:
+            var["scheme"] = "imex"
+        return base, var
     raise ValueError(f"unknown level {level}")
 
 
@@ -52,6 +62,7 @@ def make(level, problem, numerics):
     H, Um = g["H"], g["Um"]
     grid = None
     xc = g["xc"]
+    scheme = G["scheme"]
     if level in G["levels"]:
         k = G["levels"].index(level)
         n = (G["n_G1"][0] * 2 ** k, G["n_G1"][1] * 2 ** k, 1)
@@ -66,11 +77,12 @@ def make(level, problem, numerics):
         grid = (grids.clustered(n[0], g["L"], band[0], h, C["grow"][0]),
                 grids.clustered(n[1], H, band[1], h, C["grow"][1]), None)
         xc = g["xc"] + var.get("x_shift", 0.0)  # the cylinder moved relative to the grid (variant s)
+        scheme = var.get("scheme", scheme)
 
     def inflow(X, Y, Z):
         return (4 * Um * Y * (H - Y) / H ** 2, 0 * X, 0 * X)
     bnd = {"x-": ("inflow", inflow), "x+": "outflow", "y-": "wall", "y+": "wall"}
-    s = gcfd.NavierStokes(n, (g["L"], H, 1.0), g["nu"], scheme=G["scheme"], boundaries=bnd,
+    s = gcfd.NavierStokes(n, (g["L"], H, 1.0), g["nu"], scheme=scheme, boundaries=bnd,
                           bodies=[B.Cylinder((xc, g["yc"]), g["D"] / 2)], grid=grid)
     return s, inflow
 
@@ -175,7 +187,7 @@ def one(name, level, problem, numerics, t0, t1, src=None, factor=1.0, ptol=None,
                             partial=Path(runs_dir) / f"{name}.partial.npz")  # a killed run keeps its record
     rec = gpu.write_run(runs_dir, name, res, dict(level=level, n=list(s.n[:2]), cells=int(np.prod(s.n)), h=h, D_h=0.1 / h,
                                                   source=getattr(src, "_name", None), dt_factor=factor, pressure_tol=ptol,
-                                                  scheme=G["scheme"], sample_dt=G["sample_dt"], force_per_unit_depth=True))
+                                                  scheme=s.scheme, sample_dt=G["sample_dt"], force_per_unit_depth=True))
     save_field(s, name)
     s._name = name
     p = rec["perf"]
@@ -220,15 +232,21 @@ def clustered(names):
     problem, numerics = load()
     C, t = numerics["gpucfd"]["clustered"], numerics["time"]
     for nm in names:
-        base, _ = split_level(nm, C)
+        base, var = split_level(nm, C)
         k = C["levels"].index(base)
-        tol = C.get("pressure_tol", {}).get(base)  # per level (the tolerance rule applied on each level)
+        imex = var.get("scheme") == "imex"
+        # per level and scheme (the tolerance rule applied on each level)
+        tol = (C["imex"]["pressure_tol"] if imex else C.get("pressure_tol", {})).get(base)
+        if imex and tol is None:
+            raise ValueError(f"{nm}: no pressure tolerance yet (gpucfd.clustered.imex.pressure_tol): run tolcheck first")
         if k == 0:
             s, _ = one(nm, nm, problem, numerics, 0.0, t["develop_end"], ptol=tol)
             s.close()
             continue
-        # the coarser level of the same variant if it was run (or is run here), else the plain coarser level
-        prev = C["levels"][k - 1] + nm[len(base):]
+        # the coarser level of the same variant if it was run (or is run here), else the plain coarser level.
+        # An IMEX level starts from the explicit run of the coarser level (the same start as its explicit twin).
+        suf = nm[len(base):]
+        prev = C["levels"][k - 1] + (suf[:-1] if imex else suf)
         if not (RUNS_DIR / f"{prev}.json").exists():
             prev = C["levels"][k - 1]
         t0 = json.loads((RUNS_DIR / f"{prev}.json").read_text())["end_time"]
@@ -253,6 +271,24 @@ def uniform_retol(names):
                    ptol=G["pressure_tol_level"][nm])
         s.close()
         source.close()
+
+
+def tolcheck(level, src_name, tols=(1e-10, 1e-9, 1e-8, 1e-7), length=0.35):
+    """The pressure tolerance a level may use (cfdlib.gpu.tolerance_check, the case's rule: drag and lift
+    coefficients within 1e-4 of the strictest run over about one shedding cycle), from the saved last field
+    of run src_name. Writes gpu_tuning/tol_<level>.json."""
+    problem, numerics = load()
+    G = numerics["gpucfd"]
+    t0 = json.loads((RUNS_DIR / f"{src_name}.json").read_text())["end_time"]
+    s, _ = make(level, problem, numerics)
+    dt = s.max_dt(G["u_dt"], G["cfl"])
+    s.close()
+    res = gpu.tolerance_check(lambda: load_field(src_name, level, problem, numerics), dt, t0, length, G["sample_dt"],
+                              observer(problem, numerics), problem["given"]["Um"]["value"], tols=tols, keys=["cd", "cl"],
+                              rule=1e-4, log=lambda m: print(f"{level}: {m}", flush=True), cfl_limit=1.0)
+    res.update(level=level, source=src_name, dt=dt, length=length)
+    (OUT / "gpu_tuning" / f"tol_{level}.json").write_text(json.dumps(res, indent=1, default=float))
+    print(f"{level}: chosen {res['chosen']:g}", flush=True)
 
 
 def timing(level, steps=200):
@@ -396,6 +432,8 @@ if __name__ == "__main__":
     elif mode == "extend":
         for nm in sys.argv[2:]:
             extend(nm)
+    elif mode == "tolcheck":
+        tolcheck(sys.argv[2], sys.argv[3])
     elif mode == "ptol_summary":
         ptol_summary()
     elif mode == "preflight":

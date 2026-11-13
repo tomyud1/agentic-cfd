@@ -11,9 +11,232 @@ moves to a dated entry when it is committed.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
+### Correction: gpucfd's drag on case 4 is 0.3 to 0.4 % from the converged benchmark (not committed yet)
+- **What:** the claim "drag 0.1 to 0.2 % from the benchmark" in the two entries below it is
+  true only against the benchmark's finest tabulated number. Found by the agent that wrote the
+  study report (next entry), and recomputed by the dev agent.
+- **The check: question, result, meaning.**
+  - *Is the benchmark number itself converged?* The benchmark (FeatFlow) is a simulation on a
+    series of finer and finer grids. Its last three grids are still moving: they head for a drag
+    0.21 % above the last tabulated one. Against that converged value OpenFOAM is within 0.04 %,
+    and gpucfd is 0.31 % and 0.38 % low (two positions of the cylinder).
+  - *What it means:* gpucfd did not reach OpenFOAM's accuracy on this case. It came within
+    0.4 %, in less time than OpenFOAM's full study. The target ("within 0.25 % of the benchmark")
+    was met as written, but it was written against a number that is 0.2 % off, so OpenFOAM's own
+    finest grid would narrowly have failed it. gpucfd's own error estimate (0.6 to 0.75 %) had
+    been saying that 0.1 % was too good.
+- **A second correction:** "about 50 times faster than OpenFOAM per cell and time step" compared
+  two different clocks. With wall time on both sides it is 45 times on the grid with equal cells
+  and 25 times on the clustered grid.
+- **Changed:** README, ROADMAP and the workflow's gpucfd advice quote both drag numbers and the
+  corrected speed factor. Case 4's insight log has the lesson (insight 25). The agent building the
+  implicit scheme was told to quote its results the same way.
+- **The lesson for setting targets:** the workflow already tells a solver agent to compare with
+  a benchmark's converged value as well as its finest level. The target for the GPU solver was
+  set by the dev agent without that rule. Future targets use it.
+- **What happened to the report agent's 30 findings and suggestions:**
+  - *Acted on now:* the two corrections above; the catalogue check now catches a study report
+    that is not listed, and counts studies apart from cases; the machine file notes the report
+    server's port; case 4's report gets a link to the study; the study's headline and its
+    catalogue line get the correction (the last two by the report agent).
+  - *Passed to the agent building the implicit scheme:* the corrections in `gpucfd/DESIGN.md`,
+    and that the grid helper must stay usable without the graphics card.
+  - *Queued as one follow-up task, after the solver work:* a more flexible study-report
+    template (question, result and meaning per table; free sections; figures next to their
+    tables), shared number formatters and a verdict helper, the study contract in the contract
+    reference, one common shape for OpenFOAM and gpucfd run records (same clock, time-step limits
+    stored), rule constants in `numerics.yaml`, not in comments or code, a flag for an
+    uncertainty estimate that is not reliable, and reading a study's headline from its data.
+  - *Left for the student to decide:* one CPU run of OpenFOAM's finest grid with the live stop
+    (about 23 minutes), which would turn the 1740 s target time from an estimate into a
+    measurement.
+- **How it was verified:** the dev agent recomputed the extrapolation by hand from the benchmark's
+  table and got the same picture (converged drag 3.195, order about 1.1); the numbers quoted here
+  are the ones the study script computes (3.1952, order 1.08). The catalogue, study, layout and
+  tool tests pass, and case 4's report was rebuilt with the new insight and the link (contract
+  OK, verdict unchanged).
+
+### Case 4b: a study report that puts gpucfd next to OpenFOAM (not committed yet)
+- **What:** a second report for case 4 (the cylinder shedding vortices, Re 100):
+  `results/dfg_cylinder_re100/gpu_study.html`, written by the new script
+  `cases/dfg_cylinder_re100/gpu_study.py`. It shows OpenFOAM's four grids, gpucfd's three grids
+  with equal cells, gpucfd's three grids with cells clustered around the cylinder, and the three
+  check runs, side by side: accuracy, cost, what limits gpucfd, and the outcome against the
+  target. It is listed in the catalogue as case 4b (verdict WARN: usable, with caveats).
+- **Why it matters:** until now these results were only in `gpucfd/DESIGN.md` and in data files.
+  The supervisor can now read them in one page, with the limits stated as plainly as the result.
+- **No run was made.** The page is built from the files recorded on 2026-11-12 and 2026-11-13,
+  and every number in it is computed by the script from those files. Rebuilding it does not need
+  the graphics card.
+- **The page, as question, result, meaning:**
+  1. *Does gpucfd reach the target (drag within 0.25 % of the benchmark in less time than
+     OpenFOAM's whole study)?* Drag 0.09 % and 0.16 % below the benchmark (two positions of the
+     cylinder in the grid), study time 1421 s and 1375 s against about 1743 s. Yes, as defined.
+     The page's headline and first key number say in the same breath that the benchmark's finest
+     value is itself about 0.2 % low, and what the drag is against the value it is heading for
+     (the correction above).
+  2. *How well does gpucfd know its own answer?* Its three grids alone give an error estimate of
+     0.6 to 0.75 % for the drag; OpenFOAM's give 0.02 %. So gpucfd is close to the benchmark, but
+     could not prove it without the benchmark.
+  3. *What does it cost?* Per cell and time step gpucfd is 25 to 45 times cheaper than OpenFOAM.
+     It spends that on more cells and many more time steps. OpenFOAM has the same drag accuracy
+     after 153 s, on its second grid.
+  4. *What holds gpucfd back?* On its finest grid 70 % of the time steps are there only to keep
+     the calculation stable, a finer grid needs a stricter pressure setting (twice the cost per
+     step on the finest), and only 21 % of a clustered grid's cells are in the band around the
+     cylinder, because the band crosses the whole channel.
+- **Three things the page shows that were not written down before:**
+  - *The benchmark itself is not exact at this level.* Its own three finest levels point to a
+    drag 0.21 % above the value we compare with, and OpenFOAM's converged drag agrees with that
+    to 0.04 %. Measured against it, gpucfd's drag would be 0.31 % and 0.38 % low, not 0.09 % and
+    0.16 %. "Closer to the benchmark than OpenFOAM" does not mean "more accurate than OpenFOAM":
+    OpenFOAM's finest grid, at +0.252 %, would itself narrowly fail the 0.25 % test.
+  - *"About 50 times faster per cell and step" compared two different clocks:* gpucfd's solver
+    time without the force output against OpenFOAM's whole elapsed time. With the whole elapsed
+    time on both sides it is 45 times with equal cells and 25 times with clustered cells.
+  - *gpucfd and OpenFOAM do not give the same answer in every output.* By the rule fixed before
+    the runs (the two results differ by less than their two error estimates added), the finest
+    clustered grid agrees with OpenFOAM in 6 of 7 outputs; the lift minimum does not.
+- **Rewritten in plain words after the student said the first version was too hard to read.**
+  The summary now opens with three short sentences and seven short key numbers (before: a ten-line
+  paragraph of percentages). A list of the words used (reference, drag, lift, cells across the
+  diameter, explicit and implicit time step, pressure setting, error estimate, the grid names)
+  comes first in section 1. Every table is headed by the question it answers and ends in "Result"
+  and "What it means"; tables have fewer columns. The same facts are in it, and the limits are
+  still stated as plainly. The study template gained an optional list of terms.
+- **The implicit scheme's result was added the same day** (stage 3, the entry above). The page now
+  also answers "does an implicit time scheme make it faster?": two tables (each grid with both
+  schemes; the study with and without it), a new bar in the time figure, and the study time a
+  reader should take away: 1005 s, with 1421 s for the explicit scheme. It says that the estimate
+  made beforehand (550 to 800 s) was missed, and why the finest grid still needs the strictest
+  pressure setting (the implicit scheme splits a step into three unequal parts, and the shortest
+  part decides). The verdict is still WARN.
+- **Case 4's main report now links to this page** (one new line among its key findings). It was
+  rebuilt for that: its contract check passes and its verdict (WARN) and date are unchanged.
+- **How it was verified:** the page passes the contract check for study reports and the figure
+  layout check; a second build gives the same data file; the catalogue and its test pass; every
+  section was looked at in a browser. The numbers checked against `gpucfd/DESIGN.md` agree with
+  it (the drag, lift and frequency errors, the study times, the time-step and cell-count
+  factors), except the per-cell speed factor above and one rounding (OpenFOAM's frequency error
+  is -0.12 %, not -0.13 %).
+- **Open:** the report takes OpenFOAM's study time with a live stop (1743 s) from a replay of
+  the recorded runs; the finest OpenFOAM grid, 81 % of that time, was never run with the stop.
+  The finest clustered grid with the longer band of small cells is still not run.
+
 ## 2026-11-13
 
-### gpucfd: the stage 2 result checked, and the tools and corrections it called for, commit hash to be filled in
+### gpucfd: the implicit time scheme now works around bodies (stage 3), commit hash to be filled in
+- **What:** the GPU solver has two ways of stepping in time. The explicit one must take very small
+  steps on fine grids (the step shrinks with the cell size squared, because of friction in the
+  fluid). The implicit one handles friction differently and its step only has to follow the flow
+  speed. Until now the implicit one blew up as soon as there was a body in the flow, and nobody
+  knew why, so every flow around a body used the slow small steps. The cause is found and
+  removed; the implicit scheme is verified with bodies; and its worth is measured on case 4 (the
+  cylinder shedding vortices).
+- **Why the old scheme blew up.** Two separate faults.
+  - *A plain oversight:* the scheme pushed on the grid points inside the body with a pressure
+    that does not exist there. The error tripled every step. The explicit scheme already skipped
+    those points.
+  - *The real one:* the solver makes the flow obey two rules near a body. Rule 1: no fluid
+    appears or vanishes (mass is conserved). Rule 2: the fluid sticks to the wall, which the
+    solver imposes through helper values just inside the body ("ghost" values, copied from the
+    fluid next to them). Each step it fixed rule 1 by nudging the fluid, which broke rule 2 a
+    little; then it refreshed the ghost values, which broke rule 1 a little; and that small
+    leftover was added to the pressure. The implicit scheme splits a step into three unequal
+    parts, and going from a long part to a short one multiplied the leftover by four. Above a
+    certain strength of this feedback the error grows every step.
+  - *How sure:* a small separate program that imitates one time step predicts how fast the error
+    grows (17.5 % per step on case 4's grid); the solver showed 17.4 %. It also explains why the
+    explicit scheme never blew up: its limit is higher (and that limit was not known before).
+- **The fix:** fix both rules at once. The pressure equation now knows that the ghost values will
+  move with the fluid, so after each step mass is conserved *and* the fluid sticks to the wall.
+  Then there is no leftover to feed back. The equation is harder to solve than before (it lost a
+  symmetry the old solver relied on), so it got a new solver loop. The explicit scheme was not
+  touched.
+- **The checks: question, result, meaning.**
+  - *Does it still blow up?* 15 runs of the situation that used to blow up, with small and large
+    time steps, two positions of the cylinder, equal and clustered cells; and the real flow at
+    the large time step. Result: the error shrinks every time. Before, it grew 17 to 59 % per step.
+  - *Are both rules really kept?* After a step the ghost values match the fluid to the last digit
+    the computer holds, and mass is conserved to the solver's tolerance. In the explicit scheme
+    the ghost values are off by about one part in ten thousand: small, known now, left alone.
+  - *Is it as accurate as the explicit scheme?* On the flow between two cylinders with an exact
+    textbook answer the errors are the same to three digits on all three grids, and halving the
+    cell size still cuts the error by four or more.
+  - *Does the settled flow depend on the time step, or on the scheme?* No: a step four times
+    smaller gives the same flow to twelve digits, and so does the explicit scheme (to seven
+    digits on the one grid with unequal cells, where the explicit run stopped earlier). On the
+    slow-flow cylinder (Re 20) the drag agrees to seven digits and arrives in a third to a half
+    of the time.
+  - *Is it accurate in time?* Halving the time step cuts the error by four, as designed, on the
+    flow around the cylinder while it is still changing; and it lands on the explicit scheme's
+    flow.
+  - *Did anything old change?* 38 stored results of the earlier solver (with and without bodies,
+    equal and clustered cells) are identical to the last bit, and the whole test ladder passes.
+- **What it is worth on case 4** (cells clustered around the cylinder, three grids).
+  - *Same answer?* Yes, on every grid: drag and shedding frequency agree with the explicit runs
+    to 0.001 %, lift to 0.014 %. The rule fixed beforehand allowed 0.05 % and 0.3 %.
+  - *How much faster?* The finest grid takes 764 s instead of 1180 s. The whole three-grid study
+    takes 1005 s (17 minutes) instead of 1421 s; OpenFOAM's study takes about 1740 s.
+  - *What it means:* a real gain, 1.5 times on the grid that dominates, but less than the 2 to 4
+    times I estimated before building. The implicit scheme takes 3.3 times fewer steps there, but
+    each step costs twice as much (the harder equation), and the pressure still has to be solved
+    as tightly as before. On the coarsest grid the implicit scheme is slower, so the study keeps
+    the explicit scheme there: both give the same answer, so each grid can use the faster one.
+- **Limits, to say with it.** It makes the solver faster, not more accurate: the drag is still
+  0.3 % below the value the benchmark converges to, where OpenFOAM is within 0.04 %, and
+  OpenFOAM's coarse body-fitted grid is still far cheaper for this accuracy. One flow, in 2D, one
+  run per grid.
+- **One extra run the new scheme made affordable:** the finest grid with the small cells reaching
+  further behind the cylinder (the wake needs them). *Question:* does the lift come closer?
+  *Result:* lift 0.7 % low instead of 0.85 %, the shedding frequency error halves, drag
+  unchanged; the study with it takes 1308 s, still under OpenFOAM's 1740 s. *Meaning:* a small
+  step in the right direction, smaller than what moving the cylinder half a cell does to the
+  lift (0.3 %), so it is a hint, not a result, until it is repeated at a second position. That
+  repeat, and the implicit run with the cylinder moved, were not made.
+- **Open, in order of expected gain:** a scheme that solves the pressure once per step where
+  this one solves it three times (that is where the time goes now); cheaper friction solves;
+  and whether to give the explicit scheme the same two-rules-at-once fix, which would remove its
+  hidden limit but change all its body results in the fourth digit (a decision for the student).
+- **Where:** the cause, the formula, the design and every number are in
+  [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), "IMEX with immersed bodies, stage 3". Tests:
+  `gpucfd/tests/test_imex_bodies.py` (rung 14), the imitation program
+  `gpucfd/tests/imex_body_model.py`, case 4's runs `gpu_run.py clustered C1i C2i C3i` and their
+  comparison `gpu_imex.py`.
+- **Checked a second time by the dev agent**, to be sure the source in the repository is what
+  produced the numbers. The solver was built again from the source files; the 38 stored results
+  of the older solver are still identical to the last bit; the new tests (rung 14) pass, and every
+  number they write equals the agent's to the last digit (only the timings differ); the imitation
+  program gives the same limits and growth rates. Case 4's runs were not repeated (25 GPU-minutes
+  that would answer nothing new): their numbers were read again from the stored records.
+- **What became of the agent's 22 suggestions.**
+  - *Done now.* A small tool, `cfdlib.gpu.pick_scheme`, compares the two time-step limits of a grid
+    and says which scheme should be faster; on case 4's three grids it names the scheme that was
+    measured faster. The workflow's paragraph on this shrank to one line that points to the tool.
+    The solver's notes for developers gained three habits: when a scheme blows up, imitate one
+    step in a small program and compute its growth before changing the solver; time 200 steps of
+    a prototype before writing down an expected speed-up; save a new comparison reference after a
+    change that alters results (saved for this one). The machine notes say how to watch a running
+    job from Windows. The guidance says that steady flows around bodies settle sooner with the
+    implicit scheme (one case: same drag, 18 s against 50 s). The roadmap's status table and two
+    stale lines in the design file were corrected.
+  - *Passed on.* The study report (case 4b) got a section with these results from the session that
+    wrote it (checked: it rebuilds, passes its contract, and the page list and links are in order). Four tool items (one table of case 4's runs in place of names with suffix letters,
+    one way to check a pressure tolerance where the run script now has two, a time step taken from
+    the measured flow speed so the coarsest grid stops raising a warning, and repeated timings with
+    their spread) joined the waiting task "Study-report tooling and run records".
+  - *Written down, not done* (in `ROADMAP.md` and the design file's limits): one pressure solve per
+    step in place of three, with the smaller solver savings; the explicit scheme's hidden stability
+    limit and the choice whether to give it the new fix (the student's decision; recommended only
+    if a case comes near the limit, because a run that crossed it would blow up visibly and the fix
+    means making every explicit result with a body again); the limit's value on clustered and 3D
+    grids, which the small program cannot compute yet; a slowly fading wobble at the outflow in
+    one test without flow; the explicit scheme stopping a hair short of steady on one grid (inside
+    its tolerance); splitting the 1500-line design file into one file per stage.
+  - *Not done, with the reason.* Timings were not repeated: every time quoted differs from its
+    neighbour by far more than the 3 % seen between two runs of one grid.
+
+### gpucfd: the stage 2 result checked, and the tools and corrections it called for (`4b12f39`)
 - **What:** three check runs on case 4 (the cylinder shedding vortices, Re 100), and every
   suggestion the agent of stage 2 left behind was acted on: new tools, corrected claims, updated
   guidance.

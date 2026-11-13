@@ -10,7 +10,7 @@ A small lid-driven cavity (64 x 64, Re 100) is enough: the tests are about the r
 4. Ctrl-C during a run returns the record so far, with a warning in the health checks.
 5. tolerance_check: the strictest tolerance passes by definition, a very loose one fails, and the
    chosen tolerance is the loosest that passes.
-6. position_spread and check_fit (no GPU needed).
+6. position_spread, check_fit and pick_scheme (no GPU needed).
 """
 import sys
 from pathlib import Path
@@ -132,6 +132,15 @@ check("position_spread: middle and half range of two positions",
 fit = gpu.check_fit(needs_stretched_grid=True)
 check("check_fit: a thin layer is a note, not a blocker, and the note warns about cells against time",
       fit["ok"] and any("accuracy per cell, not time" in n for n in fit["notes"]))
+
+# case 4's clustered levels: cylinder diameter 0.1, nu 1e-3, velocity scale 2.25; time steps as recorded in the runs
+ps = {dh: gpu.pick_scheme(0.1 / dh, 1e-3, 2.25) for dh in (35, 70, 140)}
+check("pick_scheme: case 4's levels get the scheme that was measured faster, with the recorded time steps",
+      [ps[d]["scheme"] for d in (35, 70, 140)] == ["rk3", "rk3", "imex"]
+      and abs(ps[140]["dt_rk3"] / 7.653e-5 - 1) < 1e-3 and abs(ps[140]["dt_imex"] / 2.540e-4 - 1) < 1e-3
+      and abs(ps[35]["fewer_steps"] - 1) < 1e-12 and abs(ps[140]["fewer_steps"] - 3.318) < 2e-3,
+      "; ".join(f"D/h {d}: {p['scheme']}, {p['fewer_steps']:.2f} times fewer steps, gain {p['expected_gain']:.2f}"
+                for d, p in ps.items()))
 
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")
 sys.exit(1 if FAILS else 0)

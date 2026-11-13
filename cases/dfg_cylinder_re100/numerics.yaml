@@ -67,7 +67,8 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
   # body-fitted grids). n = n_G1 * 2^k, cells nearly square (h_x / h_y = 1.006), D/h = 17.6, 35, 70.
   levels: [G1, G2, G3]
   n_G1: [384, 72]
-  scheme: rk3                 # bodies need the explicit RK3 scheme (IMEX with bodies is unstable, DESIGN.md)
+  scheme: rk3                 # explicit RK3: when these runs were made IMEX with bodies was unstable (it works since
+                              # 2026-11-13: clustered.imex below has the same levels with it)
   cfl: 0.8                    # dt = min(cfl h / u_dt, 0.15 h^2 / nu) (gcfd.max_dt); on G3 the viscous limit sets it
   u_dt: 2.25                  # velocity scale for the time step: 1.5 Um
   sample_dt: 0.0025           # forces and probe every 2.5 ms: 133 samples per shedding period, peaks parabola-refined
@@ -162,6 +163,49 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
     #  3. C2w: lift maximum -3.68 %, Strouhal +0.25 %, drag -0.94 %: recovered. C2s moves the lift by 0.2 points and
     #     the Strouhal number by 0.02, so this is the band, not the cut. Cost: 143360 cells, periodic after 4 s,
     #     196 s; protocol 308 s against the uniform 328 s.
+    #
+    # THE IMEX SCHEME ON THESE LEVELS (gpucfd stage 3, added 2026-11-13; cause, design and criteria:
+    # gpucfd/DESIGN.md "IMEX with immersed bodies"). A level name with a trailing i is that level with
+    # scheme imex (implicit diffusion): the time step is cfl h / u_dt alone, without the viscous limit
+    # (C1 1.02e-3 as before, C2 5.08e-4 instead of 3.06e-4, C3 2.54e-4 instead of 7.65e-5).
+    # Both schemes solve the same discrete steady equations; in time IMEX is second order, RK3 third.
+    imex:
+      pressure_tol: {C1: 1.0e-9, C2: 1.0e-9, C3: 1.0e-10}   # per level, by the rule above (cd and cl within 1e-4 of
+                                         # the 1e-10 run over one cycle), found with cfdlib.gpu.tolerance_check from the
+                                         # explicit run's last field before each level was run (gpu_run.py tolcheck
+                                         # <level>i <source run>, gpu_tuning/tol_<level>i.json). Largest difference with
+                                         # 1e-9 / 1e-8: C1i 1.8e-5 / 1.2e-4, C2i 1.8e-5 / 1.7e-3, C3i 2.2e-4 / 1.2e-3.
+                                         # So IMEX needs the explicit scheme's tolerances or tighter (C1: 1e-9 against
+                                         # 1e-8), not looser ones as DESIGN.md expected: its shortest substep, 2/15 of
+                                         # the step, is only 1.8 times the explicit scheme's (1/4 of a step 3.3 times
+                                         # shorter). ms per step at 1e-10 / 1e-9 / 1e-8: C1i 13.6 / 11.3 / 8.4,
+                                         # C2i 24.8 / 20.8 / 15.6, C3i 62.5 / 48.8 / 33.6.
+    # Written BEFORE the runs (2026-11-13). Protocol as above: C1i from rest 0..15 s; C2i from C1's last field and
+    # C3i from C2's (the explicit runs' fields: the same start as their explicit twins), at least 3 s and until
+    # the periodicity rule holds, at most 8 s. Analysis: gpu_imex.py -> gpu_imex.json (the explicit records and
+    # gpu_clustered.json are not touched).
+    #  1. Same answer? Each IMEX level against the recorded explicit run on the same grid: mean and maximum drag
+    #     and the Strouhal number within 0.05 % of the value, lift maximum and amplitude within 0.3 %. For scale:
+    #     moving the cylinder half a cell moves C3's drag by 0.07 % and its lift maximum by 0.3 %. A level that
+    #     misses is rerun with half the time step: if the halved run moves toward the explicit one by about a
+    #     factor 4, the difference is IMEX's time error and the level needs that step; otherwise it is reported as
+    #     a different answer.
+    #  2. Wall time of the three-level study against 1421 s (explicit) and about 1740 s (OpenFOAM). A level may
+    #     use the scheme that is faster on it. Expected (DESIGN.md): C3i 300 to 530 s against C3's 1180 s; C1 and
+    #     C2 stay explicit (their viscous limit is not below the convective one by enough to pay for the dearer
+    #     step); study 550 to 800 s. C3i is timed over 200 steps first and not started above a projection of
+    #     20 minutes.
+    #  3. If time allows: C3wi (the longer band of fine cells, from C2w's field): lift maximum expected below
+    #     1 % from FeatFlow; and C3si (the cylinder moved half a cell, from C2s's field), so that the drag is
+    #     quoted with its spread over two positions.
+    # OUTCOME (2026-11-13, results/.../gpu_imex.json, gpucfd/DESIGN.md "IMEX with immersed bodies"):
+    #  1. Same answer on all three levels: drag and Strouhal number within 0.001 %, lift within 0.014 % (C1i),
+    #     0.003 % (C2i), 0.002 % (C3i). No level had to be rerun.
+    #  2. C3i 764 s against C3's 1180 s (3.3 times fewer steps, 2.1 times the time per step). Study C1 + C2 + C3i
+    #     1005 s; all three with IMEX 1085 s (C1i 187 s against 112 s, C2i 134 s against 129 s). The expectation
+    #     (C3i 300 to 530 s, study 550 to 800 s) was missed: the tolerance did not relax and the step is dearer.
+    #  3. C3wi: lift maximum -0.69 %, amplitude -0.94 %, Strouhal +0.07 %, drag -0.12 / -0.10 %; 1001 s, study
+    #     C1 + C2w + C3wi 1308 s. Its tolerance is C3i's (not checked on this grid). C3si was not run.
 sensitivity:                  # extra run on M3: linear-upwind convection instead of central
   mesh: M3
   div_U: 'Gauss linearUpwind grad(U)'

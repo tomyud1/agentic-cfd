@@ -53,7 +53,8 @@ MSYS_NO_PATHCONV=1 wsl -d Ubuntu-24.04 --cd "/mnt/d/Projects/Agentic CFD" -- /ho
   a real line break, a double backslash as a single one): change code with your file-editing tool.
 - In a live watch on a log, every stage of the pipe must write line by line, or nothing arrives until
   the run ends: `grep --line-buffered`, `sed -u`, `stdbuf -oL cut ...` (`tr` and `cut` buffer whole
-  blocks by default).
+  blocks by default). Simplest for a run started from Windows: inside the `.sh` that WSL runs, write
+  the log to a file in the project (`python -u ... > run.log 2>&1`) and watch that file.
 
 ## Pitfalls of this machine
 
@@ -67,4 +68,5 @@ MSYS_NO_PATHCONV=1 wsl -d Ubuntu-24.04 --cd "/mnt/d/Projects/Agentic CFD" -- /ho
 
 Claude Code's built-in browser cannot open `file://` pages. A local server serves `results/`:
 `http://localhost:8765/<name>/report.html` (configuration `reports` in `.claude/launch.json`; start it
-with the preview tool if the page does not load).
+with the preview tool if the page does not load). If another session already serves `results/` on
+8765, open that address: a second server gets another port and its tab may not load.

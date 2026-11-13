@@ -78,6 +78,8 @@ def lib():
         if hasattr(L, "gcfd_ns_body_ok"):  # bodies on stretched grids (from 2026-11-13, stage 2)
             L.gcfd_ns_body_ok.restype = ctypes.c_int
             L.gcfd_ns_body_ok.argtypes = [ctypes.c_void_p]
+        if hasattr(L, "gcfd_ns_set_p"):  # IMEX with bodies, and setting the pressure (from 2026-11-13, stage 3)
+            L.gcfd_ns_set_p.argtypes = [ctypes.c_void_p, _dp]
         _lib = L
     return _lib
 
@@ -277,12 +279,11 @@ class NavierStokes:
         self.bodies = list(bodies or [])
         self.fluid = None  # per component: True on fluid faces (bodies only)
         if self.bodies:
-            if scheme != "rk3":
-                # Measured 2026-11-12: IMEX with bodies grows unstably (about 25 % per step, also with
-                # convection negligible and with the diffusion fully implicit) unless its incremental
-                # pressure is switched off, which would leave a time-step-dependent slip at the walls.
-                # Not resolved yet: see DESIGN.md, immersed bodies.
-                raise ValueError('bodies need scheme="rk3" (IMEX with bodies is not stable yet)')
+            if scheme != "rk3" and not hasattr(lib(), "gcfd_ns_set_p"):
+                # Builds before 2026-11-13 (stage 3): IMEX with bodies grows unstably there (DESIGN.md,
+                # "IMEX with immersed bodies": a pressure gradient inside the body, and the ghost faces'
+                # answer to the pressure correction fed back into the pressure).
+                raise ValueError('this build of the library needs scheme="rk3" with bodies (rebuild: bash gpucfd/build.sh)')
             from gpucfd import bodies as _b
             rules = _b.build(self, self.bodies, s_image=image_distance)
             for c, r in enumerate(rules):
@@ -430,6 +431,13 @@ class NavierStokes:
     def project(self):
         """Make the current velocity discretely divergence-free; returns max |div u| afterwards."""
         return lib().gcfd_ns_project(self.h)
+
+    def set_pressure(self, p):
+        """Set the pressure that the incremental projection carries (IMEX, or any scheme with bodies), to
+        continue from a stored state: set(velocity) and set_pressure(pressure()) of that state."""
+        if not (self.scheme == "imex" or self.bodies):
+            raise ValueError("the explicit scheme without bodies carries no pressure between steps")
+        lib().gcfd_ns_set_p(self.h, np.ascontiguousarray(p, np.float64).reshape(self.shape).ravel())
 
     def run(self, dt, nsteps, ptol=1e-10):
         """Advance; returns dict(ms (GPU time), max_div (after), poisson_its (mean per projection),

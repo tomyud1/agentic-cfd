@@ -13,15 +13,22 @@ When to choose gpucfd instead of OpenFOAM (measured numbers and limits: gpucfd/D
   band around a body crosses the whole domain in each direction (case 4: 3.85 times fewer cells
   than uniform, not the 30 times of a body-fitted grid).
 - Where it pays: many time steps on grids of 10^4 to 10^7 cells (one RTX 4070 runs a 2D step in a
-  few milliseconds). Bodies force the explicit RK3 scheme, whose time step is limited by
-  0.15 h^2 / nu with the smallest cell as well as by the flow speed; at high resolution that limit
-  dominates (case 4 at 140 cells per diameter: 3.3 times below the convective limit).
-- With bodies and the explicit scheme, check the pressure tolerance on the finest grid, not only on
-  the coarsest: the pressure noise grows as the time step shrinks (case 4: 1e-8 on the coarsest
-  level, 1e-10 at 140 cells per diameter). tolerance_check() does this for any level.
+  few milliseconds). The explicit RK3 scheme's time step is limited by 0.15 h^2 / nu with the
+  smallest cell as well as by the flow speed; at high resolution that limit dominates (case 4 at
+  140 cells per diameter: 3.3 times below the convective limit). scheme="imex" has only the
+  flow-speed limit. With a body its step costs about twice an explicit one, so it pays when the
+  viscous limit is more than about twice below the convective one (case 4: 1.55 times faster at
+  140 cells per diameter, slower at 35); both schemes give the same answer, so the levels of a
+  study may differ in scheme. pick_scheme() does this comparison for a level.
+- With bodies, check the pressure tolerance on the finest grid, not only on the coarsest: the
+  pressure noise grows as the time step shrinks (case 4, explicit: 1e-8 on the coarsest level,
+  1e-10 at 140 cells per diameter; IMEX: 1e-9 and 1e-10). tolerance_check() does this for any level.
 - An immersed body's result depends a little on where the grid cuts it; position_spread() reports
   that spread from runs with the body shifted by a fraction of a cell.
 - Steady problems: march to steady state with gpucfd.steady (grid sequencing and an error-based stop).
+  Around a body, a simulation made with scheme="imex" settles to the same state in fewer steps (DFG
+  2D-1 at 17.6 cells per diameter: same drag to 3e-8, 18 GPU-s against 50; one case, CFL 0.8, larger
+  CFL numbers untried with bodies).
 
 check_fit() turns this into a checklist for a given problem; its reasons go into decisions.yaml.
 run_transient() runs and records a transient case (live check, stop rule, a partial record that survives
@@ -61,8 +68,9 @@ def check_fit(cell_reynolds=None, needs_stretched_grid=False, **needs):
     notes = []
     if needs_stretched_grid:
         notes.append("thin layers: use a grid stretched per direction (gpucfd.grids.tanh toward walls, "
-                     "gpucfd.grids.clustered around a body). The fine bands cross the whole domain, and with bodies the "
-                     "explicit time step follows the smallest cell squared: estimate cells and steps before choosing gpucfd. "
+                     "gpucfd.grids.clustered around a body). The fine bands cross the whole domain, and the "
+                     "explicit time step follows the smallest cell squared (scheme imex does not, at about twice the cost per "
+                     "step with a body): estimate cells and steps before choosing gpucfd. "
                      "Below a few hundred thousand cells a step costs several milliseconds almost whatever the size, so "
                      "there fewer cells buy accuracy per cell, not time (case 4: a third of the cells, nearly the same time)")
     if cell_reynolds is not None:
@@ -71,6 +79,32 @@ def check_fit(cell_reynolds=None, needs_stretched_grid=False, **needs):
         elif cell_reynolds > 2:
             notes.append(f"cell Reynolds number {cell_reynolds:.3g} > 2: expect wiggles; check them on the finer grids")
     return dict(ok=not blockers, blockers=blockers, notes=notes)
+
+
+def pick_scheme(h_min, nu, u, cfl=0.8, step_cost=2.0):
+    """Which time scheme for one grid level: explicit "rk3" or "imex" (implicit diffusion)?
+
+    The explicit scheme's step is the smaller of the flow-speed limit cfl h / u and the viscous limit
+    0.15 h^2 / nu; IMEX has only the first, but a step costs more. h_min: smallest cell size, u: the
+    velocity scale used for the time step. step_cost: time of an IMEX step over an explicit one at the
+    tolerance each needs. The default 2.0 was measured with an immersed body (case 4: 1.7 to 2.1,
+    because the body makes IMEX's systems non-symmetric); it is not measured without a body, so there
+    time about 200 steps of each scheme and pass the ratio. Both schemes reach the same answer (gpucfd
+    rung 14; case 4's forces to 0.01 %), so the levels of one study may use different schemes.
+
+    Returns dict(scheme, dt_rk3, dt_imex, fewer_steps, expected_gain, why). expected_gain is
+    fewer_steps / step_cost: an estimate, to be replaced by a timing before it is quoted (case 4 at
+    140 cells per diameter: estimated 1.66, measured 1.55; at 70: 0.83 and 0.96; at 35: 0.5 and 0.6).
+    The pressure tolerance has to be checked per scheme (tolerance_check): on case 4's coarsest level
+    IMEX needed 1e-9 where the explicit scheme passed with 1e-8."""
+    dt_imex = cfl * h_min / u
+    dt_rk3 = min(dt_imex, 0.15 * h_min * h_min / nu)
+    fewer = dt_imex / dt_rk3
+    gain = fewer / step_cost
+    scheme = "imex" if gain > 1.0 else "rk3"
+    why = (f"the viscous limit is {fewer:.2f} times below the flow-speed limit; an IMEX step costs about {step_cost:g} "
+           f"explicit ones, so IMEX would take about {1 / gain:.2f} times the explicit scheme's time")
+    return dict(scheme=scheme, dt_rk3=dt_rk3, dt_imex=dt_imex, fewer_steps=fewer, expected_gain=gain, why=why)
 
 
 def available():
@@ -232,9 +266,9 @@ def tolerance_check(make, dt, t0, length, sample_dt, observe, u_ref, tols=(1e-10
     """Which pressure tolerance may a level use? Runs the same stretch of flow once per tolerance and
     compares the sampled outputs with those of the strictest one (the same-answer rule).
 
-    Do this on every level of a study, the finest included: with bodies the scheme is explicit, the time
-    step shrinks faster than the cell size, and the error a fixed tolerance leaves in the pressure then
-    weighs more in the forces (case 4: 1e-8 held on the coarsest level, the finest needed 1e-10, and with
+    Do this on every level of a study, the finest included: the pressure update divides by the time
+    step, which shrinks with the cell size (with the explicit scheme faster than it), and the error a
+    fixed tolerance leaves in the pressure then weighs more in the forces (case 4: 1e-8 held on the coarsest level, the finest needed 1e-10, and with
     1e-8 its forces jittered so much that the run never became periodic).
 
     make() -> a new simulation holding the start field at time t0 (for example the level's saved last

@@ -17,7 +17,7 @@
 6. DFG benchmark 2D-1 (cylinder in a channel, Re 20, steady): drag, lift and the pressure difference
    across the cylinder against the reference values (Nabh 1998, listed on the FeatFlow benchmark page),
    on three grids; forces from two different boxes must agree to round-off.
-Bodies are run with the explicit scheme (IMEX with bodies is not stable yet: DESIGN.md).
+Bodies are run here with the explicit scheme; rung 14 (test_imex_bodies) runs them with IMEX.
 """
 import json
 import sys

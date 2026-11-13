@@ -858,6 +858,7 @@ struct CGState {
   double fn, rr, rz, rznew, pq, alpha, beta, tol, stop, s;
   int it, maxit, go, first;
   long long total_its, solves;  // accumulated over solves (iterations per solve = total_its / solves)
+  double omega, ts, tt;         // BiCGStab only (k_bi_*)
 };
 
 // Dot product (sum if b is null) into *out on the GPU: per-block partial sums, then one block adds them
@@ -944,6 +945,37 @@ __global__ void k_cg_reset(CGState* g) {
   g->total_its = 0;
   g->solves = 0;
 }
+// ------------------------------------------------------------------ BiCGStab on the GPU
+// For the two systems of the IMEX scheme with immersed bodies, which are not symmetric (NS::bicgstab):
+// the same scalars and the same kind of one-thread kernels as conjugate gradients.
+// rz = (r0, r) of the last iteration, rznew = this one's, pq = (r0, v), ts = (t, s), tt = (t, t).
+__global__ void k_bi_start(CGState* g, double tol, int maxit, const double* fmin = nullptr) {  // after s = b.b, rr = r.r
+  g->fn = (fmin ? fmax(sqrt(g->s), *fmin) : sqrt(g->s)) + 1e-300;
+  g->tol = tol;
+  g->maxit = maxit;
+  g->it = 0;
+  g->first = 1;
+  g->go = (sqrt(g->rr) / g->fn > tol) ? 1 : 0;
+}
+__global__ void k_bi_beta(CGState* g) {
+  g->beta = (g->first || g->rz == 0.0 || g->omega == 0.0) ? 0.0 : (g->rznew / g->rz) * (g->alpha / g->omega);
+  g->rz = g->rznew;
+}
+__global__ void k_bi_alpha(CGState* g) { g->alpha = g->pq != 0.0 ? g->rz / g->pq : 0.0; }
+__global__ void k_bi_omega(CGState* g) { g->omega = g->tt > 0.0 ? g->ts / g->tt : 0.0; }
+__global__ void k_bi_test(CGState* g) {  // after rr = r.r of the new residual
+  ++g->it;
+  g->first = 0;
+  g->go = (g->it < g->maxit && sqrt(g->rr) / g->fn > g->tol) ? 1 : 0;  // a NaN residual stops the loop
+}
+template <typename T>
+__global__ void k_bi_p(T* p, const T* r, const T* v, const CGState* g, size_t n) {  // p = r + beta (p - omega v)
+  const bool f = g->first != 0;
+  const double be = g->beta, om = g->omega;
+  for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
+    p[q] = f ? r[q] : r[q] + T(be) * (p[q] - T(om) * v[q]);
+}
+
 static CGState* new_cg() {
   CGState* g;
   CK(cudaMalloc(&g, sizeof(CGState)));
@@ -2011,12 +2043,13 @@ __global__ void k_helm(const T* x, T* Ax, Level L, int comp, Bnd W, double cnu) 
 // I = B + s_I n, interpolated (bi- or trilinear) from fluid faces only; faces deeper inside take the
 // body's velocity (w = 0). The fluid faces then see the body through their usual stencils (sharp
 // interface, ghost-cell method). The lists are built on the CPU (gcfd.py) from signed distances.
+// homog = 1 leaves out a0: the rule applied to a correction of the velocity (NS::ghost_op).
 template <typename T>
 __global__ void k_ib_set(T* q, const long long* idx, const double* a0, const long long* nb, const double* w, int n,
-                         int ns) {
+                         int ns, int homog = 0) {
   const int g = blockIdx.x * blockDim.x + threadIdx.x;
   if (g >= n) return;
-  double s = a0[g];
+  double s = homog ? 0.0 : a0[g];
   for (int k = 0; k < ns; ++k) s += w[size_t(ns) * g + k] * double(q[nb[size_t(ns) * g + k]]);
   q[idx[g]] = T(s);  // the nb are fluid faces, never written here
 }
@@ -2029,6 +2062,27 @@ template <typename T>
 __global__ void k_ib_cons(T* q, const long long* idx, const double* sa, int n, const double* Q) {
   const int g = blockIdx.x * blockDim.x + threadIdx.x;
   if (g < n) q[idx[g]] -= T(*Q * sa[g]);
+}
+// The rule of each face in a body as an equation of the implicit diffusion solve (IMEX with bodies):
+// row of face idx: x[idx] - sum_k w_k x[nb_k]  (= a0 on the right-hand side, k_ib_a0).
+template <typename T>
+__global__ void k_ib_rows(T* Ax, const T* x, const long long* idx, const long long* nb, const double* w, int n, int ns) {
+  const int g = blockIdx.x * blockDim.x + threadIdx.x;
+  if (g >= n) return;
+  double s = double(x[idx[g]]);
+  for (int k = 0; k < ns; ++k) s -= w[size_t(ns) * g + k] * double(x[nb[size_t(ns) * g + k]]);
+  Ax[idx[g]] = T(s);
+}
+template <typename T>
+__global__ void k_ib_a0(T* b, const long long* idx, const double* a0, int n) {
+  const int g = blockIdx.x * blockDim.x + threadIdx.x;
+  if (g < n) b[idx[g]] = T(a0[g]);
+}
+// a = 0 where m is not zero (keeps the faces in bodies of a face array: m = the fluid mask)
+template <typename T>
+__global__ void k_zero_where(T* a, const T* m, size_t n) {
+  for (size_t q = blockIdx.x * size_t(blockDim.x) + threadIdx.x; q < n; q += size_t(gridDim.x) * blockDim.x)
+    if (m[q] != T(0)) a[q] = T(0);
 }
 __global__ void k_scale(double* a, double f) { *a *= f; }
 template <typename T>
@@ -2095,6 +2149,7 @@ struct NS {
   double* dmax = nullptr;
   Solver<double>* P;
   Bnd W = {};  // boundary data (device arrays, one per bounded side and component)
+  Bnd W0 = {};  // zeros on the high sides: the boundary data of a velocity CORRECTION (ghost_op), bodies only
   int kind[6];  // 0 periodic, 1 velocity side (wall or inflow), 2 outflow
   bool has_outflow = false;
   Force G;
@@ -2258,7 +2313,10 @@ struct NS {
       cudaFree(wq[s]);
     }
     for (int side = 0; side < 6; ++side)
-      for (int s = 0; s < 3; ++s) cudaFree(W.u[side][s]);
+      for (int s = 0; s < 3; ++s) {
+        cudaFree(W.u[side][s]);
+        cudaFree(W0.u[side][s]);
+      }
     cudaFree(dsum);
     cudaFree(fscale);
     for (int s = 0; s < 3; ++s) {
@@ -2379,6 +2437,11 @@ struct NS {
         CK(cudaMemcpy(r.sa, rs[s].data(), r.n * sizeof(double), cudaMemcpyHostToDevice));
       }
     }
+    for (int d = 0; d < 3; ++d)
+      if (kind[2 * d + 1] != 0 && !W0.u[2 * d + 1][d]) {
+        CK(cudaMalloc(&W0.u[2 * d + 1][d], plane_cells(d) * sizeof(double)));
+        CK(cudaMemset(W0.u[2 * d + 1][d], 0, plane_cells(d) * sizeof(double)));
+      }
     for (auto& x : graphs.e) CK(cudaGraphExecDestroy(x.exec));
     graphs.e.clear();
     ib_set();
@@ -2417,6 +2480,122 @@ struct NS {
     });
     k_cg_done<<<1, 1, 0, gs()>>>(hc);
   }
+  // ------------------------------------------------- IMEX with immersed bodies (DESIGN.md, stage 3)
+  // The projection of the explicit scheme corrects fluid faces only and leaves the faces in bodies at
+  // the values extrapolated from u*. Setting them again from the corrected velocity changes the flow
+  // through them, so either the ghost rule or the divergence constraint is violated by D_g E G phi, and
+  // an incremental pressure feeds that leftover back (unstable with IMEX's substeps once the largest
+  // eigenvalue of A^-1 D_g E G passes 0.279). Here the correction of the ghost faces is part of the
+  // pressure equation, (A + D_g E G) phi = div u*, so that afterwards the velocity is divergence-free
+  // WITH ghost faces that follow their rule. The operator is not symmetric: BiCGStab.
+  //
+  // out = D_g E G x: the divergence, through the faces in bodies only, of the ghost rule applied to the
+  // gradient of x on the fluid faces (in a closed region with the net-flow correction of the rim faces,
+  // which is part of the projection). Uses q0 as scratch.
+  void ghost_op(const T* x, T* out) {
+    const size_t n = L.cells();
+    for (int s = 0; s < 3; ++s) {
+      CK(cudaMemsetAsync(q0[s], 0, n * sizeof(T), gs()));
+      if (s >= ncomp) continue;
+      k_ns_correct<T><<<grid3(L), B3, 0, gs()>>>(q0[s], x, L, s, -1.0, fl[s]);  // + grad x on the fluid faces
+      if (ib[s].n)
+        k_ib_set<T><<<(ib[s].n + 255) / 256, 256, 0, gs()>>>(q0[s], ib[s].idx, ib[s].a0, ib[s].nb, ib[s].w, ib[s].n, ib_ns, 1);
+      k_zero_where<T><<<lin_blocks(n), 256, 0, gs()>>>(q0[s], fl[s], n);  // keep the faces in bodies
+    }
+    k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q0[0], q0[1], q0[2], out, L, W0);
+    if (closed) {
+      dot_dev<T>(out, P->vact ? P->vact : P->act, n, hpart, dsum);
+      for (int s = 0; s < ncomp; ++s)
+        if (rim[s].n) k_ib_cons<T><<<(rim[s].n + 255) / 256, 256, 0, gs()>>>(q0[s], rim[s].idx, rim[s].sa, rim[s].n, dsum);
+      k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q0[0], q0[1], q0[2], out, L, W0);
+    }
+    k_mul<T><<<lin_blocks(n), 256, 0, gs()>>>(out, P->act, n);
+  }
+  void op_hat(const T* x, T* out) {  // (A + D_g E G) x
+    k_apply<T><<<grid3(L), B3, 0, gs()>>>(x, out, P->L[0], P->K[0]);
+    ghost_op(x, tmp);
+    k_axpy<T><<<lin_blocks(L.cells()), 256, 0, gs()>>>(out, tmp, 1.0, L.cells());
+  }
+  // BiCGStab (van der Vorst 1992), right-preconditioned: x += alpha K p + omega K s. A(in, out) applies
+  // the operator, K(in, out) the preconditioner (pre false: none, and y, z are never used), dot the
+  // inner product. r, r0, p, v, t (and y, z with a preconditioner) are work arrays; r holds b - A x on
+  // entry, with g->rr = (r, r) and g->s = (b, b) set and k_bi_start queued.
+  template <class Op, class Pre, class Dot>
+  void bicgstab(CGState* g, T* x, T* r, T* r0, T* p, T* v, T* t, T* y, T* z, Op A, Pre K, Dot dot, bool pre) {
+    const size_t n = L.cells();
+    const int nb = lin_blocks(n);
+    CK(cudaMemcpyAsync(r0, r, n * sizeof(T), cudaMemcpyDeviceToDevice, gs()));
+    T* yy = pre ? y : p;
+    T* zz = pre ? z : r;
+    dev_while(&g->go, [&] {
+      dot(r0, r, &g->rznew);
+      k_bi_beta<<<1, 1, 0, gs()>>>(g);
+      k_bi_p<T><<<nb, 256, 0, gs()>>>(p, r, v, g, n);
+      if (pre) K(p, y);
+      A(yy, v);
+      dot(r0, v, &g->pq);
+      k_bi_alpha<<<1, 1, 0, gs()>>>(g);
+      k_axpy_d<T><<<nb, 256, 0, gs()>>>(r, v, &g->alpha, -1.0, n);  // s = r - alpha v, kept in r
+      if (pre) K(r, z);
+      A(zz, t);
+      dot(t, r, &g->ts);
+      dot(t, t, &g->tt);
+      k_bi_omega<<<1, 1, 0, gs()>>>(g);
+      k_axpy_d<T><<<nb, 256, 0, gs()>>>(x, yy, &g->alpha, 1.0, n);
+      k_axpy_d<T><<<nb, 256, 0, gs()>>>(x, zz, &g->omega, 1.0, n);
+      k_axpy_d<T><<<nb, 256, 0, gs()>>>(r, t, &g->omega, -1.0, n);
+      dot(r, r, &g->rr);
+      k_bi_test<<<1, 1, 0, gs()>>>(g);
+    });
+    k_cg_done<<<1, 1, 0, gs()>>>(g);
+  }
+  // (A + D_g E G) X = F, preconditioned by the multigrid V-cycle of A. X: initial guess in, solution out.
+  void solve_hat(T* F, T* X) {
+    Solver<double>& S = *P;
+    const size_t n = L.cells();
+    CGState* g = S.cg;
+    T *r = S.b[0], *pp = S.p_, *v = S.q_, *y = S.z_, *r0 = cr, *t = cp, *z = cAp;
+    if (S.singular && S.vact) {  // closed region: the sum over the fluid is taken out in its cut cells (as Solver::iterate)
+      dot_dev<T>(F, S.vact, n, S.part, &g->s);
+      k_sub_mean_m<T><<<lin_blocks(n), 256, 0, gs()>>>(F, S.cut, &g->s, S.vcut_tot, n);
+    } else if (S.singular && S.act) {
+      dot_dev<T>(F, S.act, n, S.part, &g->s);
+      k_sub_mean_m<T><<<lin_blocks(n), 256, 0, gs()>>>(F, S.cut, &g->s, S.n_cut, n);
+    }
+    auto dot = [&](const T* a, const T* b, double* out) { dotw_dev<T>(a, b, S.vol, n, S.part, out); };
+    op_hat(X, v);
+    CK(cudaMemcpyAsync(r, F, n * sizeof(T), cudaMemcpyDeviceToDevice, gs()));
+    k_axpy<T><<<lin_blocks(n), 256, 0, gs()>>>(r, v, -1.0, n);
+    dot(F, F, &g->s);
+    dot(r, r, &g->rr);
+    k_bi_start<<<1, 1, 0, gs()>>>(g, ptol, 200, fscale);
+    bicgstab(g, X, r, r0, pp, v, t, y, z, [&](T* in, T* out) { op_hat(in, out); },
+             [&](T* in, T* out) { S.precondition(in, out); }, dot, true);
+    if (S.singular) S.remove_mean(X, n);
+  }
+  // Implicit diffusion with bodies: fluid faces (I - cnu Lap) x = b, and every face in a body with its
+  // ghost rule as its equation, x_G - sum w x = a0 (the wall condition holds for the solved velocity,
+  // not for the last stage's). The rows of b that belong to faces in bodies are set here.
+  void helm_op(int comp, const T* x, T* Ax, double cnu) {
+    k_helm<T><<<grid3(L), B3, 0, gs()>>>(x, Ax, L, comp, W, cnu);
+    const IBList& bl = ib[comp];
+    if (bl.n) k_ib_rows<T><<<(bl.n + 255) / 256, 256, 0, gs()>>>(Ax, x, bl.idx, bl.nb, bl.w, bl.n, ib_ns);
+  }
+  void helmholtz_body(int comp, T* x, T* b, double cnu) {
+    const size_t n = L.cells();
+    T *r = cr, *r0 = cp, *pp = cAp, *v = tmp, *t = dv;
+    const IBList& bl = ib[comp];
+    if (bl.n) k_ib_a0<T><<<(bl.n + 255) / 256, 256, 0, gs()>>>(b, bl.idx, bl.a0, bl.n);
+    auto dot = [&](const T* a, const T* c, double* out) { dotw_dev<T>(a, c, wq[comp], n, hpart, out); };
+    helm_op(comp, x, v, cnu);
+    CK(cudaMemcpyAsync(r, b, n * sizeof(T), cudaMemcpyDeviceToDevice, gs()));
+    k_axpy<T><<<lin_blocks(n), 256, 0, gs()>>>(r, v, -1.0, n);
+    dot(b, b, &hc->s);
+    dot(r, r, &hc->rr);
+    k_bi_start<<<1, 1, 0, gs()>>>(hc, htol, 500);
+    bicgstab(hc, x, r, r0, pp, v, t, nullptr, nullptr, [&](T* in, T* out) { helm_op(comp, in, out, cnu); },
+             [](T*, T*) {}, dot, false);
+  }
   void step_imex(double dt, int par) {
     static const double gam[3] = {8.0 / 15.0, 5.0 / 12.0, 3.0 / 4.0};
     static const double zeta[3] = {0.0, -17.0 / 60.0, -5.0 / 12.0};
@@ -2439,8 +2618,10 @@ struct NS {
         k_ns_lap<T><<<grid3(L), B3, 0, gs()>>>(q[s], tmp, L, s, W, 0);
         k_imex_b<T><<<lin_blocks(n), 256, 0, gs()>>>(q0[s], q[s], Fn[s], Fold[s], tmp, Bw[s], dt, gam[k], zeta[k],
                                                      ab[k], ab[k], nu, n);  // q0 holds the stage's right-hand side
-        k_ns_correct<T><<<grid3(L), B3, 0, gs()>>>(q0[s], pres, L, s, cdt);  // - (alpha+beta) dt grad p_old
-        helmholtz(s, q[s], q0[s], ab[k] * dt * nu);                         // initial guess: the current velocity
+        // - (alpha+beta) dt grad p_old; with bodies on fluid faces only (the pressure is not defined in a body)
+        k_ns_correct<T><<<grid3(L), B3, 0, gs()>>>(q0[s], pres, L, s, cdt, has_body ? fl[s] : nullptr);
+        if (has_body) helmholtz_body(s, q[s], q0[s], ab[k] * dt * nu);     // ghost rules as rows of the solve
+        else helmholtz(s, q[s], q0[s], ab[k] * dt * nu);                   // initial guess: the current velocity
         std::swap(Fn[s], Fold[s]);                                           // N(u_{k-1}) becomes N_old next stage
       }
       project();                                                              // u = u* - grad(phi)
@@ -2465,13 +2646,24 @@ struct NS {
       for (int s = 0; s < ncomp; ++s) k_absmax<T><<<lin_blocks(L.cells()), 256, 0, gs()>>>(q[s], L.cells(), fscale);
       k_scale<<<1, 1, 0, gs()>>>(fscale, fscale_f);
     }
-    P->solve_dev(dv, phi, ptol, 200, has_body ? fscale : nullptr);  // phi from the last projection: initial guess
+    const bool consistent = has_body && scheme == 1;  // IMEX with bodies: the ghost faces are part of the projection
+    if (consistent) solve_hat(dv, phi);
+    else P->solve_dev(dv, phi, ptol, 200, has_body ? fscale : nullptr);  // phi from the last projection: initial guess
     for (int s = 0; s < ncomp; ++s) k_ns_correct<T><<<grid3(L), B3, 0, gs()>>>(q[s], phi, L, s, 1.0, fl[s]);
     for (int side = 0; side < 6; ++side)
       if (kind[side] == 2) {
         const int d = side / 2;
         k_outflow_correct<T><<<plane_blocks(L, d), 256, 0, gs()>>>(q[d], W.u[side][d], phi, L, d, side & 1);
       }
+    if (consistent) {  // the ghost faces from the corrected velocity: what solve_hat assumed
+      ib_set();
+      if (closed) {
+        k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q[0], q[1], q[2], dv, L, W);
+        dot_dev<T>(dv, P->vact ? P->vact : P->act, L.cells(), hpart, dsum);
+        for (int s = 0; s < ncomp; ++s)
+          if (rim[s].n) k_ib_cons<T><<<(rim[s].n + 255) / 256, 256, 0, gs()>>>(q[s], rim[s].idx, rim[s].sa, rim[s].n, dsum);
+      }
+    }
   }
   void stage(double a, double b, double dt) {
     rhs(F);
@@ -2704,6 +2896,12 @@ void gcfd_ns_get_p(void* s, double* h) {
     const double f = m->last_dt > 0.0 ? 1.5 / m->last_dt : 0.0;
     for (size_t q = 0; q < N; ++q) h[q] *= f;
   }
+}
+// Sets the pressure carried by the incremental projection (IMEX, or with bodies), to continue from a
+// stored state. The explicit scheme without bodies carries no pressure: ignored there.
+void gcfd_ns_set_p(void* s, const double* h) {
+  NS* m = static_cast<NS*>(s);
+  CK(cudaMemcpy(m->pres, h, m->L.cells() * sizeof(double), cudaMemcpyHostToDevice));
 }
 // Explicit right-hand side of the momentum equation for component comp at the current velocity:
 // - convection + nu Laplacian + body force (no pressure), at every face (meaningless on faces in bodies).
