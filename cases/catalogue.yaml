@@ -63,7 +63,7 @@ cases:
     status: solved
     folder: dfg_cylinder_re100
     tests: Transient, nonlinear, vortex shedding, benchmark (FeatFlow)
-    shows: "Vortex shedding: curved-body O-grid mesh generated in Python; a benchmark with several reference levels; a live stop rule for a periodic flow; MPI runs and a performance appendix; the same case on gpucfd (gpu_run.py, gpu_compare.py). Key lesson: PISO was first order in time"
+    shows: "Vortex shedding: curved-body O-grid mesh generated in Python; a benchmark with several reference levels; a live stop rule for a periodic flow; MPI runs and a performance appendix; the same case on gpucfd, with equal cells and with cells clustered around the cylinder (gpu_run.py, gpu_compare.py, gpu_clustered.py). Key lesson: PISO was first order in time"
     headline: Drag, lift and Strouhal number all inside their uncertainty bands (St 0.3015 vs 0.3019); MPI scaling study
     reports: [{path: results/dfg_cylinder_re100/report.html}]
 

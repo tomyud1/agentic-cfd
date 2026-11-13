@@ -77,6 +77,11 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
                               # 1e-4 of the 1e-10 run over 1 s of developed shedding (OpenFOAM side: tuned GAMG, tol 1e-7).
                               # Result (results/.../gpu_tuning/ptol.json): 1e-8 differs by 2.6e-5 at 1.7x less time per
                               # step; 1e-6 by 7.9e-3 (fails)
+  pressure_tol_level: {G3: 1.0e-9}   # ADDED 2026-11-13: the rule above applied on every level over one cycle
+                              # (gpu_run.py ptol <level>, gpu_tuning/ptol_<level>.json). G1: 1e-8 by construction;
+                              # G2: 1e-8 passes (cd 3.1e-5, cl 3.9e-5); G3: 1e-8 fails in cl (3.9e-4), 1e-9 passes
+                              # (1.3e-5, 1.0e-5). G3 was rerun with 1e-9 (gpu_run.py uniform_retol G3); the first
+                              # run of 2026-11-12 is kept in gpu_tuning/G3_first_ptol1e-8.
   # Same protocol as the OpenFOAM levels: G1 from rest 0..15 s, each finer level starts from the last
   # field of the next coarser one and runs 3 s. Time-step check: G2 again with dt / 2 (from G1).
   # CHANGED after the first runs (2026-11-12): 3 s were not enough on gpucfd. G1's drag is 16 % low (OpenFOAM's
@@ -122,6 +127,41 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
     #  - C3: drag within 0.5 % of FeatFlow; its wall time is reported against OpenFOAM's study (about 1740 s).
     #    Timed over 200 steps first; not started above a projection of 45 minutes; stopped if not periodic after 8 s.
     #  - if C2's drag error is more than twice G3's, one variant with a wider band is run on C2 before C3.
+    #
+    # THREE CHECK RUNS, approved by the student after the first results (2026-11-13). A level name with a
+    # suffix is that level with the variant's changes (gpu_run.py clustered C1s C2s C3s / C2w).
+    variants:
+      s:                                 # the cylinder moved along x by half a C3 cell (a quarter of a C2 cell, an
+        x_shift: 3.5714285714e-4         # eighth of a C1 cell): the same flow, the surface cut differently by the grid
+      w:                                 # the band of fine cells reaching 4 diameters behind the cylinder's centre
+        band: [[0.10, 0.60], [0.10, 0.30]]   # instead of 1.5; 320 x 112 on C1 keeps the far-field factor (4.56 against 4.43),
+        n_C1: [320, 112]                 # so C2w has 640 x 224 = 143360 cells (25 % more than C2)
+    # Written BEFORE these runs. Every run stops as above (at least 3 s, then at the first periodicity check that
+    # passes, at most 8 s) and uses the tolerance of its level.
+    #  1. C1s, C2s, C3s: the whole protocol with the shifted cylinder. Question: is C3's drag error (-0.09 % mean,
+    #     -0.11 % maximum) typical, or a lucky cut? Reading: if C3s is also within 0.25 % of FeatFlow in both, the
+    #     target holds on both cuts and what may be quoted is the range of the two runs. If C3s is outside 0.25 %,
+    #     the target was met on one cut only and the answer to quote is the range, with that said. Expected from the
+    #     steady study (0.23 points of scatter at D/h 35, falling at order 1.5 to 2): C3s within 0.05 points of C3,
+    #     C2s within 0.1 points of C2. Two cuts give a range, not a distribution.
+    #  2. G3 with the tolerance its rule gives (gpucfd.pressure_tol_level below; G2 is checked first and rerun too if
+    #     it fails the rule). Question: what is the uniform protocol's time when it follows the same tolerance rule
+    #     as the clustered one? Expected: the same drag (within 1e-3 of the first run), G3 about 270 s, protocol
+    #     about 385 s. The first runs are kept in gpu_tuning/G*_first_ptol1e-8.
+    #  3. C2w from C1's field. Question: are C2's worse lift and Strouhal number (-5.15 % and +0.54 %, against
+    #     G3's -3.36 % and +0.29 %) caused by the larger cells behind the cylinder? "Recovered" if the lift
+    #     maximum is within 3.7 % and the Strouhal number within 0.35 % of FeatFlow (G3's errors plus a tenth);
+    #     "no effect" if both stay within 0.3 and 0.05 points of C2's; otherwise "partly". The shifted C2s shows how
+    #     much of such a difference the cut alone can make, so C2w is read against that.
+    # OUTCOME (2026-11-13, results/.../gpu_clustered.json, gpucfd/DESIGN.md "Check runs"):
+    #  1. C3s: drag -0.16 % mean, -0.19 % maximum (C3: -0.09 %, -0.11 %), periodic after 3 s, protocol 1375 s. Inside
+    #     0.25 % on both cuts: the target holds on both; to quote: 0.1 to 0.2 % (two cuts). The difference is 0.07
+    #     points, a little more than the 0.05 expected. C2s: -1.16 % (C2: -1.07 %), as expected.
+    #  2. G2 passes the rule with 1e-8. G3 with 1e-9: the same coefficients, 214 s (periodic after 4 s instead of 5,
+    #     from a G2 field 2 s older than the first time), protocol 328 s: less than the 385 s expected.
+    #  3. C2w: lift maximum -3.68 %, Strouhal +0.25 %, drag -0.94 %: recovered. C2s moves the lift by 0.2 points and
+    #     the Strouhal number by 0.02, so this is the band, not the cut. Cost: 143360 cells, periodic after 4 s,
+    #     196 s; protocol 308 s against the uniform 328 s.
 sensitivity:                  # extra run on M3: linear-upwind convection instead of central
   mesh: M3
   div_U: 'Gauss linearUpwind grad(U)'

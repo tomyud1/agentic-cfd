@@ -302,13 +302,23 @@ def test_dfg(ks=(0, 1)):
           f"cD {', '.join(f'{r['cD']:.4f}' for r in rs)} (reference {DFG_REF['cD']:.4f}): error "
           f"{', '.join(f'{100 * e:.2f}%' for e in err['cD'])}, order {', '.join(f'{v:.2f}' for v in pd)}; "
           f"D/h = {', '.join(f'{r['D_h']:.1f}' for r in rs)}")
-    check("rung 10: DFG 2D-1 pressure difference within 0.5 % on the finest grid, error falling",
-          err["dP"][-1] < 5e-3 and all(a > b for a, b in zip(err["dP"], err["dP"][1:])),
+    # The pressure at one point of an immersed surface depends on where the grid cuts the body there: with the
+    # cylinder shifted by 0, 1/4, 1/2 and 3/4 of a cell at D/h 35 the error is 0.23, 1.90, 2.39 and 0.75 %
+    # (tests/shift_study.py, 2026-11-13). The first form of this check (within 0.5 %) passed only because the
+    # unshifted position happens to be the best of the four, so the limit is now that measured spread.
+    lim = [5e-2 if r["D_h"] < 30 else 3e-2 for r in rs]
+    check("rung 10: DFG 2D-1 pressure difference within its spread over cut positions (5 % below D/h 30, 3 % from there)",
+          all(e < v for e, v in zip(err["dP"], lim)),
           f"dP {', '.join(f'{r['dP']:.5f}' for r in rs)} (reference {DFG_REF['dP']:.5f}): error "
-          f"{', '.join(f'{100 * e:.2f}%' for e in err['dP'])}")
-    check("rung 10: DFG 2D-1 lift error falls with refinement (lift is 0.2 % of the drag: grid-sensitive)",
-          all(a > b for a, b in zip(err["cL"], err["cL"][1:])),
-          f"cL {', '.join(f'{r['cL']:.5f}' for r in rs)} (reference {DFG_REF['cL']:.5f}): error "
+          f"{', '.join(f'{100 * e:.2f}%' for e in err['dP'])}; one cut position each, measured spread at D/h 35: "
+          f"0.23 to 2.39 %")
+    # Lift is 0.2 % of the drag here, and at D/h 35 it moves by a factor 2 to 3 with the cut position (0.012 to
+    # 0.029 over the four shifts of tests/shift_study.py). Its relative error from one position proves nothing,
+    # so the check is on its size against the drag (first form: "lift error falls with refinement").
+    check("rung 10: DFG 2D-1 lift stays small (below 2 % of the drag; its value depends on the cut position)",
+          all(abs(r["cL"]) < 0.02 * r["cD"] for r in rs),
+          f"cL {', '.join(f'{r['cL']:.5f}' for r in rs)} (reference {DFG_REF['cL']:.5f}): "
+          f"{', '.join(f'{100 * abs(r['cL']) / r['cD']:.2f}%' for r in rs)} of the drag; error against the reference "
           f"{', '.join(f'{100 * e:.0f}%' for e in err['cL'])}")
     bd = max(r["box_diff"] for r in rs)
     check("rung 10: DFG 2D-1, forces from two different boxes agree", bd < 1e-12, f"max difference {bd:.1e}")

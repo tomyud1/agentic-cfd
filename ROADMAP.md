@@ -29,7 +29,7 @@ rebuilt all six reports and passed the tests without this PC's paths.
 Better tools are a main goal, and a GPU solver is the tool with the most interest behind it. Today
 gpucfd's cells all have one size, so a thin boundary layer forces a fine grid everywhere. A
 stretched grid puts small cells at the walls and the body and large ones elsewhere. Case 4 measured
-what that is worth: gpucfd is about 70× faster per cell and step, but its uniform grid needed
+what that is worth: gpucfd is about 50× faster per cell and step, but its uniform grid needed
 442 thousand cells for 1.0 % in drag where OpenFOAM's body-fitted grid reached 0.25 % with
 13 thousand.
 
@@ -43,9 +43,10 @@ In stages, each one verified on the ladder before the next (plan in
    directions in 3D converge slowly.
 2. **Bodies on stretched grids. Done (2026-11-13).** Verified on the ladder (rung 13). On case 4
    with cells clustered around the cylinder: at the uniform grid's drag error (about 1.0 %) the
-   study takes 241 s against 315 s; at 140 cells per diameter the drag is within 0.11 % of the
-   benchmark and the three-level study takes 1 421 s. Fewer cells do outweigh the dearer step, but
-   only by 3.85× in cells: the fine bands cross the whole channel.
+   study takes 241 s against 328 s, and about the same time once lift and shedding frequency have
+   to match too. At 140 cells per diameter the drag is 0.1 to 0.2 % from the benchmark (two
+   positions of the cylinder in the grid) and the three-level study takes about 1400 s. Clustering
+   saves 3.85× in cells, not more: the fine bands cross the whole channel.
 3. **The IMEX scheme with bodies** (unstable today). On a stretched grid the smallest cell sets the
    explicit viscous time step for the whole domain, so without this the speed is lost again.
 
@@ -55,12 +56,15 @@ uniform grids. The stop rule for stage 2 was: if, at the same drag error, the cl
 study does not take less wall time than gpucfd's own uniform-grid study after two working
 sessions, write down what was found and move to step 3 first. It was not needed.
 
-*Outcome (2026-11-13): met as defined, in one session, with limits.* Drag -0.11 % in 1 421 s. The
-three levels by themselves support an uncertainty of about 0.75 %, not 0.25 % (the last level is
-better than the trend), lift is about 1 % low, and OpenFOAM's second grid alone has the drag at
-0.24 % after 153 s. Stage 3 is still the next step: the finest level is 83 % of the time, held
-back by the explicit time step and the pressure tolerance it forces. Details and limits:
-[`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), "Stretched grids, stage 2".
+*Outcome (2026-11-13): met as defined, with limits.* Drag 0.1 to 0.2 % below the benchmark in
+about 1400 s, repeated with the cylinder moved half a cell in the grid. The limits: the three
+levels by themselves support an uncertainty of 0.6 to 0.75 %, not 0.25 %; lift is about 1 % low;
+and OpenFOAM's second grid alone has the drag at 0.24 % after 153 s. Still open: the finest
+level with the fine cells reaching further behind the cylinder (about 30 GPU-minutes), which
+should bring the lift below 1 % at a study time close to the 1740 s limit. Stage 3 is the next
+step: the finest level is 83 % of the time, held back by the explicit time step and the pressure
+tolerance it forces. Details and limits: [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), "Stretched grids,
+stage 2".
 
 ### 3. Case 7: turbulent flat plate (RANS, Spalart-Allmaras, NASA TMR)
 

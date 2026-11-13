@@ -34,29 +34,44 @@ def load():
     return problem, numerics
 
 
+def split_level(level, C):
+    """A clustered level name: the level (C1, C2, C3) and the changes of its variant suffix, if any
+    (numerics.yaml, gpucfd.clustered.variants: C3s = C3 with variant s)."""
+    for base in C["levels"]:
+        if level == base:
+            return base, {}
+        if level.startswith(base) and level[len(base):] in C.get("variants", {}):
+            return base, C["variants"][level[len(base):]]
+    raise ValueError(f"unknown level {level}")
+
+
 def make(level, problem, numerics):
     from gpucfd import gcfd, bodies as B
     g = {k: v["value"] for k, v in problem["given"].items()}
     G = numerics["gpucfd"]
     H, Um = g["H"], g["Um"]
     grid = None
+    xc = g["xc"]
     if level in G["levels"]:
         k = G["levels"].index(level)
         n = (G["n_G1"][0] * 2 ** k, G["n_G1"][1] * 2 ** k, 1)
     else:  # grids clustered around the cylinder (numerics.yaml, gpucfd.clustered)
         from gpucfd import grids
         C = G["clustered"]
-        k = C["levels"].index(level)
-        n = (C["n_C1"][0] * 2 ** k, C["n_C1"][1] * 2 ** k, 1)
+        base, var = split_level(level, C)
+        k = C["levels"].index(base)
+        n0, band = var.get("n_C1", C["n_C1"]), var.get("band", C["band"])
+        n = (n0[0] * 2 ** k, n0[1] * 2 ** k, 1)
         h = g["D"] / (C["D_h_C1"] * 2 ** k)
-        grid = (grids.clustered(n[0], g["L"], C["band"][0], h, C["grow"][0]),
-                grids.clustered(n[1], H, C["band"][1], h, C["grow"][1]), None)
+        grid = (grids.clustered(n[0], g["L"], band[0], h, C["grow"][0]),
+                grids.clustered(n[1], H, band[1], h, C["grow"][1]), None)
+        xc = g["xc"] + var.get("x_shift", 0.0)  # the cylinder moved relative to the grid (variant s)
 
     def inflow(X, Y, Z):
         return (4 * Um * Y * (H - Y) / H ** 2, 0 * X, 0 * X)
     bnd = {"x-": ("inflow", inflow), "x+": "outflow", "y-": "wall", "y+": "wall"}
     s = gcfd.NavierStokes(n, (g["L"], H, 1.0), g["nu"], scheme=G["scheme"], boundaries=bnd,
-                          bodies=[B.Cylinder((g["xc"], g["yc"]), g["D"] / 2)], grid=grid)
+                          bodies=[B.Cylinder((xc, g["yc"]), g["D"] / 2)], grid=grid)
     return s, inflow
 
 
@@ -156,7 +171,8 @@ def one(name, level, problem, numerics, t0, t1, src=None, factor=1.0, ptol=None,
             return inner(t, d) if t - t0 >= stop_after - 1e-9 else None
     res = gpu.run_transient(s, dt, t0, t1, G["sample_dt"], observer(problem, numerics), u_ref=problem["given"]["Um"]["value"],
                             log=lambda m: print(m, flush=True), tag=f"{name} ", watch=watch,
-                            ptol=ptol, cfl_limit=1.0, stop_on_watch=stop_after is not None)
+                            ptol=ptol, cfl_limit=1.0, stop_on_watch=stop_after is not None,
+                            partial=Path(runs_dir) / f"{name}.partial.npz")  # a killed run keeps its record
     rec = gpu.write_run(runs_dir, name, res, dict(level=level, n=list(s.n[:2]), cells=int(np.prod(s.n)), h=h, D_h=0.1 / h,
                                                   source=getattr(src, "_name", None), dt_factor=factor, pressure_tol=ptol,
                                                   scheme=G["scheme"], sample_dt=G["sample_dt"], force_per_unit_depth=True))
@@ -204,16 +220,37 @@ def clustered(names):
     problem, numerics = load()
     C, t = numerics["gpucfd"]["clustered"], numerics["time"]
     for nm in names:
-        k = C["levels"].index(nm)
-        tol = C.get("pressure_tol", {}).get(nm)  # per level (the tolerance rule applied on each level)
+        base, _ = split_level(nm, C)
+        k = C["levels"].index(base)
+        tol = C.get("pressure_tol", {}).get(base)  # per level (the tolerance rule applied on each level)
         if k == 0:
             s, _ = one(nm, nm, problem, numerics, 0.0, t["develop_end"], ptol=tol)
             s.close()
             continue
-        prev = C["levels"][k - 1]
+        # the coarser level of the same variant if it was run (or is run here), else the plain coarser level
+        prev = C["levels"][k - 1] + nm[len(base):]
+        if not (RUNS_DIR / f"{prev}.json").exists():
+            prev = C["levels"][k - 1]
         t0 = json.loads((RUNS_DIR / f"{prev}.json").read_text())["end_time"]
         source = load_field(prev, prev, problem, numerics)
         s, _ = one(nm, nm, problem, numerics, t0, t0 + C["max_length"], src=source, stop_after=t["run_length"], ptol=tol)
+        s.close()
+        source.close()
+
+
+def uniform_retol(names):
+    """A uniform level again with the pressure tolerance its own rule gives (numerics.yaml,
+    gpucfd.pressure_tol_level), from the coarser level's saved last field, stopping like the clustered levels
+    (at least run_length, then the first periodicity check that passes). Overwrites runs/<name>: move the first
+    record to gpu_tuning/ before calling this."""
+    problem, numerics = load()
+    G, t = numerics["gpucfd"], numerics["time"]
+    for nm in names:
+        prev = G["levels"][G["levels"].index(nm) - 1]
+        t0 = json.loads((RUNS_DIR / f"{prev}.json").read_text())["end_time"]
+        source = load_field(prev, prev, problem, numerics)
+        s, _ = one(nm, nm, problem, numerics, t0, t0 + G["clustered"]["max_length"], src=source, stop_after=t["run_length"],
+                   ptol=G["pressure_tol_level"][nm])
         s.close()
         source.close()
 
@@ -367,5 +404,7 @@ if __name__ == "__main__":
         clustered(sys.argv[2:] or load()[1]["gpucfd"]["clustered"]["levels"])
     elif mode == "timing":
         timing(sys.argv[2])
+    elif mode == "uniform_retol":
+        uniform_retol(sys.argv[2:])
     else:
         raise SystemExit(f"unknown mode {mode}")

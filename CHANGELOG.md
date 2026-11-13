@@ -13,7 +13,81 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-13
 
-### gpucfd: cells clustered around a body (stretched grids, stage 2), commit hash to be filled in
+### gpucfd: the stage 2 result checked, and the tools and corrections it called for, commit hash to be filled in
+- **What:** three check runs on case 4 (the cylinder shedding vortices, Re 100), and every
+  suggestion the agent of stage 2 left behind was acted on: new tools, corrected claims, updated
+  guidance.
+- **Why it matters:** the stage 2 result (drag 0.1 % from the benchmark) looked almost too good,
+  and that agent had found that an earlier quoted number was a lucky one. Before a number goes to
+  the supervisor it should survive a second try.
+- **The check runs: the question each one asks, what came out, what it means.**
+  1. *Was the 0.1 % luck?* The solver lays a grid of rows and columns over the flow, and the round
+     cylinder cuts through its cells; where the cuts fall changes the answer a little. The whole
+     study was repeated with the cylinder moved by half a cell. Drag came out 0.16 % from the
+     benchmark, against 0.09 % the first time, in 1375 s against 1421 s. The target (0.25 %, under
+     1740 s) holds both times. What can be quoted: **drag 0.1 to 0.2 % below the benchmark**.
+  2. *Was the time comparison fair?* The older run with equal cells had used a looser setting
+     inside the pressure solver than the new runs. Rerun with the rule the new runs follow: the
+     same drag, lift and frequency, and 328 s for its study where 315 s was recorded. The
+     comparison is now like for like, and it barely moved.
+  3. *Why were lift and shedding frequency worse on the clustered grid?* The suspicion was the
+     larger cells in the wake, where the vortices form. With the small cells reaching 4 cylinder
+     diameters behind the cylinder instead of 1.5 (25 % more cells), lift and frequency are as good
+     as on the grid with equal cells. So the wake needs small cells for longer than first given.
+- **What this changes in the stage 2 story:**
+  - *Fewer cells did not buy much time.* Matching drag alone, the clustered grid is a quarter
+    faster than equal cells (241 s against 328 s). Matching lift and frequency too, it takes
+    nearly the same time (308 s) with a third of the cells. Grids this small are limited by fixed
+    work per time step, not by the number of cells.
+  - *gpucfd is about 50 times faster than OpenFOAM per cell and time step on this case,* not 70:
+    the fair pressure setting costs that much.
+  - Still true: OpenFOAM reaches the same drag accuracy in about 3 minutes with a small grid
+    fitted to the cylinder. And the drag range is from two positions; lift is about 1 % low.
+- **New tools, so the next case does not repeat this by hand** (`cfdlib/gpu.py`):
+  - `tolerance_check`: finds the pressure setting a grid level may use. Stage 2 lost 45 minutes
+    to a setting tuned on the coarsest grid only.
+  - A run now saves what it has recorded as it goes (`partial`). Before, stopping a run from
+    outside threw its data away, which is why the agent could not apply its own stop rule.
+  - The live check that ends a run can be made as often as wanted (`watch_every`), not only at
+    each log line.
+  - `position_spread`: reports how much the outputs move with the position of a body in the grid.
+  - `gpucfd.grids.body_band`: the measured default for the band of small cells around a body.
+  - `check_fit` now warns that on small grids fewer cells do not mean less time.
+- **Corrected claims:**
+  - A test of the immersed-body code passed only because of a lucky grid position (the pressure
+    difference across the cylinder, 0.2 % off where other positions give up to 2.4 %). It is now
+    judged against the measured spread; the lift check beside it had the same weakness.
+  - The README no longer quotes single-position numbers as accuracies.
+- **Guidance and records:** the workflow's advice on choosing gpucfd is rewritten (what
+  clustering buys, checking the pressure setting on every grid, quoting a body's result with its
+  spread over positions, saying which outputs "the same accuracy" covers). Case 4's insight log
+  has four new entries, marked as coming from this work and not from the agent that solved the
+  case. The machine file has two new pitfalls. `dev/LOOP.md`: an agent given limited work is
+  asked to send back what it would change outside its limits.
+- **How it was verified:**
+  - The new run tools have their own test on the GPU, `tests/test_gpu_tools.py` (8 checks, all
+    pass): the new options do not change a run's samples; the saved-as-it-goes record holds
+    exactly what the run had sampled; a run stopped from the keyboard returns its record; the
+    tolerance check picks the loosest setting that gives the same answer.
+  - The immersed-body test was rerun with the two reworded checks: 12 of 12 pass, and its numbers
+    are the ones recorded before (only the judging changed).
+  - The solver itself was not touched, so the bit-identity check and the full ladder were not
+    rerun.
+  - The tool, catalogue and layout tests pass; all Markdown links resolve; case 4's report was
+    rebuilt with the four new insights and passes its contract (verdict unchanged, WARN).
+  - The check runs' numbers were computed by the stage 2 agent's analysis script; the dev agent
+    read them from `gpu_clustered.json` and did not recompute them independently.
+- **Open:**
+  - The finest grid with the longer band of small cells has not been run (about 30 GPU-minutes).
+    It should bring the lift error below 1 %, at a study time close to the 1740 s limit.
+  - Two positions give a range, not a statistic. Four positions on the middle grid take 8
+    minutes; on the finest, an hour.
+  - Case 4's report does not show the gpucfd runs. They are in `gpucfd/DESIGN.md` and
+    `results/dfg_cylinder_re100/gpu_clustered.json`. A separate study report, like the GPU study
+    of case 5, is proposed.
+  - Stage 3 (an implicit time scheme with bodies) is the next large step.
+
+### gpucfd: cells clustered around a body (stretched grids, stage 2) (`1f14ce2`)
 - **What:** the GPU solver can now use small cells around a body and larger ones far from it
   (ROADMAP step 2, stage 2 of 3). Until now, with a body in the flow, every cell had to have the
   size the body needs.
@@ -91,15 +165,14 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
   - *The estimate made beforehand was too pessimistic.* It expected the clustered grid to lose
     check 7 and to miss the target (0.35 % in 1870 s). A step costs less than assumed, because
     with a body the new pressure smoother needs fewer iterations (5 against 7.7).
-- **Open:**
-  - Repeat the finest grid with the cylinder moved by half a cell (20 minutes): is 0.1 % typical?
-  - Stage 3, an implicit time scheme with bodies. The finest grid is 83 % of the time; its time
-    step is 3.3 times smaller than the flow speed alone would need, and the strict pressure
-    tolerance comes from the same cause.
-  - Lift and shedding frequency on the clustered grids: try a longer band of small cells behind
-    the cylinder.
-  - `workflow/WORKFLOW.md` still tells the solver agent that gpucfd needs equal cells. Its advice
-    (OpenFOAM for bodies at Re 100) is still right; the wording is out of date.
+- **Open when this was committed, answered by the check runs in the entry above:** whether 0.1 %
+  is typical (it is 0.1 to 0.2 %), the lift on the clustered grids (a longer band of small cells
+  fixes it), and the out-of-date wording in `workflow/WORKFLOW.md` (rewritten). Two numbers in
+  this entry changed with those runs: the equal-cell study takes 328 s, not 315 s, once it is held
+  to the same pressure rule, and the estimate of 385 s for it was too high.
+- **Still open:** stage 3, an implicit time scheme with bodies. The finest grid is 83 % of the
+  time; its time step is 3.3 times smaller than the flow speed alone would need, and the strict
+  pressure tolerance comes from the same cause.
 
 ### gpucfd: stretched grids, stage 1 (walls, no bodies) (`bdee4b7`)
 - **What:** the GPU solver can now use cells of unequal size, for example small at the walls and

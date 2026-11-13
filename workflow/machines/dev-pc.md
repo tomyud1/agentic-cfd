@@ -49,6 +49,11 @@ MSYS_NO_PATHCONV=1 wsl -d Ubuntu-24.04 --cd "/mnt/d/Projects/Agentic CFD" -- /ho
 - Environment variables reach WSL only through `WSLENV`, e.g.
   `CFD_FIG_PNG_DIR=/mnt/c/.../png WSLENV=CFD_FIG_PNG_DIR MSYS_NO_PATHCONV=1 wsl ...`.
 - Git Bash expands `$var` inside an inline `bash -c` before WSL sees it: put loops in a `.sh` file.
+- A shell heredoc that writes or patches code eats backslashes (a `\\n` in a Python string arrives as
+  a real line break, a double backslash as a single one): change code with your file-editing tool.
+- In a live watch on a log, every stage of the pipe must write line by line, or nothing arrives until
+  the run ends: `grep --line-buffered`, `sed -u`, `stdbuf -oL cut ...` (`tr` and `cut` buffer whole
+  blocks by default).
 
 ## Pitfalls of this machine
 

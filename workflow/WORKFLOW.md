@@ -96,19 +96,32 @@ case, if you want to see the full set of files once.
 ### 2. Setup and decisions
 - **Choose the solver first, and record it as a decision (kind `solver`).** OpenFOAM is the default. Consider
   gpucfd (`cfdlib.gpu.check_fit`, limits in `gpucfd/DESIGN.md`) when the problem is incompressible, laminar,
-  in a box (bodies inside it allowed) and a uniform grid can resolve it. What decides is the cost to reach
-  the required accuracy, not speed per cell. Case 4 (DFG 2D-2, `gpu_run.py`, `gpu_compare.py`) measured both:
-  gpucfd is about 70 times faster per cell and step, but its uniform grid with an immersed cylinder needed
-  442368 cells for drag within 1.0 % of the benchmark, while OpenFOAM's O-grid had it within 0.25 % at
-  13432 cells (97 s). So: OpenFOAM for bodies with thin boundary layers (Re about 100 and up on a cylinder)
-  until gpucfd has stretched grids; gpucfd for flows a uniform grid resolves well (periodic boxes,
+  in a box (bodies inside it allowed). What decides is the cost to reach the required accuracy, not speed
+  per cell. Case 4 (DFG 2D-2, `gpu_run.py`, `gpu_compare.py`) measured both: gpucfd is about 50 times faster
+  per cell and step, but its grid is rows and columns with the body immersed in it. Cells can be clustered
+  around a body (`gpucfd.grids`), which saves about 4 times in cells, not the 30 of a body-fitted grid, and
+  with a body the time step follows the smallest cell squared. Drag within 0.25 % of the benchmark took
+  OpenFOAM's O-grid 13432 cells and about 3 minutes; gpucfd needed 140 cells per diameter and about 24
+  minutes. So: OpenFOAM for bodies with thin boundary layers (Re about 100 and up on a cylinder) until
+  gpucfd has an implicit scheme with bodies; gpucfd for flows its grid resolves well (periodic boxes,
   channels, cavities, low Reynolds numbers) and for steady flows with `gpucfd.steady` (grid sequencing).
-- When gpucfd is the solver: grids n0 times 2^k with multigrid-friendly sizes (powers of 2 times 3 or 9);
-  time step from `NavierStokes.max_dt`; tune `pressure_tol` in the pre-flight with a same-answer rule (case
-  4: \(10^{-8}\), 1.7 times faster than \(10^{-10}\)); run with `cfdlib.gpu.run_transient`, which samples,
-  checks health and records the run like an OpenFOAM run; stop each level on the physical check
-  (`stop_on_watch`), not after a fixed time: a coarse gpucfd level can be far from the fine answer (case 4:
-  G1 drag 16 % low), and the next level then takes several flow-through times to settle.
+  When you compare tools "at the same accuracy", say which outputs that covers: on case 4 the answer
+  differed between drag alone and drag with lift and frequency.
+- When gpucfd is the solver, `cfdlib/gpu.py` has the tools; what case 4 taught:
+  - Grids n0 times 2^k with multigrid-friendly sizes (powers of 2 times 3 or 9); time step from
+    `NavierStokes.max_dt`. Around a body, `gpucfd.grids.body_band` gives a measured default for the band
+    of fine cells (the wake needs them for longer than the body does).
+  - Tune `pressure_tol` with a same-answer rule on every level, the finest included
+    (`tolerance_check`): with bodies the pressure noise grows as the time step shrinks (case 4:
+    \(10^{-8}\) on the coarsest level, \(10^{-10}\) on the finest).
+  - An immersed body's result shifts with where the grid cuts it, and a grid study does not see that
+    error. Run the finest level again with the body moved half a cell and quote the range next to the
+    grid-convergence index (`position_spread`).
+  - `run_transient` samples, checks health and records the run like an OpenFOAM run. Stop each level on
+    the physical check (`stop_on_watch`, with `watch_every` about one period), not after a fixed time: a
+    coarse gpucfd level can be far from the fine answer (case 4: G1 drag 16 % low), and the next level
+    then takes several flow-through times to settle. Give it `partial`, so that a run you have to kill
+    keeps its record.
 - Find the closest OpenFOAM tutorial (`$FOAM_TUTORIALS`) and start from it; make minimal changes.
 - Read `references/openfoam-primer.md` for what each file controls and the known pitfalls.
 - Templates may contain Jinja loops: generating a whole `blockMeshDict` from Python is fine and is
@@ -329,7 +342,8 @@ now; GPU linear solvers next).
   in case 4); write interval and function objects (`forces` every iteration cost 6 % of a 2.4
   million cell iteration in case 5; use `executeInterval` when the stopping rule allows).
   `perf.summarize` gives `lin_iters_by_solve` (iterations of the 1st, 2nd, ... and last pressure
-  solve of a step).
+  solve of a step). A setting tuned on a coarse level (a tolerance, a relaxation factor) is a guess
+  for the fine one: confirm it there with the same same-answer rule before the production run.
 - **Time with profiling, not the log clock.** `ClockTime` in the solver log (and `timeInfo`) has 1 s
   resolution; `ExecutionTime` is rank 0's CPU time, which undercounts wall time when ranks wait (16
   ranks on 16 threads: half). Switch on `profiling { active true; }` in controlDict and read

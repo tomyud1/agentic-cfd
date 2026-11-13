@@ -408,3 +408,83 @@
   guideline: 'SKILL.md stage 4: make the physical check the stopping rule with monitor.LiveStop, the planned end
     time only a maximum; replay the rule on recorded histories before trusting it.'
   resolved: 2026-11-12 20:24
+- id: 21
+  stage: gpu
+  logged: 2026-11-13 18:40
+  status: resolved
+  problem: 'gpucfd on grids clustered around the cylinder. (Insights 21 to 24 come from the work on stretched
+    grids with bodies on 2026-11-13, not from the agent that solved this case, and were written down after
+    the runs, at the time given.) The finest level, 140 cells per diameter, never
+    met the periodicity rule. Its drag peaks jittered by about 0.07 % from cycle to cycle, and the run went to
+    15 s of flow (45 minutes) where the level before it had settled in 3 s.'
+  diagnosis: 'Noise from the pressure solve. The tolerance \(10^{-8}\) had been tuned on the coarsest level only (insight
+    17). With a body the scheme is explicit, so the time step shrinks with the smallest cell squared, and the
+    error left in the pressure by a fixed tolerance then weighs more in the forces. The divergence indicator was
+    six times that of the uniform runs. The same-answer rule of insight 17, applied on each level, gives \(10^{-8}\),
+    \(10^{-9}\) and \(10^{-10}\) for 35, 70 and 140 cells per diameter. The finest uniform run of 2026-11-12 also
+    fails it slightly with \(10^{-8}\) (lift off by \(3.9 \times 10^{-4}\)); it was rerun with \(10^{-9}\).'
+  fix: 'Tolerance per level in numerics.yaml (gpucfd.clustered.pressure_tol); the rerun settled in 3 s of flow.
+    The stricter tolerance doubles the cost of a step. The run length limit is now inside the run, so a run that
+    does not settle stops by itself and keeps its record.'
+  lesson: A solver tolerance tuned on a coarse level is not valid on a finer one when the time step shrinks faster
+    than the cell size. A stop that can only be applied by killing the run, losing its record, will not be applied.
+  guideline: 'workflow/WORKFLOW.md, gpucfd as the solver: tune pressure_tol on every level, the finest included
+    (cfdlib.gpu.tolerance_check). cfdlib.gpu.run_transient keeps a partial record of a run that is interrupted.'
+  resolved: 2026-11-13 18:40
+- id: 22
+  stage: gpu
+  logged: 2026-11-13 18:40
+  status: resolved
+  problem: 'The pressure difference between the front and the back of the cylinder came out 1.9 % from the benchmark
+    on a clustered grid, where the uniform grid of the same resolution had 0.2 % (steady DFG 2D-1, Re 20, 35 cells
+    per diameter). It looked like a defect of the new stretched-grid code.'
+  diagnosis: 'Not the new code. Moving the cylinder by a quarter, a half and three quarters of a cell on the uniform
+    grid moved its own answer between 0.2 % and 2.4 % (gpucfd/tests/shift_study.py). The value read at one point
+    of an immersed surface depends on how the grid cuts the body there. Drag, an integral, moves by about 0.25 %.
+    The 0.2 % quoted before was one lucky position. On this case (Re 100), with the cylinder moved half a cell,
+    the drag error went from 3.67 to 4.15 % at 35 cells per diameter, from 1.07 to 1.16 % at 70 and from 0.09
+    to 0.16 % at 140. The grid-convergence index does not see this error: every level cuts the cylinder at
+    the same relative place.'
+  fix: 'The clustered-grid check compares against the measured range. Forces and surface values from gpucfd are
+    quoted with the spread over grid positions (for this case, drag 0.1 to 0.2 % below the benchmark over two
+    positions). cfdlib.gpu.position_spread reports it.'
+  lesson: 'One grid position is one sample. With an immersed body, an accuracy claim needs the spread over positions
+    of the body in the grid, most of all for values read at a point of the surface.'
+  guideline: 'workflow/WORKFLOW.md, gpucfd as the solver: forces on an immersed body shift with where the grid cuts
+    it; run the finest level again with the body moved half a cell and quote the range next to the grid-convergence
+    index. gpucfd rung 10 judges the surface pressure against a band, not against one position.'
+  resolved: 2026-11-13 18:40
+- id: 23
+  stage: gpu
+  logged: 2026-11-13 18:40
+  status: resolved
+  problem: 'On the clustered grid with 70 cells per diameter the drag matched the grid with equal cells (1.07
+    against 0.99 % low), but lift and shedding frequency were worse: lift 5.2 % low against 3.4 %, frequency
+    0.54 % high against 0.29 %.'
+  diagnosis: 'The band of fine cells ended 1.5 diameters behind the cylinder''s centre, a guess. The vortices form
+    and are shed in the near wake, and lift and frequency are set there; the larger cells smeared them. Moving the
+    cylinder changed lift by only 0.2 points, so it was the band and not the position.'
+  fix: 'A variant with the fine cells reaching 4 diameters behind the centre (25 % more cells): lift 3.7 % low,
+    frequency 0.25 % high, drag 0.94 % low, as good as the grid with equal cells. Not yet run on the finest level.'
+  lesson: A grid refined for the body alone gets the drag; the unsteady outputs need the near wake resolved too.
+  guideline: 'gpucfd.grids.body_band gives the measured default (one diameter ahead of the centre, four behind,
+    one to each side); workflow/WORKFLOW.md points to it.'
+  resolved: 2026-11-13 18:40
+- id: 24
+  stage: gpu
+  logged: 2026-11-13 18:40
+  status: resolved
+  problem: 'The clustered grid has a third of the cells of the grid with equal cells at the same resolution of the
+    cylinder, but the study was not three times faster: 241 s against 328 s matching the drag, and 308 s against
+    328 s once lift and frequency match too (the longer band of insight 23).'
+  diagnosis: 'On grids this small a time step costs several milliseconds almost whatever the number of cells (6.4
+    ms at 28 thousand cells, 7.8 at 111 thousand, 14.7 at 442 thousand): fixed work per step, not work per cell,
+    sets the time. The step on a stretched grid is also dearer. So fewer cells bought accuracy per cell, not time.
+    And the answer to "which is faster at the same accuracy" depended on which outputs had to match.'
+  fix: None needed for this case; recorded with both answers. The time on the finest level is set by the explicit
+    time step (83 % of the study), which is the next thing to remove in gpucfd.
+  lesson: 'Count the cost in steps and time per step, not in cells. And state which outputs "the same accuracy"
+    covers before comparing two tools or two grids.'
+  guideline: 'cfdlib.gpu.check_fit notes it for small grids; workflow/WORKFLOW.md, choosing the solver: say which
+    outputs a comparison at the same accuracy covers.'
+  resolved: 2026-11-13 18:40

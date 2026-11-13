@@ -31,19 +31,41 @@ def main(names=None):
     names = names or [L for L in C["levels"] if (RUNS / f"{L}.json").exists()]
     ref = reference(load_yaml(HERE / problem["reference"]["file"]))
     uni = json.loads((OUT / "gpu_compare.json").read_text())
-    rows, wall, gpu_s = [], 0.0, 0.0
-    for nm in names:
+    def row(nm):
         r = analyse(nm, g, numerics)
         m, p = r["meta"], r["meta"]["perf"]
-        wall += p["wall_s"]
-        gpu_s += p["gpu_s"]
-        rows.append(dict(level=nm, n=m["n"], cells=m["cells"], D_h=m["D_h"], dt=m["dt"], t0=m["start_time"], t1=m["end_time"],
-                         steps=p["steps"], gpu_s=p["gpu_s"], wall_s=p["wall_s"], ms_per_step=p["ms_per_step"],
-                         poisson_its=p["poisson_its"], wall_protocol=wall, gpu_protocol=gpu_s, health=m["health"]["status"],
-                         periodic=r["periodic"], periodic_from=(m["watch_first"] or {}).get("t"), mass=r["mass"],
-                         St_fft=r["St_fft"], St_probe=r["St_probe"],
-                         sm={k: r["sm"][k] for k in QKEYS},
-                         rel={k: (r["sm"][k] - ref["value"][k]) / abs(ref["value"][k]) for k in QKEYS}))
+        return dict(level=nm, n=m["n"], cells=m["cells"], D_h=m["D_h"], dt=m["dt"], t0=m["start_time"], t1=m["end_time"],
+                    steps=p["steps"], gpu_s=p["gpu_s"], wall_s=p["wall_s"], ms_per_step=p["ms_per_step"],
+                    poisson_its=p["poisson_its"], health=m["health"]["status"], source=m.get("source"),
+                    pressure_tol=m.get("pressure_tol"),
+                    periodic=r["periodic"], periodic_from=(m["watch_first"] or {}).get("t"), mass=r["mass"],
+                    St_fft=r["St_fft"], St_probe=r["St_probe"],
+                    sm={k: r["sm"][k] for k in QKEYS},
+                    rel={k: (r["sm"][k] - ref["value"][k]) / abs(ref["value"][k]) for k in QKEYS})
+    rows, wall, gpu_s = [], 0.0, 0.0
+    for nm in names:
+        r = row(nm)
+        wall += r["wall_s"]
+        gpu_s += r["gpu_s"]
+        rows.append(dict(r, wall_protocol=wall, gpu_protocol=gpu_s))
+    # Check runs (numerics.yaml, gpucfd.clustered.variants): a level name plus the variant's suffix.
+    by = {r["level"]: r for r in rows}
+    variants = {}
+    for suf in C.get("variants", {}):
+        w = 0.0
+        for L in C["levels"]:
+            if (RUNS / f"{L}{suf}.json").exists():
+                r = row(L + suf)
+                w += r["wall_s"]
+                variants[L + suf] = dict(r, wall_variant_levels=w)
+    # Two positions of the cylinder in the grid (variant s): both values, their middle and half their distance,
+    # per level and quantity, relative to FeatFlow. Two cuts give a range, not a distribution.
+    cuts = {}
+    for L in C["levels"]:
+        if L in by and L + "s" in variants:
+            a, b = by[L]["rel"], variants[L + "s"]["rel"]
+            cuts[L] = dict(D_h=by[L]["D_h"], first=a, shifted=b, middle={k: 0.5 * (a[k] + b[k]) for k in QKEYS},
+                           half_range={k: 0.5 * abs(a[k] - b[k]) for k in QKEYS})
     ug = uni["cost_gpu"]
     uni_rows, w = [], 0.0
     for c in ug:
@@ -79,13 +101,28 @@ def main(names=None):
             conv[k] = dict(p=st["p"], monotonic=st["monotonic"], extrap=st["extrap"], gci_abs=st["gci_abs"],
                            gci_rel=st["gci_abs"] / abs(ref["value"][k]), u_ref_rel=ref["unc"][k] / abs(ref["value"][k]),
                            diff=diff, band=band, status="ok" if abs(diff) <= band else ("warn" if abs(diff) <= 2 * band else "fail"))
+    conv_shifted = {}
+    sh = [variants.get(L + "s") for L in C["levels"]]
+    if all(sh) and len(sh) >= 3:  # the same for the three levels with the shifted cylinder
+        for k in QKEYS:
+            st = study([r["sm"][k] for r in sh[-3:]])
+            conv_shifted[k] = dict(p=st["p"], monotonic=st["monotonic"], gci_abs=st["gci_abs"],
+                                   gci_rel=st["gci_abs"] / abs(ref["value"][k]))
     fine = rows[-1]
     target = dict(level=fine["level"], rel_cd_mean=fine["rel"]["cd_mean"], rel_cd_max=fine["rel"]["cd_max"], wall=fine["wall_protocol"],
                   want_rel=0.0025, want_wall=OPENFOAM_STUDY_WALL,
                   accuracy_met=bool(abs(fine["rel"]["cd_mean"]) <= 0.0025 and abs(fine["rel"]["cd_max"]) <= 0.0025),
                   time_met=bool(fine["wall_protocol"] < OPENFOAM_STUDY_WALL),
                   stage2_met=bool(abs(fine["rel"]["cd_mean"]) <= 0.005 and abs(fine["rel"]["cd_max"]) <= 0.005))
+    if "C3" in cuts:  # the target on both cuts
+        c3s = variants["C3s"]
+        target.update(shifted_rel_cd_mean=c3s["rel"]["cd_mean"], shifted_rel_cd_max=c3s["rel"]["cd_max"],
+                      shifted_wall=variants["C3s"]["wall_variant_levels"],
+                      shifted_accuracy_met=bool(abs(c3s["rel"]["cd_mean"]) <= 0.0025 and abs(c3s["rel"]["cd_max"]) <= 0.0025),
+                      shifted_time_met=bool(variants["C3s"]["wall_variant_levels"] < OPENFOAM_STUDY_WALL),
+                      shifted_periodic=c3s["periodic"])
     out = dict(clustered=rows, uniform=uni_rows, openfoam=of_rows, cheap_question=cheap, target=target, convergence=conv,
+               variants=variants, cuts=cuts, convergence_shifted=conv_shifted,
                reference={k: ref["value"][k] for k in QKEYS})
     (OUT / "gpu_clustered.json").write_text(json.dumps(out, indent=1, default=float))
 
@@ -97,6 +134,13 @@ def main(names=None):
         print(f"{r['level']}: {r['cells']} cells, D/h {r['D_h']:.0f}, dt {r['dt']:.3g}, t {r['t0']:g}-{r['t1']:.2f}, {r['steps']} steps, "
               f"{r['ms_per_step']:.2f} ms/step ({r['poisson_its']:.1f} its), GPU {r['gpu_s']:.0f} s, wall {r['wall_s']:.0f} s "
               f"(protocol so far {r['wall_protocol']:.0f} s) | {line(r)} | periodic {r['periodic']} health {r['health']}")
+    for r in variants.values():
+        print(f"{r['level']}: {r['cells']} cells, D/h {r['D_h']:.0f}, t {r['t0']:g}-{r['t1']:.2f}, {r['ms_per_step']:.2f} ms/step, "
+              f"wall {r['wall_s']:.0f} s (variant levels so far {r['wall_variant_levels']:.0f} s), from {r['source']} | {line(r)} | "
+              f"periodic {r['periodic']} health {r['health']}")
+    for L, c in cuts.items():
+        print(f"cut spread {L}: " + " ".join(f"{k} {100 * c['middle'][k]:+.2f} +- {100 * c['half_range'][k]:.2f} %"
+                                           for k in ("cd_max", "cd_mean", "cl_max", "cl_amp", "St")))
     for r in uni_rows:
         print(f"uniform {r['level']}: {r['cells']} cells, D/h {r['D_h']:.1f}, {r['ms_per_step']:.2f} ms/step, wall {r['wall_s']:.0f} s "
               f"(protocol so far {r['wall_protocol']:.0f} s) | {line(r)}")
@@ -106,6 +150,8 @@ def main(names=None):
     for k, c in conv.items():
         print(f"convergence {k}: order {c['p']:.2f} monotonic {c['monotonic']} GCI {100 * c['gci_rel']:.2f} % reference unc "
               f"{100 * c['u_ref_rel']:.2f} % -> {c['status']}")
+    for k, c in conv_shifted.items():
+        print(f"convergence, shifted set, {k}: order {c['p']:.2f} monotonic {c['monotonic']} GCI {100 * c['gci_rel']:.2f} %")
     print("cheap question:", cheap)
     print("target:", target)
 

@@ -102,7 +102,7 @@ them (rung 13) were added on 2026-11-13.
 | 7c | Both time schemes reach the same steady cavity: 5e-9 U apart on 16^2 and 32^2 |
 | 8 | Reproducibility: two identical runs are bit-identical, and CUDA graphs on/off are bit-identical (Poisson double/mixed; cavity, 3D periodic flow and a channel with inflow/outflow, each with both schemes; immersed bodies in an open channel and a closed Couette cell) |
 | 9 | Open boundaries (`test_open`), each check with both schemes: Poiseuille channel with parabolic inflow and outflow along +x, -x, +y and z (3D) converges at order 1.84, 1.93 (N = 16, 32, 64; error = 0.99 h^2 - 2.84 h^3, so coarse pairs read low); fed the discrete equations' own fully developed profile (computed separately in numpy), the whole channel keeps it to 6e-16 (RK3) / 1e-14 (IMEX, diffusion solves to 1e-14); flow out = flow in exactly; the -x channel equals the mirrored +x channel to 2e-14; started from rest it reaches the same state. Kovasznay flow (Re 40, exact Navier-Stokes with convection; velocity profiles prescribed on all four sides): L2 order 2.02, 2.01 (32^2-128^2); the max error, in the first cell row along a side, converges at 1.90-1.92 out to 256^2 while the interior converges at 2.00 |
-| 10 | Immersed bodies (`test_bodies`, explicit scheme): circular Couette flow between immersed cylinders, velocity order 2.50, 2.10 (rms), pressure away from the walls 2.37, 1.48; channel at atan(1/2) to the grid, mean order 2.24; 3D extrusions equal 2D; DFG 2D-1 drag -2.26 % / -0.65 % (D/h 17.6 / 35), pressure difference -0.23 % at D/h 35; forces exact discrete momentum balance (box-independent to 2e-18). Details: Immersed bodies, below |
+| 10 | Immersed bodies (`test_bodies`, explicit scheme): circular Couette flow between immersed cylinders, velocity order 2.50, 2.10 (rms), pressure away from the walls 2.37, 1.48; channel at atan(1/2) to the grid, mean order 2.24; 3D extrusions equal 2D; DFG 2D-1 drag -2.26 % / -0.65 % (D/h 17.6 / 35), pressure difference -0.23 % at D/h 35 for this position of the cylinder in the grid (-0.2 to -2.4 % over four positions, drag -0.62 to -0.85 %: stage 2, check runs); forces exact discrete momentum balance (box-independent to 2e-18). Details: Immersed bodies, below |
 | 11 | Steady-state tooling (`test_steady`, `gpucfd/steady.py`): iteration-error estimator exact for one geometric mode, conservative (9x) for an oscillating one, never too small while a fast mode dies out once the slow rate is known, noise floors recognised in 97 % of noisy histories and sized (covers the true error 97 % of the time); prolongation 32^2 -> 64^2 of the Couette flow keeps the coarse error (5.5e-3 vs 6.0e-3); Couette 32/64/128 sequenced vs from rest: same answers (worst 0.29 of the allowance), 7.1 s vs 14.2 s GPU on the refined grids. DFG 2D-1 study (one-off): 20x at D/h 35. Details: Steady flows, below |
 | 12 | Stretched grids (`test_stretched`, 2026-11-13): with uniform face positions the new code path equals the uniform code (Laplacian exactly, solutions 1.5e-11, Navier-Stokes 1e-14 / 7e-16); stretched Laplacian equals the numpy reference to 6e-15, solutions equal a direct solve to 2e-12; manufactured solutions order 1.99-2.01 (2D and 3D, cell ratio 8); pressure iterations 9 / 10-11 / 11-12 at wall aspect ratio 4 / 16 / 64 on 64^2 to 512^2 (uniform 8-9); convection conserves kinetic energy to 1e-17; Poiseuille from rest order 2.03 (IMEX) and 2.05 (RK3), decaying channel mode 2.03-2.04 (2D and 3D, both schemes), Kovasznay L2 order 2.07, 2.02, open channel 2.04 with flow out = flow in exactly; both schemes reach the same steady state (cavity 5e-9 U, Kovasznay 2e-8, open channel 1e-9); cavity Re 100 on clustered grids within 0.005 (u) / 0.009 (v) U of Ghia and 0.0052, 0.0013, 0.00025 U from the uniform 256^2 solution at N = 32, 64, 128; reproducible bit for bit. Details: Stretched grids, below |
 | 13 | Immersed bodies on stretched grids (`test_stretched_bodies`, 2026-11-13): force balance of a random field 7e-16; with uniform face positions the stretched code path has identical ghost rules and equals the uniform code after 100 steps (velocity 5e-13 closed cell, 5e-11 open channel; force 2e-13); circular Couette flow with cell size varying by 3, velocity order 2.69, 2.34, divergence 3e-13, 3D = 2D to 6e-13; 5 pressure iterations per projection with a body (uniform: 7.7); DFG 2D-1 drag -2.23 % / -0.56 % at D/h 17.5 / 35 with 3.85 times fewer cells than the uniform grids at -2.26 % / -0.65 %; forces box-independent to 5e-18; reproducible bit for bit. The surface pressure difference depends on where the grid cuts the cylinder (-0.2 to -2.4 % at D/h 35, both grid types). Details: Stretched grids, stage 2, below |
@@ -301,7 +301,7 @@ extrapolates the pressure to the surface along the normal (quadratic through sam
 | Poiseuille flow in a channel at atan(1/2) to the grid (flat walls, generic angle) | rms error 2.8e-3, 3.3e-4, 1.3e-4: pairs 3.12, 1.36, mean 2.24 |
 | 3D: Couette flow extruded along z and along x | equals the 2D solution to 8e-13 / 1e-12 (with the 3D image distance in both: it is sqrt(dim) h, so the default 2D and 3D discretisations differ, by 9e-3 at N = 32) |
 | Started from rest | same steady state to 1.4e-12 |
-| DFG 2D-1 (Re 20), reference cD 5.57954, cL 0.010619, dP 0.117520 (Nabh 1998) | D/h 17.6: cD -2.26 %, dP -3.24 %, cL 4.3 times the reference; D/h 35: cD -0.65 % (order 1.8), dP -0.23 %, cL +15 % |
+| DFG 2D-1 (Re 20), reference cD 5.57954, cL 0.010619, dP 0.117520 (Nabh 1998) | D/h 17.6: cD -2.26 %, dP -3.24 %, cL 4.3 times the reference; D/h 35: cD -0.65 % (order 1.8), dP -0.23 %, cL +15 %. One position of the cylinder in the grid: over four positions at D/h 35, cD -0.62 to -0.85 %, dP -0.23 to -2.39 %, cL +15 to +175 % (`tests/shift_study.py`) |
 
 Immersed-boundary errors fluctuate with how the surface cuts each grid (a single grid pair can read
 1.4 or 3), so the orders are judged on the mean over the range. The lift in 2D-1 is 0.2 % of the drag,
@@ -419,11 +419,16 @@ the coarser one's last field (prolonged). Rules fixed before the runs (numerics.
 | | gpucfd (RTX 4070) | OpenFOAM (Ryzen 7 7800X3D) |
 |---|---|---|
 | levels | G1, G2, G3: 27648, 110592, 442368 cells | M1-M4: 3358 to 214912 cells, up to 16 ranks |
-| total | 255 s GPU, 315 s wall | 2548 s wall (M4 alone 2110 s on 16 ranks) |
-| per cell and step | 0.023 microseconds (G3) | 1.64 microseconds (M4, wall, 16 ranks) |
+| total | 280 s GPU, 328 s wall (first runs: 255 s, 315 s) | 2548 s wall (M4 alone 2110 s on 16 ranks) |
+| per cell and step | 0.033 microseconds (G3; first run 0.023) | 1.64 microseconds (M4, wall, 16 ranks) |
 | finest drag error | -1.0 % | +0.25 % (M2 already +0.24 %, 97 s on one core) |
 
-So gpucfd ran the protocol 8 times faster and is about 70 times faster per cell and step, but it is not
+(Updated 2026-11-13: G3 was rerun with the pressure tolerance its own rule gives, 1e-9 instead of the 1e-8
+tuned on G1; the coefficients are unchanged to the digits shown, a step costs 14.7 ms instead of 10.3. See
+"Stretched grids, stage 2", check run 2.)
+
+So gpucfd ran the protocol 8 times faster and is about 50 times faster per cell and step (70 with the first,
+looser tolerance), but it is not
 faster at equal accuracy: OpenFOAM's O-grid reaches 0.25 % at 13432 cells in 97 s, which gpucfd would
 need roughly 140-280 cells per diameter for (estimated from order 1.5; not run: D/h 140 is 1.8 million
 cells with a viscous time-step limit, about 40 GPU-minutes). The cost is in the grid, not the solver:
@@ -868,8 +873,8 @@ limits of that statement are listed with it.
    the tolerance floor is relative to max|u| / h, so with a time step that shrinks like h^2 a
    fixed relative tolerance leaves more and more pressure noise. C2 and C3 were rerun with the
    tolerances the rule gives; the first runs are kept in the case's `gpu_tuning/`. The uniform G3
-   fails the same check with the 1e-8 it was run with; it was not rerun, and its time is quoted
-   both as recorded and as the rule would make it.
+   fails the same check with the 1e-8 it was run with; it was rerun with 1e-9 afterwards (check
+   run 2 below), and the tables here show that rerun.
 5. **A stop rule was broken once, and why.** The first C3 run was to be stopped at 8 s of flow if
    not periodic. A run only writes its record when it returns, so stopping it would have thrown
    away 24 minutes of recorded forces; it was left to its own limit of 15 s (2 680 s of wall
@@ -921,19 +926,19 @@ FeatFlow level 6; wall time includes sampling the forces.
 | C3 | 458 752 | 140 | 7.65e-5 | 1e-10 | 3.0 s (periodic) | 29.5 | 1 180 s | **1 421 s** | **-0.11 / -0.09 %** | -0.85 / -1.08 % | +0.13 % |
 | uniform G1 | 27 648 | 17.6 | 2.02e-3 | 1e-8 | 15 s from rest | 6.4 | 64 s | 64 s | -16.8 / -16.5 % | -27 / -38 % | +5.56 % |
 | uniform G2 | 110 592 | 35 | 1.01e-3 | 1e-8 | 5 s | 7.8 | 50 s | 114 s | -5.19 / -5.06 % | -8.5 / -14.3 % | +1.42 % |
-| uniform G3 | 442 368 | 70 | 3.04e-4 | 1e-8 | 5 s | 10.3 | 201 s | 315 s | -1.04 / -0.99 % | -3.36 / -3.16 % | +0.29 % |
+| uniform G3 | 442 368 | 70 | 3.04e-4 | 1e-9 (rerun; first run 1e-8: 10.3 ms, 201 s, 315 s) | 4 s | 14.7 | 214 s | 328 s | -1.04 / -0.99 % | -3.35 / -3.16 % | +0.29 % |
 | OpenFOAM M2 | 13 432 | body-fitted | | | 3 s | | 97 s | 153 s | mean +0.24 % | | |
 | OpenFOAM M4 | 214 912 | body-fitted | | | 3 s | | 2 110 s | 2 548 s (about 1 740 s with the live stop) | +0.25 / +0.25 % | +0.41 / +0.33 % | -0.13 % |
 
 - **The cheap question: does the clustered grid reach uniform G3's drag error in less wall time?
   Yes, with two qualifications.** C2 has G3's cells at the body and a quarter of its cells in
-  all: mean drag -1.07 % against -0.99 %, in 241 s against 315 s (0.77 times). The
+  all: mean drag -1.07 % against -0.99 %, in 241 s against 328 s (0.74 times). The
   qualifications: C2's drag error is 0.08 points larger (the scatter with the position of the
   surface in the grid was 0.2 points at D/h 35 and is not measured at D/h 70), so it is "about
   the same", not "no larger"; and its lift and Strouhal number are
   worse (-5.2 % and +0.54 % against -3.4 % and +0.29 %), which points at the wake, where C2's
-  cells are 4.4 times larger than at the body. With the tolerance its own rule asks for (item 4),
-  G3 would take about 270 s and the uniform protocol about 385 s; then the factor is 0.63.
+  cells are 4.4 times larger than at the body. Check run 3 below confirms that, and shows that
+  matching the lift as well costs the time advantage (308 s against 328 s).
 - **C3: drag within 0.11 % of FeatFlow, 1 421 s for the whole protocol.** Stage 2's own target
   (0.5 %) and the step's target (0.25 % in less than OpenFOAM's 1 740 s) are both met, the time
   with a margin of 18 %. The estimate above expected -0.35 % in about 1 870 s.
@@ -949,9 +954,11 @@ about 1 740 s for OpenFOAM's four-level study. What a reader has to know with it
    uncertainty measure, is 0.75 %. The last step is better than the trend (order 1.5 from C2
    gives about -0.4 %), so part of the 0.1 % may be a favourable position of the surface in the
    grid. A
-   user without the reference could claim about 0.75 %, not 0.25 %. A fourth level (6 hours with
-   the explicit scheme) or C3 repeated with the cylinder shifted by half a cell would settle it;
-   neither was run. FeatFlow's own uncertainty for the drag (level 6 against level 5) is 0.24 %.
+   user without the reference could claim about 0.75 %, not 0.25 %. FeatFlow's own uncertainty
+   for the drag (level 6 against level 5) is 0.24 %. *Answered by check run 1 below:* with the
+   cylinder shifted by half a cell the drag is 0.16 to 0.19 % off, so the first position was
+   somewhat favourable and the number to quote is 0.1 to 0.2 %; the 0.75 % stays as the study's
+   own estimate.
 2. **It is drag.** Lift is 0.85 to 1.1 % low and the Strouhal number 0.13 % high; OpenFOAM's M4
    has +0.41 %, +0.33 % and -0.13 %. By the case's rule applied to C1 to C3 (band = grid
    convergence index + FeatFlow's uncertainty) every primary quantity is inside its band except
@@ -970,6 +977,64 @@ about 1 740 s for OpenFOAM's four-level study. What a reader has to know with it
    term (stage 3); that is where the next factor is, not in the grid.
 6. One flow, 2D, one PC, Re 100. In 3D the same clustering needs plane relaxation (stage 1's
    open item) before it can be tried on case 5.
+
+**Check runs (2026-11-13, after the first results; three questions the results left open).**
+Stops and readings were written into `numerics.yaml` (gpucfd.clustered) before each run.
+
+*1. Is C3's 0.1 % typical, or a lucky position of the cylinder in the grid?* The whole protocol
+again with the cylinder moved along x by half a C3 cell (0.36 mm; a quarter of a C2 cell, an
+eighth of a C1 cell). Same flow, same grids, the surface cut differently.
+
+| Level | Drag max / mean, first position | Shifted | Lift maximum, first / shifted | St, first / shifted | Wall time, first / shifted |
+|---|---|---|---|---|---|
+| C1 (D/h 35) | -3.79 / -3.67 % | -4.28 / -4.15 % | -6.3 / -10.0 % | +1.90 / +2.12 % | 112 / 109 s |
+| C2 (D/h 70) | -1.12 / -1.07 % | -1.21 / -1.16 % | -5.15 / -5.33 % | +0.54 / +0.52 % | 129 / 125 s |
+| C3 (D/h 140) | -0.11 / -0.09 % | -0.19 / -0.16 % | -0.85 / -1.15 % | +0.13 / +0.10 % | 1 180 / 1 141 s |
+| protocol | | | | | 1 421 / 1 375 s |
+
+- Both positions are inside 0.25 % and under 1 740 s; both C3 runs were periodic after 3 s.
+  **The target holds on both.** The first position was the more favourable one, by 0.07 points:
+  a little more than the 0.05 expected beforehand.
+- The grid-to-grid evidence is the same for both sets: observed order 1.4 and 1.6, grid
+  convergence index of C3 0.75 % and 0.62 %.
+- **What can be quoted for the drag at 140 cells per diameter: 0.1 to 0.2 % below FeatFlow
+  (mean -0.09 and -0.16 %, maximum -0.11 and -0.19 %), in 23 to 24 minutes for the three-grid
+  study.** With it: this is two positions, so a range and not a statistic; FeatFlow's own
+  uncertainty is 0.24 %; the study's own error estimate, made without the reference, is 0.6 to
+  0.75 %. Lift maximum: 0.85 to 1.15 % low. Strouhal number: 0.10 to 0.13 % high.
+- The shifts are different fractions of a cell on each level, so the three rows do not show how
+  the scatter falls with refinement.
+
+*2. What does the uniform study cost when it follows the same tolerance rule?* The tolerance
+check on every uniform level: G1 1e-8 (by construction), G2 1e-8 passes (drag 3.1e-5, lift
+3.9e-5), G3 needs 1e-9. G3 rerun with 1e-9 from G2's last field: the same coefficients (drag
+-1.04 / -0.99 %, lift maximum -3.35 %, St +0.29 %), 14.7 ms per step, periodic after 4 s of flow,
+214 s of wall time. The uniform protocol is 328 s (280 GPU-s), not the 385 s I estimated: the
+rerun settled in 4 s where the first run needed 5 (it started from a G2 field 2 s older). The
+first G3 record is kept in the case's `gpu_tuning/`; `gpu_compare.json` now holds the rerun,
+with the same verdict (WARN).
+
+*3. Are C2's worse lift and Strouhal number caused by the larger cells behind the cylinder?*
+C2w: the band of fine cells reaches 4 diameters behind the cylinder's centre where C2's reaches
+1.5 (640 x 224 = 143 360 cells, 25 % more), started from C1's field.
+
+| Run | Cells | Drag max / mean | Lift max / amplitude | St | Wall time, protocol |
+|---|---|---|---|---|---|
+| C2 | 114 688 | -1.12 / -1.07 % | -5.15 / -4.11 % | +0.54 % | 241 s |
+| C2, shifted | 114 688 | -1.21 / -1.16 % | -5.33 / -4.54 % | +0.52 % | 234 s |
+| C2w, longer band | 143 360 | -0.97 / -0.94 % | -3.68 / -3.13 % | +0.25 % | 308 s |
+| uniform G3 | 442 368 | -1.04 / -0.99 % | -3.35 / -3.16 % | +0.29 % | 328 s |
+
+- Yes: "recovered" by the rule set beforehand (lift maximum within 3.7 %, St within 0.35 %). The
+  change is far larger than what the position of the cylinder does at this level (0.2 points in
+  the lift, 0.02 in St). The near wake needs the body's cell size for more than 1.5 diameters.
+- It changes the answer to the cheap question. With every quantity matched, the clustered grid
+  has a third of the uniform grid's cells but takes nearly the same time: 308 s against 328 s.
+  C2w needed 4 s of flow to become periodic (C2: 3 s) and costs 14.2 ms per step, as much as
+  uniform G3. The 0.74 times of C2 holds for the drag alone.
+- Not run: the longer band on the finest level. From C2w's cost (25 % more cells) a C3w would
+  take about 1 750 s for the protocol, at the edge of the target's time, and should bring the
+  lift error below the 0.85 to 1.15 % of C3.
 
 ## Limitations (2026-11-12)
 
@@ -1047,7 +1112,7 @@ about 1 740 s for OpenFOAM's four-level study. What a reader has to know with it
 6. ~~gpucfd as a backend of the agent's pipeline (cfdlib)~~ (done 2026-11-12, case 4, above): 8x faster
    than OpenFOAM over the protocol, but less accurate per cell (drag -1.0 % against +0.25 %).
 7. Stretched grids (boundary layers without refining everywhere). Case 4 shows this is what decides
-   whether gpucfd beats OpenFOAM on bodies: the solver is 70x faster per cell and step, the uniform grid
+   whether gpucfd beats OpenFOAM on bodies: the solver is 50 to 70x faster per cell and step, the uniform grid
    needs about 30x more cells. Measure of success: case 4's drag within 0.25 % of FeatFlow (OpenFOAM's
    M4) in less wall time than OpenFOAM's study.
    - ~~Stage 1: grids with walls, no bodies~~ (done 2026-11-13, rung 12, above). The pressure solver
@@ -1061,10 +1126,11 @@ about 1 740 s for OpenFOAM's four-level study. What a reader has to know with it
      kernels, parallel cyclic reduction in place of one thread per line solve, a diagonal
      preconditioner for the diffusion solves.
    - 3D grids clustered in two directions: plane relaxation or semi-coarsening (needed for case 5).
-   - Open from stage 2: is C3's 0.1 % typical or a favourable cut (repeat with the cylinder shifted
-     by half a cell, 20 minutes); a wider fine band behind the cylinder for the lift and the
-     Strouhal number (C2: -5.2 % and +0.54 % against uniform G3's -3.4 % and +0.29 %); the uniform
-     G3 with the pressure tolerance its rule asks for (1e-9), for a like-for-like time.
+   - Answered by three check runs (2026-11-13, stage 2 section): the drag at 140 cells per diameter
+     is 0.1 to 0.2 % off over two positions of the cylinder in the grid; the uniform study costs
+     328 s with its rule's tolerance; a longer fine band behind the cylinder recovers lift and
+     Strouhal number and uses up the time advantage at 70 cells per diameter. Still open: the
+     longer band on the finest level (about 1 750 s projected), and more than two positions.
 8. IMEX with bodies. Case 4 on the clustered grids shows what it is worth: the finest level is 83 %
    of the protocol's time, its time step is 3.3 times below the convective limit, and the explicit
    pressure update forces a tolerance of 1e-10 there (twice the cost per step). At 280 cells per

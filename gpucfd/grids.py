@@ -58,13 +58,29 @@ def tanh(n, length, ratio, side="both"):
     return x
 
 
+def body_band(centre, size, ahead=1.0, behind=4.0, length=None):
+    """(lo, hi) for clustered(): the band of fine cells around a body, along one direction.
+
+    Measured from the body's centre in units of its size (a cylinder's diameter): `ahead` sizes on the
+    low side, `behind` on the high side. The defaults are for the flow direction, flow toward +x: one
+    size ahead and four behind, because the wake needs the fine cells for longer than the body does.
+    Across the flow use ahead = behind = 1. Measured on a cylinder shedding vortices at Re 100 (case 4):
+    with 1.5 sizes behind, lift was 5.2 % low and the shedding frequency 0.54 % high; with 4 behind,
+    3.7 % and 0.25 %, the values of a grid with fine cells everywhere, for 25 % more cells.
+    length: clip the band to [0, length]."""
+    lo, hi = float(centre) - ahead * float(size), float(centre) + behind * float(size)
+    if length is not None:
+        lo, hi = max(lo, 0.0), min(hi, float(length))
+    return lo, hi
+
+
 def clustered(n, length, band, h, grow, cap_max=64.0):
     """n + 1 face positions on [0, length] with cells of size h inside band = (lo, hi) and growing away
     from it: at distance d from the band the cell size is h (1 + (c - 1) d / grow), up to c h at distance
     grow and beyond. grow: one length or (below the band, above it). The far-field factor c (the same on
     both sides) is solved so that exactly n cells fill the length; it is returned by describe() as ratio.
-    Use it for a body in a large domain: band = the body plus the layers around it, h = the cell size the
-    body needs. Doubling n with half h refines every cell by two (the same mapping, sampled twice as
+    Use it for a body in a large domain: band = the body plus the layers around it and its near wake
+    (body_band() gives a measured default), h = the cell size the body needs. Doubling n with half h refines every cell by two (the same mapping, sampled twice as
     finely), which is what a grid-convergence study needs.
     Raises ValueError if n cells of size h or larger cannot fill the length (c < 1) or if c > cap_max."""
     n, length, h = int(n), float(length), float(h)

@@ -49,6 +49,10 @@ solves the problem (the **solver agent**) never needs this file.
    > you could not do.
 
    No hints about the method or the answer. Note the model, its effort setting and the start time.
+
+   The same holds when you hand part of the development work to another agent (a tool to build, a
+   study to run): if you limit what it may change, ask it to send back what it learned and what it
+   would change outside those limits. Each item then gets an answer as in step 5.
 4. **Review** the result. First `bash dev/review_case.sh <name>` (contract, leftover processes,
    problem unchanged, shared files untouched, verdict, insight counts). Then read the report as the
    supervisor would:
@@ -74,7 +78,8 @@ solves the problem (the **solver agent**) never needs this file.
    3. **Nothing new**: the case stays as a worked example, or the insight is declined, with the
       reason.
 
-   Test each tool change against recorded runs (replays and trap tests in `tests/test_tools.py`).
+   Test each tool change against recorded runs (replays and trap tests in `tests/test_tools.py`; the gpucfd run tools in
+   `tests/test_gpu_tools.py`, which needs the GPU).
 6. **Regress.** `bash setup/rerender_all.sh` rebuilds every report from saved data and checks its
    contract; run `tests/`. A change that breaks an old report is not finished.
 7. **Record.** Two commits, so the case stays visible exactly as the fresh agent left it:
