@@ -5,6 +5,8 @@
  "verdict": "PASS",
  "summary": {
   "headline": "The GPU is faster per iteration from about \\(2.0\\) million cells: on the largest mesh (4,752,000 cells) one iteration takes \\(3.80\\,\\mathrm{s}\\) on the best CPU setup (GAMG DIC-GS, 8 ranks) and \\(3.37\\,\\mathrm{s}\\) with the pressure solved on the GPU (8 ranks), a factor \\(1.13\\); the pressure solve alone takes \\(1.44\\) against \\(0.87\\,\\mathrm{s}\\) (factor \\(1.65\\)). Both give the same converged forces.",
+  "plain": "Same answer on both sides; the GPU breaks even at about 2.0 million cells and is 1.13 times as fast as the best CPU setup per iteration at 4.75 million cells. No pressure solver could gain more than 1.57 times there: the pressure solve is 36 % of an iteration",
+  "reasons": [],
   "answers": [
    {
     "label": "Speed-up per iteration, largest mesh",
@@ -148,7 +150,8 @@
   "intro": "Best CPU and best GPU setup per mesh, then all timing runs, the rank-count test on L4, the tuning runs and the converged runs. Times in seconds of wall time.",
   "tables": [
    {
-    "title": "Best setups per mesh",
+    "title": "Best setups per mesh: time",
+    "question": "From which mesh size is the GPU faster?",
     "head": [
      "Mesh",
      "Cells",
@@ -157,10 +160,7 @@
      "Speed-up per iter.",
      "CPU p solve (s)",
      "GPU p solve (s)",
-     "Speed-up p solve",
-     "GAMG iters/solve",
-     "GPU CG iters/solve",
-     "GPU memory (MiB)"
+     "Speed-up p solve"
     ],
     "rows": [
      [
@@ -171,10 +171,7 @@
       "\\(0.23\\)",
       "\\(0.007\\)",
       "\\(0.098\\)",
-      "\\(0.08\\)",
-      "\\(2.8\\)",
-      "\\(12.0\\)",
-      "235"
+      "\\(0.08\\)"
      ],
      [
       "L3",
@@ -184,10 +181,7 @@
       "\\(0.55\\)",
       "\\(0.025\\)",
       "\\(0.129\\)",
-      "\\(0.19\\)",
-      "\\(6.4\\)",
-      "\\(13.1\\)",
-      "387"
+      "\\(0.19\\)"
      ],
      [
       "G36",
@@ -197,10 +191,7 @@
       "\\(0.90\\)",
       "\\(0.157\\)",
       "\\(0.226\\)",
-      "\\(0.69\\)",
-      "\\(4.6\\)",
-      "\\(14.4\\)",
-      "1107"
+      "\\(0.69\\)"
      ],
      [
       "L4",
@@ -210,10 +201,7 @@
       "\\(1.03\\)",
       "\\(0.549\\)",
       "\\(0.495\\)",
-      "\\(1.11\\)",
-      "\\(5.0\\)",
-      "\\(15.6\\)",
-      "2518"
+      "\\(1.11\\)"
      ],
      [
       "G60",
@@ -223,16 +211,63 @@
       "\\(1.13\\)",
       "\\(1.436\\)",
       "\\(0.869\\)",
-      "\\(1.65\\)",
-      "\\(5.7\\)",
-      "\\(16.2\\)",
-      "4967"
+      "\\(1.65\\)"
      ]
     ],
     "note": "Speed-up = CPU time / GPU time (above 1: GPU faster). Pressure solve time from profiling, per call, including the transfers to and from the GPU."
    },
    {
+    "title": "Best setups per mesh: solver iterations and GPU memory",
+    "question": "Does the GPU solver need more iterations than the CPU one, and does the mesh fit on the card?",
+    "head": [
+     "Mesh",
+     "Cells",
+     "GAMG iters/solve",
+     "GPU CG iters/solve",
+     "GPU memory (MiB)"
+    ],
+    "rows": [
+     [
+      "G16",
+      "90,112",
+      "\\(2.8\\)",
+      "\\(12.0\\)",
+      "235"
+     ],
+     [
+      "L3",
+      "304,128",
+      "\\(6.4\\)",
+      "\\(13.1\\)",
+      "387"
+     ],
+     [
+      "G36",
+      "1,026,432",
+      "\\(4.6\\)",
+      "\\(14.4\\)",
+      "1107"
+     ],
+     [
+      "L4",
+      "2,433,024",
+      "\\(5.0\\)",
+      "\\(15.6\\)",
+      "2518"
+     ],
+     [
+      "G60",
+      "4,752,000",
+      "\\(5.7\\)",
+      "\\(16.2\\)",
+      "4967"
+     ]
+    ]
+   },
+   {
     "title": "Rank count on L4",
+    "question": "How many MPI ranks are fastest, with and without the GPU?",
+    "figure": "ranks",
     "head": [
      "Pressure solver",
      "Ranks",
@@ -346,6 +381,8 @@
    },
    {
     "title": "GPU solver tuning on G36 (4 ranks, 20 iterations)",
+    "question": "Which settings of the GPU solver are fastest?",
+    "figure": "tune",
     "head": [
      "Configuration: what changes",
      "CG iters/solve",
@@ -552,6 +589,7 @@
    },
    {
     "title": "Converged runs (same start field, same stopping rule)",
+    "question": "Run to the end, how long does each side take, and do both need the same number of iterations?",
     "head": [
      "Run",
      "Cells",
@@ -607,6 +645,7 @@
    },
    {
     "title": "All timing runs",
+    "question": "What was measured, run by run?",
     "head": [
      "Run",
      "Cells",
@@ -1086,6 +1125,8 @@
   "tables": [
    {
     "title": "Per iteration (s)",
+    "question": "Which part of an iteration does the GPU shorten?",
+    "figure": "bd",
     "head": [
      "Mesh",
      "Setup",
@@ -1202,6 +1243,7 @@
    },
    {
     "title": "GPU pressure solve, per call (ms)",
+    "question": "Inside the GPU pressure solve, where does the time go?",
     "head": [
      "Mesh",
      "Matrix update",

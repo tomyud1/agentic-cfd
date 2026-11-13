@@ -109,16 +109,10 @@ def analyse_run(name, given, numerics):
 
 
 def study(values, r=2.0):
-    """Observed order, Richardson value and fine-mesh GCI from three solutions (coarse, medium, fine)."""
-    f1, f2, f3 = values[-3:]
-    R = (f2 - f3) / (f1 - f2) if f1 != f2 else float("nan")
-    monotonic = bool(0 < R < 1)
-    p = V.order_three_grids(f1, f2, f3, r) if monotonic else float("nan")
-    p_use = p if monotonic else 2.0
-    ext = V.richardson(f2, f3, p_use, r)
-    gci_abs = 1.25 * abs(f3 - f2) / (r ** p_use - 1)
-    return dict(R=R, monotonic=monotonic, p=p, p_used=p_use, extrap=ext, gci_abs=gci_abs,
-                gci=gci_abs / abs(f3) if f3 else float("nan"), delta=abs(f3 - f2))
+    """Observed order, Richardson value and fine-mesh GCI from three solutions (coarse, medium, fine).
+    When the three do not converge monotonically, order 2 is assumed and `gci_reliable` is False: the index
+    is then a placeholder, not an estimate (cfdlib.verification.three_grid_study)."""
+    return V.three_grid_study(values, r)
 
 
 def main():

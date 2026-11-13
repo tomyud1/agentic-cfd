@@ -17,6 +17,8 @@ BC = {"periodic": 0, "neumann": 1, "dirichlet": 2}
 PRECISION = {"double": 8, "float": 4, "mixed": 6}
 # GCFD_LIB: another build of the library (used to check that a change leaves results bit-identical)
 LIB = Path(os.environ.get("GCFD_LIB", Path(__file__).parent / "build" / "libgcfd.so"))
+# Explicit diffusion limit of scheme "rk3": dt <= VISCOUS_DT h_min^2 / nu (the one place this factor is written)
+VISCOUS_DT = 0.15
 _lib = None
 
 _dp = np.ctypeslib.ndpointer(dtype=np.float64, flags="C_CONTIGUOUS")
@@ -454,9 +456,15 @@ class NavierStokes:
     def max_dt(self, umax, cfl=0.8):
         """Largest stable time step for velocity scale umax: convective limit, plus the explicit
         diffusion limit for scheme "rk3"."""
+        lim = self.dt_limits(umax, cfl)
+        return lim["convective"] if lim["viscous"] is None else min(lim["convective"], lim["viscous"])
+
+    def dt_limits(self, umax, cfl=0.8):
+        """The two time-step limits for velocity scale umax, on the smallest cell h_min:
+        dict(convective = cfl h_min / umax, viscous = VISCOUS_DT h_min^2 / nu, or None for scheme "imex",
+        which has no such limit, h_min). max_dt is the smaller of the two."""
         h = self._hmin() if self.stretched else min(self.length[d] / self.n[d] for d in range(3) if self.n[d] > 1)
-        dt = cfl * h / umax
-        return dt if self.scheme == "imex" else min(dt, 0.15 * h * h / self.nu)
+        return dict(convective=cfl * h / umax, viscous=None if self.scheme == "imex" else VISCOUS_DT * h * h / self.nu, h_min=h)
 
     def dt_cfl(self, cfl=0.8):
         """Convective time-step limit from the current velocity: cfl / max over cells of
@@ -477,7 +485,7 @@ class NavierStokes:
             rate += np.maximum(a, hi) / self.widths(d).reshape(shp)
         r = float(rate.max())
         dt = np.inf if r == 0.0 else cfl / r
-        return dt if self.scheme == "imex" else min(dt, 0.15 * self._hmin() ** 2 / self.nu)
+        return dt if self.scheme == "imex" else min(dt, VISCOUS_DT * self._hmin() ** 2 / self.nu)
 
     # ----------------------------------------------------------------- pressure, forces (post-processing)
     def pressure(self):

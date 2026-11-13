@@ -123,8 +123,11 @@ The instruction to read every solved case is gone: the solved cases are now a li
   simulation suits a fast explicit GPU solver), heat transfer, 3D bodies. Compressible flow would
   be a different solver, not an extension.
 - **Meshing from real geometry** (`snappyHexMesh` or Gmsh): engineers' problems arrive as geometry.
-- **Measuring the method:** what became of each insight, byte-identical re-renders as a regression
-  test, and replaying an old case with a fresh agent after large workflow changes.
+- **Measuring the method:** what became of each insight; a test that re-rendering changes no
+  published report (figures are byte-identical from run to run since 2026-11-13); a small generated
+  file of each case's headline numbers, with a test that the numbers quoted by hand in README,
+  ROADMAP and the design notes still match it; and replaying an old case with a fresh agent after
+  large workflow changes.
 - **A blind case** (the agent does not see the reference and must give an uncertainty band), once
   the capabilities above exist. Then Prof. Frankel's problem with no published answer.
 
@@ -147,6 +150,10 @@ The instruction to read every solved case is gone: the solved cases are now a li
    grids.
 2. How does an engineer set the required accuracy of a simulation, and when is a small miss
    acceptable?
+   And a narrower one: when three grids do not show a clear order of convergence, which error
+   band is honest? Today the tools assume second order with a safety factor of 1.25 and mark the
+   number as a placeholder; common practice (Roache) is a factor of 3. Switching would widen the
+   bands of cases 4 and 5 and can change their verdicts.
 3. May the repository stay public? Who owns the code under the Technion's rules, and should gpucfd
    move to a private repository?
 4. His criticism of one report (the failed case 5 is the most instructive).

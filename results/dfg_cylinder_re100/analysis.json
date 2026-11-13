@@ -143,7 +143,9 @@
    "extrap": 3.2279011682808587,
    "gci_abs": 0.00016476784340894537,
    "gci": 5.104280046063876e-05,
-   "delta": 0.0003954428241814689
+   "delta": 0.0003954428241814689,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side"
   },
   "cd_min": {
    "R": 2.06616611607865,
@@ -153,7 +155,9 @@
    "extrap": 3.1646409052646955,
    "gci_abs": 0.00025894265953489243,
    "gci": 8.181835420706153e-05,
-   "delta": 0.0006214623828837418
+   "delta": 0.0006214623828837418,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side"
   },
   "cd_mean": {
    "R": -0.6671286622950153,
@@ -163,7 +167,9 @@
    "extrap": 3.196271036772777,
    "gci_abs": 0.00021185525147201142,
    "gci": 6.62784901148291e-05,
-   "delta": 0.0005084526035328274
+   "delta": 0.0005084526035328274,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side"
   },
   "cd_amp": {
    "R": 0.10631899786505442,
@@ -173,7 +179,9 @@
    "extrap": 0.06321181214593265,
    "gci_abs": 3.36112283377975e-05,
    "gci": 0.0005319501339101109,
-   "delta": 0.00022601955870227286
+   "delta": 0.00022601955870227286,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cl_max": {
    "R": 0.35940583054815395,
@@ -183,7 +191,9 @@
    "extrap": 0.9870030790545901,
    "gci_abs": 0.0037262690923878655,
    "gci": 0.003763968647309803,
-   "delta": 0.005313272187602913
+   "delta": 0.005313272187602913,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cl_min": {
    "R": 0.3557886120253595,
@@ -193,7 +203,9 @@
    "extrap": -1.021669943943213,
    "gci_abs": 0.0038493959616961635,
    "gci": 0.003756426433266378,
-   "delta": 0.005575950733738511
+   "delta": 0.005575950733738511,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cl_mean": {
    "R": 0.29560953453706784,
@@ -203,7 +215,9 @@
    "extrap": -0.017327564414479423,
    "gci_abs": 6.889847194427271e-05,
    "gci": 0.003963626971919021,
-   "delta": 0.0001313392730677987
+   "delta": 0.0001313392730677987,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cl_amp": {
    "R": 0.3575444516540653,
@@ -213,7 +227,9 @@
    "extrap": 2.0086733984304326,
    "gci_abs": 0.007575195763297699,
    "gci": 0.0037598995382509912,
-   "delta": 0.01088922292134109
+   "delta": 0.01088922292134109,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "St": {
    "R": 0.20481959316513393,
@@ -223,7 +239,9 @@
    "extrap": 0.3017090853798814,
    "gci_abs": 0.0002576533727813589,
    "gci": 0.0008545633200075838,
-   "delta": 0.0008002395107795102
+   "delta": 0.0008002395107795102,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   }
  },
  "ms_coarse": {
@@ -235,7 +253,9 @@
    "extrap": 3.2286247696669013,
    "gci_abs": 0.0002454303589174665,
    "gci": 7.602161998948325e-05,
-   "delta": 0.0018250819338865298
+   "delta": 0.0018250819338865298,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cd_min": {
    "R": -0.02584397918055186,
@@ -245,7 +265,9 @@
    "extrap": 3.1653692616238014,
    "gci_abs": 0.0001253251892574525,
    "gci": 3.95913428941087e-05,
-   "delta": 0.000300780454217886
+   "delta": 0.000300780454217886,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side"
   },
   "cd_mean": {
    "R": 0.05009517274329261,
@@ -255,7 +277,9 @@
    "extrap": 3.196989167154647,
    "gci_abs": 5.02419714492495e-05,
    "gci": 1.5715600050077478e-05,
-   "delta": 0.0007621507398343219
+   "delta": 0.0007621507398343219,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cd_amp": {
    "R": 0.2972621049593532,
@@ -265,7 +289,9 @@
    "extrap": 0.06385815542063772,
    "gci_abs": 0.0011240647700969729,
    "gci": 0.017853944489839502,
-   "delta": 0.002125862388104416
+   "delta": 0.002125862388104416,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cl_max": {
    "R": 0.5041896986845322,
@@ -275,7 +301,9 @@
    "extrap": 0.9802640303631626,
    "gci_abs": 0.018791670191175846,
    "gci": 0.018880458065465813,
-   "delta": 0.01478348912564742
+   "delta": 0.01478348912564742,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cl_min": {
    "R": 0.507794373379461,
@@ -285,7 +313,9 @@
    "extrap": -1.0141569686278473,
    "gci_abs": 0.020210553523076578,
    "gci": 0.019615699368907367,
-   "delta": 0.01567208883386373
+   "delta": 0.01567208883386373,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cl_mean": {
    "R": 0.576347506443716,
@@ -295,7 +325,9 @@
    "extrap": -0.016909585770114744,
    "gci_abs": 0.000755545868734871,
    "gci": 0.043139482676827955,
-   "delta": 0.0004442998541081544
+   "delta": 0.0004442998541081544,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "cl_amp": {
    "R": 0.5060382075648594,
@@ -305,7 +337,9 @@
    "extrap": 1.9944226197376103,
    "gci_abs": 0.03900019778100182,
    "gci": 0.01925343563732651,
-   "delta": 0.03045557795951126
+   "delta": 0.03045557795951126,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   },
   "St": {
    "R": 0.2197323886732692,
@@ -315,7 +349,9 @@
    "extrap": 0.30180299245270287,
    "gci_abs": 0.0013753366022825507,
    "gci": 0.0045737417599008715,
-   "delta": 0.003907045700136336
+   "delta": 0.003907045700136336,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
   }
  },
  "tstudy": {
@@ -328,6 +364,8 @@
    "gci_abs": 0.00011535618534508352,
    "gci": 3.5754117073469703e-05,
    "delta": 0.00027685484482820044,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "e_base": 0.0005053137412538433,
    "e_fine": 0.0005053137412538433,
    "p_t": NaN
@@ -341,6 +379,8 @@
    "gci_abs": 7.293887414568563e-05,
    "gci": 2.3041250273889302e-05,
    "delta": 0.00017505329794964553,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "e_base": 0.0003673908480412713,
    "e_fine": 0.0003673908480412713,
    "p_t": NaN
@@ -354,6 +394,8 @@
    "gci_abs": 9.414752974519953e-05,
    "gci": 2.9458142751024443e-05,
    "delta": 0.0002259540713884789,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "e_base": 0.00043635229464733527,
    "e_fine": 0.00043635229464733527,
    "p_t": NaN
@@ -367,6 +409,8 @@
    "gci_abs": 4.241731119939788e-05,
    "gci": 0.0006976884896473781,
    "delta": 0.00010180154687855492,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "e_base": 0.000137922893212572,
    "e_fine": 0.000137922893212572,
    "p_t": NaN
@@ -380,6 +424,8 @@
    "gci_abs": 0.000386892622875797,
    "gci": 0.0003828175700638457,
    "delta": 0.0009285422949019129,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "e_base": 0.0005640392915504666,
    "e_fine": 0.0005640392915504666,
    "p_t": NaN
@@ -393,6 +439,8 @@
    "gci_abs": 0.0002760768904181791,
    "gci": 0.000263947370584869,
    "delta": 0.0006625845370036298,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "e_base": 0.0007057727646144762,
    "e_fine": 0.0007057727646144762,
    "p_t": NaN
@@ -406,6 +454,8 @@
    "gci_abs": 0.0005870041114471237,
    "gci": 0.03324915330459702,
    "delta": 0.0001329788789491415,
+   "gci_reliable": false,
+   "gci_basis": "observed order 0.36 is below 0.5: the values barely converge, so the index is inflated",
    "e_base": 0.0007732170487383568,
    "e_fine": 0.0004696032891576997,
    "p_t": 0.3597154673658425
@@ -419,6 +469,8 @@
    "gci_abs": 0.0006629695132938836,
    "gci": 0.00032236203876861703,
    "delta": 0.0015911268319053207,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "e_base": 0.0010702757679657005,
    "e_fine": 0.0010702757679657005,
    "p_t": NaN
@@ -432,6 +484,8 @@
    "gci_abs": 0.00011921186055911055,
    "gci": 0.0004014084075316175,
    "delta": 6.910619323763356e-05,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "e_base": 0.00028365728186402484,
    "e_fine": 9.536948844729046e-05,
    "p_t": 0.7862746082764711

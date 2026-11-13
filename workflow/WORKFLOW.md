@@ -33,13 +33,16 @@ cfdlib/                       shared tools (do NOT modify; log needed changes as
   signals.py     periodic signals: cycles, refined peaks, periodicity check, FFT frequency
   plots.py       figure style and sizes (figure, wide, sketch); to_svg checks for overlapping text
   report.py      m(), tex_num(), tex_fix() (fixed decimals for table columns), tex_pct(), LETTERS, load_yaml,
-                 environment_info(), render()
+                 environment_info(), render(); ready table cells m_fix, m_pct, m_times, m_pow10, m_sig
   perf.py        performance numbers per run (summarize, machine) for the performance appendix
   contract.py    the report contract checker (also --decisions mode)
-  study.py       a second, focused report for a performance study (render_study), e.g. GPU vs CPU
+  study.py       a second, focused report that compares tools or settings (render_study, verdict), e.g. GPU
+                 vs CPU, or one solver against another
+  runrecord.py   a run record of either tool in one shape (read): wall time and cost per cell and step
+                 under the same names for OpenFOAM and gpucfd
   gpu.py         gpucfd as a solver: check_fit (does the problem fit it?), pick_scheme (time scheme per
-                 level), run_transient (sampled run with health checks and a live watch), write_run
-                 (runs/<name>.json + .npz like OpenFOAM runs)
+                 level), time_step (the step and which limit set it), run_transient (sampled run with
+                 health checks and a live watch), write_run (runs/<name>.json + .npz like OpenFOAM runs)
   insights.py    the live insight log (checks typesetting when you log; refuses to overwrite a filled entry)
   foamdict.py    OpenFOAM dictionary parser (used by the checker)
 cases/<name>/                 one folder per problem
@@ -365,7 +368,7 @@ now; GPU linear solvers next).
 
 ## Performance study (when problem.yaml has a `study` block)
 Some cases ask a second question with its own report, e.g. "how much faster is the GPU?". Answer it
-with `cfdlib.study.render_study()` (contract and keys in its docstring) into the file named in
+with `cfdlib.study.render_study()` (keys and rules: `references/report-contract.md`, "Study reports") into the file named in
 `study.output`; the main report answers the physics as usual and links to it in its notes.
 - **Amdahl bound first.** Before any GPU run, measure the pressure share of an iteration with
   profiling on the CPU baseline and state the bound 1 / (1 - share): a solver that only accelerates
@@ -377,6 +380,8 @@ with `cfdlib.study.render_study()` (contract and keys in its docstring) into the
 - **Fair baseline.** The CPU side uses its best measured setup on this machine (GAMG, all useful
   ranks). Same mesh, same schemes, same tolerances on both sides; only the linear solver and where it
   runs change. Say which pressure solve tolerance each side reaches (`relTol`, `tolerance`).
+- **One clock on both sides.** Compare tools on the wall time of the whole run; `cfdlib.runrecord.read`
+  returns any run record with each cost named by its clock.
 - **Measure, do not project.** Several mesh sizes (factor about 2-8 in cells each), up to the largest
   that fits the memory, at least 2 repeats of the timing run on the largest; time per iteration after
   start-up, iterations and time per pressure solve, total wall time, peak GPU memory (`nvidia-smi

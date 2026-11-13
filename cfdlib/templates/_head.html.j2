@@ -161,6 +161,14 @@
   .insight dl { display: grid; grid-template-columns: 120px 1fr; gap: 4px 14px; margin: 6px 0 0; font-size: 14.5px; }
   .insight dt { color: var(--ink2); font-weight: 600; } .insight dd { margin: 0; }
 
+  /* Study reports: an insight folded to its problem line; a table's question, result and meaning; one-line cells */
+  details.insight > summary { cursor: pointer; }
+  details.insight > summary .prob { margin: 4px 0 0 16px; font-size: 14.5px; }
+  details.insight > dl { margin: 8px 0 0 16px; }
+  dl.qrm { display: grid; grid-template-columns: 112px 1fr; gap: 4px 14px; margin: 8px 0 12px; font-size: 14.5px; }
+  dl.qrm dt { color: var(--ink2); font-weight: 650; } dl.qrm dd { margin: 0; }
+  td.nw { white-space: nowrap; }
+
   dl.kv { display: grid; grid-template-columns: 170px 1fr; gap: 10px 18px; margin: 0; font-size: 15px; }
   dl.kv dt { color: var(--ink2); font-weight: 600; } dl.kv dd { margin: 0; }
 
@@ -192,7 +200,7 @@
   @media (max-width: 640px) {
     section { padding: 18px 16px; } h1 { font-size: 24px; }
     .cards, .defs { grid-template-columns: 1fr; }
-    dl.kv, .insight dl { grid-template-columns: 1fr; gap: 2px 0; }
+    dl.kv, .insight dl, dl.qrm { grid-template-columns: 1fr; gap: 2px 0; }
     .dcard .dbody { grid-template-columns: 1fr; } .repro-grid { grid-template-columns: 1fr; }
     table.glance .areaname { display: none; }
     dl.kv dd { margin-bottom: 10px; }

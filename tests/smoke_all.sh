@@ -15,4 +15,5 @@ try: insights.resolve("zz_smoke", i, fix="other")
 except ValueError as e: print("overwrite guard ok")
 P
 rm -rf cases/zz_smoke
+echo "== study report (template, contract, formatters)"; T=$(mktemp -d); PYTHONPATH=. $PY tests/test_study.py "$T" 2>&1 | grep -E "^FAIL|failed|all passed|Traceback|Error" | cut -c1-200; rm -rf "$T"
 echo "== perf"; $PY -c "from cfdlib import perf; import json, os; print(json.dumps(perf.summarize(os.environ['RUN'] + '/stokes_first_problem/N2000_dt2.5ms', 'pimpleFoam', 2000), indent=0)); print(perf.machine())"

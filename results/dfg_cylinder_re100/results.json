@@ -1602,6 +1602,18 @@
    "lesson": "A result that lands closer to a reference than its own uncertainty estimate allows is a warning, not a success. A target is a pass rule and needs the same care: set it against the value the reference converges to, and state the reference's own uncertainty in it.",
    "guideline": "ROADMAP.md: future targets for a tool are set against the reference's converged value. The rule was already in workflow/WORKFLOW.md (analysis, references with several levels); it now has this case as its example of what happens without it.",
    "resolved": "2026-11-13 19:25"
+  },
+  {
+   "id": 26,
+   "stage": "analysis",
+   "logged": "2026-11-13 21:55",
+   "status": "resolved",
+   "problem": "The uncertainty this report gives for OpenFOAM's drag (mean, maximum and minimum) from its three finest grids is not a measured estimate, and the comparison table does not say so. Found by the agent that reworked the study tooling, when the grid-study code was made to flag such numbers.",
+   "diagnosis": "The drag has nearly stopped changing between the three finest grids, and the small changes that remain do not go in one direction. The usual formula for the error of a grid study needs three values that approach a limit from one side; without that the code assumed second-order convergence and still printed a number (below 0.01 % for the mean drag). That number says that the grids agree with each other, not how far they are from the true value. The verdict already warned about the convergence that is not monotonic, so the verdict does not change; the band next to the drag is what reads better than it is.",
+   "fix": "cfdlib.verification.three_grid_study now returns gci_reliable and gci_basis with every index, and analysis.json stores them. The study report (gpu_study.html) marks OpenFOAM's drag estimate and gpucfd's weak ones with a star and says what the star means. The table of this report was left as the solver agent wrote it; this entry is its correction.",
+   "lesson": "An error band needs its basis next to it. A number produced by a fallback looks exactly like a measured one unless the code that produces it says which it is.",
+   "guideline": "cfdlib.verification.three_grid_study is the shared grid-study function; a report that prints its index should print a mark when gci_reliable is false. Which safety factor such a placeholder should carry (1.25 today, 3 in common practice) is an open question for the supervisor (ROADMAP.md).",
+   "resolved": "2026-11-13 21:55"
   }
  ],
  "figures": [

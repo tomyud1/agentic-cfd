@@ -1,68 +1,50 @@
 {% include "_head.html.j2" %}
 <body>
 <main>
-{% macro figures(section) -%}
-  {% for f in figs if f.section == section %}
-  <figure class="{{ section }}" style="--w: {{ f.width_px }}px">{{ f.svg }}
+{% macro figure(f) -%}
+  <figure class="{{ f.section }}" style="--w: {{ f.width_px }}px">{{ f.svg }}
     <figcaption><b>Figure {{ f.number }}.</b> {{ f.caption }}</figcaption></figure>
+{%- endmacro %}
+{# figures of a section that no table claims; a figure named by a table is drawn right above that table #}
+{% macro figures(section) -%}
+  {% for f in figs.values() if f.section == section and not f.at_table %}
+  {{ figure(f) }}
   {% endfor %}
 {%- endmacro %}
-{% macro table(t, full=false) -%}
-  {% if t.title is defined and t.title %}<h4>{{ t.title }}</h4>{% endif %}
+{% macro table(t, full=false, titled=true) -%}
+  {% if titled and t.get('title') %}<h4>{{ t.title }}</h4>{% endif %}
+  {% if t.get('question') %}<dl class="qrm"><dt>Question</dt><dd>{{ t.question }}</dd></dl>{% endif %}
+  {% if t.get('figure') %}{{ figure(figs[t.figure]) }}{% endif %}
   <div class="table-wrap"><table class="{{ 'full' if full else '' }}">
     <tr>{% for h in t.head %}<th class="{{ '' if loop.first else 'num' }}">{{ h }}</th>{% endfor %}</tr>
     {% for row in t.rows %}
-    <tr>{% for c in row %}<td class="{{ '' if loop.first else 'num' }}">{{ c }}</td>{% endfor %}</tr>
+    <tr>{% for c in row %}<td class="{{ '' if loop.first else 'num' }}{{ ' nw' if loop.index0 in t.nowrap else '' }}">{{ c }}</td>{% endfor %}</tr>
     {% endfor %}
   </table></div>
-  {% if t.note is defined and t.note %}<p class="lead" style="margin-top:8px;font-size:14px">{{ t.note }}</p>{% endif %}
+  {% if t.get('result') or t.get('meaning') %}<dl class="qrm">
+    {% if t.get('result') %}<dt>Result</dt><dd>{{ t.result }}</dd>{% endif %}
+    {% if t.get('meaning') %}<dt>What it means</dt><dd>{{ t.meaning }}</dd>{% endif %}
+  </dl>{% endif %}
+  {% if t.get('note') %}<p class="lead" style="margin-top:8px;font-size:14px">{{ t.note }}</p>{% endif %}
 {%- endmacro %}
 
-<header>
-  <div class="kicker">Agentic CFD performance study · {{ r.date }}</div>
-  <h1>{{ r.title }}</h1>
-  <nav class="toc">
-    <a href="#summary">Summary</a><a href="#setup">1 What is compared</a><a href="#method">2 Method</a>
-    <a href="#results">3 Results</a><a href="#same">4 Same answer?</a><a href="#breakdown">5 Where the time goes</a>
-    <a href="#insights">6 Insights</a><a href="#repro">A Reproducibility</a>
-  </nav>
-</header>
-
-<section id="summary" class="summary {{ r.verdict }}">
-  <h2>Summary <span class="verdict">{{ r.verdict_label }}</span></h2>
-  <p class="headline"><b>Question.</b> {{ r.question }}</p>
-  <p class="headline">{{ r.summary.headline }}</p>
-  <h4>Key numbers</h4>
-  <div class="table-wrap"><table class="answers full">
-    <tr><th>Measure</th><th>Value</th><th>What it means</th></tr>
-    {% for a in r.summary.answers %}<tr><td><b>{{ a.label }}</b></td><td>{{ a.value }}</td><td>{{ a.note }}</td></tr>{% endfor %}
-  </table></div>
-  <h4>Key findings</h4>
-  <ul class="points">{% for b in r.summary.findings %}<li>{{ b }}</li>{% endfor %}</ul>
-  {% for l in r.summary.limitations %}<div class="callout warn"><span class="tag">Limitation</span>{{ l }}</div>{% endfor %}
-  {% if r.summary.recommendation is defined %}<div class="callout info"><span class="tag">Recommendation</span>{{ r.summary.recommendation }}</div>{% endif %}
-</section>
-
-<section id="setup">
-  <h2><span class="num">1</span> What is compared</h2>
-  <p class="lead">{{ r.setup.intro }}</p>
-  {% if r.setup.terms is defined and r.setup.terms %}
+{% macro setup_body(d) -%}
+  <p class="lead">{{ d.intro }}</p>
+  {% if d.get('terms') %}
   <h4>Words used on this page</h4>
-  <ul class="points">{% for t in r.setup.terms %}<li><b>{{ t.term }}.</b> {{ t.meaning }}</li>{% endfor %}</ul>
+  <ul class="points">{% for t in d.terms %}<li><b>{{ t.term }}.</b> {{ t.meaning }}</li>{% endfor %}</ul>
   {% endif %}
   {{ figures('setup') }}
   <div class="repro-grid">
-    <div class="panel"><h4>Hardware</h4><table>{% for k, v in r.setup.hardware %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
-    <div class="panel"><h4>Software</h4><table>{% for k, v in r.setup.software %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
+    <div class="panel"><h4>Hardware</h4><table>{% for k, v in d.hardware %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
+    <div class="panel"><h4>Software</h4><table>{% for k, v in d.software %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
   </div>
   <h4>Rules for a fair comparison</h4>
-  <ul class="points">{% for f in r.setup.fairness %}<li>{{ f }}</li>{% endfor %}</ul>
-</section>
-
-<section id="method">
-  <h2><span class="num">2</span> Method</h2>
-  <p class="lead">{{ r.method.intro }}</p>
-  {% for c in r.method.choices %}
+  <ul class="points">{% for f in d.fairness %}<li>{{ f }}</li>{% endfor %}</ul>
+{%- endmacro %}
+{% macro method_body(d) -%}
+  <p class="lead">{{ d.intro }}</p>
+  {% for c in d.choices %}
   <article class="dcard solver">
     <header><span class="dnum">M{{ loop.index }}</span><div class="choice">{{ c.choice }}</div></header>
     <div class="dbody">
@@ -71,42 +53,73 @@
     </div>
   </article>
   {% endfor %}
+{%- endmacro %}
+{% macro tables_body(key, d, notes_as_list=false) -%}
+  <p class="lead">{{ d.intro }}</p>
+  {{ figures(key) }}
+  {% for t in d.tables %}{{ table(t, full=true) }}{% endfor %}
+  {% if notes_as_list %}<ul class="notes">{% for n in d.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+  {% else %}{% for n in d.notes %}<div class="callout info">{{ n }}</div>{% endfor %}{% endif %}
+{%- endmacro %}
+{% macro same_body(d) -%}
+  <p class="lead">{{ d.intro }}</p>
+  {{ figures('same_answer') }}
+  {{ table(d, full=true, titled=false) }}
+  <div class="callout {{ 'info' if d.ok else 'warn' }}"><span class="tag">{{ '✓ Same answer' if d.ok else '⚠ Answers differ' }}</span>{{ d.verdict }}</div>
+{%- endmacro %}
+
+<header>
+  <div class="kicker">Agentic CFD {{ r.kicker }} · {{ r.date }}</div>
+  <h1>{{ r.title }}</h1>
+  <nav class="toc">
+    <a href="#summary">Summary</a>{% for sec in r.secs %}<a href="#{{ sec.id }}">{{ sec.num }} {{ sec.title }}</a>{% endfor %}
+    <a href="#insights">{{ r.n_insights }} Insights</a><a href="#repro">A Reproducibility</a>
+  </nav>
+</header>
+
+<section id="summary" class="summary {{ r.verdict }}">
+  <h2>Summary <span class="verdict">{{ r.verdict_label }}</span></h2>
+  <p class="headline"><b>Question.</b> {{ r.question }}</p>
+  <p class="headline">{{ r.summary.headline }}</p>
+  {% if r.summary.get('reasons') %}<div class="callout warn" style="margin-bottom:14px"><span class="tag">Why this verdict</span>
+    <ul class="points">{% for x in r.summary.reasons %}<li>{{ x }}</li>{% endfor %}</ul></div>{% endif %}
+  <h4>Key numbers</h4>
+  <div class="table-wrap"><table class="answers full">
+    <tr><th>Measure</th><th>Value</th><th>What it means</th></tr>
+    {% for a in r.summary.answers %}<tr><td><b>{{ a.label }}</b></td><td>{{ a.value }}</td><td>{{ a.note }}</td></tr>{% endfor %}
+  </table></div>
+  <h4>Key findings</h4>
+  <ul class="points">{% for b in r.summary.findings %}<li>{{ b }}</li>{% endfor %}</ul>
+  {% for l in r.summary.limitations %}<div class="callout warn"><span class="tag">Limitation</span>{{ l }}</div>{% endfor %}
+  {% if r.summary.get('recommendation') %}<div class="callout info"><span class="tag">Recommendation</span>{{ r.summary.recommendation }}</div>{% endif %}
 </section>
 
-<section id="results">
-  <h2><span class="num">3</span> Results</h2>
-  <p class="lead">{{ r.results.intro }}</p>
-  {{ figures('results') }}
-  {% for t in r.results.tables %}{{ table(t, full=true) }}{% endfor %}
-  {% for n in r.results.notes %}<div class="callout info">{{ n }}</div>{% endfor %}
+{% for sec in r.secs %}
+<section id="{{ sec.id }}">
+  <h2><span class="num">{{ sec.num }}</span> {{ sec.title }}</h2>
+  {% if sec.kind == 'setup' %}{{ setup_body(r.setup) }}
+  {% elif sec.kind == 'method' %}{{ method_body(r.method) }}
+  {% elif sec.kind == 'results' %}{{ tables_body('results', r.results) }}
+  {% elif sec.kind == 'same_answer' %}{{ same_body(r.same_answer) }}
+  {% elif sec.kind == 'breakdown' %}{{ tables_body('breakdown', r.breakdown, notes_as_list=true) }}
+  {% else %}{{ tables_body(sec.key, sec.extra) }}{% endif %}
 </section>
-
-<section id="same">
-  <h2><span class="num">4</span> Same answer?</h2>
-  <p class="lead">{{ r.same_answer.intro }}</p>
-  {{ table(r.same_answer, full=true) }}
-  <div class="callout {{ 'info' if r.same_answer.ok else 'warn' }}"><span class="tag">{{ '✓ Same answer' if r.same_answer.ok else '⚠ Answers differ' }}</span>{{ r.same_answer.verdict }}</div>
-</section>
-
-<section id="breakdown">
-  <h2><span class="num">5</span> Where the time goes</h2>
-  <p class="lead">{{ r.breakdown.intro }}</p>
-  {{ figures('breakdown') }}
-  {% for t in r.breakdown.tables %}{{ table(t, full=true) }}{% endfor %}
-  <ul class="notes">{% for n in r.breakdown.notes %}<li>{{ n }}</li>{% endfor %}</ul>
-</section>
+{% endfor %}
 
 <section id="insights">
-  <h2><span class="num">6</span> Insights</h2>
-  <p class="lead">Performance and GPU entries of the case's live insight log: what limited speed, what helped, what to try next.</p>
+  <h2><span class="num">{{ r.n_insights }}</span> Insights</h2>
+  <p class="lead">Performance and GPU entries of the case's live insight log: what limited speed, what helped, what to try next.
+    Each entry shows its problem; open it for the diagnosis, the fix and the lesson.</p>
   {% for it in insights %}
-  <div class="insight {{ it.status | default('resolved') }}">
-    <div class="meta"><span class="stage">{{ it.stage }}</span><span class="when">logged {{ it.logged }}</span>
-      {% if it.status | default('resolved') == 'open' %}<span class="open-tag">✗ Unresolved</span>{% endif %}</div>
-    <dl><dt>Problem</dt><dd>{{ it.problem }}</dd>
+  {% set status = it.status | default('resolved') %}
+  <details class="insight {{ status }}"{{ ' open' if status == 'open' else '' }}>
+    <summary><span class="stage">{{ it.stage }}</span> <span class="when">logged {{ it.logged }}</span>
+      {% if status == 'open' %}<span class="open-tag">✗ Unresolved</span>{% endif %}
+      <div class="prob">{{ it.problem }}</div></summary>
+    <dl>
       {% for k, lab in [('diagnosis', 'Diagnosis'), ('fix', 'Fix'), ('lesson', 'Lesson'), ('guideline', 'Guideline')] %}
       {% if it[k] is defined and it[k] %}<dt>{{ lab }}</dt><dd>{{ it[k] }}</dd>{% endif %}{% endfor %}</dl>
-  </div>
+  </details>
   {% endfor %}
 </section>
 
@@ -127,7 +140,7 @@
     <h4 style="margin-top:16px">Environment</h4>
     <table>{% for k, v in r.reproducibility.environment %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>
   </div>
-  {% if r.reproducibility.notes is defined and r.reproducibility.notes %}
+  {% if r.reproducibility.get('notes') %}
   <ul class="notes">{% for n in r.reproducibility.notes %}<li>{{ n }}</li>{% endfor %}</ul>
   {% endif %}
 </section>

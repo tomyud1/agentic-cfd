@@ -44,3 +44,42 @@ characters anywhere (a TAB where `\times` was) fail. Insight text is checked whe
 `FoamFile` headers, field `dimensions`, and controlDict `startFrom, stopAt, purgeWrite,
 writeCompression, runTimeModifiable, writeFormat, timeFormat`; blockMesh `edges, mergePatchPairs`;
 `decomposeParDict`. Everything else must be covered.
+
+## Study reports
+
+A second report on a solved case that compares tools or settings: GPU against CPU, one solver against
+another, one scheme against another. `cfdlib.study.render_study(s, svgs, out, insights)` writes
+`<name>.html` and `<name>.json`; `cfdlib.study.check_study()` is the rule and refuses a study that
+breaks it; `cfdlib.study.warnings()` lists what will read badly (a table of more than about ten
+columns scrolls sideways unseen). Text and typesetting rules are those of the main report, and
+`{fig:<key>}` works the same way. Complete examples: `cases/dfg_cylinder_3d_re20/gpu_study.py`
+(one solver, CPU against GPU) and `cases/dfg_cylinder_re100/gpu_study.py` (two solvers, with its
+own section and section titles). `tests/test_study.py` renders a study with every key.
+
+Firm rules: `verdict` PASS needs `same_answer.ok` (a faster run with a different answer is not a
+speed-up); any other verdict needs `summary.reasons`; the results section has at least one figure.
+Everything else below is there to use when it makes the page clearer.
+
+| Key | Content |
+|---|---|
+| `title`, `date`, `question` | The question the study answers, in one sentence |
+| `verdict` | `PASS` / `WARN` / `FAIL`, from rules in the script. `study.verdict(fail, warn)` turns two lists of plain sentences into the verdict and its reasons, so every study decides alike: anything in `fail` (a run failed a health check, the answers differ, the setup was unfair) gives FAIL, anything in `warn` gives WARN |
+| `kicker`, `verdict_label` | optional: the line above the title (default "performance study") and the words next to the verdict mark (defaults: "Fair comparison, same answer", "Usable, with caveats", "Not a valid comparison") |
+| `summary` | `headline`, `answers[]` (label, value, note), `findings[]`, `limitations[]`; optional `recommendation`; `reasons[]` (why the verdict is what it is, shown under the headline; required unless PASS); optional `plain`: the headline as plain text without HTML or LaTeX, which `cases/catalogue.yaml` shows for the study (a study entry has no typed headline) |
+| `setup` | `intro`, `hardware[[name, value]]`, `software[[name, value]]`, `fairness[]` (the rules that make the comparison fair, and what is not like for like); optional `terms[]` (term, meaning): the words the page uses, for a reader new to the field |
+| `method` | `intro`, `choices[]` (choice, why, alternatives) |
+| `results` | `intro`, `tables[]`, `notes[]` |
+| `same_answer` | `intro`, `head[]`, `rows[][]`, `ok` (bool), `verdict` (one sentence); it is a table, so it also takes `question`, `result`, `meaning`, `note` |
+| `breakdown` | `intro`, `tables[]`, `notes[]`: where the time goes, or what limits the tool |
+| `sections[]` | optional sections of your own: `key` (a new lower-case name), `title`, `intro`, `tables[]`, `notes[]`, and `after` (the core section it follows; default: after `breakdown`) |
+| a `title` in `setup`, `method`, `results`, `same_answer`, `breakdown` | optional: replaces the section's default title ("What is compared", "Method", "Results", "Same answer?", "Where the time goes") |
+| a table | `head[]`, `rows[][]` (one cell per column); optional `title`; optional `question` (shown above the table), `result` and `meaning` (shown below it, each on its own labelled line): what the table was made to answer, what came out, and what follows from it; optional `note` (small print: how to read a column, a footnote); optional `figure` (the key of a figure of the same section, drawn right above this table); optional `nowrap` (column numbers kept on one line; by default the first column when its cells are short) |
+| `figures[]` | `key`, `section` (`setup`, `results`, `same_answer`, `breakdown` or the key of your own section), `caption`. A figure that no table names is drawn at the top of its section. Numbers follow the reading order |
+| `reproducibility` | as in the main report: `commands[]`, `files[]`, `run_dirs[]`, `environment`, optional `notes[]` |
+| insights (argument of `render_study`) | the case's insight entries; those with stage `performance` or `gpu` are shown, each folded to its problem line. Pass a shorter list to show fewer |
+
+Numbers for the tables: `cfdlib.report.m_fix`, `m_pct` (per cent, signed or not), `m_times`,
+`m_pow10`, `m_sig` return a finished cell (math, or a dash for a missing value). Run records of
+OpenFOAM and gpucfd in one shape, with wall time and wall-based cost under the same names:
+`cfdlib.runrecord.read`. A grid-convergence index that is a placeholder, not an estimate, is
+flagged by `cfdlib.verification.three_grid_study` (`gci_reliable`): mark it in the table.

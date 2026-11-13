@@ -1,10 +1,19 @@
 {
  "title": "gpucfd next to OpenFOAM: a cylinder shedding vortices (DFG 2D-2, Re = 100)",
+ "kicker": "tool comparison",
  "date": "2026-11-13",
  "question": "On a cylinder that sheds vortices, does the project's GPU program gpucfd reach the accuracy of OpenFOAM's grid study in less time, what does it cost, and what holds it back?",
  "verdict": "WARN",
  "summary": {
   "headline": "gpucfd <b>met the target</b> we set before the runs. Its drag was \\(0.09\\,\\%\\) and \\(0.16\\,\\%\\) below the published reference (two positions of the cylinder), and its three-grid study took about 1,005 s (with the implicit time scheme on the finest grid; 1,421 s without it), against about 1,743 s for OpenFOAM's four-grid study. <b>But the target is easier than it looks.</b> The published reference is itself about \\(0.2\\,\\%\\) too low. Against the value it is heading for, gpucfd's drag is \\(0.31\\,\\%\\) to \\(0.38\\,\\%\\) low, and OpenFOAM's is within \\(0.04\\,\\%\\). <b>And OpenFOAM is still cheaper</b> for this accuracy: it reaches the same drag accuracy in 153 s.",
+  "plain": "gpucfd met the target set before the runs (drag 0.09 to 0.16 % below the published reference; three-grid study in 1,005 s with the implicit time scheme on the finest grid, 1,421 s without it, against about 1,743 s for OpenFOAM's study), but the reference is itself about 0.2 % low: against the value it is heading for, gpucfd is 0.31 to 0.38 % low and OpenFOAM within 0.04 %. OpenFOAM reaches the same drag accuracy in 153 s",
+  "reasons": [
+   "measured against the value the reference is heading for, gpucfd's drag is outside the target's tolerance",
+   "the finest clustered grid and OpenFOAM disagree by more than their error estimates allow in: lift minimum",
+   "the finest equal-cell grid and OpenFOAM disagree by more than their error estimates allow in: lift maximum",
+   "by the case's own rules the equal-cell study is rated WARN",
+   "the finest clustered grid is outside its own error band in: lift minimum"
+  ],
   "answers": [
    {
     "label": "Drag, gpucfd's finest grid, against the published reference",
@@ -49,8 +58,7 @@
    "<b>gpucfd costs far less per cell and step. Why is it not much quicker?</b> Per cell and step it is \\(25\\times\\) to \\(45\\times\\) cheaper than OpenFOAM. But its finest run has \\(2.1\\times\\) the cells and \\(6.5\\times\\) the steps, so it is only \\(1.8\\times\\) quicker (1,180 s against 2,110 s). And OpenFOAM's second grid, with 13,432 cells, already has the drag.",
    "<b>Does an implicit time scheme make gpucfd faster?</b> Yes, but not more accurate. It gives the same answer (drag and frequency within \\(0.00047\\,\\%\\), lift within \\(0.014\\,\\%\\), of the explicit runs). The finest run takes 764 s instead of 1,180 s, and the study 1,005 s instead of 1,421 s. We had expected 550 to 800 s: that was missed. The drag is as far from the reference as before (\\(-0.09\\,\\%\\)).",
    "<b>What holds gpucfd back?</b> Three things (section 5). Its explicit time steps are very small: on the finest grid \\(3.3\\times\\) smaller than the flow alone needs. The implicit scheme takes \\(3.3\\times\\) fewer steps, but each costs \\(2.1\\times\\) more, so the run gains \\(1.55\\times\\), not \\(3.3\\times\\). A finer grid needs the pressure worked out more exactly, which makes each explicit step \\(2.1\\times\\) dearer; the implicit scheme did not relax that setting on the finest grid. And small cells cannot go in one place only: just \\(21\\,\\%\\) of the clustered cells are in the band around the cylinder. The finest grid still takes \\(76\\,\\%\\) of the study's time.",
-   "<b>Why were lift and frequency worse on the clustered grid at first?</b> The small cells stopped too soon behind the cylinder, where the vortices form. With the small cells reaching \\(4\\) diameters behind it instead of \\(1.5\\), the lift maximum went from \\(-5.15\\,\\%\\) to \\(-3.68\\,\\%\\) and the frequency from \\(+0.54\\,\\%\\) to \\(+0.25\\,\\%\\), as good as equal cells. But then the clustered study took 308 s against 328 s: fewer cells bought almost no time.",
-   "<b>Why the verdict is 'usable, with caveats':</b> measured against the value the reference is heading for, gpucfd's drag is outside the target's tolerance; the finest clustered grid and OpenFOAM disagree by more than their error estimates allow in: lift minimum; the finest equal-cell grid and OpenFOAM disagree by more than their error estimates allow in: lift maximum; by the case's own rules the equal-cell study is rated WARN; the finest clustered grid is outside its own error band in: lift minimum."
+   "<b>Why were lift and frequency worse on the clustered grid at first?</b> The small cells stopped too soon behind the cylinder, where the vortices form. With the small cells reaching \\(4\\) diameters behind it instead of \\(1.5\\), the lift maximum went from \\(-5.15\\,\\%\\) to \\(-3.68\\,\\%\\) and the frequency from \\(+0.54\\,\\%\\) to \\(+0.25\\,\\%\\), as good as equal cells. But then the clustered study took 308 s against 328 s: fewer cells bought almost no time."
   ],
   "limitations": [
    "<b>Only the drag is close.</b> The lift maximum is \\(0.85\\,\\%\\) to \\(1.15\\,\\%\\) low and the frequency \\(0.10\\,\\%\\) to \\(0.13\\,\\%\\) high. OpenFOAM: \\(+0.41\\,\\%\\) and \\(-0.12\\,\\%\\).",
@@ -112,7 +120,7 @@
    },
    {
     "term": "Explicit and implicit",
-    "meaning": "An explicit time scheme makes each jump simple and quick, but it is only stable if the jump is very small. An implicit one costs more per jump and allows larger jumps. OpenFOAM's is implicit. gpucfd's first scheme is explicit; it now also has one that treats friction implicitly (IMEX), which works with a body in the flow (section 5)."
+    "meaning": "An explicit time scheme makes each jump simple and quick, but it is only stable if the jump is very small. An implicit one costs more per jump and allows larger jumps. OpenFOAM's is implicit. gpucfd's first scheme is explicit; it now also has one that treats friction implicitly (IMEX), which works with a body in the flow (section 6)."
    },
    {
     "term": "Pressure setting",
@@ -164,7 +172,7 @@
    ],
    [
     "gpucfd",
-    "explicit three-stage Runge-Kutta time stepping (rk3), pressure by conjugate gradients with a multigrid preconditioner, cylinder as an immersed body. Also its implicit-friction scheme (IMEX), used for the runs ending in i (section 5)"
+    "explicit three-stage Runge-Kutta time stepping (rk3), pressure by conjugate gradients with a multigrid preconditioner, cylinder as an immersed body. Also its implicit-friction scheme (IMEX), used for the runs ending in i (section 6)"
    ],
    [
     "Reference",
@@ -233,10 +241,12 @@
   ]
  },
  "results": {
-  "intro": "Differences are in per cent of the reference value; a minus sign means below it. Times are elapsed times on this PC. Each table is headed by the question it answers; below it, what came out and what it means.",
+  "title": "Results: accuracy and cost",
+  "intro": "Differences are in per cent of the reference value; a minus sign means below it. Times are elapsed times on this PC. Each table has the question it answers above it and, below it, what came out and what it means.",
   "tables": [
    {
-    "title": "How close is each grid to the reference?",
+    "title": "Accuracy of every grid",
+    "question": "How close is each grid to the reference?",
     "head": [
      "Solver and grid",
      "Grid",
@@ -249,7 +259,7 @@
     ],
     "rows": [
      [
-      "<span style='white-space:nowrap'>OpenFOAM, fitted grid</span>",
+      "OpenFOAM, fitted grid",
       "M1",
       "3,358",
       "\\(35\\)",
@@ -259,7 +269,7 @@
       "56"
      ],
      [
-      "<span style='white-space:nowrap'>OpenFOAM, fitted grid</span>",
+      "OpenFOAM, fitted grid",
       "M2",
       "13,432",
       "\\(70\\)",
@@ -269,7 +279,7 @@
       "153"
      ],
      [
-      "<span style='white-space:nowrap'>OpenFOAM, fitted grid</span>",
+      "OpenFOAM, fitted grid",
       "M3",
       "53,728",
       "\\(139\\)",
@@ -279,7 +289,7 @@
       "438"
      ],
      [
-      "<span style='white-space:nowrap'>OpenFOAM, fitted grid</span>",
+      "OpenFOAM, fitted grid",
       "M4",
       "214,912",
       "\\(278\\)",
@@ -289,7 +299,7 @@
       "2,548"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G1",
       "27,648",
       "\\(18\\)",
@@ -299,7 +309,7 @@
       "64"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G2",
       "110,592",
       "\\(35\\)",
@@ -309,7 +319,7 @@
       "114"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G3",
       "442,368",
       "\\(70\\)",
@@ -319,7 +329,7 @@
       "328"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C1",
       "28,672",
       "\\(35\\)",
@@ -329,7 +339,7 @@
       "112"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C2",
       "114,688",
       "\\(70\\)",
@@ -339,7 +349,7 @@
       "241"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C3",
       "458,752",
       "\\(140\\)",
@@ -349,7 +359,7 @@
       "1,421"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, moved</span>",
+      "gpucfd, clustered, moved",
       "C1s",
       "28,672",
       "\\(35\\)",
@@ -359,7 +369,7 @@
       "109"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, moved</span>",
+      "gpucfd, clustered, moved",
       "C2s",
       "114,688",
       "\\(70\\)",
@@ -369,7 +379,7 @@
       "234"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, moved</span>",
+      "gpucfd, clustered, moved",
       "C3s",
       "458,752",
       "\\(140\\)",
@@ -379,7 +389,7 @@
       "1,375"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, long band</span>",
+      "gpucfd, clustered, long band",
       "C2w",
       "143,360",
       "\\(70\\)",
@@ -389,10 +399,13 @@
       "308"
      ]
     ],
-    "note": "<b>Result.</b> gpucfd needs \\(140\\) cells across the cylinder to bring the drag inside \\(0.25\\,\\%\\). OpenFOAM's drag is \\(0.23\\,\\%\\) to \\(0.27\\,\\%\\) off on every grid, even the coarsest, but that grid's lift and frequency are \\(5.4\\,\\%\\) and \\(7.6\\,\\%\\) off. At \\(70\\) cells across, OpenFOAM is \\(+0.24\\,\\%\\) off and gpucfd \\(-0.99\\,\\%\\) and \\(-1.07\\,\\%\\). <b>What it means.</b> A grid that follows the cylinder is worth far more per cell than small square cells that cut through it. (Study time so far: this grid and the coarser ones of its study.)"
+    "result": "gpucfd needs \\(140\\) cells across the cylinder to bring the drag inside \\(0.25\\,\\%\\). OpenFOAM's drag is \\(0.23\\,\\%\\) to \\(0.27\\,\\%\\) off on every grid, even the coarsest, but that grid's lift and frequency are \\(5.4\\,\\%\\) and \\(7.6\\,\\%\\) off. At \\(70\\) cells across, OpenFOAM is \\(+0.24\\,\\%\\) off and gpucfd \\(-0.99\\,\\%\\) and \\(-1.07\\,\\%\\).",
+    "meaning": "A grid that follows the cylinder is worth far more per cell than small square cells that cut through it.",
+    "note": "Study time so far: this grid and the coarser ones of its study."
    },
    {
-    "title": "How well does each study know its own error?",
+    "title": "Each study's own error estimate",
+    "question": "How well does each study know its own error?",
     "head": [
      "Quantity",
      "Reference value",
@@ -408,7 +421,7 @@
       "\\(3.2200\\)",
       "\\(0.24\\)",
       "\\(+0.25\\)",
-      "\\(0.02\\)",
+      "\\(0.02\\) *",
       "\\(-0.11\\) / \\(-0.19\\)",
       "\\(0.76\\) / \\(0.65\\)"
      ],
@@ -417,7 +430,7 @@
       "\\(3.1569\\)",
       "\\(0.24\\)",
       "\\(+0.25\\)",
-      "\\(0.02\\)",
+      "\\(0.02\\) *",
       "\\(-0.07\\) / \\(-0.14\\)",
       "\\(0.74\\) / \\(0.60\\)"
      ],
@@ -426,7 +439,7 @@
       "\\(3.1884\\)",
       "\\(0.24\\)",
       "\\(+0.25\\)",
-      "\\(0.02\\)",
+      "\\(0.02\\) *",
       "\\(-0.09\\) / \\(-0.16\\)",
       "\\(0.75\\) / \\(0.62\\)"
      ],
@@ -437,7 +450,7 @@
       "\\(+0.41\\)",
       "\\(0.44\\)",
       "\\(-0.85\\) / \\(-1.15\\)",
-      "\\(1.79\\) / \\(45.07\\)"
+      "\\(1.79\\) * / \\(45.07\\) *"
      ],
      [
       "Lift minimum \\(c_{L,\\min}\\)",
@@ -467,10 +480,13 @@
       "\\(0.23\\) / \\(0.18\\)"
      ]
     ],
-    "note": "<b>Result.</b> OpenFOAM's drag has stopped changing with the grid, so its error estimate is tiny (a few hundredths of a per cent). gpucfd's has not: \\(0.62\\,\\%\\) to \\(0.75\\,\\%\\) for the drag. <b>What it means.</b> gpucfd's drag is close to the reference, but its three grids are too far apart to prove it. The lift maximum on the clustered grids does not settle regularly, so its estimate is weak."
+    "result": "OpenFOAM's drag changes so little between its three finest grids that no trend is left to measure. Its error number (marked *) is therefore a placeholder too: it says that the grids agree with each other, not how far they are from the true value. gpucfd's drag still changes from grid to grid: its estimate is \\(0.62\\,\\%\\) to \\(0.75\\,\\%\\).",
+    "meaning": "gpucfd's drag is close to the reference, but its three grids are too far apart to prove it. The lift maximum on the clustered grids does not settle regularly, so the number marked * is a placeholder, not an estimate.",
+    "note": "* Not a measured error estimate. gpucfd, lift maximum: first position, order 2 assumed: the three values do not approach a limit from one side; cylinder moved, observed order 0.16 is below 0.5: the values barely converge, so the index is inflated. OpenFOAM, drag maximum: order 2 assumed: the three values do not approach a limit from one side. OpenFOAM, drag minimum: order 2 assumed: the three values do not approach a limit from one side. OpenFOAM, mean drag: order 2 assumed: the three values do not approach a limit from one side."
    },
    {
-    "title": "Was the good drag luck? The cylinder moved half a cell",
+    "title": "The cylinder moved half a cell",
+    "question": "Was the good drag luck?",
     "head": [
      "Grids",
      "Cells across the diameter",
@@ -513,10 +529,13 @@
       "\\(+0.10\\)"
      ]
     ],
-    "note": "<b>Result.</b> On the finest grid the drag moves from \\(-0.09\\,\\%\\) to \\(-0.16\\,\\%\\) and the lift maximum from \\(-0.85\\,\\%\\) to \\(-1.15\\,\\%\\). Both are inside the target, in 1,421 s and 1,375 s. <b>What it means.</b> The first position was somewhat favourable, not a fluke. This kind of error is invisible to the error estimate, because every grid cuts the cylinder at the same relative place. The shifts are different fractions of a cell on each grid, so the rows do not show how the scatter shrinks."
+    "result": "On the finest grid the drag moves from \\(-0.09\\,\\%\\) to \\(-0.16\\,\\%\\) and the lift maximum from \\(-0.85\\,\\%\\) to \\(-1.15\\,\\%\\). Both are inside the target, in 1,421 s and 1,375 s.",
+    "meaning": "The first position was somewhat favourable, not a fluke. This kind of error is invisible to the error estimate, because every grid cuts the cylinder at the same relative place.",
+    "note": "The shifts are different fractions of a cell on each grid, so the rows do not show how the scatter shrinks."
    },
    {
-    "title": "Why were lift and frequency worse? A longer band of small cells behind the cylinder",
+    "title": "A longer band of small cells behind the cylinder",
+    "question": "Why were lift and frequency worse on the clustered grids?",
     "head": [
      "Solver and grid",
      "Grid",
@@ -528,7 +547,7 @@
     ],
     "rows": [
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C2",
       "114,688",
       "\\(-1.07\\)",
@@ -537,7 +556,7 @@
       "241"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, moved</span>",
+      "gpucfd, clustered, moved",
       "C2s",
       "114,688",
       "\\(-1.16\\)",
@@ -546,7 +565,7 @@
       "234"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, long band</span>",
+      "gpucfd, clustered, long band",
       "C2w",
       "143,360",
       "\\(-0.94\\)",
@@ -555,7 +574,7 @@
       "308"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G3",
       "442,368",
       "\\(-0.99\\)",
@@ -564,10 +583,12 @@
       "328"
      ]
     ],
-    "note": "<b>Result.</b> All four have \\(70\\) cells across the diameter. With the band reaching \\(4\\) diameters behind the cylinder instead of \\(1.5\\) (\\(25\\,\\%\\) more cells), the lift maximum goes from \\(-5.15\\,\\%\\) to \\(-3.68\\,\\%\\) and the frequency from \\(+0.54\\,\\%\\) to \\(+0.25\\,\\%\\). Moving the cylinder changes them far less (C2s). <b>What it means.</b> The vortices form just behind the cylinder and need small cells there. It also changes the cost picture: for the drag alone the clustered study took \\(0.74\\) of the equal-cell study's time, but matching lift and frequency too, \\(0.94\\)."
+    "result": "All four have \\(70\\) cells across the diameter. With the band reaching \\(4\\) diameters behind the cylinder instead of \\(1.5\\) (\\(25\\,\\%\\) more cells), the lift maximum goes from \\(-5.15\\,\\%\\) to \\(-3.68\\,\\%\\) and the frequency from \\(+0.54\\,\\%\\) to \\(+0.25\\,\\%\\). Moving the cylinder changes them far less (C2s).",
+    "meaning": "The vortices form just behind the cylinder and need small cells there. It also changes the cost picture: for the drag alone the clustered study took \\(0.74\\) of the equal-cell study's time, but matching lift and frequency too, \\(0.94\\)."
    },
    {
-    "title": "What does each run cost?",
+    "title": "Cost of each run",
+    "question": "What does each run cost?",
     "head": [
      "Solver and grid",
      "Grid",
@@ -579,7 +600,7 @@
     ],
     "rows": [
      [
-      "<span style='white-space:nowrap'>OpenFOAM, fitted grid</span>",
+      "OpenFOAM, fitted grid",
       "M1",
       "3,358",
       "3,750",
@@ -588,7 +609,7 @@
       "\\(4.412\\)"
      ],
      [
-      "<span style='white-space:nowrap'>OpenFOAM, fitted grid</span>",
+      "OpenFOAM, fitted grid",
       "M2",
       "13,432",
       "1,500",
@@ -597,7 +618,7 @@
       "\\(4.820\\)"
      ],
      [
-      "<span style='white-space:nowrap'>OpenFOAM, fitted grid</span>",
+      "OpenFOAM, fitted grid",
       "M3",
       "53,728",
       "3,000",
@@ -606,7 +627,7 @@
       "\\(1.769\\)"
      ],
      [
-      "<span style='white-space:nowrap'>OpenFOAM, fitted grid</span>",
+      "OpenFOAM, fitted grid",
       "M4",
       "214,912",
       "6,000",
@@ -615,7 +636,7 @@
       "\\(1.637\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G1",
       "27,648",
       "7,409",
@@ -624,7 +645,7 @@
       "\\(0.314\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G2",
       "110,592",
       "4,940",
@@ -633,7 +654,7 @@
       "\\(0.091\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G3",
       "442,368",
       "13,160",
@@ -642,7 +663,7 @@
       "\\(0.037\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C1",
       "28,672",
       "14,766",
@@ -651,7 +672,7 @@
       "\\(0.265\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C2",
       "114,688",
       "9,808",
@@ -660,7 +681,7 @@
       "\\(0.115\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C3",
       "458,752",
       "39,232",
@@ -669,7 +690,7 @@
       "\\(0.066\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, moved</span>",
+      "gpucfd, clustered, moved",
       "C1s",
       "28,672",
       "14,766",
@@ -678,7 +699,7 @@
       "\\(0.257\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, moved</span>",
+      "gpucfd, clustered, moved",
       "C2s",
       "114,688",
       "9,808",
@@ -687,7 +708,7 @@
       "\\(0.112\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, moved</span>",
+      "gpucfd, clustered, moved",
       "C3s",
       "458,752",
       "39,232",
@@ -696,7 +717,7 @@
       "\\(0.063\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered, long band</span>",
+      "gpucfd, clustered, long band",
       "C2w",
       "143,360",
       "13,072",
@@ -705,10 +726,13 @@
       "\\(0.104\\)"
      ]
     ],
-    "note": "<b>Result.</b> Per cell and step gpucfd costs \\(0.066\\) to \\(0.037\\) \\(\\mu\\mathrm{s}\\) on its finest grids; OpenFOAM \\(1.64\\). <b>What it means.</b> gpucfd is \\(25\\times\\) to \\(45\\times\\) cheaper per cell and step, and spends it on more cells and many more steps. Both use the elapsed time of the run (for gpucfd that includes sampling the forces)."
+    "result": "Per cell and step gpucfd costs \\(0.066\\) to \\(0.037\\) \\(\\mu\\mathrm{s}\\) on its finest grids; OpenFOAM \\(1.64\\).",
+    "meaning": "gpucfd is \\(25\\times\\) to \\(45\\times\\) cheaper per cell and step, and spends it on more cells and many more steps.",
+    "note": "Both use the elapsed time of the run (for gpucfd that includes sampling the forces)."
    },
    {
-    "title": "What does each whole study cost?",
+    "title": "Cost of each whole study",
+    "question": "What does each whole study cost?",
     "head": [
      "Study",
      "Grids",
@@ -801,10 +825,14 @@
       "\\(+0.25\\)"
      ]
     ],
-    "note": "* An estimate: the stop rule applied afterwards to the recorded forces (section 1). Target time: 1,740 s. <b>Result.</b> gpucfd's clustered study takes \\(0.82\\) of the target time; its equal-cell study \\(0.19\\) of it, but with the drag \\(1.0\\,\\%\\) low. OpenFOAM's first two grids take \\(0.09\\) of it. <b>What it means.</b> gpucfd wins the comparison the target sets (whole study against whole study) and loses the comparison of the cheapest route to this drag accuracy (Figure 2)."
+    "result": "gpucfd's clustered study takes \\(0.82\\) of the target time; its equal-cell study \\(0.19\\) of it, but with the drag \\(1.0\\,\\%\\) low. OpenFOAM's first two grids take \\(0.09\\) of it.",
+    "meaning": "gpucfd wins the comparison the target sets (whole study against whole study) and loses the comparison of the cheapest route to this drag accuracy (Figure 2).",
+    "note": "* An estimate: the stop rule applied afterwards to the recorded forces (section 1). Target time: 1,740 s."
    },
    {
-    "title": "How fast does the error fall as the cells get smaller?",
+    "title": "Observed order of convergence",
+    "question": "How fast does the error fall as the cells get smaller?",
+    "figure": "res",
     "head": [
      "Quantity",
      "OpenFOAM",
@@ -814,56 +842,58 @@
     ],
     "rows": [
      [
-      "<span style='white-space:nowrap'>Drag maximum</span>",
+      "Drag maximum",
       "no clear order",
       "\\(1.48\\)",
       "\\(1.41\\)",
       "\\(1.58\\)"
      ],
      [
-      "<span style='white-space:nowrap'>Drag minimum</span>",
+      "Drag minimum",
       "no clear order",
       "\\(1.49\\)",
       "\\(1.39\\)",
       "\\(1.59\\)"
      ],
      [
-      "<span style='white-space:nowrap'>Mean drag</span>",
+      "Mean drag",
       "no clear order",
       "\\(1.49\\)",
       "\\(1.40\\)",
       "\\(1.59\\)"
      ],
      [
-      "<span style='white-space:nowrap'>Lift maximum</span>",
+      "Lift maximum",
       "\\(1.48\\)",
       "\\(1.87\\)",
       "no clear order",
       "\\(0.16\\)"
      ],
      [
-      "<span style='white-space:nowrap'>Lift minimum</span>",
+      "Lift minimum",
       "\\(1.49\\)",
       "\\(0.78\\)",
       "\\(3.19\\)",
       "\\(2.78\\)"
      ],
      [
-      "<span style='white-space:nowrap'>Lift swing</span>",
+      "Lift swing",
       "\\(1.48\\)",
       "\\(1.11\\)",
       "\\(1.56\\)",
       "\\(1.68\\)"
      ],
      [
-      "<span style='white-space:nowrap'>Shedding frequency</span>",
+      "Shedding frequency",
       "\\(2.29\\)",
       "\\(1.89\\)",
       "\\(1.71\\)",
       "\\(1.95\\)"
      ]
     ],
-    "note": "<b>Result.</b> gpucfd's drag converges at order \\(1.4\\) to \\(1.6\\). 'No clear order' means the three values do not approach a limit from one side (for OpenFOAM's drag because it has already converged). <b>What it means.</b> Order 1.5 is the known price of cutting a body out of a grid instead of fitting the grid to it."
+    "result": "gpucfd's drag converges at order \\(1.4\\) to \\(1.6\\).",
+    "meaning": "Order 1.5 is the known price of cutting a body out of a grid instead of fitting the grid to it.",
+    "note": "'No clear order' means the three values do not approach a limit from one side (for OpenFOAM's drag because it has already converged)."
    }
   ],
   "notes": [
@@ -873,7 +903,8 @@
   ]
  },
  "same_answer": {
-  "intro": "Question: do the two programs give the same answer? We say yes if their results differ by less than their two error estimates added together. The rule was fixed before the equal-cell runs; here it is also applied to gpucfd's finest clustered grid. Values are the coefficients themselves, not per cent.",
+  "intro": "We say yes if their results differ by less than their two error estimates added together. The rule was fixed before the equal-cell runs; here it is also applied to gpucfd's finest clustered grid. Values are the coefficients themselves, not per cent.",
+  "question": "Do the two programs give the same answer?",
   "head": [
    "Quantity",
    "OpenFOAM",
@@ -884,7 +915,7 @@
   ],
   "rows": [
    [
-    "<span style='white-space:nowrap'>Drag maximum \\(c_{D,\\max}\\)</span>",
+    "Drag maximum \\(c_{D,\\max}\\)",
     "\\(3.2280\\)",
     "\\(3.2163\\)",
     "\\(-0.0117\\)",
@@ -892,7 +923,7 @@
     "✓"
    ],
    [
-    "<span style='white-space:nowrap'>Drag minimum \\(c_{D,\\min}\\)</span>",
+    "Drag minimum \\(c_{D,\\min}\\)",
     "\\(3.1648\\)",
     "\\(3.1546\\)",
     "\\(-0.0103\\)",
@@ -900,7 +931,7 @@
     "✓"
    ],
    [
-    "<span style='white-space:nowrap'>Mean drag \\(\\bar c_D\\)</span>",
+    "Mean drag \\(\\bar c_D\\)",
     "\\(3.1964\\)",
     "\\(3.1854\\)",
     "\\(-0.0110\\)",
@@ -908,15 +939,15 @@
     "✓"
    ],
    [
-    "<span style='white-space:nowrap'>Lift maximum \\(c_{L,\\max}\\)</span>",
+    "Lift maximum \\(c_{L,\\max}\\)",
     "\\(0.9900\\)",
     "\\(0.9775\\)",
     "\\(-0.0125\\)",
-    "\\(0.0219\\)",
+    "\\(0.0219\\) *",
     "✓"
    ],
    [
-    "<span style='white-space:nowrap'>Lift minimum \\(c_{L,\\min}\\)</span>",
+    "Lift minimum \\(c_{L,\\min}\\)",
     "\\(-1.0247\\)",
     "\\(-1.0087\\)",
     "\\(+0.0160\\)",
@@ -924,7 +955,7 @@
     "✗"
    ],
    [
-    "<span style='white-space:nowrap'>Lift swing \\(\\Delta c_L\\)</span>",
+    "Lift swing \\(\\Delta c_L\\)",
     "\\(2.0147\\)",
     "\\(1.9862\\)",
     "\\(-0.0285\\)",
@@ -932,7 +963,7 @@
     "✓"
    ],
    [
-    "<span style='white-space:nowrap'>Shedding frequency \\(St\\)</span>",
+    "Shedding frequency \\(St\\)",
     "\\(0.3015\\)",
     "\\(0.3023\\)",
     "\\(+0.0008\\)",
@@ -941,13 +972,18 @@
    ]
   ],
   "ok": false,
-  "verdict": "<b>Result.</b> gpucfd's finest clustered grid agrees with OpenFOAM's finest in 6 of 7 outputs; the lift minimum does not. The finest equal-cell grid agrees in 6 of 7 (not in: lift maximum). <b>What it means.</b> Where they agree it is partly because gpucfd's error estimate is wide: the mean drags of the two programs differ by \\(0.34\\,\\%\\), gpucfd below the reference and OpenFOAM above it."
+  "result": "gpucfd's finest clustered grid agrees with OpenFOAM's finest in 6 of 7 outputs; the lift minimum does not. The finest equal-cell grid agrees in 6 of 7 (not in: lift maximum).",
+  "meaning": "Where they agree it is partly because gpucfd's error estimate is wide: the mean drags of the two programs differ by \\(0.34\\,\\%\\), gpucfd below the reference and OpenFOAM above it.",
+  "note": "* gpucfd's error estimate for this output is a placeholder (section 3, 'Each study's own error estimate'), so the allowed difference is not well founded. OpenFOAM's estimate is a placeholder as well for: drag maximum, drag minimum, mean drag (same table), so there the allowed difference rests on gpucfd's estimate alone.",
+  "verdict": "Not in every output: 6 of 7 agree within the two error estimates."
  },
  "breakdown": {
-  "intro": "Question: gpucfd costs far less per cell and step, so why does it not win by more? Three reasons, each measured here, a check that the comparison between gpucfd's two kinds of grid was fair, and what the implicit time scheme changed (last two tables).",
+  "title": "What holds gpucfd back",
+  "intro": "gpucfd costs far less per cell and step, so why does it not win by more? Three reasons, each measured here, and a check that the comparison between gpucfd's two kinds of grid was fair. What the implicit time scheme changed is in section 6.",
   "tables": [
    {
-    "title": "Reason 1: very small time steps. How many steps does each grid need?",
+    "title": "Reason 1: very small time steps",
+    "question": "How many time steps does each grid need? gpucfd's time scheme is explicit. It is only stable if each jump in time is small enough for two things: the fluid must not cross more than about one cell per step (a limit that shrinks with the cell size), and friction must not spread more than about one cell per step (a limit that shrinks with the cell size squared).",
     "head": [
      "Grid type",
      "Grid",
@@ -959,7 +995,7 @@
     ],
     "rows": [
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G1",
       "\\(20\\)",
       "7,409",
@@ -968,7 +1004,7 @@
       "\\(1.0\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G2",
       "\\(15\\)",
       "4,940",
@@ -977,7 +1013,7 @@
       "\\(1.0\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, equal cells</span>",
+      "gpucfd, equal cells",
       "G3",
       "\\(65\\)",
       "13,160",
@@ -986,7 +1022,7 @@
       "\\(1.7\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C1",
       "\\(8\\)",
       "14,766",
@@ -995,7 +1031,7 @@
       "\\(1.0\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C2",
       "\\(9\\)",
       "9,808",
@@ -1004,7 +1040,7 @@
       "\\(1.7\\)"
      ],
      [
-      "<span style='white-space:nowrap'>gpucfd, clustered</span>",
+      "gpucfd, clustered",
       "C3",
       "\\(83\\)",
       "39,232",
@@ -1013,10 +1049,13 @@
       "\\(3.3\\)"
      ]
     ],
-    "note": "gpucfd's time scheme is explicit. It is only stable if each jump in time is small enough for two things: the fluid must not cross more than about one cell per step (a limit that shrinks with the cell size), and friction must not spread more than about one cell per step (a limit that shrinks with the cell size squared). <b>Result.</b> On the finest clustered grid the step is \\(3.3\\times\\) smaller than the flow alone needs; on the middle grids \\(1.7\\times\\). <b>What it means.</b> \\(70\\,\\%\\) of the finest grid's steps are there for stability, not for accuracy. An implicit treatment of friction removes the limit, and gpucfd now has one that works with a body in the flow: it takes 11,817 steps on the finest grid, but each costs more (last two tables). OpenFOAM, which is implicit, takes 6,000 steps on its finest grid where explicit gpucfd takes 39,232."
+    "result": "On the finest clustered grid the step is \\(3.3\\times\\) smaller than the flow alone needs; on the middle grids \\(1.7\\times\\).",
+    "meaning": "\\(70\\,\\%\\) of the finest grid's steps are there for stability, not for accuracy. An implicit treatment of friction removes the limit, and gpucfd now has one that works with a body in the flow: it takes 11,817 steps on the finest grid, but each costs more (section 6). OpenFOAM, which is implicit, takes 6,000 steps on its finest grid where explicit gpucfd takes 39,232."
    },
    {
-    "title": "Reason 2: the pressure setting. How exact must it be on each grid?",
+    "title": "Reason 2: the pressure setting",
+    "question": "How exact must the pressure be on each grid? Each grid was run for one shedding cycle at several settings. 'Change in forces' is the largest change in the drag and lift coefficients compared with the strictest run. The rule takes the loosest setting that stays within \\(10^{-4}\\). ✓: the run in this report used it.",
+    "figure": "step",
     "head": [
      "Grid",
      "Cells",
@@ -1089,10 +1128,12 @@
       "\\(28.7\\)"
      ]
     ],
-    "note": "Each grid was run for one shedding cycle at several settings. 'Change in forces' is the largest change in the drag and lift coefficients compared with the strictest run. The rule takes the loosest setting that stays within \\(10^{-4}\\). ✓: the run in this report used it. <b>Result.</b> The finer the grid, the stricter the setting; on the finest clustered grid the strict setting makes a step \\(2.1\\times\\) dearer. <b>What it means.</b> It is tied to reason 1: with an explicit scheme a small error in the pressure is divided by the time step when it enters the forces, so very small steps need a very exact pressure. The implicit scheme, with steps \\(3.3\\times\\) larger, still needed the same setting on the finest grid. The reason: it splits each step into three unequal parts, and the pressure error is divided by the shortest part. That part is only \\(1.8\\times\\) longer than the explicit scheme's shortest part, too little to allow a looser setting."
+    "result": "The finer the grid, the stricter the setting; on the finest clustered grid the strict setting makes a step \\(2.1\\times\\) dearer.",
+    "meaning": "It is tied to reason 1: with an explicit scheme a small error in the pressure is divided by the time step when it enters the forces, so very small steps need a very exact pressure. The implicit scheme, with steps \\(3.3\\times\\) larger, still needed the same setting on the finest grid. The reason: it splits each step into three unequal parts, and the pressure error is divided by the shortest part. That part is only \\(1.8\\times\\) longer than the explicit scheme's shortest part, too little to allow a looser setting."
    },
    {
-    "title": "Reason 3: the shape of the grid. How many cells does clustering save?",
+    "title": "Reason 3: the shape of the grid",
+    "question": "How many cells does clustering save?",
     "head": [
      "Grid",
      "Cells",
@@ -1135,10 +1176,12 @@
       "\\(3.08\\times\\)"
      ]
     ],
-    "note": "<b>Result.</b> Clustering saves \\(3.85\\times\\), and only about \\(21\\,\\%\\) of the clustered cells are in the band where they are wanted. <b>What it means.</b> A grid of straight rows and columns cannot be fine in one place only: every small column runs across the whole channel, every small row along it (Figure 1). The channel is only \\(4.1\\) diameters high, so the saving across it is small. OpenFOAM reaches the same drag with 13,432 cells where the finest clustered grid has 458,752."
+    "result": "Clustering saves \\(3.85\\times\\), and only about \\(21\\,\\%\\) of the clustered cells are in the band where they are wanted.",
+    "meaning": "A grid of straight rows and columns cannot be fine in one place only: every small column runs across the whole channel, every small row along it (Figure 1). The channel is only \\(4.1\\) diameters high, so the saving across it is small. OpenFOAM reaches the same drag with 13,432 cells where the finest clustered grid has 458,752."
    },
    {
-    "title": "Check: was the equal-cell study's time fair? Rerun with the pressure rule's setting",
+    "title": "Check: the equal-cell study rerun with the pressure rule's setting",
+    "question": "Was the equal-cell study's time fair?",
     "head": [
      "Finest equal-cell grid",
      "Pressure setting",
@@ -1171,118 +1214,134 @@
       "\\(+0.294\\)"
      ]
     ],
-    "note": "<b>Result.</b> The same coefficients to the digits shown, a step \\(1.43\\times\\) dearer, and a study of 328 s instead of 315 s (the rerun became periodic a second of flow earlier, which hid most of the extra cost). <b>What it means.</b> The comparison between gpucfd's two kinds of grid now follows one rule, and it barely moved."
-   },
-   {
-    "title": "Does an implicit time scheme make it faster? Each grid, run both ways",
-    "head": [
-     "Grid",
-     "Cells",
-     "Time steps (explicit / implicit)",
-     "Time per step, ms (explicit / implicit)",
-     "Time, s (explicit / implicit)",
-     "Pressure setting (explicit / implicit)",
-     "Largest difference in drag and frequency (%)",
-     "Largest difference in lift (%)"
-    ],
-    "rows": [
-     [
-      "C1",
-      "28,672",
-      "14,766 / 14,766",
-      "\\(6.4\\) / \\(11.4\\)",
-      "112 / 187",
-      "\\(10^{-8}\\) / \\(10^{-9}\\)",
-      "\\(0.00047\\)",
-      "\\(0.014\\)"
-     ],
-     [
-      "C2",
-      "114,688",
-      "9,808 / 5,908",
-      "\\(12.6\\) / \\(21.1\\)",
-      "129 / 134",
-      "\\(10^{-9}\\) / \\(10^{-9}\\)",
-      "\\(0.00043\\)",
-      "\\(0.0033\\)"
-     ],
-     [
-      "C3",
-      "458,752",
-      "39,232 / 11,817",
-      "\\(29.5\\) / \\(62.5\\)",
-      "1,180 / 764",
-      "\\(10^{-10}\\) / \\(10^{-10}\\)",
-      "\\(0.000028\\)",
-      "\\(0.0023\\)"
-     ]
-    ],
-    "note": "Differences are of the implicit run from the explicit run on the same grid, in per cent of the value. <b>Result.</b> The implicit scheme gives the same answer on every grid: drag and frequency within \\(0.00047\\,\\%\\) and lift within \\(0.014\\,\\%\\) (the rule fixed beforehand: \\(0.05\\,\\%\\) and \\(0.3\\,\\%\\)). On the finest grid it takes \\(3.3\\times\\) fewer steps, each \\(2.1\\times\\) dearer: 764 s instead of 1,180 s. On the coarsest grid it is slower (187 s against 112 s), so that grid stays explicit. <b>What it means.</b> Fewer steps, but each is dearer, so the finest run gains only \\(1.55\\times\\), not \\(3.3\\times\\). Each step has a pressure solve in every one of its three stages, besides the friction solves."
-   },
-   {
-    "title": "What does it do to the whole study? The three grids, with and without it",
-    "head": [
-     "Study",
-     "Grids",
-     "Time steps",
-     "Time (s)",
-     "Drag on the last grid (%)",
-     "Drag, against the value the reference heads for (%)",
-     "Lift maximum (%)",
-     "Frequency (%)"
-    ],
-    "rows": [
-     [
-      "gpucfd, explicit on all three grids",
-      "C1 + C2 + C3",
-      "63,806",
-      "1,421",
-      "\\(-0.09\\)",
-      "\\(-0.31\\)",
-      "\\(-0.85\\)",
-      "\\(+0.13\\)"
-     ],
-     [
-      "Implicit on the finest grid only",
-      "C1 + C2 + C3i",
-      "36,391",
-      "1,005",
-      "\\(-0.09\\)",
-      "\\(-0.31\\)",
-      "\\(-0.85\\)",
-      "\\(+0.13\\)"
-     ],
-     [
-      "Implicit on all three grids",
-      "C1i + C2i + C3i",
-      "32,491",
-      "1,085",
-      "\\(-0.09\\)",
-      "\\(-0.31\\)",
-      "\\(-0.85\\)",
-      "\\(+0.13\\)"
-     ],
-     [
-      "Implicit on the finest, with the longer band of small cells",
-      "C1 + C2w + C3wi",
-      "39,655",
-      "1,308",
-      "\\(-0.10\\)",
-      "\\(-0.31\\)",
-      "\\(-0.69\\)",
-      "\\(+0.07\\)"
-     ]
-    ],
-    "note": "<b>Result.</b> The quickest mix is the implicit scheme on the finest grid only: 1,005 s, against 1,421 s explicit and about 1,743 s for OpenFOAM's study. The drag does not change (\\(-0.09\\,\\%\\) of the published value, \\(-0.31\\,\\%\\) of the value it is heading for). The time we expected before building was 550 to 800 s; it was missed: each step costs more, and the pressure setting did not relax. <b>What it means.</b> The implicit scheme makes gpucfd faster, not more accurate. It does not change which tool is cheaper for this accuracy: OpenFOAM's first two grids take 153 s."
+    "result": "The same coefficients to the digits shown, a step \\(1.43\\times\\) dearer, and a study of 328 s instead of 315 s (the rerun became periodic a second of flow earlier, which hid most of the extra cost).",
+    "meaning": "The comparison between gpucfd's two kinds of grid now follows one rule, and it barely moved."
    }
   ],
   "notes": [
    "<b>Fixed work per step.</b> A gpucfd step costs \\(6.4\\) ms on 27,648 cells and \\(14.7\\) ms on 442,368: \\(16\\times\\) the cells for \\(2.3\\times\\) the time (Figure 5). On grids this small the card is not kept busy; the cost is set by the number of operations in a step, not by the cells. So fewer cells bought accuracy per cell, not time.",
    "<b>Where gpucfd's time went</b> (Figure 4). The finest clustered grid takes \\(83\\,\\%\\) of its study, and both limits bite there: \\(3.3\\times\\) more steps than the flow needs, each \\(2.1\\times\\) dearer. Sampling the forces is \\(2\\,\\%\\) of that run.",
-   "<b>What a first attempt cost.</b> The finest clustered grid was first run with the pressure setting tuned on the coarsest grid. It ran its full \\(15\\) s of flow (2,680 s) without settling: the forces carried noise from the pressure solve. That run is kept in <code>gpu_tuning/</code> and is in no time quoted here.",
-   "<b>One extra run: the longer band of small cells on the finest grid</b> (implicit scheme, one cylinder position; last row of the last table). The lift maximum is \\(-0.69\\,\\%\\) instead of \\(-0.85\\,\\%\\), the study 1,308 s instead of 1,005 s. The gain, \\(0.16\\,\\%\\), is smaller than what moving the cylinder changes in the lift maximum (\\(0.3\\,\\%\\)), so it is a hint, not a result. Its pressure setting was not checked on this grid."
+   "<b>What a first attempt cost.</b> The finest clustered grid was first run with the pressure setting tuned on the coarsest grid. It ran its full \\(15\\) s of flow (2,680 s) without settling: the forces carried noise from the pressure solve. That run is kept in <code>gpu_tuning/</code> and is in no time quoted here."
   ]
  },
+ "sections": [
+  {
+   "key": "implicit",
+   "title": "Does an implicit time scheme help?",
+   "intro": "gpucfd's second time scheme treats friction implicitly (IMEX), which removes the step limit of reason 1 in section 5. Every clustered grid was run again with it, from the same start as its explicit run, and judged by a rule fixed beforehand.",
+   "tables": [
+    {
+     "title": "Each grid, run both ways",
+     "question": "Does the implicit scheme give the same answer, and is it faster? Differences are of the implicit run from the explicit run on the same grid, in per cent of the value.",
+     "head": [
+      "Grid",
+      "Cells",
+      "Time steps (explicit / implicit)",
+      "Time per step, ms (explicit / implicit)",
+      "Time, s (explicit / implicit)",
+      "Pressure setting (explicit / implicit)",
+      "Largest difference in drag and frequency (%)",
+      "Largest difference in lift (%)"
+     ],
+     "rows": [
+      [
+       "C1",
+       "28,672",
+       "14,766 / 14,766",
+       "\\(6.4\\) / \\(11.4\\)",
+       "112 / 187",
+       "\\(10^{-8}\\) / \\(10^{-9}\\)",
+       "\\(0.00047\\)",
+       "\\(0.014\\)"
+      ],
+      [
+       "C2",
+       "114,688",
+       "9,808 / 5,908",
+       "\\(12.6\\) / \\(21.1\\)",
+       "129 / 134",
+       "\\(10^{-9}\\) / \\(10^{-9}\\)",
+       "\\(0.00043\\)",
+       "\\(0.0033\\)"
+      ],
+      [
+       "C3",
+       "458,752",
+       "39,232 / 11,817",
+       "\\(29.5\\) / \\(62.5\\)",
+       "1,180 / 764",
+       "\\(10^{-10}\\) / \\(10^{-10}\\)",
+       "\\(0.000028\\)",
+       "\\(0.0023\\)"
+      ]
+     ],
+     "result": "The implicit scheme gives the same answer on every grid: drag and frequency within \\(0.00047\\,\\%\\) and lift within \\(0.014\\,\\%\\) (the rule fixed beforehand: \\(0.05\\,\\%\\) and \\(0.3\\,\\%\\)). On the finest grid it takes \\(3.3\\times\\) fewer steps, each \\(2.1\\times\\) dearer: 764 s instead of 1,180 s. On the coarsest grid it is slower (187 s against 112 s), so that grid stays explicit.",
+     "meaning": "Fewer steps, but each is dearer, so the finest run gains only \\(1.55\\times\\), not \\(3.3\\times\\). Each step has a pressure solve in every one of its three stages, besides the friction solves."
+    },
+    {
+     "title": "The whole study, with and without it",
+     "question": "What does it do to the whole study?",
+     "head": [
+      "Study",
+      "Grids",
+      "Time steps",
+      "Time (s)",
+      "Drag on the last grid (%)",
+      "Drag, against the value the reference heads for (%)",
+      "Lift maximum (%)",
+      "Frequency (%)"
+     ],
+     "rows": [
+      [
+       "gpucfd, explicit on all three grids",
+       "C1 + C2 + C3",
+       "63,806",
+       "1,421",
+       "\\(-0.09\\)",
+       "\\(-0.31\\)",
+       "\\(-0.85\\)",
+       "\\(+0.13\\)"
+      ],
+      [
+       "Implicit on the finest grid only",
+       "C1 + C2 + C3i",
+       "36,391",
+       "1,005",
+       "\\(-0.09\\)",
+       "\\(-0.31\\)",
+       "\\(-0.85\\)",
+       "\\(+0.13\\)"
+      ],
+      [
+       "Implicit on all three grids",
+       "C1i + C2i + C3i",
+       "32,491",
+       "1,085",
+       "\\(-0.09\\)",
+       "\\(-0.31\\)",
+       "\\(-0.85\\)",
+       "\\(+0.13\\)"
+      ],
+      [
+       "Implicit on the finest, with the longer band of small cells",
+       "C1 + C2w + C3wi",
+       "39,655",
+       "1,308",
+       "\\(-0.10\\)",
+       "\\(-0.31\\)",
+       "\\(-0.69\\)",
+       "\\(+0.07\\)"
+      ]
+     ],
+     "result": "The quickest mix is the implicit scheme on the finest grid only: 1,005 s, against 1,421 s explicit and about 1,743 s for OpenFOAM's study. The drag does not change (\\(-0.09\\,\\%\\) of the published value, \\(-0.31\\,\\%\\) of the value it is heading for). The time we expected before building was 550 to 800 s; it was missed: each step costs more, and the pressure setting did not relax.",
+     "meaning": "The implicit scheme makes gpucfd faster, not more accurate. It does not change which tool is cheaper for this accuracy: OpenFOAM's first two grids take 153 s."
+    }
+   ],
+   "notes": [
+    "<b>One extra run: the longer band of small cells on the finest grid</b> (implicit scheme, one cylinder position; last row of the table above). The lift maximum is \\(-0.69\\,\\%\\) instead of \\(-0.85\\,\\%\\), the study 1,308 s instead of 1,005 s. The gain, \\(0.16\\,\\%\\), is smaller than what moving the cylinder changes in the lift maximum (\\(0.3\\,\\%\\)), so it is a hint, not a result. Its pressure setting was not checked on this grid."
+   ]
+  }
+ ],
  "reproducibility": {
   "commands": [
    {
@@ -1298,8 +1357,8 @@
     "what": "gpucfd, equal cells: G1 from rest, G2, G2 with half the time step, G3"
    },
    {
-    "cmd": "python -m cases.dfg_cylinder_re100.gpu_run ptol [LEVEL]",
-    "what": "gpucfd: pressure-setting check on one grid"
+    "cmd": "python -m cases.dfg_cylinder_re100.gpu_run tolcheck RUN SOURCE_RUN",
+    "what": "gpucfd: pressure-setting check of one run, from the last field of a run on the same grid (C3 C3; for the implicit scheme C3i C3)"
    },
    {
     "cmd": "python -m cases.dfg_cylinder_re100.gpu_run clustered",
@@ -1312,10 +1371,6 @@
    {
     "cmd": "python -m cases.dfg_cylinder_re100.gpu_run clustered C2w",
     "what": "check run: the longer band of small cells"
-   },
-   {
-    "cmd": "python -m cases.dfg_cylinder_re100.gpu_run tolcheck C3i C2",
-    "what": "the implicit scheme: pressure setting of a grid, from the last field of C2 (likewise C1i, C2i)"
    },
    {
     "cmd": "python -m cases.dfg_cylinder_re100.gpu_run clustered C1i C2i C3i C3wi",
@@ -1424,7 +1479,7 @@
   {
    "key": "time",
    "section": "breakdown",
-   "caption": "<b>Where each study's time goes.</b> One bar per study, split by grid, coarsest first. 'With stop rule' is OpenFOAM's time if every run stopped when the flow repeats (an estimate); 'moved' is the cylinder moved half a cell; 'implicit finest' runs the finest grid with the implicit time scheme (section 5, last tables). The colours only count the grids of one study; the grids differ in size, so the cell counts are written under each label. gpucfd's third grid has about \\(2.1\\times\\) the cells of OpenFOAM's fourth, and takes a fraction of its time. That is the low cost per cell and step; it is not the same as accuracy (section 3). Dashed line: the target time, 1,740 s. The finest grid takes most of the time: \\(83\\,\\%\\) for OpenFOAM, \\(65\\,\\%\\) for gpucfd with equal cells, \\(83\\,\\%\\) for gpucfd with clustered cells."
+   "caption": "<b>Where each study's time goes.</b> One bar per study, split by grid, coarsest first. 'With stop rule' is OpenFOAM's time if every run stopped when the flow repeats (an estimate); 'moved' is the cylinder moved half a cell; 'implicit finest' runs the finest grid with the implicit time scheme (section 6). The colours only count the grids of one study; the grids differ in size, so the cell counts are written under each label. gpucfd's third grid has about \\(2.1\\times\\) the cells of OpenFOAM's fourth, and takes a fraction of its time. That is the low cost per cell and step; it is not the same as accuracy (section 3). Dashed line: the target time, 1,740 s. The finest grid takes most of the time: \\(83\\,\\%\\) for OpenFOAM, \\(65\\,\\%\\) for gpucfd with equal cells, \\(83\\,\\%\\) for gpucfd with clustered cells."
   },
   {
    "key": "step",

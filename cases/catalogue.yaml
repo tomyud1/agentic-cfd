@@ -25,6 +25,8 @@
 #   shows     solved cases: what a later agent can learn from the case folder (techniques, not results);
 #             it becomes the list of worked examples in cases/README.md
 #   headline  solved cases: the key result in one sentence (plain text)
+#             A study report (4b, 5b) has none here: its script writes it into the study's JSON
+#             (summary.plain) and it is read from there, like the verdict
 #   reports   solved cases: list of {path, verdict_from}; verdict_from defaults to results.json in
 #             the report's folder
 
@@ -72,7 +74,7 @@ cases:
     status: solved
     folder: dfg_cylinder_re100
     tests: The project's GPU solver on grids of equal and of clustered cells against OpenFOAM's body-fitted grid study (accuracy, cost, limits)
-    headline: "gpucfd met the target (drag 0.09 to 0.16 % below the published reference, in about 1000 s with the implicit time scheme on the finest grid, 1400 s without it, against about 1740 s for OpenFOAM's study), but the reference is itself about 0.2 % low: against the value it is heading for, gpucfd is 0.3 to 0.4 % low and OpenFOAM within 0.04 %. OpenFOAM reaches the same drag accuracy in about 150 s"
+    # headline: read from the study's JSON (summary.plain), written by its script from the numbers
     reports: [{path: results/dfg_cylinder_re100/gpu_study.html, verdict_from: results/dfg_cylinder_re100/gpu_study.json}]
 
   - id: "5"
@@ -89,7 +91,7 @@ cases:
     status: solved
     folder: dfg_cylinder_3d_re20
     tests: OpenFOAM pressure solve on an RTX 4070 (OGL plugin) vs the best CPU setup
-    headline: Same answer on both sides; the GPU breaks even at about 2 million cells and is 1.13 times faster at 4.75 million, capped near 1.5 times because the pressure solve is only a third of each iteration
+    # headline: read from the study's JSON (summary.plain), written by its script from the numbers
     reports: [{path: results/dfg_cylinder_3d_re20/gpu_study.html, verdict_from: results/dfg_cylinder_3d_re20/gpu_study.json}]
 
   - id: "6"

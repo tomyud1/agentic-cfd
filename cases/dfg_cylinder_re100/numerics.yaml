@@ -73,13 +73,17 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
   u_dt: 2.25                  # velocity scale for the time step: 1.5 Um
   sample_dt: 0.0025           # forces and probe every 2.5 ms: 133 samples per shedding period, peaks parabola-refined
   force_box: [[0.1, 0.3], [0.1, 0.3]]   # control volume around the cylinder for the force (exact discrete momentum balance)
-  pressure_tol: 1.0e-8        # relative tolerance of the pressure solve; tuned on G1 (gpu_run.py ptol), rule fixed
-                              # before the study: the loosest of 1e-10, 1e-8, 1e-6, 1e-4 whose cd and cl stay within
-                              # 1e-4 of the 1e-10 run over 1 s of developed shedding (OpenFOAM side: tuned GAMG, tol 1e-7).
-                              # Result (results/.../gpu_tuning/ptol.json): 1e-8 differs by 2.6e-5 at 1.7x less time per
+  pressure_tol_rule: 1.0e-4   # THE RULE for the pressure tolerance, on every level and with either scheme: the loosest
+                              # tolerance whose cd and cl stay within this of the strictest (1e-10) run over the same
+                              # stretch of developed shedding. Read by gpu_run.py tolcheck and by gpu_study.py.
+  pressure_tol: 1.0e-8        # relative tolerance of the pressure solve; tuned on G1, rule fixed before the study: the
+                              # loosest of 1e-10, 1e-8, 1e-6, 1e-4 that keeps the rule over 1 s of developed shedding
+                              # (OpenFOAM side: tuned GAMG, tol 1e-7).
+                              # Result (results/.../gpu_tuning/ptol_G1.json): 1e-8 differs by 2.6e-5 at 1.7x less time per
                               # step; 1e-6 by 7.9e-3 (fails)
   pressure_tol_level: {G3: 1.0e-9}   # ADDED 2026-11-13: the rule above applied on every level over one cycle
-                              # (gpu_run.py ptol <level>, gpu_tuning/ptol_<level>.json). G1: 1e-8 by construction;
+                              # (gpu_tuning/ptol_<level>.json; made with an older command, today: gpu_run.py tolcheck
+                              # <run> <run whose last field to start from>). G1: 1e-8 by construction;
                               # G2: 1e-8 passes (cd 3.1e-5, cl 3.9e-5); G3: 1e-8 fails in cl (3.9e-4), 1e-9 passes
                               # (1.3e-5, 1.0e-5). G3 was rerun with 1e-9 (gpu_run.py uniform_retol G3); the first
                               # run of 2026-11-12 is kept in gpu_tuning/G3_first_ptol1e-8.
@@ -91,6 +95,29 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
   # case's periodicity rule (acceptance) holds over its last 4 cycles, checked live every second, at most 12 s
   # more. Same result as one longer run; the time counted is the whole run.
   dt_check: {level: G2, factor: 0.5}
+  # EVERY gpucfd RUN OF THIS CASE, by the name of its record (results/.../runs/<name>.json). level: the grid
+  # (G1..G3 equal cells, C1..C3 clustered, below); variant: a change of the clustered grid or of the cylinder's
+  # place (clustered.variants: s, w); scheme: the time scheme when it is not `scheme` above; source: the run
+  # whose last field it starts from (none: from rest); dt_factor: a time-step check. gpu_run.py builds a run
+  # from its row, and gpu_clustered.py, gpu_imex.py and gpu_study.py pick their runs here (gpu_run.run_spec,
+  # runs_where). A new run is a new row; the letters of a name mean nothing to the code.
+  runs:
+    G1:        {level: G1}
+    G2:        {level: G2, source: G1}
+    G2_dtx0.5: {level: G2, source: G1, dt_factor: 0.5}
+    G3:        {level: G3, source: G2}
+    C1:        {level: C1}
+    C2:        {level: C2, source: C1}
+    C3:        {level: C3, source: C2}
+    C1s:       {level: C1, variant: s}                       # check run 1: the cylinder moved half a C3 cell
+    C2s:       {level: C2, variant: s, source: C1s}
+    C3s:       {level: C3, variant: s, source: C2s}
+    C2w:       {level: C2, variant: w, source: C1}           # check run 3: the longer band of fine cells
+    C1i:       {level: C1, scheme: imex}                     # the IMEX scheme on the same grids (clustered.imex)
+    C2i:       {level: C2, scheme: imex, source: C1}
+    C3i:       {level: C3, scheme: imex, source: C2}
+    C3wi:      {level: C3, variant: w, scheme: imex, source: C2w}
+    C3si:      {level: C3, variant: s, scheme: imex, source: C2s}   # planned, not run
   # Decided BEFORE the runs (2026-11-12):
   #  - accuracy: the case's own rule (acceptance above) applied to G3, with U_sim = GCI of G1..G3;
   #  - same answer as OpenFOAM: |G3 - M4| <= U_G3 + U_M4 (each side's GCI band) for every primary quantity;
@@ -109,12 +136,18 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
     band: [[0.10, 0.35], [0.10, 0.30]]   # fine cells: one diameter ahead of the cylinder's centre, 1.5 behind, one to each side
     grow: [0.10, 0.05]                   # distance over which the cells grow to the far-field size, x and y [m]
     max_length: 8.0                      # longest run of a finer level [s] (the stop fixed before the runs)
+    target:                              # THE TARGET, fixed before the runs (ROADMAP.md; gpucfd/DESIGN.md "Stretched grids,
+      rel: 0.0025                        # stage 2"): mean and maximum drag of the finest level within `rel` of FeatFlow
+      wall: 1740.0                       # level 6, in less wall time than OpenFOAM's whole study with the live stop [s]
+                                         # (the sum of the estimates in live_stop.json is 1743 s; the target was written
+                                         # with the rounded number and is kept as written).
+      stage2_rel: 0.005                  # the wider criterion of stage 2 itself ("drag within 0.5 %", below)
     pressure_tol: {C1: 1.0e-8, C2: 1.0e-9, C3: 1.0e-10}
     # CHANGED after the first runs (2026-11-13). C2 and C3 were first run with the 1e-8 tuned on G1. C3 then never
     # passed the periodicity rule in 15 s: the flow had settled after about 2 s, but the drag peaks jittered by
     # +-0.07 % from cycle to cycle (records kept in gpu_tuning/C*_first_ptol1e-8). The tolerance rule above (the
     # loosest tolerance whose cd and cl stay within 1e-4 of the 1e-10 run), applied on each level over one cycle
-    # (gpu_run.py ptol <level>, gpu_tuning/ptol_<level>.json), gives: C1 1e-8 (1.4e-5); C2 1e-9 (1e-8 is off by
+    # (gpu_tuning/ptol_<level>.json), gives: C1 1e-8 (1.4e-5); C2 1e-9 (1e-8 is off by
     # 6.8e-4 in cl); C3 1e-10 (1e-8 is off by 6.0e-3, 1e-9 by 2.5e-4 in cl). Reason: the explicit scheme updates
     # the pressure by (projection result) / dt, so a fixed relative tolerance means more pressure noise as the
     # time step shrinks. The uniform G3 fails the same check with 1e-8 (cl off by 3.9e-4; 1e-9 passes at 1.42 times
@@ -129,8 +162,8 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
     #    Timed over 200 steps first; not started above a projection of 45 minutes; stopped if not periodic after 8 s.
     #  - if C2's drag error is more than twice G3's, one variant with a wider band is run on C2 before C3.
     #
-    # THREE CHECK RUNS, approved by the student after the first results (2026-11-13). A level name with a
-    # suffix is that level with the variant's changes (gpu_run.py clustered C1s C2s C3s / C2w).
+    # THREE CHECK RUNS, approved by the student after the first results (2026-11-13). A run with `variant` in the
+    # table of runs above is its level with that variant's changes (gpu_run.py clustered C1s C2s C3s / C2w).
     variants:
       s:                                 # the cylinder moved along x by half a C3 cell (a quarter of a C2 cell, an
         x_shift: 3.5714285714e-4         # eighth of a C1 cell): the same flow, the surface cut differently by the grid
@@ -165,8 +198,8 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
     #     196 s; protocol 308 s against the uniform 328 s.
     #
     # THE IMEX SCHEME ON THESE LEVELS (gpucfd stage 3, added 2026-11-13; cause, design and criteria:
-    # gpucfd/DESIGN.md "IMEX with immersed bodies"). A level name with a trailing i is that level with
-    # scheme imex (implicit diffusion): the time step is cfl h / u_dt alone, without the viscous limit
+    # gpucfd/DESIGN.md "IMEX with immersed bodies"). The runs with `scheme: imex` in the table of runs above (their
+    # names end in i) use implicit diffusion: the time step is cfl h / u_dt alone, without the viscous limit
     # (C1 1.02e-3 as before, C2 5.08e-4 instead of 3.06e-4, C3 2.54e-4 instead of 7.65e-5).
     # Both schemes solve the same discrete steady equations; in time IMEX is second order, RK3 third.
     imex:
@@ -180,6 +213,10 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
                                          # the step, is only 1.8 times the explicit scheme's (1/4 of a step 3.3 times
                                          # shorter). ms per step at 1e-10 / 1e-9 / 1e-8: C1i 13.6 / 11.3 / 8.4,
                                          # C2i 24.8 / 20.8 / 15.6, C3i 62.5 / 48.8 / 33.6.
+      # THE SAME-ANSWER RULE (point 1 below), relative to the explicit run's value on the same grid; read by gpu_imex.py
+      same_answer: {cd_mean: 5.0e-4, cd_max: 5.0e-4, St: 5.0e-4, cl_max: 3.0e-3, cl_amp: 3.0e-3}
+      expected_study_wall: [550.0, 800.0]   # the study time expected before the scheme was built (point 2 below) [s]:
+                                         # a statement made in advance, which the report only compares with the result
     # Written BEFORE the runs (2026-11-13). Protocol as above: C1i from rest 0..15 s; C2i from C1's last field and
     # C3i from C2's (the explicit runs' fields: the same start as their explicit twins), at least 3 s and until
     # the periodicity rule holds, at most 8 s. Analysis: gpu_imex.py -> gpu_imex.json (the explicit records and

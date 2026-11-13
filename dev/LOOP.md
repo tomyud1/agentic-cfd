@@ -88,6 +88,11 @@ solves the problem (the **solver agent**) never needs this file.
      agent can learn from its folder), and the
      [`CHANGELOG.md`](../CHANGELOG.md) entry saying what each insight led to.
 
+   When several sessions share one folder, the session that commits stages its files by name (never
+   everything at once) and compares what is staged with that list. A file two sessions both changed
+   is committed from a clean copy that holds only the finished change. Better still: do not start a
+   session that edits shared files while a commit is waiting.
+
 ## What the loop does not do yet
 
 Planned in [`ROADMAP.md`](../ROADMAP.md): a record of what became of each insight, cost and agent

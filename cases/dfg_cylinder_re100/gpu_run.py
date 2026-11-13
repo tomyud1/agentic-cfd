@@ -3,11 +3,12 @@
 Usage (repo root, inside WSL):
   python -m cases.dfg_cylinder_re100.gpu_run preflight     # short runs on G1 (from rest) and G3 (from G1): cost, health
   python -m cases.dfg_cylinder_re100.gpu_run production [NAME ...]  # G1 0..15 s from rest; G2, G2_dtx0.5, G3 (run_table)
-  python -m cases.dfg_cylinder_re100.gpu_run ptol          # pressure-tolerance study on G1 from its developed field
   python -m cases.dfg_cylinder_re100.gpu_run clustered [C1 C2 C3]   # the protocol on grids clustered around the cylinder
-  python -m cases.dfg_cylinder_re100.gpu_run timing C3     # cost per step of a level before running it
-  python -m cases.dfg_cylinder_re100.gpu_run clustered C3i # a trailing i: the level with the IMEX scheme (from C2's field)
-  python -m cases.dfg_cylinder_re100.gpu_run tolcheck C3i C2   # pressure tolerance of a level, from run C2's last field
+  python -m cases.dfg_cylinder_re100.gpu_run clustered C3i # any other run of the table, here C3 with the IMEX scheme
+  python -m cases.dfg_cylinder_re100.gpu_run timing C3     # cost per step of a run before making it
+  python -m cases.dfg_cylinder_re100.gpu_run tolcheck C3i C3 [LENGTH [TOL ...]]   # the pressure tolerance run C3i may
+                                                           # use, from the last field of run C3 (a run on the same grid)
+Every run is a row of the table in numerics.yaml (gpucfd.runs): its grid level, variant, scheme and source run.
 Outputs: results/dfg_cylinder_re100/runs/<G..>.json + .npz (cfdlib.gpu.write_run), gpu_preflight.json;
 final velocity fields in ~/gpucfd_runs/dfg_cylinder_re100/ (outside git, like OpenFOAM's run directories).
 
@@ -36,53 +37,59 @@ def load():
     return problem, numerics
 
 
-def split_level(level, C):
-    """A clustered level name: the level (C1, C2, C3) and the changes of its variant suffix, if any
-    (numerics.yaml, gpucfd.clustered.variants: C3s = C3 with variant s). A trailing i is the IMEX scheme
-    (gpucfd.clustered.imex): C3i, C3si, C3wi."""
-    for base in C["levels"]:
-        if not level.startswith(base):
-            continue
-        suf = level[len(base):]
-        imex = suf.endswith("i") and "imex" in C
-        v = suf[:-1] if imex else suf
-        if v and v not in C.get("variants", {}):
-            continue
-        var = dict(C["variants"][v]) if v else {}
-        if imex:
-            var["scheme"] = "imex"
-        return base, var
-    raise ValueError(f"unknown level {level}")
+def run_spec(name, numerics):
+    """One row of the run table (numerics.yaml, gpucfd.runs), completed: dict(name, level, family ("uniform" or
+    "clustered"), variant (its name or None), changes (the variant's settings), scheme, source, dt_factor)."""
+    G = numerics["gpucfd"]
+    if name not in G["runs"]:
+        raise ValueError(f"unknown run {name}: add a row for it to numerics.yaml (gpucfd.runs)")
+    r = G["runs"][name] or {}
+    level, v = r.get("level", name), r.get("variant")
+    if level not in G["levels"] + G["clustered"]["levels"]:
+        raise ValueError(f"run {name}: unknown level {level}")
+    return dict(name=name, level=level, family="uniform" if level in G["levels"] else "clustered", variant=v,
+                changes=dict(G["clustered"]["variants"][v]) if v else {}, scheme=r.get("scheme", G["scheme"]),
+                source=r.get("source"), dt_factor=r.get("dt_factor", 1.0))
 
 
-def make(level, problem, numerics):
+def runs_where(numerics, **want):
+    """Names of the runs of the table whose completed row has these values, in the table's order:
+    runs_where(numerics, family="clustered", scheme="rk3", variant="s") -> ["C1s", "C2s", "C3s"]."""
+    out = []
+    for name in numerics["gpucfd"]["runs"]:
+        spec = run_spec(name, numerics)
+        if all(spec[k] == v for k, v in want.items()):
+            out.append(name)
+    return out
+
+
+def make(run, problem, numerics):
+    """A simulation for a run of the table: its grid, the cylinder's place and the time scheme."""
     from gpucfd import gcfd, bodies as B
     g = {k: v["value"] for k, v in problem["given"].items()}
     G = numerics["gpucfd"]
+    spec = run_spec(run, numerics)
     H, Um = g["H"], g["Um"]
     grid = None
     xc = g["xc"]
-    scheme = G["scheme"]
-    if level in G["levels"]:
-        k = G["levels"].index(level)
+    if spec["family"] == "uniform":
+        k = G["levels"].index(spec["level"])
         n = (G["n_G1"][0] * 2 ** k, G["n_G1"][1] * 2 ** k, 1)
     else:  # grids clustered around the cylinder (numerics.yaml, gpucfd.clustered)
         from gpucfd import grids
-        C = G["clustered"]
-        base, var = split_level(level, C)
-        k = C["levels"].index(base)
+        C, var = G["clustered"], spec["changes"]
+        k = C["levels"].index(spec["level"])
         n0, band = var.get("n_C1", C["n_C1"]), var.get("band", C["band"])
         n = (n0[0] * 2 ** k, n0[1] * 2 ** k, 1)
         h = g["D"] / (C["D_h_C1"] * 2 ** k)
         grid = (grids.clustered(n[0], g["L"], band[0], h, C["grow"][0]),
                 grids.clustered(n[1], H, band[1], h, C["grow"][1]), None)
         xc = g["xc"] + var.get("x_shift", 0.0)  # the cylinder moved relative to the grid (variant s)
-        scheme = var.get("scheme", scheme)
 
     def inflow(X, Y, Z):
         return (4 * Um * Y * (H - Y) / H ** 2, 0 * X, 0 * X)
     bnd = {"x-": ("inflow", inflow), "x+": "outflow", "y-": "wall", "y+": "wall"}
-    s = gcfd.NavierStokes(n, (g["L"], H, 1.0), g["nu"], scheme=scheme, boundaries=bnd,
+    s = gcfd.NavierStokes(n, (g["L"], H, 1.0), g["nu"], scheme=spec["scheme"], boundaries=bnd,
                           bodies=[B.Cylinder((xc, g["yc"]), g["D"] / 2)], grid=grid)
     return s, inflow
 
@@ -149,9 +156,10 @@ def save_field(s, name):
     np.savez_compressed(FIELDS / f"{name}.npz", u=q[0], v=q[1])
 
 
-def load_field(name, level, problem, numerics):
-    """A simulation on `level` holding the saved last field of run `name`."""
-    s, _ = make(level, problem, numerics)
+def load_field(name, run, problem, numerics):
+    """A simulation made for `run` (a row of the table) holding the saved last field of run `name`
+    (the same run, or another one on the same grid)."""
+    s, _ = make(run, problem, numerics)
     d = np.load(FIELDS / f"{name}.npz")
     s.set([d["u"], d["v"]])
     s.project()
@@ -159,22 +167,25 @@ def load_field(name, level, problem, numerics):
     return s
 
 
-def one(name, level, problem, numerics, t0, t1, src=None, factor=1.0, ptol=None, runs_dir=RUNS_DIR, log=print,
+def one(name, run, problem, numerics, t0, t1, src=None, factor=None, ptol=None, runs_dir=RUNS_DIR, log=print,
         stop_after=None):
-    """Run one level from rest (src None) or from the last field of simulation src; returns (s, record).
+    """Make the run `run` of the table and record it as `name` (the same name, except for trial runs), from rest
+    (src None) or from the last field of simulation src; returns (s, record).
+    factor: time-step multiplier (default: the row's dt_factor).
     stop_after: end the run at the first periodicity check that passes at least this long after t0 (t1 is
     then the longest the run may go)."""
     from gpucfd import steady
     G = numerics["gpucfd"]
     ptol = G["pressure_tol"] if ptol is None else ptol
-    s, inflow = make(level, problem, numerics)
+    spec = run_spec(run, numerics)
+    factor = spec["dt_factor"] if factor is None else factor
+    s, inflow = make(run, problem, numerics)
     div0 = from_rest(s, inflow) if src is None else steady.prolong(src, s)
-    nu = problem["given"]["nu"]["value"]
-    dt = s.max_dt(G["u_dt"], G["cfl"]) * factor
-    h = s._hmin() if s.stretched else min(s.length[d] / s.n[d] for d in range(2))
+    step = gpu.time_step(s, G["u_dt"], G["cfl"], factor)   # the step, both limits and which one set it (kept in the record)
+    dt, h = step["dt"], step["h_min"]
     log(f"{name}: grid {s.n[0]} x {s.n[1]} ({int(np.prod(s.n))} cells), D/h {0.1 / h:.1f}, dt {dt:.3g} "
-        f"(convective {G['cfl'] * h / G['u_dt']:.3g}, viscous {0.15 * h * h / nu:.3g}), t {t0:g} -> {t1:g}, "
-        f"start div {div0:.1e}", flush=True)
+        f"(convective {step['convective']:.3g}, viscous {'none' if step['viscous'] is None else format(step['viscous'], '.3g')}; "
+        f"set by the {step['set_by']} limit), t {t0:g} -> {t1:g}, start div {div0:.1e}", flush=True)
     watch = periodic_watch(numerics)
     if stop_after is not None:
         inner = watch
@@ -185,9 +196,11 @@ def one(name, level, problem, numerics, t0, t1, src=None, factor=1.0, ptol=None,
                             log=lambda m: print(m, flush=True), tag=f"{name} ", watch=watch,
                             ptol=ptol, cfl_limit=1.0, stop_on_watch=stop_after is not None,
                             partial=Path(runs_dir) / f"{name}.partial.npz")  # a killed run keeps its record
-    rec = gpu.write_run(runs_dir, name, res, dict(level=level, n=list(s.n[:2]), cells=int(np.prod(s.n)), h=h, D_h=0.1 / h,
+    rec = gpu.write_run(runs_dir, name, res, dict(level=spec["level"], variant=spec["variant"], n=list(s.n[:2]),
+                                                  cells=int(np.prod(s.n)), h=h, D_h=0.1 / h,
                                                   source=getattr(src, "_name", None), dt_factor=factor, pressure_tol=ptol,
-                                                  scheme=s.scheme, sample_dt=G["sample_dt"], force_per_unit_depth=True))
+                                                  scheme=s.scheme, time_step=step, sample_dt=G["sample_dt"],
+                                                  force_per_unit_depth=True))
     save_field(s, name)
     s._name = name
     p = rec["perf"]
@@ -198,16 +211,13 @@ def one(name, level, problem, numerics, t0, t1, src=None, factor=1.0, ptol=None,
 
 
 def run_table(numerics):
-    """name -> (level, source run, t0, t1, dt factor): the same protocol as run.py's OpenFOAM levels."""
-    t, G = numerics["time"], numerics["gpucfd"]
-    table, prev, t0 = {}, None, 0.0
-    for L in G["levels"]:
-        t1 = t0 + (t["develop_end"] if prev is None else t["run_length"])
-        table[L] = (L, prev, t0, t1, 1.0)
-        if L == G["dt_check"]["level"]:
-            f = G["dt_check"]["factor"]
-            table[f"{L}_dtx{f:g}"] = (L, prev, t0, t1, f)
-        prev, t0 = L, t1
+    """name -> (source run, t0, t1) for the runs on equal cells: the same protocol as run.py's OpenFOAM levels
+    (the first from rest for develop_end seconds, each other one run_length seconds from its source's end)."""
+    t, table = numerics["time"], {}
+    for nm in runs_where(numerics, family="uniform"):       # the table lists a source before the runs that start from it
+        src = run_spec(nm, numerics)["source"]
+        t0 = 0.0 if src is None else table[src][2]
+        table[nm] = (src, t0, t0 + (t["develop_end"] if src is None else t["run_length"]))
     return table
 
 
@@ -216,9 +226,9 @@ def production(names):
     problem, numerics = load()
     table = run_table(numerics)
     for nm in names:
-        level, src, t0, t1, f = table[nm]
-        source = load_field(src, table[src][0], problem, numerics) if src else None
-        s, _ = one(nm, level, problem, numerics, t0, t1, src=source, factor=f)
+        src, t0, t1 = table[nm]
+        source = load_field(src, src, problem, numerics) if src else None
+        s, _ = one(nm, nm, problem, numerics, t0, t1, src=source)
         s.close()
         if source is not None:
             source.close()
@@ -226,29 +236,25 @@ def production(names):
 
 def clustered(names):
     """The same protocol on the grids clustered around the cylinder (numerics.yaml, gpucfd.clustered): C1 from
-    rest for develop_end seconds; each finer level from the coarser one's saved last field, for at least
-    run_length seconds and until the case's periodicity rule holds (checked live every second), at most
-    max_length. One run does what a fixed run plus extend() did for G2 and G3."""
+    rest for develop_end seconds; each finer level from the saved last field of its source run (the table in
+    numerics.yaml, gpucfd.runs), for at least run_length seconds and until the case's periodicity rule holds
+    (checked live every second), at most max_length. One run does what a fixed run plus extend() did for G2 and G3."""
     problem, numerics = load()
     C, t = numerics["gpucfd"]["clustered"], numerics["time"]
     for nm in names:
-        base, var = split_level(nm, C)
-        k = C["levels"].index(base)
-        imex = var.get("scheme") == "imex"
+        spec = run_spec(nm, numerics)
+        if spec["family"] != "clustered":
+            raise ValueError(f"{nm} is not a run on a clustered grid (use: production)")
+        imex = spec["scheme"] == "imex"
         # per level and scheme (the tolerance rule applied on each level)
-        tol = (C["imex"]["pressure_tol"] if imex else C.get("pressure_tol", {})).get(base)
+        tol = (C["imex"]["pressure_tol"] if imex else C.get("pressure_tol", {})).get(spec["level"])
         if imex and tol is None:
             raise ValueError(f"{nm}: no pressure tolerance yet (gpucfd.clustered.imex.pressure_tol): run tolcheck first")
-        if k == 0:
+        prev = spec["source"]
+        if prev is None:
             s, _ = one(nm, nm, problem, numerics, 0.0, t["develop_end"], ptol=tol)
             s.close()
             continue
-        # the coarser level of the same variant if it was run (or is run here), else the plain coarser level.
-        # An IMEX level starts from the explicit run of the coarser level (the same start as its explicit twin).
-        suf = nm[len(base):]
-        prev = C["levels"][k - 1] + (suf[:-1] if imex else suf)
-        if not (RUNS_DIR / f"{prev}.json").exists():
-            prev = C["levels"][k - 1]
         t0 = json.loads((RUNS_DIR / f"{prev}.json").read_text())["end_time"]
         source = load_field(prev, prev, problem, numerics)
         s, _ = one(nm, nm, problem, numerics, t0, t0 + C["max_length"], src=source, stop_after=t["run_length"], ptol=tol)
@@ -264,7 +270,7 @@ def uniform_retol(names):
     problem, numerics = load()
     G, t = numerics["gpucfd"], numerics["time"]
     for nm in names:
-        prev = G["levels"][G["levels"].index(nm) - 1]
+        prev = run_spec(nm, numerics)["source"]
         t0 = json.loads((RUNS_DIR / f"{prev}.json").read_text())["end_time"]
         source = load_field(prev, prev, problem, numerics)
         s, _ = one(nm, nm, problem, numerics, t0, t0 + G["clustered"]["max_length"], src=source, stop_after=t["run_length"],
@@ -274,9 +280,11 @@ def uniform_retol(names):
 
 
 def tolcheck(level, src_name, tols=(1e-10, 1e-9, 1e-8, 1e-7), length=0.35):
-    """The pressure tolerance a level may use (cfdlib.gpu.tolerance_check, the case's rule: drag and lift
-    coefficients within 1e-4 of the strictest run over about one shedding cycle), from the saved last field
-    of run src_name. Writes gpu_tuning/tol_<level>.json."""
+    """The pressure tolerance a run may use: the one way to check it (cfdlib.gpu.tolerance_check with the case's
+    rule, numerics.yaml gpucfd.pressure_tol_rule: drag and lift coefficients within that of the strictest run, over
+    `length` seconds, about one shedding cycle), from the saved last field of run src_name, which must be on the
+    same grid. Writes gpu_tuning/tol_<run>.json. tolerance_record() reads it, and the files of the first checks.
+    level: the run of the table to check (C3, C3i, ...)."""
     problem, numerics = load()
     G = numerics["gpucfd"]
     t0 = json.loads((RUNS_DIR / f"{src_name}.json").read_text())["end_time"]
@@ -285,10 +293,22 @@ def tolcheck(level, src_name, tols=(1e-10, 1e-9, 1e-8, 1e-7), length=0.35):
     s.close()
     res = gpu.tolerance_check(lambda: load_field(src_name, level, problem, numerics), dt, t0, length, G["sample_dt"],
                               observer(problem, numerics), problem["given"]["Um"]["value"], tols=tols, keys=["cd", "cl"],
-                              rule=1e-4, log=lambda m: print(f"{level}: {m}", flush=True), cfl_limit=1.0)
+                              rule=G["pressure_tol_rule"], log=lambda m: print(f"{level}: {m}", flush=True), cfl_limit=1.0)
     res.update(level=level, source=src_name, dt=dt, length=length)
     (OUT / "gpu_tuning" / f"tol_{level}.json").write_text(json.dumps(res, indent=1, default=float))
     print(f"{level}: chosen {res['chosen']:g}", flush=True)
+
+
+def tolerance_record(run, numerics=None, tdir=None):
+    """The stored pressure-tolerance check of a run, in the layout of cfdlib.gpu.tolerance_check, whichever
+    command made it: gpu_tuning/tol_<run>.json (tolcheck) or, for the first checks of 2026-11-12 and 13,
+    ptol_<run>.json (made by commands that tolcheck replaced; they store no rule, so the case's is applied)."""
+    numerics = numerics or load()[1]
+    tdir = Path(tdir or OUT / "gpu_tuning")
+    for stem in (f"tol_{run}", f"ptol_{run}"):
+        if (tdir / f"{stem}.json").exists():
+            return gpu.read_tolerance_check(tdir / f"{stem}.json", rule=numerics["gpucfd"]["pressure_tol_rule"])
+    raise FileNotFoundError(f"no pressure-tolerance check stored for run {run} in {tdir}")
 
 
 def timing(level, steps=200):
@@ -296,8 +316,7 @@ def timing(level, steps=200):
     from gpucfd import steady
     problem, numerics = load()
     G = numerics["gpucfd"]
-    C = G["clustered"]
-    prev = C["levels"][C["levels"].index(level) - 1]
+    prev = run_spec(level, numerics)["source"]
     source = load_field(prev, prev, problem, numerics)
     s, _ = make(level, problem, numerics)
     steady.prolong(source, s)
@@ -317,10 +336,9 @@ def extend(name, max_length=12.0):
     low), so the fixed 3 s of the OpenFOAM protocol do not reach the periodic state."""
     problem, numerics = load()
     G = numerics["gpucfd"]
-    level = run_table(numerics)[name][0]
     rec0 = json.loads((RUNS_DIR / f"{name}.json").read_text())
     d0 = dict(np.load(RUNS_DIR / f"{name}.npz"))
-    s = load_field(name, level, problem, numerics)
+    s = load_field(name, name, problem, numerics)
     dt0, t0 = rec0["dt"], rec0["end_time"]
     n = int(round(max_length / dt0))
     print(f"{name}: continuing from t {t0:g} with dt {dt0:.4g}, until periodic (at most {max_length:g} s)", flush=True)
@@ -329,10 +347,9 @@ def extend(name, max_length=12.0):
                             watch=periodic_watch(numerics), stop_on_watch=True, ptol=rec0["pressure_tol"], cfl_limit=1.0)
     p0, p1 = rec0["perf"], res["perf"]
     steps = p0["steps"] + p1["steps"]
-    perf = dict(p0, gpu_s=p0["gpu_s"] + p1["gpu_s"], wall_s=p0["wall_s"] + p1["wall_s"], observe_s=p0["observe_s"] + p1["observe_s"],
-                steps=steps, poisson_its=(p0["poisson_its"] * p0["steps"] + p1["poisson_its"] * p1["steps"]) / steps)
-    perf["ms_per_step"] = 1000 * perf["gpu_s"] / steps
-    perf["us_per_cell_step"] = 1e6 * perf["gpu_s"] / (steps * perf["cells"])
+    perf = gpu.perf_record(p0["gpu_s"] + p1["gpu_s"], p0["wall_s"] + p1["wall_s"], p0["observe_s"] + p1["observe_s"], steps,
+                           p0["cells"], (p0["poisson_its"] * p0["steps"] + p1["poisson_its"] * p1["steps"]) / steps,
+                           p0["sample_steps"])
     checks = []
     for c0, c1 in zip(rec0["health"]["checks"], res["health"]["checks"]):
         worse = c1 if ["ok", "warn", "fail"].index(c1["status"]) > ["ok", "warn", "fail"].index(c0["status"]) else c0
@@ -342,8 +359,8 @@ def extend(name, max_length=12.0):
                   series={k: np.concatenate([d0[k], res["series"][k][1:]]) for k in res["series"]},
                   perf=perf, health=dict(status=status, checks=checks, steps=steps, last_time=float(res["t"][-1])),
                   dt=dt0, watch_first=res["watch_first"])
-    meta = {k: rec0[k] for k in ("level", "n", "cells", "h", "D_h", "source", "dt_factor", "pressure_tol", "scheme", "sample_dt",
-                                 "force_per_unit_depth")}
+    meta = {k: rec0[k] for k in ("level", "variant", "n", "cells", "h", "D_h", "source", "dt_factor", "pressure_tol", "scheme",
+                                 "time_step", "sample_dt", "force_per_unit_depth") if k in rec0}
     meta["segments"] = rec0.get("segments", [[rec0["start_time"], t0]]) + [[t0, float(res["t"][-1])]]
     rec = gpu.write_run(RUNS_DIR, name, merged, meta)
     save_field(s, name)
@@ -352,61 +369,12 @@ def extend(name, max_length=12.0):
           f"health {status}, periodic at {res['watch_first']['t'] if res['watch_first'] else 'never'}", flush=True)
 
 
-def tune_ptol(tols=(1e-10, 1e-8, 1e-6, 1e-4), length=1.0):
-    """Pressure tolerance study on G1 from its developed field (t = develop_end): forces over `length`
-    seconds for each tolerance, against the strictest. Rule (numerics.yaml): the loosest tolerance with
-    max |delta cd| and |delta cl| below 1e-4. Writes gpu_tuning/ptol.json."""
-    problem, numerics = load()
-    G = numerics["gpucfd"]
-    L = G["levels"][0]
-    t0 = numerics["time"]["develop_end"]
-    tdir = OUT / "gpu_tuning"
-    out = []
-    for tol in tols:
-        src = load_field(L, L, problem, numerics)
-        s, rec = one(f"ptol_{tol:g}", L, problem, numerics, t0, t0 + length, src=src, ptol=tol, runs_dir=tdir)
-        s.close()
-        src.close()
-    ptol_summary(tols)
-
-
-def tune_ptol_level(level, tols=(1e-10, 1e-9, 1e-8), length=0.35):
-    """The same study on another level, from its saved last field, over about one shedding cycle: does the
-    tolerance tuned on G1 still hold there? Same rule (max |delta cd| and |delta cl| below 1e-4 against the
-    strictest). Writes gpu_tuning/ptol_<level>.json. Added for C3, whose forces were noisy with 1e-8."""
-    problem, numerics = load()
-    t0 = json.loads((RUNS_DIR / f"{level}.json").read_text())["end_time"]
-    tdir = OUT / "gpu_tuning"
-    for tol in tols:
-        src = load_field(level, level, problem, numerics)
-        s, rec = one(f"ptol_{level}_{tol:g}", level, problem, numerics, t0, t0 + length, src=src, ptol=tol, runs_dir=tdir)
-        s.close()
-        src.close()
-    ptol_summary(tols, prefix=f"ptol_{level}_", out=f"ptol_{level}.json")
-
-
-def ptol_summary(tols=(1e-10, 1e-8, 1e-6, 1e-4), prefix="ptol_", out="ptol.json"):
-    """Compare the tolerance runs in gpu_tuning/ with the strictest; writes gpu_tuning/ptol.json."""
-    tdir = OUT / "gpu_tuning"
-    recs = [json.loads((tdir / f"{prefix}{tol:g}.json").read_text()) for tol in tols]
-    data = [np.load(tdir / f"{prefix}{tol:g}.npz") for tol in tols]
-    out_name, out = out, []
-    for tol, rec, d in zip(tols, recs, data):
-        r = dict(tol=tol, perf=rec["perf"], health=rec["health"]["status"],
-                 d_cd=float(np.max(np.abs(d["cd"] - data[0]["cd"]))), d_cl=float(np.max(np.abs(d["cl"] - data[0]["cl"]))),
-                 div=next(c["value"] for c in rec["health"]["checks"] if c["name"].startswith("Divergence")))
-        out.append(r)
-        print(f"ptol {tol:g}: max |d cd| {r['d_cd']:.2e}, max |d cl| {r['d_cl']:.2e}, {r['perf']['ms_per_step']:.2f} ms/step, "
-              f"{r['perf']['poisson_its']:.1f} pressure iterations per step, divergence {r['div']}", flush=True)
-    (tdir / out_name).write_text(json.dumps(out, indent=1, default=float))
-
-
 def preflight():
     """G1 from rest for 0.5 s and G3 from G1 for 0.05 s: stability, outputs, cost per step and per sample."""
     problem, numerics = load()
     G = numerics["gpucfd"]
     out = []
-    s1, r1 = one("pf_G1", G["levels"][0], problem, numerics, 0.0, 0.5)
+    s1, r1 = one("pf_G1", G["levels"][0], problem, numerics, 0.0, 0.5)      # trial runs: the grids of G1 and G3, own names
     s3, r3 = one("pf_G3", G["levels"][-1], problem, numerics, 0.5, 0.55, src=s1)
     for r in (r1, r3):
         p = r["perf"]
@@ -427,15 +395,12 @@ if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "production"
     if mode == "production":
         production(sys.argv[2:] or list(run_table(load()[1])))
-    elif mode == "ptol":
-        tune_ptol() if len(sys.argv) < 3 else tune_ptol_level(sys.argv[2])
     elif mode == "extend":
         for nm in sys.argv[2:]:
             extend(nm)
     elif mode == "tolcheck":
-        tolcheck(sys.argv[2], sys.argv[3])
-    elif mode == "ptol_summary":
-        ptol_summary()
+        extra = [float(x) for x in sys.argv[4:]]
+        tolcheck(sys.argv[2], sys.argv[3], **(dict(length=extra[0]) if extra else {}), **(dict(tols=extra[1:]) if extra[1:] else {}))
     elif mode == "preflight":
         preflight()
     elif mode == "clustered":

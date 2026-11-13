@@ -10,7 +10,9 @@ Generated parts (between `<!-- catalogue:NAME -->` and `<!-- /catalogue:NAME -->
   cases/BACKLOG.md  backlog  the tiers and the catalogue of candidates
   index.html        cards    the report gallery served by GitHub Pages
 
-Verdicts are read from each report's JSON file, never typed by hand. The check also fails when a
+Verdicts are read from each report's JSON file, never typed by hand. A study report's headline is
+read the same way (its JSON's summary.plain, written by the study's script from its numbers), so a
+study entry has no `headline` key. The check also fails when a
 results/<folder>/results.json exists for a case the catalogue does not list as solved.
 """
 from __future__ import annotations
@@ -44,9 +46,10 @@ def load(path: Path = CATALOGUE) -> list[dict]:
         if c.get("status") not in ("solved", "in_progress", "planned"):
             raise ValueError(f"{c.get('title')}: status must be solved, in_progress or planned")
         if c["status"] == "solved":
-            for key in ("id", "folder", "tests", "headline", "reports"):
+            for key in ("id", "folder", "tests", "reports"):
                 if not c.get(key):
                     raise ValueError(f"solved case {c.get('title')}: missing '{key}'")
+            headline(c)
         elif c.get("tier") not in [t for t, _ in TIERS] + ["catalogue"]:
             raise ValueError(f"{c.get('title')}: tier must be one of next, harder, turbulence, later, catalogue")
     return cases
@@ -62,6 +65,21 @@ def verdict(report: dict) -> str:
     return v
 
 
+def headline(c: dict) -> str:
+    """The one-sentence result of a solved case. Typed in the catalogue for a case's main report. For a
+    study report (an entry whose report has `verdict_from`) it is read from the study's JSON, where its
+    script wrote it from the numbers (summary.plain), so it cannot go stale."""
+    if c.get("headline"):
+        return c["headline"]
+    for r in c.get("reports", []):
+        if r.get("verdict_from"):
+            data = json.loads((ROOT / r["verdict_from"]).read_text(encoding="utf-8"))
+            plain = (data.get("summary") or {}).get("plain")
+            if plain:
+                return plain
+    raise ValueError(f"solved case {c.get('title')}: no 'headline', and no report JSON with summary.plain to read one from")
+
+
 def cell(text) -> str:
     return str(text or "").replace("|", "\\|").replace("\n", " ").strip()
 
@@ -73,7 +91,7 @@ def solved_table(cases: list[dict]) -> str:
             continue
         for r in c["reports"]:
             rows.append(f"| {c['id']} | {cell(c['title'])} | {cell(c['tests'])} | "
-                        f"{VERDICT_MD[verdict(r)]} | {cell(c['headline'])} | [view]({PAGES}{r['path']}) |")
+                        f"{VERDICT_MD[verdict(r)]} | {cell(headline(c))} | [view]({PAGES}{r['path']}) |")
     return "\n".join(rows)
 
 
@@ -142,7 +160,7 @@ def cards(cases: list[dict]) -> str:
             out.append(
                 f'  <a class="card" href="{html.escape(r["path"])}"><div class="row"><span class="t">'
                 f'{html.escape(c["id"], False)}. {html.escape(c["title"], False)}</span><span class="v {v.lower()}">{v}</span></div>\n'
-                f'    <div class="d">{html.escape(c["tests"], False)}. {html.escape(c["headline"], False)}.</div></a>')
+                f'    <div class="d">{html.escape(c["tests"], False)}. {html.escape(headline(c), False)}.</div></a>')
     return "\n".join(out)
 
 

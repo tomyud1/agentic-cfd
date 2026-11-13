@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 
 from cfdlib import insights, plots, report, study
-from cfdlib.report import load_yaml, m, tex_num as tn, tex_fix as tf
+from cfdlib.report import load_yaml, m, m_fix, m_times, tex_num as tn, tex_fix as tf
 from .run import CONFIGS, mesh_spec
 
 HERE = Path(__file__).resolve().parent
@@ -214,8 +214,7 @@ def build(problem, numerics, g, T, meshes, cells, B, pairs, sp, spp, conv):
     same_ok = bool(sa_ok) and all(sa_ok)
 
     # ---- tables ------------------------------------------------------------------------------------
-    def s(x, d=3):
-        return m(tf(x, d)) if x is not None and np.isfinite(x) else "–"
+    s = lambda x, d=3: m_fix(x, d)      # seconds and counts as table cells; a dash when missing
 
     main_rows = []
     for M in meshes:
@@ -319,9 +318,9 @@ def build(problem, numerics, g, T, meshes, cells, B, pairs, sp, spp, conv):
                                                           "The converged forces do NOT agree to the stated tolerance." if sa_ok else
                                                           "The same-answer test has not run yet."))
     answers = [
-        dict(label="Speed-up per iteration, largest mesh", value=m(tf(sp[big], 2) + r"\times"),
+        dict(label="Speed-up per iteration, largest mesh", value=m_times(sp[big], 2),
              note=f"{cells[big]:,} cells; best CPU ({clab(cb)}) over best GPU ({gb['ranks']} ranks); above 1 the GPU is faster"),
-        dict(label="Speed-up of the pressure solve, largest mesh", value=m(tf(spp[big], 2) + r"\times"),
+        dict(label="Speed-up of the pressure solve, largest mesh", value=m_times(spp[big], 2),
              note="Time per pressure solve including the matrix transfer to the GPU and the solution back"),
         dict(label="Break-even mesh size (whole iteration)", value=(m(tf(be_it / 1e6, 1)) + " million cells") if be_it else "none in range",
              note="Log-linear interpolation of the measured speed-ups" if be_it else
@@ -334,7 +333,7 @@ def build(problem, numerics, g, T, meshes, cells, B, pairs, sp, spp, conv):
                   + m(r"|\Delta c_D| \le " + tn(TOL["cd"])) + ", " + m(r"|\Delta c_L| \le " + tn(TOL["cl"]))),
         dict(label="Peak GPU memory, largest mesh", value=m(tf(gb["mem"] / 1024, 2) + r"\,\mathrm{GB}") if gb["mem"] else "–",
              note="nvidia-smi during the run, above the idle level; the card has 12 GB"),
-    ] + ([dict(label="Converged run, " + lv, value=m(tf(per_run[lv], 2) + r"\times"),
+    ] + ([dict(label="Converged run, " + lv, value=m_times(per_run[lv], 2),
                note=f"CPU wall time over GPU wall time to the same steady state ({conv['cpu_' + lv]['wall']:.0f} s against "
                     f"{conv['gpu_' + lv]['wall']:.0f} s)") for lv in per_run])
     findings = [
@@ -350,14 +349,14 @@ def build(problem, numerics, g, T, meshes, cells, B, pairs, sp, spp, conv):
         + ", ".join(f"{M} " + m(tf(pcell['gpu'][M], 3)) for M in pairs) + r" \(\mathrm{s}\). "
         + ("The GPU gets cheaper per cell because its fixed costs per solve (kernel launches, transfers, the coarse levels) "
            "are spread over more cells and its many cores fill up. " if pcell["gpu"][pairs[-1]] < pcell["gpu"][pairs[0]] else "")
-        + ("The CPU gets dearer per cell, " + m(tf(pcell["cpu"][pairs[-1]] / min(pcell["cpu"].values()), 1) + r"\times")
+        + ("The CPU gets dearer per cell, " + m_times(pcell["cpu"][pairs[-1]] / min(pcell["cpu"].values()), 1)
            + " from its cheapest to the largest mesh; GAMG also needs a few more cycles on larger meshes ("
            + ", ".join(f"{M} " + m(tf(B[M]['cpu']['p_it'], 1)) for M in pairs) + "), and the rest is consistent with the "
            "data leaving the CPU's 96 MB L3 cache (not measured directly)." if pcell["cpu"][pairs[-1]] > 1.2 * min(pcell["cpu"].values()) else ""),
         "<b>Amdahl's limit.</b> On the CPU the pressure solve is " + ", ".join(
             f"{M} " + m(tf(100 * pshare[M], 0) + r"\,\%") for M in pairs)
         + " of an iteration (profiling). Even an infinitely fast pressure solver could speed an iteration up by at most "
-        + ", ".join(f"{M} " + m(tf(amdahl[M], 2) + r"\times") for M in pairs) + ": momentum, assembly and the force output stay on the CPU.",
+        + ", ".join(f"{M} " + m_times(amdahl[M], 2) for M in pairs) + ": momentum, assembly and the force output stay on the CPU.",
         ("<b>Rank count.</b> " + (f"{B[pairs[0]]['cpu']['ranks']} ranks (one per physical core) were fastest for both the CPU and the "
                                   "GPU runs on every mesh. "
                                   if len({B[M][sd]['ranks'] for M in pairs for sd in ('cpu', 'gpu')}) == 1 else
@@ -391,6 +390,17 @@ def build(problem, numerics, g, T, meshes, cells, B, pairs, sp, spp, conv):
         + "A real gain needs either a GPU with fast double precision, a CUDA-aware MPI (no host copies), or a solver that also " \
           "moves momentum and assembly to the GPU."
 
+    verdict, reasons = study.verdict(
+        fail=["the converged forces of the CPU and GPU runs differ by more than the tolerance fixed before the runs"]
+        if sa_ok and not same_ok else [],
+        warn=(["the same-answer test has not been run"] if not sa_ok else [])
+        + ([f"only {len(pairs)} mesh sizes have both a CPU and a GPU timing; a break-even size needs at least three"]
+           if len(pairs) < 3 else []))
+    plain = (("Same answer on both sides" if same_ok else "The answers differ" if sa_ok else "Same-answer test not run")
+             + (f"; the GPU breaks even at about {be_it / 1e6:.1f} million cells and" if be_it else "; the GPU")
+             + f" is {sp[big]:.2f} times as fast as the best CPU setup per iteration at {cells[big] / 1e6:.2f} million cells"
+             + f". No pressure solver could gain more than {amdahl[big]:.2f} times there: the pressure solve is "
+             + f"{100 * pshare[big]:.0f} % of an iteration")
     ins = [it for it in insights.load(CASE)]
     hw = [["CPU", report.environment_info()[3][1]], ["Memory (WSL)", report.environment_info()[4][1]],
           ["GPU", gpu_name or "NVIDIA RTX 4070"], ["GPU link", "PCIe; WSL2 GPU paravirtualisation"]]
@@ -399,8 +409,9 @@ def build(problem, numerics, g, T, meshes, cells, B, pairs, sp, spp, conv):
     s_ = dict(
         title="GPU versus CPU pressure solver: DFG 3D-1Z cylinder (Re = 20)",
         date=dt.date.today().isoformat(), question=problem["study"]["question"].strip(),
-        verdict="PASS" if same_ok and len(pairs) >= 3 else ("FAIL" if sa_ok and not same_ok else "WARN"),
-        summary=dict(headline=head, answers=answers, findings=findings, limitations=limitations, recommendation=rec),
+        verdict=verdict,
+        summary=dict(headline=head, plain=plain, reasons=reasons, answers=answers, findings=findings, limitations=limitations,
+                     recommendation=rec),
         setup=dict(
             intro="Both sides solve the same steady problem with the same OpenFOAM solver (simpleFoam, SIMPLEC) on the same "
                   "meshes, with the same schemes, tolerances, function objects and start field. Only the pressure linear solver "
@@ -461,22 +472,29 @@ def build(problem, numerics, g, T, meshes, cells, B, pairs, sp, spp, conv):
             intro="Best CPU and best GPU setup per mesh, then all timing runs, the rank-count test on L4, the tuning runs and the "
                   "converged runs. Times in seconds of wall time.",
             tables=[
-                dict(title="Best setups per mesh", head=["Mesh", "Cells", "CPU s/iter (ranks)", "GPU s/iter (ranks)", "Speed-up per iter.",
-                                                         "CPU p solve (s)", "GPU p solve (s)", "Speed-up p solve", "GAMG iters/solve",
-                                                         "GPU CG iters/solve", "GPU memory (MiB)"], rows=main_rows,
+                dict(title="Best setups per mesh: time", question="From which mesh size is the GPU faster?",
+                     head=["Mesh", "Cells", "CPU s/iter (ranks)", "GPU s/iter (ranks)", "Speed-up per iter.",
+                           "CPU p solve (s)", "GPU p solve (s)", "Speed-up p solve"], rows=[r[:8] for r in main_rows],
                      note="Speed-up = CPU time / GPU time (above 1: GPU faster). Pressure solve time from profiling, per call, "
                           "including the transfers to and from the GPU."),
-                dict(title="Rank count on L4", head=["Pressure solver", "Ranks", "s/iter", "p solve (s)", "U solve (s)", "Rest (s)",
-                                                     "p iters/solve"], rows=scal_rows),
-                dict(title="GPU solver tuning on G36 (4 ranks, 20 iterations)", head=["Configuration: what changes", "CG iters/solve",
-                                                                                      "GPU solve (ms)", "Set-up per solve (ms)",
-                                                                                      "p solve (s)", "s/iter"], rows=tune_rows,
+                dict(title="Best setups per mesh: solver iterations and GPU memory",
+                     question="Does the GPU solver need more iterations than the CPU one, and does the mesh fit on the card?",
+                     head=["Mesh", "Cells", "GAMG iters/solve", "GPU CG iters/solve", "GPU memory (MiB)"],
+                     rows=[r[:2] + r[8:] for r in main_rows]),
+                dict(title="Rank count on L4", question="How many MPI ranks are fastest, with and without the GPU?", figure="ranks",
+                     head=["Pressure solver", "Ranks", "s/iter", "p solve (s)", "U solve (s)", "Rest (s)",
+                           "p iters/solve"], rows=scal_rows),
+                dict(title="GPU solver tuning on G36 (4 ranks, 20 iterations)",
+                     question="Which settings of the GPU solver are fastest?", figure="tune",
+                     head=["Configuration: what changes", "CG iters/solve", "GPU solve (ms)", "Set-up per solve (ms)",
+                           "p solve (s)", "s/iter"], rows=tune_rows,
                      note="Configurations after the first one up to and including the caching tests ran while the accuracy "
                           "runs of the main report used 12 of the 16 hardware threads: their times are inflated; compare "
                           "iteration counts there."),
                 dict(title="Converged runs (same start field, same stopping rule)",
+                     question="Run to the end, how long does each side take, and do both need the same number of iterations?",
                      head=["Run", "Cells", "Side", "Ranks", "Iterations", "Wall (s)", "s/iter", "p iters/solve"], rows=conv_rows),
-                dict(title="All timing runs", head=["Run", "Cells", "Side", "Ranks", "s/iter", "p solve (s)", "U solve (s)",
+                dict(title="All timing runs", question="What was measured, run by run?", head=["Run", "Cells", "Side", "Ranks", "s/iter", "p solve (s)", "U solve (s)",
                                                     "p iters/solve", "GPU MiB"], rows=all_rows),
             ],
             notes=["Break-even sizes are interpolated between measured meshes (log scale in cells), not extrapolated."]
@@ -491,11 +509,11 @@ def build(problem, numerics, g, T, meshes, cells, B, pairs, sp, spp, conv):
             intro="Seconds per iteration by part, from OpenFOAM's profiling of the best setups (mean over the run), and the GPU "
                   "pressure solve split further from OGL's own timings.",
             tables=[
-                dict(title="Per iteration (s)", head=["Mesh", "Setup", "Pressure solve", "Momentum solve", "Force output", "Rest",
+                dict(title="Per iteration (s)", question="Which part of an iteration does the GPU shorten?", figure="bd", head=["Mesh", "Setup", "Pressure solve", "Momentum solve", "Force output", "Rest",
                                                       "Total", "Pressure share"], rows=bd_rows,
                      note="Rest: matrix assembly, gradients, flux updates, MPI exchange, bookkeeping. Profiling means over all 30 iterations "
                           "(first-iteration set-up and final write included), so totals are slightly above the Results."),
-                dict(title="GPU pressure solve, per call (ms)", head=["Mesh", "Matrix update", "Preconditioner set-up (mean)",
+                dict(title="GPU pressure solve, per call (ms)", question="Inside the GPU pressure solve, where does the time go?", head=["Mesh", "Matrix update", "Preconditioner set-up (mean)",
                                                                       "GPU solve", "Copy back", "OGL total", "OpenFOAM side",
                                                                       "CG iters", "ms per CG iter."], rows=ogl_rows,
                      note="Matrix update: OGL's copy of the new coefficients to the GPU. OpenFOAM side: the rest of the pressure "

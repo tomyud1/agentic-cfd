@@ -31,8 +31,11 @@ When to choose gpucfd instead of OpenFOAM (measured numbers and limits: gpucfd/D
   CFL numbers untried with bodies).
 
 check_fit() turns this into a checklist for a given problem; its reasons go into decisions.yaml.
-run_transient() runs and records a transient case (live check, stop rule, a partial record that survives
-a killed run); write_run() saves it in the layout of the OpenFOAM runs.
+time_step() gives the step of a run with both limits and the one that set it. run_transient() runs and
+records a transient case (live check, stop rule, a partial record that survives a killed run); write_run()
+saves it in the layout of the OpenFOAM runs (its perf block names each cost by its clock: perf_record).
+cfdlib.runrecord.read() returns a record of either tool in one shape. tolerance_check() and
+read_tolerance_check() make and read a pressure-tolerance check.
 """
 import json
 import math
@@ -97,8 +100,9 @@ def pick_scheme(h_min, nu, u, cfl=0.8, step_cost=2.0):
     140 cells per diameter: estimated 1.66, measured 1.55; at 70: 0.83 and 0.96; at 35: 0.5 and 0.6).
     The pressure tolerance has to be checked per scheme (tolerance_check): on case 4's coarsest level
     IMEX needed 1e-9 where the explicit scheme passed with 1e-8."""
+    from gpucfd.gcfd import VISCOUS_DT          # the solver's own factor (0.15); importing it needs no GPU
     dt_imex = cfl * h_min / u
-    dt_rk3 = min(dt_imex, 0.15 * h_min * h_min / nu)
+    dt_rk3 = min(dt_imex, VISCOUS_DT * h_min * h_min / nu)
     fewer = dt_imex / dt_rk3
     gain = fewer / step_cost
     scheme = "imex" if gain > 1.0 else "rk3"
@@ -115,6 +119,33 @@ def available():
     except Exception as e:  # noqa: BLE001 - any failure means: not available on this machine
         print("gpucfd not available:", e)
         return None
+
+
+def time_step(s, u_scale=None, cfl=0.8, factor=1.0):
+    """The time step for a run of simulation s, and what set it. Use its `dt` for run_transient and pass
+    the whole dict to write_run as meta["time_step"], so the record says which limit held the run back.
+
+    u_scale: a velocity scale fixed in advance (a run from rest has nothing else): dt = factor x the
+    smaller of the convective limit cfl h_min / u_scale and, for scheme "rk3", the viscous limit
+    VISCOUS_DT h_min^2 / nu. Take the scale at least as large as the largest velocity the flow reaches,
+    or the Courant check of the run warns. (Case 4's warning on its coarsest level, 1.15 to 1.18, is not
+    that: the developed flow reaches 2.47 against a scale of 2.25, a Courant number of 0.88. It comes from
+    the first steps after the start from rest, where the sampled velocity bound passes 3.)
+    u_scale=None: from the field s holds now (a developed field, for example the coarser level's last
+    field put on this grid), with NavierStokes.dt_cfl: the local velocities and cell sizes, which on a
+    stretched grid allows a larger step than the smallest cell with the largest velocity. Not for a start
+    from rest, and not tried on a case yet: watch the Courant check of the first such run.
+    factor: a time-step study's multiplier (0.5 = half the step).
+    Returns dict(dt, convective, viscous (None for scheme "imex"), set_by ("convective", "viscous" or
+    "current field"), scheme, cfl, u_scale, h_min, factor)."""
+    if u_scale is None:
+        lim = s.dt_limits(1.0, cfl)
+        return dict(dt=factor * s.dt_cfl(cfl), convective=None, viscous=lim["viscous"], set_by="current field",
+                    scheme=s.scheme, cfl=cfl, u_scale=None, h_min=lim["h_min"], factor=factor)
+    lim = s.dt_limits(u_scale, cfl)
+    by = "viscous" if lim["viscous"] is not None and lim["viscous"] < lim["convective"] else "convective"
+    return dict(dt=factor * s.max_dt(u_scale, cfl), convective=lim["convective"], viscous=lim["viscous"], set_by=by,
+                scheme=s.scheme, cfl=cfl, u_scale=u_scale, h_min=lim["h_min"], factor=factor)
 
 
 def _save_partial(path, ts, series):
@@ -160,6 +191,7 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
     steps = 0
     max_div = 0.0
     cfl = 0.0
+    umax_seen, t_umax = 0.0, t0
     error = None
     interrupted = None
     first = None
@@ -169,7 +201,7 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
     wall0 = time.time()
 
     def sample(t):
-        nonlocal obs_s, cfl
+        nonlocal obs_s, cfl, umax_seen, t_umax
         a = time.time()
         o = observe(s)
         obs_s += time.time() - a
@@ -178,6 +210,8 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
             series.setdefault(k, []).append(np.asarray(v, float))
         if "umax" in o and len(ts) > 1:  # not the start field (a projected start from rest can be far off)
             cfl = max(cfl, float(o["umax"]) * dt / h)
+            if float(o["umax"]) > umax_seen:
+                umax_seen, t_umax = float(o["umax"]), t
 
     sample(t0)
     while steps < n_total:
@@ -232,22 +266,45 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
             "The run was stopped from the keyboard; the record ends there.", warn=True)
     add("No NaN values", not nan, "none" if not nan else "found", "NaN (not a number) means invalid values.")
     add("Max Courant number", cfl <= cfl_limit, f"{cfl:.2f}",
-        f"Fluid should not cross more than about one cell per time step (limit used: {cfl_limit:g}).", warn=True)
+        f"Fluid should not cross more than about one cell per time step (limit used: {cfl_limit:g})."
+        + ("" if cfl <= cfl_limit else f" The largest velocity sampled was {umax_seen:.3g}, at t = {t_umax:.4g}. Just after a "
+           "start from rest that is the start transient: a smaller step for the first stretch removes it. Later in the run "
+           "it is the flow itself: take the time step from a velocity scale at least that large (cfdlib.gpu.time_step)."),
+        warn=True)
     rel_div = max_div * h / u_ref
     add("Divergence after projection", rel_div < 1e-6, f"{rel_div:.1e}",
         "max |div u| h / U after each step: the velocity must stay divergence-free (mass conservation).", warn=True)
     status = "fail" if any(c["status"] == "fail" for c in checks) else \
         ("warn" if any(c["status"] == "warn" for c in checks) else "ok")
-    perf = dict(gpu_s=gpu_ms / 1000, wall_s=wall, observe_s=obs_s, steps=steps, cells=cells, sample_steps=nsub,
-                poisson_its=its / max(steps, 1),
-                ms_per_step=gpu_ms / max(steps, 1), us_per_cell_step=1000 * gpu_ms / max(steps * cells, 1))
-    return dict(t=np.array(ts), series={k: np.array(v) for k, v in series.items()}, perf=perf,
-                health=dict(status=status, checks=checks, steps=steps, last_time=ts[-1]), dt=dt, watch_first=first)
+    return dict(t=np.array(ts), series={k: np.array(v) for k, v in series.items()},
+                perf=perf_record(gpu_ms / 1000, wall, obs_s, steps, cells, its / max(steps, 1), nsub),
+                health=dict(status=status, checks=checks, steps=steps, last_time=ts[-1], umax=umax_seen or None,
+                            t_umax=t_umax if umax_seen else None),
+                dt=dt, watch_first=first)
+
+
+def perf_record(gpu_s, wall_s, observe_s, steps, cells, poisson_its, sample_steps):
+    """The `perf` block of a gpucfd run record. Two clocks, each named in its keys:
+      gpu_s   time inside the solver's steps;  ms_per_step_gpu, us_per_cell_step_gpu
+      wall_s  elapsed time of the whole run, sampling the outputs included (observe_s of it);
+              ms_per_step_wall, us_per_cell_step_wall: the ones to set against another tool's wall time
+    ms_per_step and us_per_cell_step are the GPU-time values under their older names, kept because
+    records and analyses written before 2026-11-13 use them. Read a record with cfdlib.runrecord.read."""
+    n, nc = max(steps, 1), max(steps * cells, 1)
+    return dict(gpu_s=gpu_s, wall_s=wall_s, observe_s=observe_s, steps=steps, cells=cells, sample_steps=sample_steps,
+                poisson_its=poisson_its, ms_per_step=1e3 * gpu_s / n, us_per_cell_step=1e6 * gpu_s / nc,
+                ms_per_step_gpu=1e3 * gpu_s / n, us_per_cell_step_gpu=1e6 * gpu_s / nc,
+                ms_per_step_wall=1e3 * wall_s / n, us_per_cell_step_wall=1e6 * wall_s / nc)
 
 
 def write_run(runs_dir, name, result, meta):
     """Save a run_transient result as runs_dir/<name>.npz (t + every series) and <name>.json (meta, perf,
-    health, environment). Returns the json record."""
+    health, environment). Returns the json record.
+
+    meta: what the case knows about the run. Give at least level, cells, h (smallest cell size), source
+    (the run whose last field it started from, or None), pressure_tol, scheme, and time_step (the dict
+    from time_step(): both limits and which one set the step). cfdlib.runrecord.read returns this record
+    and an OpenFOAM one in the same shape."""
     from gpucfd import gcfd
     runs_dir = Path(runs_dir)
     runs_dir.mkdir(parents=True, exist_ok=True)
@@ -277,8 +334,9 @@ def tolerance_check(make, dt, t0, length, sample_dt, observe, u_ref, tols=(1e-10
     keys: the series to compare (default: every scalar series except 'umax'). The differences are
     absolute, max over the samples of |value - strictest value|: compare coefficients, or scale the
     outputs in observe. rule: the largest difference accepted.
-    Returns dict(rule, keys, runs=[dict(tol, diff{key}, worst, passes, ms_per_step, poisson_its, divergence)],
-    chosen), chosen = the loosest tolerance that passes together with every stricter one."""
+    Returns dict(rule, keys, runs=[dict(tol, diff{key}, worst, passes, ms_per_step, poisson_its, wall_s, steps,
+    divergence)], chosen), chosen = the loosest tolerance that passes together with every stricter one.
+    Save it as JSON; read_tolerance_check() reads it back (and the older layout of case 4's first checks)."""
     tols = sorted(float(v) for v in tols)
     base, runs = None, []
     for tol in tols:
@@ -296,16 +354,47 @@ def tolerance_check(make, dt, t0, length, sample_dt, observe, u_ref, tols=(1e-10
         worst = max(diff.values())
         r = dict(tol=tol, diff=diff, worst=worst, passes=bool(worst <= rule and res["health"]["status"] != "fail"),
                  ms_per_step=res["perf"]["ms_per_step"], poisson_its=res["perf"]["poisson_its"],
+                 wall_s=res["perf"]["wall_s"], steps=res["perf"]["steps"],
                  divergence=next(c["value"] for c in res["health"]["checks"] if c["name"].startswith("Divergence")))
         runs.append(r)
         log(f"pressure tolerance {tol:g}: largest difference {worst:.2e} ({'passes' if r['passes'] else 'fails'} the rule "
             f"{rule:g}), {r['ms_per_step']:.2f} ms per step, {r['poisson_its']:.1f} pressure iterations per step")
-    chosen = tols[0]
+    return dict(rule=rule, keys=list(keys), runs=runs, chosen=_loosest_passing(runs))
+
+
+def _loosest_passing(runs):
+    """The loosest tolerance that passes together with every stricter one (runs sorted strictest first)."""
+    chosen = runs[0]["tol"]
     for r in runs:
         if not r["passes"]:
             break
         chosen = r["tol"]
-    return dict(rule=rule, keys=list(keys), runs=runs, chosen=chosen)
+    return chosen
+
+
+def read_tolerance_check(path, rule=None):
+    """A stored pressure-tolerance check in the layout tolerance_check returns, whichever way it was
+    made. Case 4's first checks (2026-11-12 and 13, gpu_tuning/ptol_<level>.json) are a list of runs with
+    d_cd, d_cl and a perf block; they hold no rule, so pass the case's rule (its numerics.yaml) and
+    `passes` and `chosen` are worked out here by tolerance_check's own definition. A newer file keeps the
+    rule it was made with; runs written before 2026-11-13 have no wall_s (None here)."""
+    d = json.loads(Path(path).read_text(encoding="utf-8"))
+    if isinstance(d, dict):
+        for r in d["runs"]:
+            r.setdefault("wall_s", None)
+            r.setdefault("steps", None)
+        return d
+    if rule is None:
+        raise ValueError(f"{path}: an older tolerance check stores no rule; pass rule=")
+    runs = []
+    for r in sorted(d, key=lambda r: r["tol"]):
+        diff = dict(cd=r["d_cd"], cl=r["d_cl"])
+        worst = max(abs(v) for v in diff.values())
+        p = r["perf"]
+        runs.append(dict(tol=r["tol"], diff=diff, worst=worst, passes=bool(worst <= rule and r.get("health") != "fail"),
+                         ms_per_step=p["ms_per_step"], poisson_its=p["poisson_its"], wall_s=p["wall_s"], steps=p["steps"],
+                         divergence=r.get("div")))
+    return dict(rule=rule, keys=["cd", "cl"], runs=runs, chosen=_loosest_passing(runs))
 
 
 def position_spread(by_position):

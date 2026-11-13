@@ -3,6 +3,7 @@
 render() runs the contract check first and refuses to write a report that violates it.
 """
 import json
+import math
 import os
 import platform
 import re
@@ -66,6 +67,58 @@ def tex_fix(x, decimals=4):
 
 def tex_pct(x, sig=3):
     return tex_num(100 * x, sig) + r"\,\%"
+
+
+# ---- ready-made cells: a value as inline math, or a dash when it is missing ---------------------------
+# For tables and sentences of a report that compares runs. Each returns finished HTML text (the math
+# delimiters included), so the typesetting check passes and a missing value never raises.
+DASH = "–"
+
+
+def _has(x):
+    return x is not None and math.isfinite(x)
+
+
+def m_fix(x, decimals=2):
+    """Fixed decimals: 3.20. A dash for None or a non-finite value."""
+    return m(tex_fix(x, decimals)) if _has(x) else DASH
+
+
+def m_pct(x, decimals=2, signed=False, unit=True, size=False):
+    """A fraction as per cent with fixed decimals: 0.0024 -> 0.24 %. signed: +0.24 % (differences);
+    size: the absolute value (for 'within 0.24 %'); unit=False leaves the % sign to the column head."""
+    if not _has(x):
+        return DASH
+    v = 100 * (abs(x) if size else x)
+    return m(f"{v:{'+' if signed else ''}.{decimals}f}" + (r"\,\%" if unit else ""))
+
+
+def m_times(x, decimals=1):
+    """A ratio as 'so many times': 3.3 with a multiplication sign."""
+    return m(tex_fix(x, decimals) + r"\times") if _has(x) else DASH
+
+
+def m_pow10(x, sig=2):
+    """A power of ten compactly, 10^{-8}; any other number as tex_num."""
+    if not _has(x) or x <= 0:
+        return DASH if not _has(x) else m(tex_num(x, sig))
+    e = round(math.log10(x))
+    return m(f"10^{{{e}}}") if math.isclose(x, 10.0 ** e, rel_tol=1e-9) else m(tex_num(x, sig))
+
+
+def m_sig(x, sig=2, pct=False, unit=False):
+    """Significant figures without e-notation, for small values: 4.7e-6 -> 0.0000047 (trailing zeros
+    dropped: 0.050 -> 0.05). pct: x is a fraction, shown as the size of its per cent value (unit adds
+    the % sign)."""
+    if not _has(x):
+        return DASH
+    v = 100 * abs(x) if pct else x
+    s = "0"
+    if v != 0:
+        d = max(sig - 1 - math.floor(math.log10(abs(v))), 0)
+        s = f"{v:.{d}f}"
+        s = s.rstrip("0").rstrip(".") if "." in s else s
+    return m(s + (r"\,\%" if unit else ""))
 
 
 def load_yaml(path):

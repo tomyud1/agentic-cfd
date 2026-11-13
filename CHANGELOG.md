@@ -11,9 +11,157 @@ moves to a dated entry when it is committed.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
+### Case 7 prepared: turbulent flat plate with the Spalart-Allmaras model (not committed yet)
+- **What:** everything a fresh agent needs to solve the project's first turbulence case is now in the
+  repository. The case is NASA's standard check of a turbulence model: air flowing along a flat
+  plate, with the turbulence replaced by a model (Spalart-Allmaras). Nothing was solved; this is the
+  preparation step of the loop.
+- **The pieces.**
+  - *The problem statement* (`cases/turbulent_flat_plate_sa/problem.yaml`): geometry, flow, model,
+    and what to find (friction at one point of the plate on each grid, drag, velocity profiles).
+  - *The reference data* (`reference/`): NASA's pages and data files saved as published, and one
+    file built from them by a script that stops if a page no longer says what the file states
+    (`setup/fetch_tmr_flatplate.sh`, `setup/parse_tmr_flatplate.py`). NASA's five grids are stored too.
+  - *A tool to use NASA's grids* (`cfdlib/structgrid.py`): it writes a published grid as an OpenFOAM
+    mesh, point for point, with named boundaries. Until now the workflow could only build grids with
+    OpenFOAM's own simple mesher, which cannot reproduce NASA's spacing. Using NASA's grids removes
+    the grid as a difference between our result and theirs.
+  - *A tool to read values on a wall* (`foam.read_boundary_field`): friction and the wall-cell
+    measure (y+) face by face along the plate.
+- **A trap found in the reference, before any run.** NASA's main results are for slightly
+  compressible air (Mach 0.2); OpenFOAM's standard solver for this case treats the flow as
+  incompressible. NASA publishes both for the friction at one point, and on the finest grid they
+  differ by 0.87 %: about 30 times the uncertainty NASA gives for either. So the problem statement
+  names the incompressible values as the like-for-like reference. Drag and the profiles exist only
+  for the compressible flow, and the statement says so. (The same kind of mistake as on case 4,
+  where a target was set against the wrong reference value; this time it was caught first.)
+- **Also from NASA's pages:** as of 2014 OpenFOAM's version of this model did not match NASA's
+  equations, and NASA does not track later versions. A small mismatch is therefore a possible
+  honest outcome; the problem statement asks the agent to say what any remaining difference is
+  made of.
+- **How it was verified.**
+  - *Are the grids loaded correctly?* OpenFOAM's own mesh checker accepts the coarsest, the middle
+    and the finest grid (cell counts and plate faces as in NASA's files); the points on disk equal
+    NASA's to the last digit, including the first cell at the wall, which is 0.0000005 high. The
+    checker's one complaint is the shape of the thin wall cells, which is how these grids are meant
+    to be (`tests/test_structgrid.py`).
+  - *Can our tools handle a turbulence case?* A throwaway setup on the coarsest grid, run for 300
+    iterations (one second): the dictionary reader, the report checker, the health monitor, and the
+    reading of friction, y+, profiles and drag all work (10 checks, 0 gaps). That setup is not a
+    solution. Its script is kept outside the repository until the case is solved, so that the
+    fresh agent finds no ready-made solver settings; it then goes to `dev/agent_checks/`.
+  - The reference script checks that the five grids are nested, straight and of the sizes the data
+    files name, and that the point where NASA tabulates friction is a grid point of all five.
+- **Open:** the case is not launched. A fresh agent solves it next (`dev/LOOP.md`, step 3). The
+  guard against too few digits when a mesh is written again is a note in the primer and a number
+  the grid tool reports, not yet an automatic check.
+
 ## 2026-11-13
 
-### Correction: gpucfd's drag on case 4 is 0.3 to 0.4 % from the converged benchmark, commit hash to be filled in
+### Tools for comparing two solvers: study reports and run records, commit hash to be filled in
+The two agents that compared gpucfd with OpenFOAM on case 4 said where the tooling slowed them down.
+This entry answers their list. No simulation was run. Both study pages (4b and 5b) were rebuilt and
+show the same numbers and the same verdicts as before (checked number by number), and all six main
+reports rebuild unchanged.
+
+Words: a *study report* is the second page of a case, which compares two tools (4b: gpucfd and
+OpenFOAM; 5b: OpenFOAM on the processor and on the graphics card). A *run record* is the small
+file each run leaves behind (grid size, time step, how long it took). *Wall time* is elapsed time,
+as on a stopwatch.
+
+- **Each table explains itself.**
+  - *Problem:* a table's question, result and meaning had to be squeezed into its title and a long
+    note under it.
+  - *Now:* a table can carry a **question** (shown above it), a **result** and **what it means**
+    (shown below it, each on its own labelled line). Every table of 4b uses them.
+  - *For the next report:* the writer fills three fields per table, and a reader can follow a page
+    by reading only those lines.
+- **The page fits a comparison of two solvers, not only "processor against graphics card".**
+  - *Problem:* section titles and the line above the title were fixed for 5b's kind of study.
+  - *Now:* a study can rename its sections, add sections of its own, and place a figure right
+    above the table it explains. 4b has a section of its own for the implicit time scheme. Short
+    labels in the first column stay on one line by themselves, a table too wide for the page gives
+    a warning (5b's widest table was split in two), and the reasons for a verdict other than PASS
+    are listed under the headline. The contract now demands those reasons.
+  - *For the next report:* no more workarounds inside table cells.
+- **The list of insights no longer fills the page.**
+  - *Problem:* every performance insight was printed in full; on 4b that was a sixth of the page.
+  - *Now:* each insight shows its problem; a click opens the rest. Open ones start unfolded. The
+    section is about 2.5 times shorter on 4b.
+- **One way to read a run record, with one clock.**
+  - *Problem:* OpenFOAM's and gpucfd's records name things differently, and one name ("cost per
+    cell and step") meant elapsed time in one and time inside the solver in the other. That mix
+    produced the wrong "50 times faster" corrected in the entry below.
+  - *Now:* `cfdlib.runrecord.read` returns either record with the same names, and every cost says
+    which clock it is on. New gpucfd records store both costs, the two limits on the time step
+    and which one set it. Older records still load. A record can also hold repeated timings and
+    reports how far they are apart.
+  - *For the next report:* a speed comparison cannot mix the two clocks by accident.
+- **Case 4's rules and its list of runs are written once.**
+  - *Problem:* the target (drag within 0.25 %, in less than 1740 s), the pressure rule and the
+    rule for "same answer" were typed in several scripts. Which run was which was read from the
+    letters of its name (C3wi = finest grid, longer band, implicit scheme).
+  - *Now:* the rules are named entries in `numerics.yaml`, and so is a table of all 16 gpucfd
+    runs (grid, variant, time scheme, the run it starts from). The run script, the two analyses
+    and the report read them. The run script has one way to check a pressure setting, not two.
+  - *Checked:* the two analyses give the same numbers as before, and the run script builds all
+    15 recorded runs with the recorded grid, scheme and time step (built only, not run).
+  - *For the next run:* a new run is a new line in the table.
+- **An error estimate that is not really an estimate is marked.**
+  - *Problem:* the usual formula for a grid study's error needs three grids that approach a limit
+    from one side. When they do not, the code quietly assumed a typical behaviour and still
+    printed a number.
+  - *Now:* that number carries a flag and the reason (`cfdlib.verification.three_grid_study`), and
+    4b marks it with a star (gpucfd's lift maximum on the clustered grids).
+  - *For the next report:* a placeholder cannot pass for a measured error.
+- **A study's one-line summary in the case list cannot go stale.**
+  - *Problem:* it was typed by hand in the catalogue. 5b's said "capped near 1.5 times";
+    the numbers say 1.57.
+  - *Now:* the study's script writes the sentence from its numbers and the catalogue reads it,
+    as it already reads the verdict.
+- **Smaller things:** shared number formats for report tables (per cent with a sign, "3.3 times",
+  powers of ten); the study contract is described in `workflow/references/report-contract.md`; the
+  smoke test now renders a study.
+- **A warning explained.** The coarsest gpucfd runs of case 4 carry a warning that the time step was
+  too large for the flow speed. It was thought to come from the developed flow. The recorded data
+  say otherwise: the step is too large only in the first 0.02 to 0.04 seconds after the start from
+  rest, and never afterwards. The warning now says when it happened, so the right fix (a smaller
+  step at the very start, not for the whole run) is clear. The recorded runs are unchanged.
+- **Open:** not done, each with its reason in the hand-over: taking the time step from the flow
+  itself is offered but not tried on a case; no timing has been repeated yet, so no time on any page
+  has a spread; the same marking of weak error estimates in cases 2 and 5; printing a study page does
+  not unfold the insights.
+- **Checked a second time by the dev agent.** The six main reports are word for word what was
+  committed; every formula on the two study pages is the same as before (591 and 571 of them); all
+  report rules pass; the tests pass (study, catalogue, layout, tools, the GPU tools, the grid
+  loader); the new reader opens all 71 stored run records. Not checked from end to end, as the
+  agent said: the commands of the rewritten run script that would repeat or overwrite recorded
+  runs. Watch their first real use.
+- **What became of the agent's 16 notes.**
+  - *Done now.* (1) **Reports no longer change when nothing changed.** Every re-render used to
+    rewrite every report, because each figure carried a date and random labels. Figures are now
+    written the same way every time; two full renders in a row gave identical files. "Did a
+    published report change?" is now a plain file comparison. (2) **A misleading sentence on the
+    4b page is corrected.** It called OpenFOAM's error estimate for the drag "tiny". That number is
+    a placeholder too (the drag has stopped moving in one direction between the grids, so the
+    formula has nothing to measure); the page now marks it with a star and says what it means. The
+    same point is logged in case 4's own record (insight 26); the main report's table was left as
+    the solver agent wrote it. (3) The loop's notes say how to commit when several sessions share
+    the folder. (4) The workflow's new paragraph on "one clock on both sides" was cut to two lines.
+  - *A correction of the dev agent's own statement.* The warning on the coarsest gpucfd runs was
+    passed on as "the flow gets faster than the speed the time step was planned for". The recorded
+    data show it happens only in the first hundredths of a second after the start (entry above).
+  - *Put to the supervisor* (`ROADMAP.md`, questions): which error band is honest when three grids
+    show no clear order. Today a factor of 1.25 with a mark; common practice is 3, which can
+    change the verdicts of cases 4 and 5.
+  - *Written down for later* (`ROADMAP.md`): a small generated file of each case's headline
+    numbers and a test that the numbers quoted by hand elsewhere still match it.
+  - *Not done, with the reason.* Requiring a question on every table of a study: some tables are
+    plain listings. Moving the verdict rules into the shared helper: wait until a third study
+    repeats them. Repeating the 13-minute run that carries 4b's headline time, to give it a
+    spread: the times compared differ by far more than the few per cent a repeat would show.
+
+### Correction: gpucfd's drag on case 4 is 0.3 to 0.4 % from the converged benchmark (`d10a2c1`)
 - **What:** the claim "drag 0.1 to 0.2 % from the benchmark" in the two entries below it is
   true only against the benchmark's finest tabulated number. Found by the agent that wrote the
   study report (next entry), and recomputed by the dev agent.
@@ -58,7 +206,7 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
   tool tests pass, and case 4's report was rebuilt with the new insight and the link (contract
   OK, verdict unchanged).
 
-### Case 4b: a study report that puts gpucfd next to OpenFOAM, commit hash to be filled in
+### Case 4b: a study report that puts gpucfd next to OpenFOAM (`d10a2c1`)
 - **What:** a second report for case 4 (the cylinder shedding vortices, Re 100):
   `results/dfg_cylinder_re100/gpu_study.html`, written by the new script
   `cases/dfg_cylinder_re100/gpu_study.py`. It shows OpenFOAM's four grids, gpucfd's three grids

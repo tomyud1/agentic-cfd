@@ -53,6 +53,40 @@ def level_sequence(values, r=2.0, p_min=0.5):
                 plausible=ok if mono else None, last_change=abs(d2))
 
 
+def three_grid_study(values, r=2.0, p_assumed=2.0, safety=1.25, p_min=0.5):
+    """Observed order, Richardson value and fine-grid convergence index (GCI) from the last three of
+    `values` (coarse to fine, refinement ratio r), with a flag that says whether the index is an estimate.
+
+    The GCI is an error estimate only when the three values approach a limit from one side and the
+    observed order p is believable. Otherwise this function still returns a number, so that a table
+    has no hole, but it is a placeholder: the order is assumed (p_assumed) and the factor stays at
+    `safety`. `gci_reliable` is False then, and `gci_basis` says why in a few words; a report must show
+    that next to the number (case 4b: the lift maximum on gpucfd's clustered grids). Roache's practice
+    for such a case is a factor 3 with the scheme's formal order; pass safety=3.0 to follow it. The
+    cases solved up to 2026-11-13 used 1.25 throughout, which is why it is the default.
+
+    Returns dict(R, monotonic, p, p_used, extrap, gci_abs, gci, delta, gci_reliable, gci_basis):
+    R = (f2 - f3) / (f1 - f2), monotonic when 0 < R < 1; p the observed order (nan when not monotonic);
+    extrap the Richardson value with p_used; gci_abs = safety |f3 - f2| / (r^p_used - 1); gci relative
+    to |f3|; delta = |f3 - f2|."""
+    f1, f2, f3 = (float(v) for v in values[-3:])
+    R = (f2 - f3) / (f1 - f2) if f1 != f2 else float("nan")
+    monotonic = bool(0 < R < 1)
+    p = order_three_grids(f1, f2, f3, r) if monotonic else float("nan")
+    p_use = p if monotonic else p_assumed
+    ext = richardson(f2, f3, p_use, r)
+    gci_abs = safety * abs(f3 - f2) / (r ** p_use - 1)
+    if not monotonic:
+        basis = f"order {p_assumed:g} assumed: the three values do not approach a limit from one side"
+    elif p < p_min:
+        basis = f"observed order {p:.2f} is below {p_min:g}: the values barely converge, so the index is inflated"
+    else:
+        basis = "observed order"
+    return dict(R=R, monotonic=monotonic, p=p, p_used=p_use, extrap=ext, gci_abs=gci_abs,
+                gci=gci_abs / abs(f3) if f3 else float("nan"), delta=abs(f3 - f2),
+                gci_reliable=bool(monotonic and p >= p_min), gci_basis=basis)
+
+
 def gci_fine(f_med, f_fine, p, r=2.0, safety=1.25):
     """Grid Convergence Index of the fine solution, as a fraction (0.01 = 1 %)."""
     return safety * abs((f_fine - f_med) / f_fine) / (r ** p - 1)

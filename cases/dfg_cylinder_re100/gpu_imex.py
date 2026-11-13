@@ -19,13 +19,12 @@ from pathlib import Path
 from cfdlib import gpu
 from cfdlib.report import load_yaml
 from .analyze import QKEYS, reference
-from .gpu_clustered import OPENFOAM_STUDY_WALL
 from .gpu_compare import analyse
+from .gpu_run import run_spec, runs_where
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parents[1] / "results" / HERE.name
 RUNS = OUT / "runs"
-RULE = dict(cd_mean=5e-4, cd_max=5e-4, St=5e-4, cl_max=3e-3, cl_amp=3e-3)  # relative to the explicit value
 
 
 def main():
@@ -33,6 +32,8 @@ def main():
     numerics = load_yaml(HERE / "numerics.yaml")
     g = problem["given"]
     C = numerics["gpucfd"]["clustered"]
+    RULE = C["imex"]["same_answer"]            # the same-answer rule, relative to the explicit value (fixed before the runs)
+    OPENFOAM_STUDY_WALL = C["target"]["wall"]  # OpenFOAM's whole study with the live stop: the target's time
     ref = reference(load_yaml(HERE / problem["reference"]["file"]))
     # The benchmark's finest tabulated level is not its converged value: its three finest levels head for a mean
     # drag about 0.2 % higher (analyze.reference, Richardson). Mean drag is quoted against both.
@@ -48,15 +49,18 @@ def main():
                     sm={k: r["sm"][k] for k in QKEYS},
                     rel={k: (r["sm"][k] - ref["value"][k]) / abs(ref["value"][k]) for k in QKEYS},
                     rel_cd_mean_converged=(r["sm"]["cd_mean"] - ext) / abs(ext))
-    have = lambda nm: (RUNS / f"{nm}.json").exists()
-    rows = {nm: row(nm) for nm in sorted(p.stem for p in RUNS.glob("C*.json")) if not nm.endswith(".partial")}
+    # every run on a clustered grid that the table lists (numerics.yaml, gpucfd.runs) and that was made
+    rows = {nm: row(nm) for nm in sorted(runs_where(numerics, family="clustered")) if (RUNS / f"{nm}.json").exists()}
+    spec = {nm: run_spec(nm, numerics) for nm in rows}
     pairs = []
-    for nm, r in rows.items():  # every IMEX run with its explicit twin (the same name without the i)
-        if r["scheme"] != "imex" or nm[:-1] not in rows:
+    for nm, r in rows.items():  # every IMEX run with its explicit twin: the run on the same level and variant
+        twin = next((x for x in rows if spec[x]["scheme"] != "imex" and (spec[x]["level"], spec[x]["variant"]) ==
+                     (spec[nm]["level"], spec[nm]["variant"])), None)
+        if spec[nm]["scheme"] != "imex" or twin is None:
             continue
-        e = rows[nm[:-1]]
+        e = rows[twin]
         d = {k: (r["sm"][k] - e["sm"][k]) / abs(e["sm"][k]) for k in RULE}
-        pairs.append(dict(imex=nm, explicit=nm[:-1], diff=d, same={k: bool(abs(d[k]) <= RULE[k]) for k in RULE},
+        pairs.append(dict(imex=nm, explicit=twin, diff=d, same={k: bool(abs(d[k]) <= RULE[k]) for k in RULE},
                           same_answer=bool(all(abs(d[k]) <= RULE[k] for k in RULE)),
                           steps_ratio=e["steps"] / r["steps"] * (r["t1"] - r["t0"]) / (e["t1"] - e["t0"]),
                           dt_ratio=r["dt"] / e["dt"], ms_ratio=r["ms_per_step"] / e["ms_per_step"],

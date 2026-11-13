@@ -9,39 +9,39 @@ No run is made and the GPU is not used: everything is read from recorded files i
   gpu_compare.json         gpucfd with equal cells, G1..G3, judged by the case's rules (gpu_compare.py)
   gpu_clustered.json       gpucfd with cells clustered around the cylinder, C1..C3, and the check runs (gpu_clustered.py)
   gpu_imex.json            the same clustered grids with the implicit time scheme (IMEX), C1i..C3i, C3wi (gpu_imex.py)
-  runs/<name>.json        one record per run (time step, steps, wall time, pressure tolerance, health)
+  runs/<name>.json        one record per run (time step, steps, wall time, pressure tolerance, health), read in one
+                           shape for both tools with cfdlib.runrecord
   gpu_tuning/              pressure-tolerance checks per level and the first runs they replaced
-Every number in the report is computed here from those files and the case's YAML files.
+Every number in the report is computed here from those files and the case's YAML files. The rules (target,
+pressure-tolerance rule, same-answer rule of the implicit scheme) and the table of gpucfd runs are keys of
+numerics.yaml (block gpucfd); nothing here is typed a second time.
 
 Names: M1..M4 OpenFOAM's grids fitted to the cylinder; G1..G3 gpucfd, equal cells; C1..C3 gpucfd, cells clustered
 around the cylinder; C1s..C3s the same with the cylinder moved half a C3 cell; C2w the middle clustered grid with a
 longer band of fine cells behind the cylinder; the same names with an i (C3i, C3wi) are runs with the implicit scheme.
+The code does not read these letters: which run is which is the table numerics.yaml, gpucfd.runs.
 """
 import datetime as dt
 import json
 import subprocess
+from functools import partial
 from pathlib import Path
 
 import numpy as np
 from matplotlib.collections import LineCollection
 from matplotlib.patches import Circle, Rectangle
 
-from cfdlib import insights, plots, report, study
-from cfdlib.report import load_yaml, m, tex_num as tn, tex_fix as tf
+from cfdlib import insights, plots, report, runrecord, study
+from cfdlib.report import load_yaml, m, m_fix, m_pct, m_pow10, m_sig, m_times, tex_num as tn, tex_fix as tf
 from gpucfd import grids                      # face positions only (NumPy); no solver, no GPU
 from .analyze import QKEYS, SYM, reference
+from .gpu_run import run_spec, runs_where, tolerance_record      # the table of runs and the stored checks; no GPU
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parents[1] / "results" / HERE.name
 RUNS = OUT / "runs"
 TUNE = OUT / "gpu_tuning"
 CASE = HERE.name
-# The pressure-tolerance rule of numerics.yaml (gpucfd.pressure_tol): the loosest tolerance whose drag and lift
-# stay within this distance of the strictest run. A rule, fixed before the tolerance checks ran.
-PTOL_RULE = 1.0e-4
-# What was expected of the implicit scheme's three-grid study before it was built (seconds, low and high; written in
-# numerics.yaml and gpucfd/DESIGN.md before the runs). A statement made in advance, not a result: it is only compared.
-IMEX_EXPECTED_STUDY = (550.0, 800.0)
 NAME = dict(cd_max="Drag maximum", cd_min="Drag minimum", cd_mean="Mean drag", cd_amp="Drag swing",
             cl_max="Lift maximum", cl_min="Lift minimum", cl_mean="Mean lift", cl_amp="Lift swing (maximum minus minimum)",
             St="Shedding frequency (Strouhal number)")
@@ -50,14 +50,6 @@ FAM = dict(of="OpenFOAM, grid fitted to the cylinder", uni="gpucfd, equal cells"
 TFAM = dict(of="OpenFOAM, fitted grid", uni="gpucfd, equal cells", clu="gpucfd, clustered", shift="gpucfd, clustered, moved",
             wide="gpucfd, clustered, long band")       # the same, short, for table cells
 SHORT = dict(NAME, cl_amp="Lift swing", St="Shedding frequency")
-
-
-def nw(text):
-    """A table cell that must stay on one line."""
-    return f"<span style='white-space:nowrap'>{text}</span>"
-
-
-TFAM = {k: nw(v) for k, v in TFAM.items()}
 COL = dict(of=plots.SERIES[0], uni=plots.SERIES[1], clu=plots.SERIES[2], shift=plots.SERIES[2], wide=plots.SERIES[3])
 
 
@@ -65,43 +57,21 @@ def jload(p):
     return json.loads(Path(p).read_text(encoding="utf-8"))
 
 
-# ---- number formatting (all math, so the typesetting check passes) ----------------------------------
-def P(x, d=2):
-    """Signed per cent for a table cell: +0.24"""
-    return m(f"{100 * x:+.{d}f}") if x is not None and np.isfinite(x) else "–"
+# ---- number formatting: cfdlib.report's ready cells (math, or a dash for a missing value) under short names ----
+P = partial(m_pct, signed=True, unit=False)     # signed per cent for a table cell: +0.24
+U = partial(m_pct, unit=False)                  # per cent for a table cell: 0.75
+pt = partial(m_pct, signed=True)                # signed per cent in a sentence: +0.24 %
+pa = partial(m_pct, size=True)                  # size of a per cent value in a sentence: 0.24 %
+num, p10, times = m_fix, m_pow10, m_times       # fixed decimals; a power of ten; "3.3 times"
 
 
-def U(x, d=2):
-    """Unsigned per cent for a table cell: 0.75"""
-    return m(f"{100 * x:.{d}f}") if x is not None and np.isfinite(x) else "–"
-
-
-def pt(x, d=2):
-    """Signed per cent in a sentence: +0.24 %"""
-    return m(f"{100 * x:+.{d}f}" + r"\,\%")
-
-
-def pa(x, d=2):
-    """Size of a per cent value in a sentence: 0.24 %"""
-    return m(f"{abs(100 * x):.{d}f}" + r"\,\%")
+def sig1(x, unit=False):
+    """A small per cent value to two significant figures, without e-notation: 0.00047 (with unit: 0.00047 %)."""
+    return m_sig(x, 2, pct=True, unit=unit)
 
 
 def sec(x):
     return f"{x:,.0f} s"
-
-
-def num(x, d=2):
-    return m(tf(x, d)) if x is not None and np.isfinite(x) else "–"
-
-
-def p10(x):
-    """A tolerance that is a power of ten, compactly: 10^{-8}."""
-    e = int(round(np.log10(x)))
-    return m(f"10^{{{e}}}") if np.isclose(x, 10.0 ** e) else m(tn(x, 2))
-
-
-def times(x, d=1):
-    return m(tf(x, d) + r"\times")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -116,8 +86,8 @@ def load():
              cmp=jload(OUT / "gpu_compare.json"), cl=jload(OUT / "gpu_clustered.json"), imex=jload(OUT / "gpu_imex.json"),
              first=jload(TUNE / "gpu_compare_first_G3_ptol1e-8.json"), c3first=jload(TUNE / "C3_first_ptol1e-8.json"))
     G = numerics["gpucfd"]
-    C = G["clustered"]
-    d["ptol"] = {L: jload(TUNE / ("ptol.json" if L == G["levels"][0] else f"ptol_{L}.json")) for L in G["levels"] + C["levels"]}
+    # the stored pressure-tolerance check of each explicit level, in one layout whichever command made it
+    d["ptol"] = {L: tolerance_record(L, numerics, TUNE) for L in G["levels"] + G["clustered"]["levels"]}
     return d
 
 
@@ -130,17 +100,16 @@ def openfoam_rows(d):
     g, rows, w, wl = d["g"], [], 0.0, 0.0
     umean = 2 * g["Um"] / 3
     for L in d["numerics"]["mesh"]["levels"]:
-        mt = jload(RUNS / f"{L}.json")
+        r = runrecord.read(RUNS / f"{L}.json")      # wall time and wall-based cost under the same names as gpucfd's
         sm = dict(d["of"]["runs"][L]["sm"])
         sm.setdefault("St", sm["f"] * g["D"] / umean)
         lv = d["live"]["runs"][L]
-        w += mt["wall_time"]
+        w += r["wall_s"]
         wl += lv["replay_wall_est"]
-        steps = mt["perf"]["steps"]
-        rows.append(dict(level=L, fam="of", cells=mt["cells"], cores=mt["cores"], dt=mt["dt"], t0=mt["start_time"], t1=mt["end_time"],
-                         steps=steps, wall_s=mt["wall_time"], wall_protocol=w, ms_wall=1e3 * mt["wall_time"] / steps,
-                         us=1e6 * mt["wall_time"] / (steps * mt["cells"]), p_its=mt["perf"]["lin_iters"]["p"],
-                         D_h=g["D"] / mt["h"]["wall"], health=mt["health"]["status"], sm=sm, rel=rel_of(sm, d["ref"]),
+        rows.append(dict(level=L, fam="of", cells=r["cells"], cores=r["cores"], dt=r["dt"], t0=r["t0"], t1=r["t1"],
+                         steps=r["steps"], wall_s=r["wall_s"], wall_protocol=w, ms_wall=r["ms_per_step_wall"],
+                         us=r["us_per_cell_step_wall"], p_its=r["pressure_its"],
+                         D_h=g["D"] / r["h"]["wall"], health=r["health"], record=r["record"], sm=sm, rel=rel_of(sm, d["ref"]),
                          live_est=lv["replay_wall_est"], live_protocol=wl, live_measured=(lv.get("live") or {}).get("wall"),
                          live_fraction=lv["replay_fraction"]))
     return rows
@@ -149,35 +118,39 @@ def openfoam_rows(d):
 def gpu_row(name, fam, sm, d):
     """One gpucfd run: its record (runs/<name>.json) and its coefficients over the last cycles."""
     G = d["numerics"]["gpucfd"]
-    mt = jload(RUNS / f"{name}.json")
-    p = mt["perf"]
-    dt_conv = G["cfl"] * mt["h"] / G["u_dt"]         # the largest step the flow speed allows on the smallest cell
-    return dict(level=name, fam=fam, cells=mt["cells"], n=mt["n"], h=mt["h"], D_h=mt["D_h"], dt=mt["dt"], dt_conv=dt_conv,
-                below=dt_conv / mt["dt"], t0=mt["start_time"], t1=mt["end_time"], steps=p["steps"], gpu_s=p["gpu_s"],
-                wall_s=p["wall_s"], observe_s=p["observe_s"], ms_gpu=p["ms_per_step"], ms_wall=1e3 * p["wall_s"] / p["steps"],
-                us=1e6 * p["wall_s"] / (p["steps"] * p["cells"]), us_gpu=p["us_per_cell_step"], p_its=p["poisson_its"],
-                ptol=mt["pressure_tol"], health=mt["health"]["status"], source=mt.get("source"), sm=sm, rel=rel_of(sm, d["ref"]))
+    r = runrecord.read(RUNS / f"{name}.json")
+    step = r["time_step"]     # both limits and which one set the step; records made before 2026-11-13 do not hold them
+    dt_conv = step["convective"] if step and step.get("convective") else G["cfl"] * r["h_min"] / G["u_dt"]
+    # dt_conv: the largest step the flow speed allows on the smallest cell
+    return dict(level=name, fam=fam, cells=r["cells"], n=r["record"]["n"], h=r["h_min"], D_h=r["record"]["D_h"], dt=r["dt"],
+                dt_conv=dt_conv, below=dt_conv / r["dt"], t0=r["t0"], t1=r["t1"], steps=r["steps"], gpu_s=r["gpu_s"],
+                wall_s=r["wall_s"], observe_s=r["observe_s"], ms_gpu=r["ms_per_step_gpu"], ms_wall=r["ms_per_step_wall"],
+                us=r["us_per_cell_step_wall"], p_its=r["pressure_its"], ptol=r["pressure_tol"], health=r["health"],
+                source=r["source"], record=r["record"], sm=sm, rel=rel_of(sm, d["ref"]))
 
 
 def families(d):
-    G = d["numerics"]["gpucfd"]
-    C = G["clustered"]
+    """The runs of each kind, picked from the table of runs (numerics.yaml, gpucfd.runs), coarsest first."""
+    n = d["numerics"]
+    explicit = lambda **kw: runs_where(n, scheme=n["gpucfd"]["scheme"], dt_factor=1.0, **kw)
+    by, var = {r["level"]: r for r in d["cl"]["clustered"]}, d["cl"]["variants"]
     fam = dict(of=openfoam_rows(d))
-    fam["uni"] = [gpu_row(L, "uni", d["cmp"]["runs"][L]["sm"], d) for L in G["levels"]]
-    by = {r["level"]: r for r in d["cl"]["clustered"]}
-    fam["clu"] = [gpu_row(L, "clu", by[L]["sm"], d) for L in C["levels"]]
-    fam["shift"] = [gpu_row(L + "s", "shift", d["cl"]["variants"][L + "s"]["sm"], d) for L in C["levels"]]
+    fam["uni"] = [gpu_row(L, "uni", d["cmp"]["runs"][L]["sm"], d) for L in explicit(family="uniform")]
+    fam["clu"] = [gpu_row(L, "clu", by[L]["sm"], d) for L in explicit(family="clustered", variant=None)]
+    fam["shift"] = [gpu_row(L, "shift", var[L]["sm"], d) for L in explicit(variant="s")]       # the cylinder moved
     for key in ("uni", "clu", "shift"):
         w = 0.0
         for r in fam[key]:
             w += r["wall_s"]
             r["wall_protocol"] = w
-    wide = gpu_row("C2w", "wide", d["cl"]["variants"]["C2w"]["sm"], d)
-    wide["wall_protocol"] = fam["clu"][0]["wall_s"] + wide["wall_s"]      # C2w started from C1's field
+    wname = explicit(variant="w")[0]                                                             # the longer fine band
+    wide = gpu_row(wname, "wide", var[wname]["sm"], d)
+    start = next(r for r in fam["clu"] if r["level"] == run_spec(wname, n)["source"])            # it started from this run
+    wide["wall_protocol"] = start["wall_protocol"] + wide["wall_s"]
     fam["wide"] = [wide]
     for key in ("clu", "shift", "wide"):
         for r in fam[key]:
-            r["periodic"] = (by.get(r["level"]) or d["cl"]["variants"][r["level"]])["periodic"]
+            r["periodic"] = (by.get(r["level"]) or var[r["level"]])["periodic"]
     for r in fam["uni"]:
         r["periodic"] = d["cmp"]["runs"][r["level"]]["periodic"]
     return fam
@@ -201,12 +174,10 @@ def tolerance_rows(d, fam):
     """Per level: the recorded tolerance checks, the tolerance the rule gives and the one the run used."""
     used = {r["level"]: r["ptol"] for r in fam["uni"] + fam["clu"]}
     out = {}
-    for L, runs in d["ptol"].items():
-        by = {r["tol"]: r for r in runs}
-        strict = min(by)
-        ok = [t for t, r in by.items() if max(abs(r["d_cd"]), abs(r["d_cl"])) <= PTOL_RULE]
-        out[L] = dict(by=by, strict=strict, rule=max(ok), used=used[L], consistent=bool(np.isclose(max(ok), used[L])),
-                      wall=sum(r["perf"]["wall_s"] for r in runs))
+    for L, check in d["ptol"].items():
+        by = {r["tol"]: r for r in check["runs"]}
+        out[L] = dict(by=by, strict=min(by), rule=check["chosen"], used=used[L], consistent=bool(np.isclose(check["chosen"], used[L])),
+                      wall=sum(r["wall_s"] for r in check["runs"]))
     return out
 
 
@@ -236,12 +207,6 @@ def data_commit(name="gpu_clustered.json"):
         return "not read"
 
 
-def sig1(x, unit=False):
-    """A small per cent value to two significant figures, as math and without e-notation: 0.00047 (with unit: 0.00047 %)."""
-    s = np.format_float_positional(100 * abs(x), precision=2, unique=False, fractional=False, trim="-")
-    return m(s + (r"\,\%" if unit else ""))
-
-
 # ---------------------------------------------------------------------------------------------
 # Report
 # ---------------------------------------------------------------------------------------------
@@ -265,7 +230,13 @@ def build(d, fam):
     tol = tolerance_rows(d, fam)
     same = same_answer(d, fam)
     grid = [clustered_grid(d, k) for k in range(len(C["levels"]))]
-    gridw = clustered_grid(d, 1, "w")
+    wspec = run_spec(wide["level"], numerics)
+    gridw = clustered_grid(d, C["levels"].index(wspec["level"]), wspec["variant"])
+    rule_tol = G["pressure_tol_rule"]                  # the pressure-tolerance rule, fixed before the tolerance checks ran
+    expected = C["imex"]["expected_study_wall"]        # stated before the implicit scheme was built; only compared here
+    sec_no = {k: i + 1 for i, k in enumerate(study.CORE + ["implicit"])}      # section numbers, for the cross-references
+    # a grid-convergence index that is a placeholder, not an estimate (cfdlib.verification.three_grid_study), is starred
+    star = lambda c: "" if c["gci_reliable"] else " *"
     uref = {k: ref["unc"][k] / abs(ref["value"][k]) for k in QKEYS}
     of_live = of[-1]["live_protocol"]
     of_rec = of[-1]["wall_protocol"]
@@ -285,21 +256,24 @@ def build(d, fam):
     im = d["imex"]
     ir, ist = im["runs"], im["studies"]
     ipair = {p["imex"]: p for p in im["pairs"]}
-    c1i, c2i, c3i, c3wi = ir["C1i"], ir["C2i"], ir["C3i"], ir["C3wi"]
+    imex_names = [nm for nm in runs_where(numerics, scheme="imex", variant=None) if nm in ir]     # the plain grids, coarsest first
+    c1i, c2i, c3i = (ir[nm] for nm in imex_names)
+    c3wi = ir[next(nm for nm in runs_where(numerics, scheme="imex", variant="w") if nm in ir)]       # with the longer band
+    e1, e3 = ir[c1["level"]], ir[c3["level"]]          # the explicit runs on the coarsest and the finest clustered grid
     imex_wall, expl_wall, wide_wall = ist["imex_finest"]["wall"], ist["explicit"]["wall"], ist["imex_finest_long_band"]["wall"]
     imex_same = all(p["same_answer"] for p in im["pairs"])
     diff_cd = max(abs(p["diff"][k]) for p in im["pairs"] for k in ("cd_mean", "cd_max", "St"))
     diff_cl = max(abs(p["diff"][k]) for p in im["pairs"] for k in ("cl_max", "cl_amp"))
     rule_cd, rule_cl = im["rule"]["cd_mean"], im["rule"]["cl_max"]
-    pair3 = ipair["C3i"]
+    pair3 = ipair[imex_names[-1]]
     share_imex = c3i["wall_s"] / imex_wall
     imex_rel = ist["imex_finest"]["finest_rel"]
     imex_conv = ist["imex_finest"]["finest_rel_cd_mean_converged"]
     wide_rel = ist["imex_finest_long_band"]["finest_rel"]
     moved_lift = abs(c3["rel"]["cl_max"] - c3s["rel"]["cl_max"])       # what moving the cylinder changes in the lift maximum
     wide_gain = abs(imex_rel["cl_max"]) - abs(wide_rel["cl_max"])
-    imex_tol_same = bool(np.isclose(c3i["pressure_tol"], ir["C3"]["pressure_tol"]))
-    imex_missed = not (IMEX_EXPECTED_STUDY[0] <= imex_wall <= IMEX_EXPECTED_STUDY[1])
+    imex_tol_same = bool(np.isclose(c3i["pressure_tol"], e3["pressure_tol"]))
+    imex_missed = not (expected[0] <= imex_wall <= expected[1])
 
     # ---- verdict (rules in code) ---------------------------------------------------------------
     fail, warn = [], []
@@ -333,7 +307,7 @@ def build(d, fam):
     off_c3 = [k for k in prim if conv[k]["status"] != "ok"]
     if off_c3:
         warn.append("the finest clustered grid is outside its own error band in: " + ", ".join(NAME[k].lower() for k in off_c3))
-    verdict = "FAIL" if fail else "WARN" if warn else "PASS"
+    verdict, reasons = study.verdict(fail, warn)
     print("verdict", verdict, "| fail", fail, "| warn", warn)
 
     # ---- tables (short, plain headings; detail stays in the cells) ---------------------------------
@@ -344,13 +318,13 @@ def build(d, fam):
     for k in prim:
         oc = d["of"]["comp"][k]
         fin_rows.append([SHORT[k] + " " + m(SYM[k]), num(ref["value"][k], 4), U(uref[k]),
-                         P(oc["rel"]), U(oc["u_sim"] / abs(ref["value"][k])),
+                         P(oc["rel"]), U(oc["u_sim"] / abs(ref["value"][k])) + star(d["of"]["ms"][k]),
                          P(c3["rel"][k]) + " / " + P(c3s["rel"][k]),
-                         U(conv[k]["gci_rel"]) + " / " + U(convs[k]["gci_rel"])])
+                         U(conv[k]["gci_rel"]) + star(conv[k]) + " / " + U(convs[k]["gci_rel"]) + star(convs[k])])
     ord_rows = []
     for k in prim:
         o = lambda s: num(s["p"], 2) if s.get("monotonic") and np.isfinite(s["p"]) else "no clear order"
-        ord_rows.append([nw(SHORT[k]), o(d["of"]["ms"][k]), o(cmp["ms"][k]), o(conv[k]), o(convs[k])])
+        ord_rows.append([SHORT[k], o(d["of"]["ms"][k]), o(cmp["ms"][k]), o(conv[k]), o(convs[k])])
     cut_rows = []
     for r, rs in zip(clu, shift):
         c = cuts[r["level"]]
@@ -388,13 +362,13 @@ def build(d, fam):
 
     def chg(t, x):
         r = t["by"].get(x)
-        return "not run" if r is None else m(tn(max(abs(r["d_cd"]), abs(r["d_cl"])), 2))
+        return "not run" if r is None else m(tn(r["worst"], 2))
     tol_rows = []
     for L in G["levels"] + C["levels"]:
         t = tol[L]
         tol_rows.append([L, f"{next(r['cells'] for r in uni + clu if r['level'] == L):,}", chg(t, t_loose), chg(t, t_mid),
                          p10(t["rule"]), p10(t["used"]) + (" ✓" if t["consistent"] else " ✗"),
-                         num(t["by"][t_loose]["perf"]["ms_per_step"], 1), num(t["by"][t_strict]["perf"]["ms_per_step"], 1)])
+                         num(t["by"][t_loose]["ms_per_step"], 1), num(t["by"][t_strict]["ms_per_step"], 1)])
     cell_rows = [[r["level"], f"{r['cells']:,}", num(r["D_h"], 0), U(gr["share_band"], 0), f"{gr['equal_cells']:,.0f}",
                   times(gr["equal_cells"] / r["cells"], 2)] for r, gr in list(zip(clu, grid)) + [(wide, gridw)]]
     fair_rows = [
@@ -403,12 +377,14 @@ def build(d, fam):
         ["Rerun with the setting the rule gives", p10(g3["ptol"]), num(g3["ms_gpu"], 1), f"{g3['wall_s']:,.0f}",
          f"{g3['wall_protocol']:,.0f}", P(g3["rel"]["cd_mean"], 3), P(g3["rel"]["cl_max"], 3), P(g3["rel"]["St"], 3)],
     ]
-    sa_rows = [[nw(SHORT[k] + " " + m(SYM[k])), num(same[k]["openfoam"], 4), num(same[k]["c3"], 4), m(f"{same[k]['c3_diff']:+.4f}"),
-                num(same[k]["c3_tol"], 4), "✓" if same[k]["c3_ok"] else "✗"] for k in prim]
+    sa_rows = [[SHORT[k] + " " + m(SYM[k]), num(same[k]["openfoam"], 4), num(same[k]["c3"], 4), m(f"{same[k]['c3_diff']:+.4f}"),
+                num(same[k]["c3_tol"], 4) + star(conv[k]), "✓" if same[k]["c3_ok"] else "✗"] for k in prim]
 
     imex_grid_rows = []
-    for ex, ik in (("C1", "C1i"), ("C2", "C2i"), ("C3", "C3i")):
-        e, i, p = ir[ex], ir[ik], ipair[ik]
+    for ik in imex_names:                               # each implicit run beside the explicit run on the same grid
+        p = ipair[ik]
+        ex = p["explicit"]
+        e, i = ir[ex], ir[ik]
         imex_grid_rows.append([ex, f"{e['cells']:,}", f"{e['steps']:,} / {i['steps']:,}", num(e["ms_per_step"], 1) + " / " + num(i["ms_per_step"], 1),
                                f"{e['wall_s']:,.0f} / {i['wall_s']:,.0f}", p10(e["pressure_tol"]) + " / " + p10(i["pressure_tol"]),
                                sig1(max(abs(p["diff"][k]) for k in ("cd_mean", "cd_max", "St"))),
@@ -432,7 +408,7 @@ def build(d, fam):
     margin = 1 - c3["wall_protocol"] / of_live
     share_c3 = c3["wall_s"] / c3["wall_protocol"]
     tc3 = tol[c3["level"]]["by"]
-    tol_cost = tc3[min(tc3)]["perf"]["ms_per_step"] / tc3[max(t for t in tc3 if t <= 1e-8)]["perf"]["ms_per_step"]
+    tol_cost = tc3[min(tc3)]["ms_per_step"] / tc3[max(t for t in tc3 if t <= 1e-8)]["ms_per_step"]
     cellstep = lambda r: r["cells"] * r["steps"]
     of_gpu_same_grid = c2["cells"] / g3["cells"]
     trend_c3 = c2["rel"]["cd_mean"] * c2["rel"]["cd_mean"] / c1["rel"]["cd_mean"]
@@ -466,7 +442,7 @@ def build(d, fam):
         dict(key="time", section="breakdown", caption="<b>Where each study's time goes.</b> One bar per study, split by grid, "
              "coarsest first. 'With stop rule' is OpenFOAM's time if every run stopped when the flow repeats (an estimate); "
              "'moved' is the cylinder moved half a cell; 'implicit finest' runs the finest grid with the implicit time scheme "
-             "(section 5, last tables). The colours only count the grids of one study; the grids differ in size, so the cell counts are "
+             "(section " + str(sec_no["implicit"]) + "). The colours only count the grids of one study; the grids differ in size, so the cell counts are "
              "written under each label. gpucfd's third grid has about " + times(g3["cells"] / m4["cells"], 1) + " the cells of OpenFOAM's "
              "fourth, and takes a fraction of its time. That is the low cost per cell and step; it is not the same as "
              "accuracy (section 3). Dashed line: the target time, " + sec(tg["want_wall"]) + ". The finest grid takes most of the time: "
@@ -535,13 +511,13 @@ def build(d, fam):
         + sec(m4["wall_s"]) + "). And OpenFOAM's second grid, with " + f"{m2['cells']:,}" + " cells, already has the drag.",
         "<b>Does an implicit time scheme make gpucfd faster?</b> Yes, but not more accurate. It gives the same answer (drag and "
         "frequency within " + sig1(diff_cd, True) + ", lift within " + sig1(diff_cl, True) + ", of the explicit runs). The finest run takes "
-        + sec(c3i["wall_s"]) + " instead of " + sec(ir["C3"]["wall_s"]) + ", and the study " + sec(imex_wall) + " instead of "
-        + sec(expl_wall) + ". " + ("We had expected " + f"{IMEX_EXPECTED_STUDY[0]:.0f} to {IMEX_EXPECTED_STUDY[1]:.0f} s: that was missed. "
+        + sec(c3i["wall_s"]) + " instead of " + sec(e3["wall_s"]) + ", and the study " + sec(imex_wall) + " instead of "
+        + sec(expl_wall) + ". " + ("We had expected " + f"{expected[0]:.0f} to {expected[1]:.0f} s: that was missed. "
                                    if imex_missed else "") + "The drag is as far from the reference as before ("
         + pt(imex_rel["cd_mean"]) + ").",
         "<b>What holds gpucfd back?</b> Three things (section 5). Its explicit time steps are very small: on the finest grid "
         + times(c3["below"], 1) + " smaller than the flow alone needs. The implicit scheme takes " + times(pair3["steps_ratio"], 1)
-        + " fewer steps, but each costs " + times(pair3["ms_ratio"], 1) + " more, so the run gains " + times(ir["C3"]["wall_s"] / c3i["wall_s"], 2)
+        + " fewer steps, but each costs " + times(pair3["ms_ratio"], 1) + " more, so the run gains " + times(e3["wall_s"] / c3i["wall_s"], 2)
         + ", not " + times(pair3["steps_ratio"], 1) + ". A finer grid needs the pressure worked out more exactly, "
         "which makes each explicit step " + times(tol_cost, 1) + " dearer; the implicit scheme "
         + ("did not relax that setting on the finest grid. " if imex_tol_same else "needed a setting of " + p10(c3i["pressure_tol"]) + ". ")
@@ -553,8 +529,7 @@ def build(d, fam):
         "frequency from " + pt(c2["rel"]["St"]) + " to " + pt(wide["rel"]["St"]) + ", as good as equal cells. But then the "
         "clustered study took " + sec(wide["wall_protocol"]) + " against " + sec(g3["wall_protocol"]) + ": fewer cells bought "
         "almost no time.",
-    ] + (["<b>Why the verdict is " + "'usable, with caveats'" + ":</b> " + "; ".join(warn) + "."] if warn else []) \
-      + (["<b>Why the verdict is a failure:</b> " + "; ".join(fail) + "."] if fail else [])
+    ]
     limitations = [
         "<b>Only the drag is close.</b> The lift maximum is " + pa(lift_lo) + " to " + pa(lift_hi) + " low and the frequency "
         + pa(st_lo) + " to " + pa(st_hi) + " high. OpenFOAM: " + pt(m4["rel"]["cl_max"]) + " and " + pt(m4["rel"]["St"]) + ".",
@@ -582,8 +557,7 @@ def build(d, fam):
            "the cheaper way to a given accuracy.")
 
     hw_env = dict((k, v) for k, v in report.environment_info())
-    gpu_name = jload(RUNS / f"{c3['level']}.json")["gpu"]
-    m4meta = jload(RUNS / f"{m4['level']}.json")
+    gpu_name, m4meta = c3["record"]["gpu"], m4["record"]
     terms = [
         dict(term="Reference", meaning="Numbers for this exact problem published by another research group (FeatFlow, TU Dortmund), "
              "computed on very fine grids. We use them as the answer to compare with. They are not exact either."),
@@ -605,7 +579,7 @@ def build(d, fam):
         dict(term="Explicit and implicit", meaning="An explicit time scheme makes each jump simple and quick, but it is only stable if the "
              "jump is very small. An implicit one costs more per jump and allows larger jumps. OpenFOAM's is implicit. gpucfd's "
              "first scheme is explicit; it now also has one that treats friction implicitly (IMEX), which works with a body in "
-             "the flow (section 5)."),
+             "the flow (section " + str(sec_no["implicit"]) + ")."),
         dict(term="Pressure setting", meaning="At every step the pressure is worked out approximately. The setting says how closely. "
              "Too loose gives noisy forces; too strict wastes time."),
         dict(term="Error estimate", meaning="What a study says about its own error without looking at the reference. Made from three "
@@ -629,7 +603,7 @@ def build(d, fam):
                    + numerics["schemes"]["ddt"] + "), pressure by multigrid (" + numerics["linear_solvers"]["p"]["solver"] + ")"],
                   ["gpucfd", "explicit three-stage Runge-Kutta time stepping (" + G["scheme"] + "), pressure by conjugate "
                    "gradients with a multigrid preconditioner, cylinder as an immersed body. Also its implicit-friction scheme "
-                   "(IMEX), used for the runs ending in i (section 5)"],
+                   "(IMEX), used for the runs ending in i (section " + str(sec_no["implicit"]) + ")"],
                   ["Reference", "FeatFlow, DFG 2D-2, finest level (level " + str(ref["top"]) + ")"],
                   ["Recorded data", "commit " + data_commit() + "; implicit-scheme runs (gpu_imex.json): " + data_commit("gpu_imex.json")
                    + ". No run was made for this report"]],
@@ -680,7 +654,7 @@ def build(d, fam):
                      "still drifting at the end, because gpucfd's coarsest grid is far from the answer. Changed after those first runs.",
                  alternatives="Fixed run lengths (OpenFOAM's recorded runs)."),
             dict(choice="One rule for the pressure setting on every grid: the loosest setting whose drag and lift stay within "
-                        + p10(PTOL_RULE) + " of the strictest run",
+                        + p10(rule_tol) + " of the strictest run",
                  why="At first the setting was tuned on the coarsest grid only, and the finest clustered grid then never settled. "
                      "Changed after that run: checked on each grid, and runs that had used a setting the rule rejects were repeated.",
                  alternatives="One strict setting everywhere (" + times(tol_cost, 1) + " the cost per step on the finest grid)."),
@@ -703,75 +677,92 @@ def build(d, fam):
                  alternatives="Halving the step on a grid that misses the rule, to tell a time error from a different answer ("
                               + ("not needed: no grid missed)." if imex_same else "see the section on the implicit scheme).")),
         ])
-    of_t = d["of"]["comp"]["cd_mean"]
+    weak = [k for k in prim if not (conv[k]["gci_reliable"] and convs[k]["gci_reliable"])]
+    of_weak = [k for k in prim if not d["of"]["ms"][k]["gci_reliable"]]      # OpenFOAM's own placeholders
+    weak_note = ("* Not a measured error estimate. " + " ".join(
+        ["gpucfd, " + NAME[k].lower() + ": first position, " + conv[k]["gci_basis"] + "; cylinder moved, " + convs[k]["gci_basis"] + "."
+         for k in weak] + ["OpenFOAM, " + NAME[k].lower() + ": " + d["of"]["ms"][k]["gci_basis"] + "." for k in of_weak])
+        if weak or of_weak else "")
     results = dict(
+        title="Results: accuracy and cost",
         intro="Differences are in per cent of the reference value; a minus sign means below it. Times are elapsed times on this PC. "
-              "Each table is headed by the question it answers; below it, what came out and what it means.",
+              "Each table has the question it answers above it and, below it, what came out and what it means.",
         tables=[
-            dict(title="How close is each grid to the reference?",
+            dict(title="Accuracy of every grid", question="How close is each grid to the reference?",
                  head=["Solver and grid", "Grid", "Cells", "Cells across the diameter", "Drag (%)", "Lift maximum (%)",
                        "Frequency (%)", "Study time so far (s)"], rows=acc_rows,
-                 note="<b>Result.</b> gpucfd needs " + m(tf(c3["D_h"], 0)) + " cells across the cylinder to bring the drag inside "
-                      + pa(tg["want_rel"]) + ". OpenFOAM's drag is " + pa(of_drag_lo) + " to " + pa(of_drag_hi) + " off on every grid, "
-                      "even the coarsest, but that grid's lift and frequency are " + pa(of[0]["rel"]["cl_max"], 1) + " and "
-                      + pa(of[0]["rel"]["St"], 1) + " off. At " + m(tf(g3["D_h"], 0)) + " cells across, OpenFOAM is "
-                      + pt(twin["rel"]["cd_mean"]) + " off and gpucfd " + pt(g3["rel"]["cd_mean"]) + " and " + pt(c2["rel"]["cd_mean"])
-                      + ". <b>What it means.</b> A grid that follows the cylinder is worth far more per cell than small square cells "
-                      "that cut through it. (Study time so far: this grid and the coarser ones of its study.)"),
-            dict(title="How well does each study know its own error?",
+                 result="gpucfd needs " + m(tf(c3["D_h"], 0)) + " cells across the cylinder to bring the drag inside "
+                        + pa(tg["want_rel"]) + ". OpenFOAM's drag is " + pa(of_drag_lo) + " to " + pa(of_drag_hi) + " off on every grid, "
+                        "even the coarsest, but that grid's lift and frequency are " + pa(of[0]["rel"]["cl_max"], 1) + " and "
+                        + pa(of[0]["rel"]["St"], 1) + " off. At " + m(tf(g3["D_h"], 0)) + " cells across, OpenFOAM is "
+                        + pt(twin["rel"]["cd_mean"]) + " off and gpucfd " + pt(g3["rel"]["cd_mean"]) + " and " + pt(c2["rel"]["cd_mean"]) + ".",
+                 meaning="A grid that follows the cylinder is worth far more per cell than small square cells that cut through it.",
+                 note="Study time so far: this grid and the coarser ones of its study."),
+            dict(title="Each study's own error estimate", question="How well does each study know its own error?",
                  head=["Quantity", "Reference value", "Reference's own uncertainty (%)", "OpenFOAM, finest grid: difference (%)",
                        "OpenFOAM's error estimate (%)", "gpucfd, finest clustered, two positions: difference (%)",
                        "gpucfd's error estimate (%)"], rows=fin_rows,
-                 note="<b>Result.</b> OpenFOAM's drag has stopped changing with the grid, so its error estimate is tiny (a few hundredths "
-                      "of a per cent). gpucfd's has not: " + pa(gci_lo) + " to " + pa(gci_hi) + " for the drag. <b>What it means.</b> "
-                      "gpucfd's drag is close to the reference, but its three grids are too far apart to prove it. The lift maximum "
-                      "on the clustered grids does not settle regularly, so its estimate is weak."),
-            dict(title="Was the good drag luck? The cylinder moved half a cell",
+                 result=("OpenFOAM's drag changes so little between its three finest grids that no trend is left to measure. Its "
+                         "error number (marked *) is therefore a placeholder too: it says that the grids agree with each other, not "
+                         "how far they are from the true value. " if "cd_mean" in of_weak else
+                         "OpenFOAM's drag has stopped changing with the grid, so its error estimate is tiny (a few hundredths "
+                         "of a per cent). ") + "gpucfd's drag still changes from grid to grid: its estimate is "
+                        + pa(gci_lo) + " to " + pa(gci_hi) + ".",
+                 meaning="gpucfd's drag is close to the reference, but its three grids are too far apart to prove it."
+                         + (" The " + ", ".join(NAME[k].lower() for k in weak) + " on the clustered grids does not settle regularly, "
+                            "so the number marked * is a placeholder, not an estimate." if weak else ""),
+                 note=weak_note),
+            dict(title="The cylinder moved half a cell", question="Was the good drag luck?",
                  head=["Grids", "Cells across the diameter", "Drag, first position (%)", "Drag, moved (%)",
                        "Lift maximum, first (%)", "Lift maximum, moved (%)", "Frequency, first (%)", "Frequency, moved (%)"],
                  rows=cut_rows,
-                 note="<b>Result.</b> On the finest grid the drag moves from " + pt(c3["rel"]["cd_mean"]) + " to "
-                      + pt(c3s["rel"]["cd_mean"]) + " and the lift maximum from " + pt(c3["rel"]["cl_max"]) + " to "
-                      + pt(c3s["rel"]["cl_max"]) + ". Both are inside the target, in " + sec(c3["wall_protocol"]) + " and "
-                      + sec(c3s["wall_protocol"]) + ". <b>What it means.</b> The first position was somewhat favourable, not a fluke. "
-                      "This kind of error is invisible to the error estimate, because every grid cuts the cylinder at the same relative "
-                      "place. The shifts are different fractions of a cell on each grid, so the rows do not show how the scatter shrinks."),
-            dict(title="Why were lift and frequency worse? A longer band of small cells behind the cylinder",
+                 result="On the finest grid the drag moves from " + pt(c3["rel"]["cd_mean"]) + " to "
+                        + pt(c3s["rel"]["cd_mean"]) + " and the lift maximum from " + pt(c3["rel"]["cl_max"]) + " to "
+                        + pt(c3s["rel"]["cl_max"]) + ". Both are inside the target, in " + sec(c3["wall_protocol"]) + " and "
+                        + sec(c3s["wall_protocol"]) + ".",
+                 meaning="The first position was somewhat favourable, not a fluke. This kind of error is invisible to the error "
+                         "estimate, because every grid cuts the cylinder at the same relative place.",
+                 note="The shifts are different fractions of a cell on each grid, so the rows do not show how the scatter shrinks."),
+            dict(title="A longer band of small cells behind the cylinder",
+                 question="Why were lift and frequency worse on the clustered grids?",
                  head=["Solver and grid", "Grid", "Cells", "Drag (%)", "Lift maximum (%)", "Frequency (%)", "Study time (s)"],
                  rows=band_rows,
-                 note="<b>Result.</b> All four have " + m(tf(c2["D_h"], 0)) + " cells across the diameter. With the band reaching "
-                      + behind_w + " diameters behind the cylinder instead of " + behind_c + " (" + pa(wide["cells"] / c2["cells"] - 1, 0)
-                      + " more cells), the lift maximum goes from " + pt(c2["rel"]["cl_max"]) + " to " + pt(wide["rel"]["cl_max"])
-                      + " and the frequency from " + pt(c2["rel"]["St"]) + " to " + pt(wide["rel"]["St"]) + ". Moving the cylinder "
-                      "changes them far less (C2s). <b>What it means.</b> The vortices form just behind the cylinder and need small "
-                      "cells there. It also changes the cost picture: for the drag alone the clustered study took "
-                      + m(tf(c2["wall_protocol"] / g3["wall_protocol"], 2)) + " of the equal-cell study's time, but matching lift and "
-                      "frequency too, " + m(tf(wide["wall_protocol"] / g3["wall_protocol"], 2)) + "."),
-            dict(title="What does each run cost?",
+                 result="All four have " + m(tf(c2["D_h"], 0)) + " cells across the diameter. With the band reaching "
+                        + behind_w + " diameters behind the cylinder instead of " + behind_c + " (" + pa(wide["cells"] / c2["cells"] - 1, 0)
+                        + " more cells), the lift maximum goes from " + pt(c2["rel"]["cl_max"]) + " to " + pt(wide["rel"]["cl_max"])
+                        + " and the frequency from " + pt(c2["rel"]["St"]) + " to " + pt(wide["rel"]["St"]) + ". Moving the cylinder "
+                        "changes them far less (" + c2s["level"] + ").",
+                 meaning="The vortices form just behind the cylinder and need small cells there. It also changes the cost picture: "
+                         "for the drag alone the clustered study took " + m(tf(c2["wall_protocol"] / g3["wall_protocol"], 2))
+                         + " of the equal-cell study's time, but matching lift and frequency too, "
+                         + m(tf(wide["wall_protocol"] / g3["wall_protocol"], 2)) + "."),
+            dict(title="Cost of each run", question="What does each run cost?",
                  head=["Solver and grid", "Grid", "Cells", "Time steps", "Time (s)", "Time per step (ms)",
                        "Time per cell and step (" + m(r"\mu\mathrm{s}") + ")"], rows=cost_rows,
-                 note="<b>Result.</b> Per cell and step gpucfd costs " + num(c3["us"], 3) + " to " + num(g3["us"], 3) + " "
-                      + m(r"\mu\mathrm{s}") + " on its finest grids; OpenFOAM " + num(m4["us"], 2) + ". <b>What it means.</b> gpucfd is "
-                      + times(m4["us"] / c3["us"], 0) + " to " + times(m4["us"] / g3["us"], 0) + " cheaper per cell and step, and "
-                      "spends it on more cells and many more steps. Both use the elapsed time of the run (for gpucfd that includes "
-                      "sampling the forces)."),
-            dict(title="What does each whole study cost?",
+                 result="Per cell and step gpucfd costs " + num(c3["us"], 3) + " to " + num(g3["us"], 3) + " "
+                        + m(r"\mu\mathrm{s}") + " on its finest grids; OpenFOAM " + num(m4["us"], 2) + ".",
+                 meaning="gpucfd is " + times(m4["us"] / c3["us"], 0) + " to " + times(m4["us"] / g3["us"], 0) + " cheaper per cell "
+                         "and step, and spends it on more cells and many more steps.",
+                 note="Both use the elapsed time of the run (for gpucfd that includes sampling the forces)."),
+            dict(title="Cost of each whole study", question="What does each whole study cost?",
                  head=["Study", "Grids", "Time steps", "Time (s)", "Drag on the last grid (%)", "Lift maximum (%)", "Frequency (%)"],
                  rows=study_rows,
-                 note="* An estimate: the stop rule applied afterwards to the recorded forces (section 1). Target time: "
-                      + sec(tg["want_wall"]) + ". <b>Result.</b> gpucfd's clustered study takes "
-                      + m(tf(c3["wall_protocol"] / tg["want_wall"], 2)) + " of the target time; its equal-cell study "
-                      + m(tf(g3["wall_protocol"] / tg["want_wall"], 2)) + " of it, but with the drag " + pa(g3["rel"]["cd_mean"], 1)
-                      + " low. OpenFOAM's first two grids take " + m(tf(m2["wall_protocol"] / tg["want_wall"], 2)) + " of it. "
-                      "<b>What it means.</b> gpucfd wins the comparison the target sets (whole study against whole study) and "
-                      "loses the comparison of the cheapest route to this drag accuracy (Figure {fig:cost})."),
-            dict(title="How fast does the error fall as the cells get smaller?",
-                 head=["Quantity", "OpenFOAM", "gpucfd, equal cells", "gpucfd, clustered", "gpucfd, clustered, moved"],
+                 result="gpucfd's clustered study takes " + m(tf(c3["wall_protocol"] / tg["want_wall"], 2)) + " of the target time; "
+                        "its equal-cell study " + m(tf(g3["wall_protocol"] / tg["want_wall"], 2)) + " of it, but with the drag "
+                        + pa(g3["rel"]["cd_mean"], 1) + " low. OpenFOAM's first two grids take "
+                        + m(tf(m2["wall_protocol"] / tg["want_wall"], 2)) + " of it.",
+                 meaning="gpucfd wins the comparison the target sets (whole study against whole study) and "
+                         "loses the comparison of the cheapest route to this drag accuracy (Figure {fig:cost}).",
+                 note="* An estimate: the stop rule applied afterwards to the recorded forces (section " + str(sec_no["setup"])
+                      + "). Target time: " + sec(tg["want_wall"]) + "."),
+            dict(title="Observed order of convergence", question="How fast does the error fall as the cells get smaller?",
+                 figure="res", head=["Quantity", "OpenFOAM", "gpucfd, equal cells", "gpucfd, clustered", "gpucfd, clustered, moved"],
                  rows=ord_rows,
-                 note="<b>Result.</b> gpucfd's drag converges at order " + m(tf(conv["cd_mean"]["p"], 1)) + " to "
-                      + m(tf(convs["cd_mean"]["p"], 1)) + ". 'No clear order' means the three values do not approach a limit from "
-                      "one side (for OpenFOAM's drag because it has already converged). <b>What it means.</b> Order 1.5 is the known "
-                      "price of cutting a body out of a grid instead of fitting the grid to it."),
+                 result="gpucfd's drag converges at order " + m(tf(conv["cd_mean"]["p"], 1)) + " to "
+                        + m(tf(convs["cd_mean"]["p"], 1)) + ".",
+                 meaning="Order 1.5 is the known price of cutting a body out of a grid instead of fitting the grid to it.",
+                 note="'No clear order' means the three values do not approach a limit from one side (for OpenFOAM's drag because "
+                      "it has already converged)."),
         ],
         notes=[
             "<b>How to read Figure {fig:cost}.</b> A study is better the lower and further left its line reaches. OpenFOAM's drag line "
@@ -788,93 +779,80 @@ def build(d, fam):
             "clean and periodic.",
         ])
     bad_g3_txt = (" (not in: " + ", ".join(NAME[k].lower() for k in bad_g3) + ")") if bad_g3 else ""
-    same_txt = ("<b>Result.</b> gpucfd's finest clustered grid agrees with OpenFOAM's finest in "
-                + str(sum(same[k]["c3_ok"] for k in prim)) + " of " + str(len(prim)) + " outputs"
-                + ("" if same_ok else "; the " + ", ".join(NAME[k].lower() for k in bad_c3) + " does not")
-                + ". The finest equal-cell grid agrees in " + str(sum(same[k]["g3_ok"] for k in prim)) + " of " + str(len(prim))
-                + bad_g3_txt + ". <b>What it means.</b> Where they agree it is partly because gpucfd's error estimate is wide: the "
-                "mean drags of the two programs differ by " + pa(same["cd_mean"]["c3_diff"] / ref["value"]["cd_mean"])
-                + ", gpucfd below the reference and OpenFOAM above it.")
+    n_c3, n_g3 = sum(same[k]["c3_ok"] for k in prim), sum(same[k]["g3_ok"] for k in prim)
     same_sec = dict(
-        intro="Question: do the two programs give the same answer? We say yes if their results differ by less than their two "
-              "error estimates added together. The rule was fixed before the equal-cell runs; here it is also applied to "
-              "gpucfd's finest clustered grid. Values are the coefficients themselves, not per cent.",
+        intro="We say yes if their results differ by less than their two error estimates added together. The rule was fixed "
+              "before the equal-cell runs; here it is also applied to gpucfd's finest clustered grid. Values are the "
+              "coefficients themselves, not per cent.",
+        question="Do the two programs give the same answer?",
         head=["Quantity", "OpenFOAM", "gpucfd, finest clustered", "Difference", "Allowed", "Same?"],
-        rows=sa_rows, ok=same_ok, verdict=same_txt)
+        rows=sa_rows, ok=same_ok,
+        result="gpucfd's finest clustered grid agrees with OpenFOAM's finest in " + str(n_c3) + " of " + str(len(prim)) + " outputs"
+               + ("" if same_ok else "; the " + ", ".join(NAME[k].lower() for k in bad_c3) + " does not")
+               + ". The finest equal-cell grid agrees in " + str(n_g3) + " of " + str(len(prim)) + bad_g3_txt + ".",
+        meaning="Where they agree it is partly because gpucfd's error estimate is wide: the mean drags of the two programs differ by "
+                + pa(same["cd_mean"]["c3_diff"] / ref["value"]["cd_mean"]) + ", gpucfd below the reference and OpenFOAM above it.",
+        note=("* gpucfd's error estimate for this output is a placeholder (section " + str(sec_no["results"]) + ", 'Each study's own "
+              "error estimate'), so the allowed difference is not well founded." if any(not conv[k]["gci_reliable"] for k in prim) else "")
+             + (" OpenFOAM's estimate is a placeholder as well for: " + ", ".join(NAME[k].lower() for k in of_weak)
+                + " (same table), so there the allowed difference rests on gpucfd's estimate alone." if of_weak else ""),
+        verdict=("Every output agrees within the two error estimates." if same_ok else
+                 "Not in every output: " + str(n_c3) + " of " + str(len(prim)) + " agree within the two error estimates."))
     breakdown = dict(
-        intro="Question: gpucfd costs far less per cell and step, so why does it not win by more? Three reasons, each measured here, "
-              "a check that the comparison between gpucfd's two kinds of grid was fair, and what the implicit time scheme "
-              "changed (last two tables).",
+        title="What holds gpucfd back",
+        intro="gpucfd costs far less per cell and step, so why does it not win by more? Three reasons, each measured here, and "
+              "a check that the comparison between gpucfd's two kinds of grid was fair. What the implicit time scheme changed "
+              "is in section " + str(sec_no["implicit"]) + ".",
         tables=[
-            dict(title="Reason 1: very small time steps. How many steps does each grid need?",
+            dict(title="Reason 1: very small time steps",
+                 question="How many time steps does each grid need? gpucfd's time scheme is explicit. It is only stable if each "
+                          "jump in time is small enough for two things: the fluid must not cross more than about one cell per "
+                          "step (a limit that shrinks with the cell size), and friction must not spread more than about one "
+                          "cell per step (a limit that shrinks with the cell size squared).",
                  head=["Grid type", "Grid", "Share of the study's time (%)", "Time steps", "Time step used (s)",
                        "Largest step the flow alone allows (s)", "How many times smaller"], rows=share_rows,
-                 note="gpucfd's time scheme is explicit. It is only stable if each jump in time is small enough for two things: the "
-                      "fluid must not cross more than about one cell per step (a limit that shrinks with the cell size), and "
-                      "friction must not spread more than about one cell per step (a limit that shrinks with the cell size squared). "
-                      "<b>Result.</b> On the finest clustered grid the step is " + times(c3["below"], 1) + " smaller than the flow alone "
-                      "needs; on the middle grids " + times(c2["below"], 1) + ". <b>What it means.</b> " + pa(1 - 1 / c3["below"], 0)
-                      + " of the finest grid's steps are there for stability, not for accuracy. An implicit treatment of friction "
-                      "removes the limit, and gpucfd now has one that works with a body in the flow: it takes " + f"{c3i['steps']:,}"
-                      + " steps on the finest grid, but each costs more (last two tables). OpenFOAM, which is implicit, "
-                      "takes " + f"{m4['steps']:,}" + " steps on its finest grid where explicit gpucfd takes " + f"{c3['steps']:,}" + "."),
-            dict(title="Reason 2: the pressure setting. How exact must it be on each grid?",
+                 result="On the finest clustered grid the step is " + times(c3["below"], 1) + " smaller than the flow alone "
+                        "needs; on the middle grids " + times(c2["below"], 1) + ".",
+                 meaning=pa(1 - 1 / c3["below"], 0) + " of the finest grid's steps are there for stability, not for accuracy. "
+                         "An implicit treatment of friction removes the limit, and gpucfd now has one that works with a body in "
+                         "the flow: it takes " + f"{c3i['steps']:,}" + " steps on the finest grid, but each costs more (section "
+                         + str(sec_no["implicit"]) + "). OpenFOAM, which is implicit, takes " + f"{m4['steps']:,}"
+                         + " steps on its finest grid where explicit gpucfd takes " + f"{c3['steps']:,}" + "."),
+            dict(title="Reason 2: the pressure setting",
+                 question="How exact must the pressure be on each grid? Each grid was run for one shedding cycle at several "
+                          "settings. 'Change in forces' is the largest change in the drag and lift coefficients compared with "
+                          "the strictest run. The rule takes the loosest setting that stays within " + p10(rule_tol)
+                          + ". ✓: the run in this report used it.",
+                 figure="step",
                  head=["Grid", "Cells", "Change in forces at " + p10(t_loose), "Change in forces at " + p10(t_mid), "Setting the rule gives",
                        "Setting used", "Time per step at " + p10(t_loose) + " (ms)", "Time per step at " + p10(t_strict) + " (ms)"],
                  rows=tol_rows,
-                 note="Each grid was run for one shedding cycle at several settings. 'Change in forces' is the largest change in the "
-                      "drag and lift coefficients compared with the strictest run. The rule takes the loosest setting that stays "
-                      "within " + p10(PTOL_RULE) + ". ✓: the run in this report used it. <b>Result.</b> The finer the grid, the "
-                      "stricter the setting; on the finest clustered grid the strict setting makes a step " + times(tol_cost, 1)
-                      + " dearer. <b>What it means.</b> It is tied to reason 1: with an explicit scheme a small error in the pressure "
-                      "is divided by the time step when it enters the forces, so very small steps need a very exact pressure."
-                      + (" The implicit scheme, with steps " + times(pair3["dt_ratio"], 1) + " larger, still needed the same "
-                         "setting on the finest grid. The reason: it splits each step into three unequal parts, and the pressure "
-                         "error is divided by the shortest part. That part is only " + times(pair3["dt_ratio"] * (2 / 15) / (1 / 4), 1)
-                         + " longer than the explicit scheme's shortest part, too little to allow a looser setting."
-                         if imex_tol_same else "")),
-            dict(title="Reason 3: the shape of the grid. How many cells does clustering save?",
+                 result="The finer the grid, the stricter the setting; on the finest clustered grid the strict setting makes a "
+                        "step " + times(tol_cost, 1) + " dearer.",
+                 meaning="It is tied to reason 1: with an explicit scheme a small error in the pressure is divided by the time "
+                         "step when it enters the forces, so very small steps need a very exact pressure."
+                         + (" The implicit scheme, with steps " + times(pair3["dt_ratio"], 1) + " larger, still needed the same "
+                            "setting on the finest grid. The reason: it splits each step into three unequal parts, and the pressure "
+                            "error is divided by the shortest part. That part is only " + times(pair3["dt_ratio"] * (2 / 15) / (1 / 4), 1)
+                            + " longer than the explicit scheme's shortest part, too little to allow a looser setting."
+                            if imex_tol_same else "")),
+            dict(title="Reason 3: the shape of the grid", question="How many cells does clustering save?",
                  head=["Grid", "Cells", "Cells across the diameter", "Share of cells inside the band around the cylinder (%)",
                        "Cells an equal-cell grid of that small size would need", "Saving"], rows=cell_rows,
-                 note="<b>Result.</b> Clustering saves " + times(grid[-1]["equal_cells"] / c3["cells"], 2) + ", and only about "
-                      + pa(grid[-1]["share_band"], 0) + " of the clustered cells are in the band where they are wanted. "
-                      "<b>What it means.</b> A grid of straight rows and columns cannot be fine in one place only: every small column "
-                      "runs across the whole channel, every small row along it (Figure {fig:grids}). The channel is only "
-                      + m(tf(g["H"] / g["D"], 1)) + " diameters high, so the saving across it is small. OpenFOAM reaches the same "
-                      "drag with " + f"{m2['cells']:,}" + " cells where the finest clustered grid has " + f"{c3['cells']:,}" + "."),
-            dict(title="Check: was the equal-cell study's time fair? Rerun with the pressure rule's setting",
+                 result="Clustering saves " + times(grid[-1]["equal_cells"] / c3["cells"], 2) + ", and only about "
+                        + pa(grid[-1]["share_band"], 0) + " of the clustered cells are in the band where they are wanted.",
+                 meaning="A grid of straight rows and columns cannot be fine in one place only: every small column "
+                         "runs across the whole channel, every small row along it (Figure {fig:grids}). The channel is only "
+                         + m(tf(g["H"] / g["D"], 1)) + " diameters high, so the saving across it is small. OpenFOAM reaches the same "
+                         "drag with " + f"{m2['cells']:,}" + " cells where the finest clustered grid has " + f"{c3['cells']:,}" + "."),
+            dict(title="Check: the equal-cell study rerun with the pressure rule's setting",
+                 question="Was the equal-cell study's time fair?",
                  head=["Finest equal-cell grid", "Pressure setting", "Time per step (ms)", "Time of the run (s)", "Time of the study (s)",
                        "Drag (%)", "Lift maximum (%)", "Frequency (%)"], rows=fair_rows,
-                 note="<b>Result.</b> The same coefficients to the digits shown, a step " + times(g3["ms_gpu"] / f3["ms_per_step"], 2)
-                      + " dearer, and a study of " + sec(g3["wall_protocol"]) + " instead of " + sec(first_total) + " (the rerun "
-                      "became periodic a second of flow earlier, which hid most of the extra cost). <b>What it means.</b> The "
-                      "comparison between gpucfd's two kinds of grid now follows one rule, and it barely moved."),
-            dict(title="Does an implicit time scheme make it faster? Each grid, run both ways",
-                 head=["Grid", "Cells", "Time steps (explicit / implicit)", "Time per step, ms (explicit / implicit)",
-                       "Time, s (explicit / implicit)", "Pressure setting (explicit / implicit)",
-                       "Largest difference in drag and frequency (%)", "Largest difference in lift (%)"],
-                 rows=imex_grid_rows,
-                 note="Differences are of the implicit run from the explicit run on the same grid, in per cent of the value. "
-                      "<b>Result.</b> The implicit scheme gives the same answer on every grid: drag and frequency within "
-                      + sig1(diff_cd, True) + " and lift within " + sig1(diff_cl, True) + " (the rule fixed beforehand: "
-                      + sig1(rule_cd, True) + " and " + sig1(rule_cl, True) + "). On the finest grid it takes " + times(pair3["steps_ratio"], 1)
-                      + " fewer steps, each " + times(pair3["ms_ratio"], 1) + " dearer: " + sec(c3i["wall_s"]) + " instead of "
-                      + sec(ir["C3"]["wall_s"]) + ". On the coarsest grid it is slower (" + sec(c1i["wall_s"]) + " against "
-                      + sec(ir["C1"]["wall_s"]) + "), so that grid stays explicit. <b>What it means.</b> Fewer steps, but each is dearer, so the finest run gains only "
-                      + times(ir["C3"]["wall_s"] / c3i["wall_s"], 2) + ", not " + times(pair3["steps_ratio"], 1) + ". Each step has "
-                      "a pressure solve in every one of its three stages, besides the friction solves."),
-            dict(title="What does it do to the whole study? The three grids, with and without it",
-                 head=["Study", "Grids", "Time steps", "Time (s)", "Drag on the last grid (%)",
-                       "Drag, against the value the reference heads for (%)", "Lift maximum (%)", "Frequency (%)"],
-                 rows=imex_study_rows,
-                 note="<b>Result.</b> The quickest mix is the implicit scheme on the finest grid only: " + sec(imex_wall) + ", against "
-                      + sec(expl_wall) + " explicit and about " + sec(of_live) + " for OpenFOAM's study. The drag does not change ("
-                      + pt(imex_rel["cd_mean"]) + " of the published value, " + pt(imex_conv) + " of the value it is heading for). "
-                      "The time we expected before building was " + f"{IMEX_EXPECTED_STUDY[0]:.0f} to {IMEX_EXPECTED_STUDY[1]:.0f}"
-                      + " s" + ("; it was missed: each step costs more" + (", and the pressure setting did not relax." if imex_tol_same
-                                                                            else ".") if imex_missed else ".") + " <b>What it means.</b> The implicit scheme makes gpucfd faster, not more accurate. It "
-                      "does not change which tool is cheaper for this accuracy: OpenFOAM's first two grids take "
-                      + sec(m2["wall_protocol"]) + "."),
+                 result="The same coefficients to the digits shown, a step " + times(g3["ms_gpu"] / f3["ms_per_step"], 2)
+                        + " dearer, and a study of " + sec(g3["wall_protocol"]) + " instead of " + sec(first_total) + " (the rerun "
+                        "became periodic a second of flow earlier, which hid most of the extra cost).",
+                 meaning="The comparison between gpucfd's two kinds of grid now follows one rule, and it barely moved."),
         ],
         notes=[
             "<b>Fixed work per step.</b> A gpucfd step costs " + num(uni[0]["ms_gpu"], 1) + " ms on " + f"{uni[0]['cells']:,}"
@@ -889,8 +867,46 @@ def build(d, fam):
             "grid. It ran its full " + m(tf(c3f["end_time"] - c3f["start_time"], 0)) + " s of flow (" + sec(c3f["wall_time"])
             + ") without settling: the forces carried noise from the pressure solve. That run is kept in <code>gpu_tuning/</code> "
             "and is in no time quoted here.",
+        ])
+    implicit = dict(
+        key="implicit", title="Does an implicit time scheme help?",
+        intro="gpucfd's second time scheme treats friction implicitly (IMEX), which removes the step limit of reason 1 in section "
+              + str(sec_no["breakdown"]) + ". Every clustered grid was run again with it, from the same start as its explicit run, "
+              "and judged by a rule fixed beforehand.",
+        tables=[
+            dict(title="Each grid, run both ways",
+                 question="Does the implicit scheme give the same answer, and is it faster? Differences are of the implicit run "
+                          "from the explicit run on the same grid, in per cent of the value.",
+                 head=["Grid", "Cells", "Time steps (explicit / implicit)", "Time per step, ms (explicit / implicit)",
+                       "Time, s (explicit / implicit)", "Pressure setting (explicit / implicit)",
+                       "Largest difference in drag and frequency (%)", "Largest difference in lift (%)"],
+                 rows=imex_grid_rows,
+                 result="The implicit scheme " + ("gives the same answer on every grid" if imex_same else
+                                                  "does not give the same answer on every grid") + ": drag and frequency within "
+                        + sig1(diff_cd, True) + " and lift within " + sig1(diff_cl, True) + " (the rule fixed beforehand: "
+                        + sig1(rule_cd, True) + " and " + sig1(rule_cl, True) + "). On the finest grid it takes " + times(pair3["steps_ratio"], 1)
+                        + " fewer steps, each " + times(pair3["ms_ratio"], 1) + " dearer: " + sec(c3i["wall_s"]) + " instead of "
+                        + sec(e3["wall_s"]) + ". On the coarsest grid it is slower (" + sec(c1i["wall_s"]) + " against "
+                        + sec(e1["wall_s"]) + "), so that grid stays explicit.",
+                 meaning="Fewer steps, but each is dearer, so the finest run gains only "
+                         + times(e3["wall_s"] / c3i["wall_s"], 2) + ", not " + times(pair3["steps_ratio"], 1) + ". Each step has "
+                         "a pressure solve in every one of its three stages, besides the friction solves."),
+            dict(title="The whole study, with and without it", question="What does it do to the whole study?",
+                 head=["Study", "Grids", "Time steps", "Time (s)", "Drag on the last grid (%)",
+                       "Drag, against the value the reference heads for (%)", "Lift maximum (%)", "Frequency (%)"],
+                 rows=imex_study_rows,
+                 result="The quickest mix is the implicit scheme on the finest grid only: " + sec(imex_wall) + ", against "
+                        + sec(expl_wall) + " explicit and about " + sec(of_live) + " for OpenFOAM's study. The drag does not change ("
+                        + pt(imex_rel["cd_mean"]) + " of the published value, " + pt(imex_conv) + " of the value it is heading for). "
+                        "The time we expected before building was " + f"{expected[0]:.0f} to {expected[1]:.0f}"
+                        + " s" + ("; it was missed: each step costs more" + (", and the pressure setting did not relax." if imex_tol_same
+                                                                              else ".") if imex_missed else "."),
+                 meaning="The implicit scheme makes gpucfd faster, not more accurate. It does not change which tool is cheaper "
+                         "for this accuracy: OpenFOAM's first two grids take " + sec(m2["wall_protocol"]) + "."),
+        ],
+        notes=[
             "<b>One extra run: the longer band of small cells on the finest grid</b> (implicit scheme, one cylinder position; last row "
-            "of the last table). The lift maximum is " + pt(wide_rel["cl_max"]) + " instead of " + pt(imex_rel["cl_max"]) + ", the "
+            "of the table above). The lift maximum is " + pt(wide_rel["cl_max"]) + " instead of " + pt(imex_rel["cl_max"]) + ", the "
             "study " + sec(wide_wall) + " instead of " + sec(imex_wall) + ". The gain, " + pa(wide_gain, 2) + ", is " + ("smaller" if wide_gain < moved_lift else "larger")
             + " than what moving the cylinder changes in the lift maximum (" + pa(moved_lift, 1) + "), so it is a hint, not a result. "
             "Its pressure setting was not checked on this grid.",
@@ -900,11 +916,11 @@ def build(d, fam):
             dict(cmd=f"python -m cases.{CASE}.run", what="OpenFOAM: the four grids M1 to M4 (the main report's runs)"),
             dict(cmd=f"python -m cases.{CASE}.analyze", what="OpenFOAM: analysis and the main report (writes analysis.json)"),
             dict(cmd=f"python -m cases.{CASE}.gpu_run production", what="gpucfd, equal cells: G1 from rest, G2, G2 with half the time step, G3"),
-            dict(cmd=f"python -m cases.{CASE}.gpu_run ptol [LEVEL]", what="gpucfd: pressure-setting check on one grid"),
+            dict(cmd=f"python -m cases.{CASE}.gpu_run tolcheck RUN SOURCE_RUN", what="gpucfd: pressure-setting check of one run, "
+                 "from the last field of a run on the same grid (C3 C3; for the implicit scheme C3i C3)"),
             dict(cmd=f"python -m cases.{CASE}.gpu_run clustered", what="gpucfd, clustered cells: C1 from rest, C2, C3"),
             dict(cmd=f"python -m cases.{CASE}.gpu_run clustered C1s C2s C3s", what="check run: the cylinder moved half a cell"),
             dict(cmd=f"python -m cases.{CASE}.gpu_run clustered C2w", what="check run: the longer band of small cells"),
-            dict(cmd=f"python -m cases.{CASE}.gpu_run tolcheck C3i C2", what="the implicit scheme: pressure setting of a grid, from the last field of C2 (likewise C1i, C2i)"),
             dict(cmd=f"python -m cases.{CASE}.gpu_run clustered C1i C2i C3i C3wi", what="the implicit scheme on the clustered grids, and the longer band on the finest"),
             dict(cmd=f"python -m cases.{CASE}.gpu_imex", what="the implicit runs against the explicit ones (writes gpu_imex.json)"),
             dict(cmd=f"python -m cases.{CASE}.gpu_compare", what="gpucfd with equal cells against the reference and OpenFOAM (writes gpu_compare.json)"),
@@ -926,15 +942,23 @@ def build(d, fam):
                "Each time is one measured run. The two finest clustered runs, which differ only in the position of the "
                "cylinder and take the same number of steps, needed " + sec(c3["wall_s"]) + " and " + sec(c3s["wall_s"])
                + ": a difference of " + pa(c3["wall_s"] / c3s["wall_s"] - 1, 0) + ", which shows how far a repeat can move a time."])
+    plain = (("gpucfd met the target set before the runs" if target_met else "gpucfd did not meet the target set before the runs")
+             + f" (drag {abs(100 * c3['rel']['cd_mean']):.2f} to {abs(100 * c3s['rel']['cd_mean']):.2f} % below the published reference; "
+             f"three-grid study in {imex_wall:,.0f} s with the implicit time scheme on the finest grid, {expl_wall:,.0f} s without it, "
+             f"against about {of_live:,.0f} s for OpenFOAM's study), but the reference is itself about {abs(100 * ext_gap):.1f} % low: "
+             f"against the value it is heading for, gpucfd is {100 * ext_lo:.2f} to {100 * ext_hi:.2f} % low and OpenFOAM within "
+             f"{abs(100 * rel_ext(m4)):.2f} %. OpenFOAM reaches the same drag accuracy in {m2['wall_protocol']:,.0f} s")
     s_ = dict(
         title="gpucfd next to OpenFOAM: a cylinder shedding vortices (DFG 2D-2, Re = 100)",
+        kicker="tool comparison",
         date=dt.date.today().isoformat(),
         question="On a cylinder that sheds vortices, does the project's GPU program gpucfd reach the accuracy of OpenFOAM's grid "
                  "study in less time, what does it cost, and what holds it back?",
         verdict=verdict,
-        summary=dict(headline=head, answers=answers, findings=findings, limitations=limitations, recommendation=rec),
-        setup=setup, method=method, results=results, same_answer=same_sec, breakdown=breakdown, reproducibility=repro,
-        figures=figures,
+        summary=dict(headline=head, plain=plain, reasons=reasons, answers=answers, findings=findings, limitations=limitations,
+                     recommendation=rec),
+        setup=setup, method=method, results=results, same_answer=same_sec, breakdown=breakdown, sections=[implicit],
+        reproducibility=repro, figures=figures,
     )
     out = study.render_study(s_, svgs, OUT / "gpu_study.html", insights.load(CASE))
     print("Study:", out)
@@ -1049,7 +1073,7 @@ def _step_fig(fam, tol):
     tols = sorted({t for v in tol.values() for t in v["by"] if t <= 1e-8}, reverse=True)
     for key, mk, ls, lab in (("uni", "o", "-", "equal cells"), ("clu", "s", "--", "clustered")):
         for j, t in enumerate(tols):
-            pts = [(cells[r["level"]], tol[r["level"]]["by"][t]["perf"]["ms_per_step"]) for r in fam[key] if t in tol[r["level"]]["by"]]
+            pts = [(cells[r["level"]], tol[r["level"]]["by"][t]["ms_per_step"]) for r in fam[key] if t in tol[r["level"]]["by"]]
             exp = int(round(np.log10(t)))
             ax.plot([p[0] for p in pts], [p[1] for p in pts], mk + ls, color=plots.SERIES[1 + j], ms=5, lw=1.4,
                     mfc=plots.SERIES[1 + j] if key == "uni" else plots.SURFACE,
@@ -1057,7 +1081,7 @@ def _step_fig(fam, tol):
     ax.plot([r["cells"] for r in fam["of"]], [r["ms_wall"] for r in fam["of"]], "D-", color=plots.SERIES[0], ms=5, lw=1.4,
             label="OpenFOAM (" + ", ".join(str(r["cores"]) for r in fam["of"]) + " threads)")
     c0 = fam["uni"][0]["cells"]
-    y0 = tol[fam["uni"][0]["level"]]["by"][tols[0]]["perf"]["ms_per_step"]
+    y0 = tol[fam["uni"][0]["level"]]["by"][tols[0]]["ms_per_step"]
     xs = np.array([c0, fam["uni"][-1]["cells"]])
     ax.plot(xs, y0 * xs / c0, ":", color=plots.INK2, lw=1.2, label="cost proportional to the cells")
     ax.set_xscale("log")

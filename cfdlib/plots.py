@@ -11,6 +11,10 @@ to_svg() also checks the layout and raises FigureLayoutError if text overlaps ot
 line, an arrow or a solid shape, or if a legend covers data. Fix the layout (move labels, use
 annotate() with an offset, legend outside, fewer ticks). Only for an overlap that is intentional,
 pass allow=("substring of the issue text", ...).
+One legend for several panels: fig.legend(handles, labels, loc="outside lower center", ncol=3) puts
+it under the panels (the figure must use layout="constrained", as figure() and wide() do) and passes
+the check. The check sees lines, patches and arrows; lines drawn as a LineCollection (a grid of many
+segments) are not seen, so look at such a figure yourself (CFD_FIG_PNG_DIR).
 Set CFD_FIG_PNG_DIR=<dir> to also write every figure as a PNG (to look at it).
 """
 import io
@@ -46,7 +50,7 @@ plt.rcParams.update({
     "figure.facecolor": SURFACE, "axes.facecolor": SURFACE, "savefig.facecolor": SURFACE,
     # Text as vector paths: renders identically in every browser and in print.
     # Math ($...$) in Computer Modern, matching the report's MathJax equations.
-    "lines.linewidth": 2, "svg.fonttype": "path", "mathtext.fontset": "cm",
+    "lines.linewidth": 2, "svg.fonttype": "path", "svg.hashsalt": "agentic-cfd", "mathtext.fontset": "cm",
 })
 
 
@@ -208,7 +212,9 @@ def to_svg(fig, name=None, allow=()):
         plt.close(fig)
         raise FigureLayoutError(f"figure {name or ''} layout problems:\n  - " + "\n  - ".join(issues))
     buf = io.StringIO()
-    fig.savefig(buf, format="svg", bbox_inches="tight")
+    # no date in the file and ids that do not change from run to run (svg.hashsalt, set above): rendering the
+    # same data twice gives the same bytes, so "did a report change?" is a plain file comparison
+    fig.savefig(buf, format="svg", bbox_inches="tight", metadata={"Date": None})
     plt.close(fig)
     svg = buf.getvalue()
     return svg[svg.index("<svg"):]

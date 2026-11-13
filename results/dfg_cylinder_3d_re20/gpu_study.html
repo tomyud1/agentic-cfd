@@ -161,6 +161,14 @@
   .insight dl { display: grid; grid-template-columns: 120px 1fr; gap: 4px 14px; margin: 6px 0 0; font-size: 14.5px; }
   .insight dt { color: var(--ink2); font-weight: 600; } .insight dd { margin: 0; }
 
+  /* Study reports: an insight folded to its problem line; a table's question, result and meaning; one-line cells */
+  details.insight > summary { cursor: pointer; }
+  details.insight > summary .prob { margin: 4px 0 0 16px; font-size: 14.5px; }
+  details.insight > dl { margin: 8px 0 0 16px; }
+  dl.qrm { display: grid; grid-template-columns: 112px 1fr; gap: 4px 14px; margin: 8px 0 12px; font-size: 14.5px; }
+  dl.qrm dt { color: var(--ink2); font-weight: 650; } dl.qrm dd { margin: 0; }
+  td.nw { white-space: nowrap; }
+
   dl.kv { display: grid; grid-template-columns: 170px 1fr; gap: 10px 18px; margin: 0; font-size: 15px; }
   dl.kv dt { color: var(--ink2); font-weight: 600; } dl.kv dd { margin: 0; }
 
@@ -192,7 +200,7 @@
   @media (max-width: 640px) {
     section { padding: 18px 16px; } h1 { font-size: 24px; }
     .cards, .defs { grid-template-columns: 1fr; }
-    dl.kv, .insight dl { grid-template-columns: 1fr; gap: 2px 0; }
+    dl.kv, .insight dl, dl.qrm { grid-template-columns: 1fr; gap: 2px 0; }
     .dcard .dbody { grid-template-columns: 1fr; } .repro-grid { grid-template-columns: 1fr; }
     table.glance .areaname { display: none; }
     dl.kv dd { margin-bottom: 10px; }
@@ -208,12 +216,18 @@
 
 
 
+
+
+
+
+
+
+
 <header>
   <div class="kicker">Agentic CFD performance study · 2026-11-11</div>
   <h1>GPU versus CPU pressure solver: DFG 3D-1Z cylinder (Re = 20)</h1>
   <nav class="toc">
-    <a href="#summary">Summary</a><a href="#setup">1 What is compared</a><a href="#method">2 Method</a>
-    <a href="#results">3 Results</a><a href="#same">4 Same answer?</a><a href="#breakdown">5 Where the time goes</a>
+    <a href="#summary">Summary</a><a href="#setup">1 What is compared</a><a href="#method">2 Method</a><a href="#results">3 Results</a><a href="#same">4 Same answer?</a><a href="#breakdown">5 Where the time goes</a>
     <a href="#insights">6 Insights</a><a href="#repro">A Reproducibility</a>
   </nav>
 </header>
@@ -222,6 +236,7 @@
   <h2>Summary <span class="verdict">✓ Fair comparison, same answer</span></h2>
   <p class="headline"><b>Question.</b> How much faster does this machine solve this problem when the pressure equation is solved on the GPU (RTX 4070, through the OGL plugin) instead of the CPU, and from which mesh size does the GPU pay off?</p>
   <p class="headline">The GPU is faster per iteration from about \(2.0\) million cells: on the largest mesh (4,752,000 cells) one iteration takes \(3.80\,\mathrm{s}\) on the best CPU setup (GAMG DIC-GS, 8 ranks) and \(3.37\,\mathrm{s}\) with the pressure solved on the GPU (8 ranks), a factor \(1.13\); the pressure solve alone takes \(1.44\) against \(0.87\,\mathrm{s}\) (factor \(1.65\)). Both give the same converged forces.</p>
+  
   <h4>Key numbers</h4>
   <div class="table-wrap"><table class="answers full">
     <tr><th>Measure</th><th>Value</th><th>What it means</th></tr>
@@ -233,9 +248,11 @@
   <div class="callout info"><span class="tag">Recommendation</span>Below about \(2.0\) million cells keep GAMG (DIC-Gauss-Seidel smoother, 8 ranks) on the CPU; above it the tuned GPU solver is worth switching on for long runs, but expect about \(11\,\%\) less time per iteration at 4.8 million cells, not a multiple. A real gain needs either a GPU with fast double precision, a CUDA-aware MPI (no host copies), or a solver that also moves momentum and assembly to the GPU.</div>
 </section>
 
+
 <section id="setup">
   <h2><span class="num">1</span> What is compared</h2>
   <p class="lead">Both sides solve the same steady problem with the same OpenFOAM solver (simpleFoam, SIMPLEC) on the same meshes, with the same schemes, tolerances, function objects and start field. Only the pressure linear solver changes: GAMG on the CPU cores, or OGL's Ginkgo CG with a multigrid preconditioner on the GPU. In each SIMPLE iteration OpenFOAM assembles the pressure equation on the CPU; with OGL the matrix is then sent to the GPU, solved there and the solution sent back. Meshes: the O-grid family of the main report (L3, L4) plus three extra sizes of the same blocking (G16, G36, G60), 90,112 to 4,752,000 cells.</p>
+  
   
   <div class="repro-grid">
     <div class="panel"><h4>Hardware</h4><table><tr><td>CPU</td><td>AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores</td></tr><tr><td>Memory (WSL)</td><td>23 GB visible to Linux</td></tr><tr><td>GPU</td><td>NVIDIA GeForce RTX 4070, 12282 MiB, 621.14</td></tr><tr><td>GPU link</td><td>PCIe; WSL2 GPU paravirtualisation</td></tr></table></div>
@@ -243,6 +260,7 @@
   </div>
   <h4>Rules for a fair comparison</h4>
   <ul class="points"><li>CPU baseline = the fastest measured GAMG setup per mesh: two smoothers (Gauss-Seidel, DIC-Gauss-Seidel) and 8 or 16 ranks on every mesh, 4 to 16 ranks on L4; not PCG on one core. Chosen per mesh: G16: GAMG DIC-GS, 8 ranks, L3: GAMG GS, 8 ranks, G36: GAMG DIC-GS, 8 ranks, L4: GAMG DIC-GS, 8 ranks, G60: GAMG DIC-GS, 8 ranks.</li><li>Same tolerances on both sides: each pressure solve to \(\mathrm{relTol} = 0.05\) of its initial residual, OpenFOAM's normalised residual (OGL computes the same norm), absolute tolerance \(1 \times 10^{-12}\) (never reached).</li><li>Same work: 30 SIMPLE iterations from the same start field (rest); time per iteration over iterations 6 to 29, so one-off costs (GAMG agglomeration, CUDA start-up, the final write) are excluded on both sides.</li><li>Converged comparison runs start from the same converged coarser-mesh field and stop on the same residual rule.</li><li>Timing runs one at a time, nothing else running; repeats on the largest mesh.</li><li>Clock: rank 0's ExecutionTime (0.01 s resolution) where it equals wall time (checked against OpenFOAM's high-resolution profiled wall time of the loop: at least 70 % of it, the rest being one-off costs); otherwise the profiled wall time of the whole loop / 30, marked * in the tables (1 run(s): 16 ranks on the smallest mesh, where MPI lets rank 0 sleep). The log's ClockTime has 1 s resolution (Insights).</li></ul>
+  
 </section>
 
 <section id="method">
@@ -289,6 +307,7 @@
     </div>
   </article>
   
+  
 </section>
 
 <section id="results">
@@ -300,7 +319,6 @@
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-13T10:40:03.374895</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -336,16 +354,16 @@ z
      <g id="line2d_1">
       <path d="M 71.981062 185.509641 
 L 71.981062 7.2 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_2">
       <defs>
-       <path id="mc5f9d05479" d="M 0 0 
+       <path id="mf616f5b354" d="M 0 0 
 L 0 3.5 
 " style="stroke: #898781; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#mc5f9d05479" x="71.981062" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="71.981062" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -423,11 +441,11 @@ z
      <g id="line2d_3">
       <path d="M 221.843776 185.509641 
 L 221.843776 7.2 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_4">
       <g>
-       <use xlink:href="#mc5f9d05479" x="221.843776" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="221.843776" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -474,103 +492,103 @@ z
     <g id="xtick_3">
      <g id="line2d_5">
       <defs>
-       <path id="m5eb0d768bb" d="M 0 0 
+       <path id="m25c2db830d" d="M 0 0 
 L 0 2 
 " style="stroke: #898781; stroke-width: 0.6"/>
       </defs>
       <g>
-       <use xlink:href="#m5eb0d768bb" x="57.457864" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="57.457864" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_4">
      <g id="line2d_6">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="65.12372" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="65.12372" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_5">
      <g id="line2d_7">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="117.094234" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="117.094234" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_6">
      <g id="line2d_8">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="143.483748" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="143.483748" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_7">
      <g id="line2d_9">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="162.207406" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="162.207406" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_8">
      <g id="line2d_10">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="176.730604" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="176.730604" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_9">
      <g id="line2d_11">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="188.59692" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="188.59692" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_10">
      <g id="line2d_12">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="198.629748" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="198.629748" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_11">
      <g id="line2d_13">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="207.320578" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="207.320578" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_12">
      <g id="line2d_14">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="214.986434" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="214.986434" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_13">
      <g id="line2d_15">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="266.956948" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="266.956948" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_14">
      <g id="line2d_16">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="293.346462" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="293.346462" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_15">
      <g id="line2d_17">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="312.07012" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="312.07012" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_16">
      <g id="line2d_18">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="326.593318" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="326.593318" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
@@ -676,16 +694,16 @@ z
      <g id="line2d_19">
       <path d="M 52.300781 169.350397 
 L 336.186197 169.350397 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_20">
       <defs>
-       <path id="mb48f72f911" d="M 0 0 
+       <path id="m4907c6a593" d="M 0 0 
 L -3.5 0 
 " style="stroke: #898781; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#mb48f72f911" x="52.300781" y="169.350397" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="52.300781" y="169.350397" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -735,11 +753,11 @@ z
      <g id="line2d_21">
       <path d="M 52.300781 109.626353 
 L 336.186197 109.626353 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_22">
       <g>
-       <use xlink:href="#mb48f72f911" x="52.300781" y="109.626353" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="52.300781" y="109.626353" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -756,11 +774,11 @@ L 336.186197 109.626353
      <g id="line2d_23">
       <path d="M 52.300781 49.90231 
 L 336.186197 49.90231 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_24">
       <g>
-       <use xlink:href="#mb48f72f911" x="52.300781" y="49.90231" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="52.300781" y="49.90231" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -775,173 +793,173 @@ L 336.186197 49.90231
     <g id="ytick_4">
      <g id="line2d_25">
       <defs>
-       <path id="mcd82a5f53e" d="M 0 0 
+       <path id="m0a4afefc18" d="M 0 0 
 L -2 0 
 " style="stroke: #898781; stroke-width: 0.6"/>
       </defs>
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="182.600101" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="182.600101" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_5">
      <g id="line2d_26">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="178.601768" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="178.601768" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_6">
      <g id="line2d_27">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="175.138254" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="175.138254" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_7">
      <g id="line2d_28">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="172.083219" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="172.083219" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_8">
      <g id="line2d_29">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="151.371668" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="151.371668" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_9">
      <g id="line2d_30">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="140.854786" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="140.854786" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_10">
      <g id="line2d_31">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="133.39294" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="133.39294" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_11">
      <g id="line2d_32">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="127.605082" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="127.605082" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_12">
      <g id="line2d_33">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="122.876058" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="122.876058" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_13">
      <g id="line2d_34">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="118.877725" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="118.877725" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_14">
      <g id="line2d_35">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="115.414211" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="115.414211" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_15">
      <g id="line2d_36">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="112.359176" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="112.359176" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_16">
      <g id="line2d_37">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="91.647625" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="91.647625" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_17">
      <g id="line2d_38">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="81.130743" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="81.130743" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_18">
      <g id="line2d_39">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="73.668896" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="73.668896" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_19">
      <g id="line2d_40">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="67.881039" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="67.881039" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_20">
      <g id="line2d_41">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="63.152014" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="63.152014" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_21">
      <g id="line2d_42">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="59.153681" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="59.153681" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_22">
      <g id="line2d_43">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="55.690168" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="55.690168" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_23">
      <g id="line2d_44">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="52.635132" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="52.635132" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_24">
      <g id="line2d_45">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="31.923582" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="31.923582" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_25">
      <g id="line2d_46">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="21.4067" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="21.4067" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_26">
      <g id="line2d_47">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="13.944853" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="13.944853" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="ytick_27">
      <g id="line2d_48">
       <g>
-       <use xlink:href="#mcd82a5f53e" x="52.300781" y="8.156995" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m0a4afefc18" x="52.300781" y="8.156995" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
@@ -1112,9 +1130,9 @@ L 144.373206 111.496556
 L 223.541748 66.669285 
 L 279.712722 35.907822 
 L 323.282315 15.304984 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke: #2a78d6; stroke-width: 1.6; stroke-linecap: square"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke: #2a78d6; stroke-width: 1.6; stroke-linecap: square"/>
     <defs>
-     <path id="mc9da7afa5e" d="M 0 2.5 
+     <path id="mf304625dd7" d="M 0 2.5 
 C 0.663008 2.5 1.29895 2.236584 1.767767 1.767767 
 C 2.236584 1.29895 2.5 0.663008 2.5 0 
 C 2.5 -0.663008 2.236584 -1.29895 1.767767 -1.767767 
@@ -1126,12 +1144,12 @@ C -1.29895 2.236584 -0.663008 2.5 0 2.5
 z
 " style="stroke: #2a78d6"/>
     </defs>
-    <g clip-path="url(#pb95ada2f9f)">
-     <use xlink:href="#mc9da7afa5e" x="65.204664" y="150.267764" style="fill: #2a78d6; stroke: #2a78d6"/>
-     <use xlink:href="#mc9da7afa5e" x="144.373206" y="111.496556" style="fill: #2a78d6; stroke: #2a78d6"/>
-     <use xlink:href="#mc9da7afa5e" x="223.541748" y="66.669285" style="fill: #2a78d6; stroke: #2a78d6"/>
-     <use xlink:href="#mc9da7afa5e" x="279.712722" y="35.907822" style="fill: #2a78d6; stroke: #2a78d6"/>
-     <use xlink:href="#mc9da7afa5e" x="323.282315" y="15.304984" style="fill: #2a78d6; stroke: #2a78d6"/>
+    <g clip-path="url(#p3456b06fa4)">
+     <use xlink:href="#mf304625dd7" x="65.204664" y="150.267764" style="fill: #2a78d6; stroke: #2a78d6"/>
+     <use xlink:href="#mf304625dd7" x="144.373206" y="111.496556" style="fill: #2a78d6; stroke: #2a78d6"/>
+     <use xlink:href="#mf304625dd7" x="223.541748" y="66.669285" style="fill: #2a78d6; stroke: #2a78d6"/>
+     <use xlink:href="#mf304625dd7" x="279.712722" y="35.907822" style="fill: #2a78d6; stroke: #2a78d6"/>
+     <use xlink:href="#mf304625dd7" x="323.282315" y="15.304984" style="fill: #2a78d6; stroke: #2a78d6"/>
     </g>
    </g>
    <g id="line2d_50">
@@ -1140,21 +1158,21 @@ L 144.373206 95.996027
 L 223.541748 64.031347 
 L 279.712722 36.61767 
 L 323.282315 18.373393 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke: #eb6834; stroke-width: 1.6; stroke-linecap: square"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke: #eb6834; stroke-width: 1.6; stroke-linecap: square"/>
     <defs>
-     <path id="mdb22fcbea2" d="M -2.5 2.5 
+     <path id="mfc7e288654" d="M -2.5 2.5 
 L 2.5 2.5 
 L 2.5 -2.5 
 L -2.5 -2.5 
 z
 " style="stroke: #eb6834; stroke-linejoin: miter"/>
     </defs>
-    <g clip-path="url(#pb95ada2f9f)">
-     <use xlink:href="#mdb22fcbea2" x="65.204664" y="111.985963" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#mdb22fcbea2" x="144.373206" y="95.996027" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#mdb22fcbea2" x="223.541748" y="64.031347" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#mdb22fcbea2" x="279.712722" y="36.61767" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#mdb22fcbea2" x="323.282315" y="18.373393" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+    <g clip-path="url(#p3456b06fa4)">
+     <use xlink:href="#mfc7e288654" x="65.204664" y="111.985963" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#mfc7e288654" x="144.373206" y="95.996027" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#mfc7e288654" x="223.541748" y="64.031347" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#mfc7e288654" x="279.712722" y="36.61767" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#mfc7e288654" x="323.282315" y="18.373393" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
     </g>
    </g>
    <g id="line2d_51">
@@ -1163,9 +1181,9 @@ L 144.373206 145.971157
 L 223.541748 97.910422 
 L 279.712722 65.471098 
 L 323.282315 40.508293 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke-dasharray: 3.7,1.6; stroke-dashoffset: 0; stroke: #2a78d6"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke-dasharray: 3.7,1.6; stroke-dashoffset: 0; stroke: #2a78d6"/>
     <defs>
-     <path id="m316eaacd59" d="M 0 2 
+     <path id="md20f8ac558" d="M 0 2 
 C 0.530406 2 1.03916 1.789267 1.414214 1.414214 
 C 1.789267 1.03916 2 0.530406 2 0 
 C 2 -0.530406 1.789267 -1.03916 1.414214 -1.414214 
@@ -1177,12 +1195,12 @@ C -1.03916 1.789267 -0.530406 2 0 2
 z
 " style="stroke: #2a78d6"/>
     </defs>
-    <g clip-path="url(#pb95ada2f9f)">
-     <use xlink:href="#m316eaacd59" x="65.204664" y="177.404657" style="fill-opacity: 0; stroke: #2a78d6"/>
-     <use xlink:href="#m316eaacd59" x="144.373206" y="145.971157" style="fill-opacity: 0; stroke: #2a78d6"/>
-     <use xlink:href="#m316eaacd59" x="223.541748" y="97.910422" style="fill-opacity: 0; stroke: #2a78d6"/>
-     <use xlink:href="#m316eaacd59" x="279.712722" y="65.471098" style="fill-opacity: 0; stroke: #2a78d6"/>
-     <use xlink:href="#m316eaacd59" x="323.282315" y="40.508293" style="fill-opacity: 0; stroke: #2a78d6"/>
+    <g clip-path="url(#p3456b06fa4)">
+     <use xlink:href="#md20f8ac558" x="65.204664" y="177.404657" style="fill-opacity: 0; stroke: #2a78d6"/>
+     <use xlink:href="#md20f8ac558" x="144.373206" y="145.971157" style="fill-opacity: 0; stroke: #2a78d6"/>
+     <use xlink:href="#md20f8ac558" x="223.541748" y="97.910422" style="fill-opacity: 0; stroke: #2a78d6"/>
+     <use xlink:href="#md20f8ac558" x="279.712722" y="65.471098" style="fill-opacity: 0; stroke: #2a78d6"/>
+     <use xlink:href="#md20f8ac558" x="323.282315" y="40.508293" style="fill-opacity: 0; stroke: #2a78d6"/>
     </g>
    </g>
    <g id="line2d_52">
@@ -1191,21 +1209,21 @@ L 144.373206 102.924318
 L 223.541748 88.428087 
 L 279.712722 68.163213 
 L 323.282315 53.550581 
-" clip-path="url(#pb95ada2f9f)" style="fill: none; stroke-dasharray: 3.7,1.6; stroke-dashoffset: 0; stroke: #eb6834"/>
+" clip-path="url(#p3456b06fa4)" style="fill: none; stroke-dasharray: 3.7,1.6; stroke-dashoffset: 0; stroke: #eb6834"/>
     <defs>
-     <path id="m1cce0ea089" d="M -2 2 
+     <path id="m019abf52d0" d="M -2 2 
 L 2 2 
 L 2 -2 
 L -2 -2 
 z
 " style="stroke: #eb6834; stroke-linejoin: miter"/>
     </defs>
-    <g clip-path="url(#pb95ada2f9f)">
-     <use xlink:href="#m1cce0ea089" x="65.204664" y="110.236555" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#m1cce0ea089" x="144.373206" y="102.924318" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#m1cce0ea089" x="223.541748" y="88.428087" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#m1cce0ea089" x="279.712722" y="68.163213" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#m1cce0ea089" x="323.282315" y="53.550581" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
+    <g clip-path="url(#p3456b06fa4)">
+     <use xlink:href="#m019abf52d0" x="65.204664" y="110.236555" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#m019abf52d0" x="144.373206" y="102.924318" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#m019abf52d0" x="223.541748" y="88.428087" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#m019abf52d0" x="279.712722" y="68.163213" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#m019abf52d0" x="323.282315" y="53.550581" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
     </g>
    </g>
    <g id="patch_3">
@@ -1225,7 +1243,7 @@ L 66.550781 234.56159
 L 74.050781 234.56159 
 " style="fill: none; stroke: #2a78d6; stroke-width: 1.6; stroke-linecap: square"/>
      <g>
-      <use xlink:href="#mc9da7afa5e" x="66.550781" y="234.56159" style="fill: #2a78d6; stroke: #2a78d6"/>
+      <use xlink:href="#mf304625dd7" x="66.550781" y="234.56159" style="fill: #2a78d6; stroke: #2a78d6"/>
      </g>
     </g>
     <g id="text_8">
@@ -1389,7 +1407,7 @@ L 66.550781 245.812176
 L 74.050781 245.812176 
 " style="fill: none; stroke: #eb6834; stroke-width: 1.6; stroke-linecap: square"/>
      <g>
-      <use xlink:href="#mdb22fcbea2" x="66.550781" y="245.812176" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+      <use xlink:href="#mfc7e288654" x="66.550781" y="245.812176" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
      </g>
     </g>
     <g id="text_9">
@@ -1448,7 +1466,7 @@ L 169.667578 234.56159
 L 177.167578 234.56159 
 " style="fill: none; stroke-dasharray: 3.7,1.6; stroke-dashoffset: 0; stroke: #2a78d6"/>
      <g>
-      <use xlink:href="#m316eaacd59" x="169.667578" y="234.56159" style="fill-opacity: 0; stroke: #2a78d6"/>
+      <use xlink:href="#md20f8ac558" x="169.667578" y="234.56159" style="fill-opacity: 0; stroke: #2a78d6"/>
      </g>
     </g>
     <g id="text_10">
@@ -1515,7 +1533,7 @@ L 169.667578 245.812176
 L 177.167578 245.812176 
 " style="fill: none; stroke-dasharray: 3.7,1.6; stroke-dashoffset: 0; stroke: #eb6834"/>
      <g>
-      <use xlink:href="#m1cce0ea089" x="169.667578" y="245.812176" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
+      <use xlink:href="#m019abf52d0" x="169.667578" y="245.812176" style="fill-opacity: 0; stroke: #eb6834; stroke-linejoin: miter"/>
      </g>
     </g>
     <g id="text_11">
@@ -1558,11 +1576,11 @@ z
      <g id="line2d_57">
       <path d="M 399.394384 185.509641 
 L 399.394384 7.2 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_58">
       <g>
-       <use xlink:href="#mc5f9d05479" x="399.394384" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="399.394384" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_12">
@@ -1578,11 +1596,11 @@ L 399.394384 7.2
      <g id="line2d_59">
       <path d="M 549.257098 185.509641 
 L 549.257098 7.2 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_60">
       <g>
-       <use xlink:href="#mc5f9d05479" x="549.257098" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="549.257098" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_13">
@@ -1597,98 +1615,98 @@ L 549.257098 7.2
     <g id="xtick_19">
      <g id="line2d_61">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="384.871187" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="384.871187" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_20">
      <g id="line2d_62">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="392.537043" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="392.537043" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_21">
      <g id="line2d_63">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="444.507556" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="444.507556" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_22">
      <g id="line2d_64">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="470.89707" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="470.89707" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_23">
      <g id="line2d_65">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="489.620729" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="489.620729" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_24">
      <g id="line2d_66">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="504.143926" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="504.143926" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_25">
      <g id="line2d_67">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="516.010243" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="516.010243" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_26">
      <g id="line2d_68">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="526.04307" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="526.04307" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_27">
      <g id="line2d_69">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="534.733901" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="534.733901" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_28">
      <g id="line2d_70">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="542.399757" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="542.399757" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_29">
      <g id="line2d_71">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="594.37027" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="594.37027" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_30">
      <g id="line2d_72">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="620.759784" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="620.759784" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_31">
      <g id="line2d_73">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="639.483443" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="639.483443" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_32">
      <g id="line2d_74">
       <g>
-       <use xlink:href="#m5eb0d768bb" x="654.00664" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="654.00664" y="185.509641" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
@@ -1708,11 +1726,11 @@ L 549.257098 7.2
      <g id="line2d_75">
       <path d="M 379.714104 146.416131 
 L 663.59952 146.416131 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_76">
       <g>
-       <use xlink:href="#mb48f72f911" x="379.714104" y="146.416131" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="379.714104" y="146.416131" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_15">
@@ -1737,11 +1755,11 @@ z
      <g id="line2d_77">
       <path d="M 379.714104 101.987532 
 L 663.59952 101.987532 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_78">
       <g>
-       <use xlink:href="#mb48f72f911" x="379.714104" y="101.987532" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="379.714104" y="101.987532" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_16">
@@ -1757,11 +1775,11 @@ L 663.59952 101.987532
      <g id="line2d_79">
       <path d="M 379.714104 57.558932 
 L 663.59952 57.558932 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_80">
       <g>
-       <use xlink:href="#mb48f72f911" x="379.714104" y="57.558932" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="379.714104" y="57.558932" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_17">
@@ -1777,11 +1795,11 @@ L 663.59952 57.558932
      <g id="line2d_81">
       <path d="M 379.714104 13.130333 
 L 663.59952 13.130333 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_82">
       <g>
-       <use xlink:href="#mb48f72f911" x="379.714104" y="13.130333" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="379.714104" y="13.130333" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_18">
@@ -1908,21 +1926,21 @@ L 471.786528 141.96185
 L 550.95507 110.580169 
 L 607.126045 99.52217 
 L 650.695637 90.828827 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke: #1baf7a; stroke-width: 1.6; stroke-linecap: square"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke: #1baf7a; stroke-width: 1.6; stroke-linecap: square"/>
     <defs>
-     <path id="m94c8a4a1f7" d="M -0 3.535534 
+     <path id="mdbb3c375e5" d="M -0 3.535534 
 L 3.535534 0 
 L 0 -3.535534 
 L -3.535534 -0 
 z
 " style="stroke: #1baf7a; stroke-linejoin: miter"/>
     </defs>
-    <g clip-path="url(#p57279fd1a4)">
-     <use xlink:href="#m94c8a4a1f7" x="392.617986" y="170.534513" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
-     <use xlink:href="#m94c8a4a1f7" x="471.786528" y="141.96185" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
-     <use xlink:href="#m94c8a4a1f7" x="550.95507" y="110.580169" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
-     <use xlink:href="#m94c8a4a1f7" x="607.126045" y="99.52217" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
-     <use xlink:href="#m94c8a4a1f7" x="650.695637" y="90.828827" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+    <g clip-path="url(#p41c549f1cc)">
+     <use xlink:href="#mdbb3c375e5" x="392.617986" y="170.534513" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+     <use xlink:href="#mdbb3c375e5" x="471.786528" y="141.96185" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+     <use xlink:href="#mdbb3c375e5" x="550.95507" y="110.580169" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+     <use xlink:href="#mdbb3c375e5" x="607.126045" y="99.52217" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+     <use xlink:href="#mdbb3c375e5" x="650.695637" y="90.828827" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
     </g>
    </g>
    <g id="line2d_84">
@@ -1931,27 +1949,27 @@ L 471.786528 173.943033
 L 550.95507 129.196093 
 L 607.126045 92.269336 
 L 650.695637 43.928946 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke-dasharray: 4.44,1.92; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 1.2"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke-dasharray: 4.44,1.92; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 1.2"/>
     <defs>
-     <path id="ma8d1406ffe" d="M -0 3.535534 
+     <path id="m16ec0ffcbd" d="M -0 3.535534 
 L 3.535534 0 
 L 0 -3.535534 
 L -3.535534 -0 
 z
 " style="stroke: #eda100; stroke-linejoin: miter"/>
     </defs>
-    <g clip-path="url(#p57279fd1a4)">
-     <use xlink:href="#ma8d1406ffe" x="392.617986" y="184.175868" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
-     <use xlink:href="#ma8d1406ffe" x="471.786528" y="173.943033" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
-     <use xlink:href="#ma8d1406ffe" x="550.95507" y="129.196093" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
-     <use xlink:href="#ma8d1406ffe" x="607.126045" y="92.269336" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
-     <use xlink:href="#ma8d1406ffe" x="650.695637" y="43.928946" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
+    <g clip-path="url(#p41c549f1cc)">
+     <use xlink:href="#m16ec0ffcbd" x="392.617986" y="184.175868" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
+     <use xlink:href="#m16ec0ffcbd" x="471.786528" y="173.943033" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
+     <use xlink:href="#m16ec0ffcbd" x="550.95507" y="129.196093" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
+     <use xlink:href="#m16ec0ffcbd" x="607.126045" y="92.269336" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
+     <use xlink:href="#m16ec0ffcbd" x="650.695637" y="43.928946" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
     </g>
    </g>
    <g id="line2d_85">
     <path d="M 379.714104 101.987532 
 L 663.59952 101.987532 
-" clip-path="url(#p57279fd1a4)" style="fill: none; stroke-dasharray: 1,1.65; stroke-dashoffset: 0; stroke: #52514e"/>
+" clip-path="url(#p41c549f1cc)" style="fill: none; stroke-dasharray: 1,1.65; stroke-dashoffset: 0; stroke: #52514e"/>
    </g>
    <g id="patch_6">
     <path d="M 379.714104 185.509641 
@@ -1970,7 +1988,7 @@ L 393.964104 234.56159
 L 401.464104 234.56159 
 " style="fill: none; stroke: #1baf7a; stroke-width: 1.6; stroke-linecap: square"/>
      <g>
-      <use xlink:href="#m94c8a4a1f7" x="393.964104" y="234.56159" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+      <use xlink:href="#mdbb3c375e5" x="393.964104" y="234.56159" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
      </g>
     </g>
     <g id="text_20">
@@ -2036,7 +2054,7 @@ L 486.205901 234.56159
 L 493.705901 234.56159 
 " style="fill: none; stroke-dasharray: 4.44,1.92; stroke-dashoffset: 0; stroke: #eda100; stroke-width: 1.2"/>
      <g>
-      <use xlink:href="#ma8d1406ffe" x="486.205901" y="234.56159" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
+      <use xlink:href="#m16ec0ffcbd" x="486.205901" y="234.56159" style="fill-opacity: 0; stroke: #eda100; stroke-linejoin: miter"/>
      </g>
     </g>
     <g id="text_21">
@@ -2062,10 +2080,10 @@ L 493.705901 234.56159
   </g>
  </g>
  <defs>
-  <clipPath id="pb95ada2f9f">
+  <clipPath id="p3456b06fa4">
    <rect x="52.300781" y="7.2" width="283.885416" height="178.309641"/>
   </clipPath>
-  <clipPath id="p57279fd1a4">
+  <clipPath id="p41c549f1cc">
    <rect x="379.714104" y="7.2" width="283.885416" height="178.309641"/>
   </clipPath>
  </defs>
@@ -2073,12 +2091,49 @@ L 493.705901 234.56159
 
     <figcaption><b>Figure 1.</b> Left: wall time per SIMPLE iteration (solid) and per pressure solve (dashed) against mesh size, best CPU setup (GAMG on its fastest rank count) and best GPU setup (OGL, tuned multigrid-preconditioned CG). Right: speed-up of the GPU over the CPU, for the whole iteration and for the pressure solve alone; above the dotted line the GPU is faster.</figcaption></figure>
   
+  <h4>Best setups per mesh: time</h4>
+  <dl class="qrm"><dt>Question</dt><dd>From which mesh size is the GPU faster?</dd></dl>
+  
+  <div class="table-wrap"><table class="full">
+    <tr><th class="">Mesh</th><th class="num">Cells</th><th class="num">CPU s/iter (ranks)</th><th class="num">GPU s/iter (ranks)</th><th class="num">Speed-up per iter.</th><th class="num">CPU p solve (s)</th><th class="num">GPU p solve (s)</th><th class="num">Speed-up p solve</th></tr>
+    
+    <tr><td class=" nw">G16</td><td class="num">90,112</td><td class="num">\(0.021\) (8)</td><td class="num">\(0.091\) (8)</td><td class="num">\(0.23\)</td><td class="num">\(0.007\)</td><td class="num">\(0.098\)</td><td class="num">\(0.08\)</td></tr>
+    
+    <tr><td class=" nw">L3</td><td class="num">304,128</td><td class="num">\(0.093\) (8)</td><td class="num">\(0.169\) (8)</td><td class="num">\(0.55\)</td><td class="num">\(0.025\)</td><td class="num">\(0.129\)</td><td class="num">\(0.19\)</td></tr>
+    
+    <tr><td class=" nw">G36</td><td class="num">1,026,432</td><td class="num">\(0.524\) (8)</td><td class="num">\(0.580\) (8)</td><td class="num">\(0.90\)</td><td class="num">\(0.157\)</td><td class="num">\(0.226\)</td><td class="num">\(0.69\)</td></tr>
+    
+    <tr><td class=" nw">L4</td><td class="num">2,433,024</td><td class="num">\(1.715\) (8)</td><td class="num">\(1.669\) (8)</td><td class="num">\(1.03\)</td><td class="num">\(0.549\)</td><td class="num">\(0.495\)</td><td class="num">\(1.11\)</td></tr>
+    
+    <tr><td class=" nw">G60</td><td class="num">4,752,000</td><td class="num">\(3.796\) (8)</td><td class="num">\(3.372\) (8)</td><td class="num">\(1.13\)</td><td class="num">\(1.436\)</td><td class="num">\(0.869\)</td><td class="num">\(1.65\)</td></tr>
+    
+  </table></div>
+  
+  <p class="lead" style="margin-top:8px;font-size:14px">Speed-up = CPU time / GPU time (above 1: GPU faster). Pressure solve time from profiling, per call, including the transfers to and from the GPU.</p><h4>Best setups per mesh: solver iterations and GPU memory</h4>
+  <dl class="qrm"><dt>Question</dt><dd>Does the GPU solver need more iterations than the CPU one, and does the mesh fit on the card?</dd></dl>
+  
+  <div class="table-wrap"><table class="full">
+    <tr><th class="">Mesh</th><th class="num">Cells</th><th class="num">GAMG iters/solve</th><th class="num">GPU CG iters/solve</th><th class="num">GPU memory (MiB)</th></tr>
+    
+    <tr><td class=" nw">G16</td><td class="num">90,112</td><td class="num">\(2.8\)</td><td class="num">\(12.0\)</td><td class="num">235</td></tr>
+    
+    <tr><td class=" nw">L3</td><td class="num">304,128</td><td class="num">\(6.4\)</td><td class="num">\(13.1\)</td><td class="num">387</td></tr>
+    
+    <tr><td class=" nw">G36</td><td class="num">1,026,432</td><td class="num">\(4.6\)</td><td class="num">\(14.4\)</td><td class="num">1107</td></tr>
+    
+    <tr><td class=" nw">L4</td><td class="num">2,433,024</td><td class="num">\(5.0\)</td><td class="num">\(15.6\)</td><td class="num">2518</td></tr>
+    
+    <tr><td class=" nw">G60</td><td class="num">4,752,000</td><td class="num">\(5.7\)</td><td class="num">\(16.2\)</td><td class="num">4967</td></tr>
+    
+  </table></div>
+  
+  <h4>Rank count on L4</h4>
+  <dl class="qrm"><dt>Question</dt><dd>How many MPI ranks are fastest, with and without the GPU?</dd></dl>
   <figure class="results" style="--w: 626px"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="469.19952pt" height="245.99941pt" viewBox="0 0 469.19952 245.99941" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-13T10:40:03.497381</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -2114,16 +2169,16 @@ z
      <g id="line2d_1">
       <path d="M 57.92973 207.798628 
 L 57.92973 7.316853 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_2">
       <defs>
-       <path id="m26cacc86de" d="M 0 0 
+       <path id="mf616f5b354" d="M 0 0 
 L 0 3.5 
 " style="stroke: #898781; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m26cacc86de" x="57.92973" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="57.92973" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -2163,11 +2218,11 @@ z
      <g id="line2d_3">
       <path d="M 150.101885 207.798628 
 L 150.101885 7.316853 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_4">
       <g>
-       <use xlink:href="#m26cacc86de" x="150.101885" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="150.101885" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -2202,11 +2257,11 @@ z
      <g id="line2d_5">
       <path d="M 242.274041 207.798628 
 L 242.274041 7.316853 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_6">
       <g>
-       <use xlink:href="#m26cacc86de" x="242.274041" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="242.274041" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
@@ -2261,11 +2316,11 @@ z
      <g id="line2d_7">
       <path d="M 296.191296 207.798628 
 L 296.191296 7.316853 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_8">
       <g>
-       <use xlink:href="#m26cacc86de" x="296.191296" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="296.191296" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -2296,11 +2351,11 @@ z
      <g id="line2d_9">
       <path d="M 334.446197 207.798628 
 L 334.446197 7.316853 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_10">
       <g>
-       <use xlink:href="#m26cacc86de" x="334.446197" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="334.446197" y="207.798628" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -2524,16 +2579,16 @@ z
      <g id="line2d_11">
       <path d="M 44.103906 189.440474 
 L 348.27202 189.440474 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_12">
       <defs>
-       <path id="m5dff17646e" d="M 0 0 
+       <path id="m4907c6a593" d="M 0 0 
 L -3.5 0 
 " style="stroke: #898781; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m5dff17646e" x="44.103906" y="189.440474" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.103906" y="189.440474" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
@@ -2568,11 +2623,11 @@ z
      <g id="line2d_13">
       <path d="M 44.103906 159.7002 
 L 348.27202 159.7002 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_14">
       <g>
-       <use xlink:href="#m5dff17646e" x="44.103906" y="159.7002" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.103906" y="159.7002" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -2588,11 +2643,11 @@ L 348.27202 159.7002
      <g id="line2d_15">
       <path d="M 44.103906 129.959926 
 L 348.27202 129.959926 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_16">
       <g>
-       <use xlink:href="#m5dff17646e" x="44.103906" y="129.959926" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.103906" y="129.959926" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_9">
@@ -2640,11 +2695,11 @@ z
      <g id="line2d_17">
       <path d="M 44.103906 100.219651 
 L 348.27202 100.219651 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_18">
       <g>
-       <use xlink:href="#m5dff17646e" x="44.103906" y="100.219651" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.103906" y="100.219651" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_10">
@@ -2683,11 +2738,11 @@ z
      <g id="line2d_19">
       <path d="M 44.103906 70.479377 
 L 348.27202 70.479377 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_20">
       <g>
-       <use xlink:href="#m5dff17646e" x="44.103906" y="70.479377" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.103906" y="70.479377" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_11">
@@ -2703,11 +2758,11 @@ L 348.27202 70.479377
      <g id="line2d_21">
       <path d="M 44.103906 40.739102 
 L 348.27202 40.739102 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_22">
       <g>
-       <use xlink:href="#m5dff17646e" x="44.103906" y="40.739102" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.103906" y="40.739102" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_12">
@@ -2723,11 +2778,11 @@ L 348.27202 40.739102
      <g id="line2d_23">
       <path d="M 44.103906 10.998828 
 L 348.27202 10.998828 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_24">
       <g>
-       <use xlink:href="#m5dff17646e" x="44.103906" y="10.998828" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.103906" y="10.998828" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_13">
@@ -2998,9 +3053,9 @@ z
 L 242.274041 149.097146 
 L 296.191296 148.062701 
 L 334.446197 90.909652 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
     <defs>
-     <path id="me28ec1b29e" d="M 0 2.5 
+     <path id="mf304625dd7" d="M 0 2.5 
 C 0.663008 2.5 1.29895 2.236584 1.767767 1.767767 
 C 2.236584 1.29895 2.5 0.663008 2.5 0 
 C 2.5 -0.663008 2.236584 -1.29895 1.767767 -1.767767 
@@ -3012,29 +3067,29 @@ C -1.29895 2.236584 -0.663008 2.5 0 2.5
 z
 " style="stroke: #2a78d6"/>
     </defs>
-    <g clip-path="url(#p7cb68c3603)">
-     <use xlink:href="#me28ec1b29e" x="150.101885" y="127.373815" style="fill: #2a78d6; stroke: #2a78d6"/>
-     <use xlink:href="#me28ec1b29e" x="242.274041" y="149.097146" style="fill: #2a78d6; stroke: #2a78d6"/>
-     <use xlink:href="#me28ec1b29e" x="296.191296" y="148.062701" style="fill: #2a78d6; stroke: #2a78d6"/>
-     <use xlink:href="#me28ec1b29e" x="334.446197" y="90.909652" style="fill: #2a78d6; stroke: #2a78d6"/>
+    <g clip-path="url(#p671a1934d2)">
+     <use xlink:href="#mf304625dd7" x="150.101885" y="127.373815" style="fill: #2a78d6; stroke: #2a78d6"/>
+     <use xlink:href="#mf304625dd7" x="242.274041" y="149.097146" style="fill: #2a78d6; stroke: #2a78d6"/>
+     <use xlink:href="#mf304625dd7" x="296.191296" y="148.062701" style="fill: #2a78d6; stroke: #2a78d6"/>
+     <use xlink:href="#mf304625dd7" x="334.446197" y="90.909652" style="fill: #2a78d6; stroke: #2a78d6"/>
     </g>
    </g>
    <g id="line2d_26">
     <path d="M 242.274041 184.91478 
 L 296.191296 172.889365 
 L 334.446197 129.054787 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke-dasharray: 1.5,2.475; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 1.5"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke-dasharray: 1.5,2.475; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 1.5"/>
     <defs>
-     <path id="m13f5c2fcb6" d="M 0 -2.5 
+     <path id="m187a565fc5" d="M 0 -2.5 
 L -2.5 2.5 
 L 2.5 2.5 
 z
 " style="stroke: #1baf7a; stroke-linejoin: miter"/>
     </defs>
-    <g clip-path="url(#p7cb68c3603)">
-     <use xlink:href="#m13f5c2fcb6" x="242.274041" y="184.91478" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
-     <use xlink:href="#m13f5c2fcb6" x="296.191296" y="172.889365" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
-     <use xlink:href="#m13f5c2fcb6" x="334.446197" y="129.054787" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+    <g clip-path="url(#p671a1934d2)">
+     <use xlink:href="#m187a565fc5" x="242.274041" y="184.91478" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+     <use xlink:href="#m187a565fc5" x="296.191296" y="172.889365" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+     <use xlink:href="#m187a565fc5" x="334.446197" y="129.054787" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
     </g>
    </g>
    <g id="line2d_27">
@@ -3042,20 +3097,20 @@ z
 L 150.101885 171.725615 
 L 242.274041 198.68582 
 L 334.446197 154.786589 
-" clip-path="url(#p7cb68c3603)" style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
+" clip-path="url(#p671a1934d2)" style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
     <defs>
-     <path id="me6c682044b" d="M -2.5 2.5 
+     <path id="mfc7e288654" d="M -2.5 2.5 
 L 2.5 2.5 
 L 2.5 -2.5 
 L -2.5 -2.5 
 z
 " style="stroke: #eb6834; stroke-linejoin: miter"/>
     </defs>
-    <g clip-path="url(#p7cb68c3603)">
-     <use xlink:href="#me6c682044b" x="57.92973" y="16.429661" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#me6c682044b" x="150.101885" y="171.725615" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#me6c682044b" x="242.274041" y="198.68582" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
-     <use xlink:href="#me6c682044b" x="334.446197" y="154.786589" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+    <g clip-path="url(#p671a1934d2)">
+     <use xlink:href="#mfc7e288654" x="57.92973" y="16.429661" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#mfc7e288654" x="150.101885" y="171.725615" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#mfc7e288654" x="242.274041" y="198.68582" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+     <use xlink:href="#mfc7e288654" x="334.446197" y="154.786589" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
     </g>
    </g>
    <g id="patch_3">
@@ -3075,7 +3130,7 @@ L 363.47202 17.795603
 L 371.47202 17.795603 
 " style="fill: none; stroke: #2a78d6; stroke-width: 1.5; stroke-linecap: square"/>
      <g>
-      <use xlink:href="#me28ec1b29e" x="363.47202" y="17.795603" style="fill: #2a78d6; stroke: #2a78d6"/>
+      <use xlink:href="#mf304625dd7" x="363.47202" y="17.795603" style="fill: #2a78d6; stroke: #2a78d6"/>
      </g>
     </g>
     <g id="text_15">
@@ -3178,7 +3233,7 @@ L 363.47202 29.796228
 L 371.47202 29.796228 
 " style="fill: none; stroke-dasharray: 1.5,2.475; stroke-dashoffset: 0; stroke: #1baf7a; stroke-width: 1.5"/>
      <g>
-      <use xlink:href="#m13f5c2fcb6" x="363.47202" y="29.796228" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
+      <use xlink:href="#m187a565fc5" x="363.47202" y="29.796228" style="fill: #1baf7a; stroke: #1baf7a; stroke-linejoin: miter"/>
      </g>
     </g>
     <g id="text_16">
@@ -3268,7 +3323,7 @@ L 363.47202 41.796853
 L 371.47202 41.796853 
 " style="fill: none; stroke: #eb6834; stroke-width: 1.5; stroke-linecap: square"/>
      <g>
-      <use xlink:href="#me6c682044b" x="363.47202" y="41.796853" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
+      <use xlink:href="#mfc7e288654" x="363.47202" y="41.796853" style="fill: #eb6834; stroke: #eb6834; stroke-linejoin: miter"/>
      </g>
     </g>
     <g id="text_17">
@@ -3321,20 +3376,47 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="p7cb68c3603">
+  <clipPath id="p671a1934d2">
    <rect x="44.103906" y="7.316853" width="304.168114" height="200.481776"/>
   </clipPath>
  </defs>
 </svg>
 
     <figcaption><b>Figure 2.</b> Rank count on the 2,433,024-cell mesh (L4): time per iteration for CPU GAMG (one rank per core or hardware thread) and for the GPU runs (the ranks assemble and solve momentum on the CPU and all send their pressure matrix to the one GPU).</figcaption></figure>
+  <div class="table-wrap"><table class="full">
+    <tr><th class="">Pressure solver</th><th class="num">Ranks</th><th class="num">s/iter</th><th class="num">p solve (s)</th><th class="num">U solve (s)</th><th class="num">Rest (s)</th><th class="num">p iters/solve</th></tr>
+    
+    <tr><td class=" nw">GAMG</td><td class="num">4</td><td class="num">\(1.909\)</td><td class="num">\(0.747\)</td><td class="num">\(0.442\)</td><td class="num">\(0.669\)</td><td class="num">\(11.8\)</td></tr>
+    
+    <tr><td class=" nw">GAMG</td><td class="num">8</td><td class="num">\(1.836\)</td><td class="num">\(0.731\)</td><td class="num">\(0.421\)</td><td class="num">\(0.667\)</td><td class="num">\(13.6\)</td></tr>
+    
+    <tr><td class=" nw">GAMG</td><td class="num">12</td><td class="num">\(1.839\)</td><td class="num">\(0.692\)</td><td class="num">\(0.442\)</td><td class="num">\(0.677\)</td><td class="num">\(13.0\)</td></tr>
+    
+    <tr><td class=" nw">GAMG</td><td class="num">16</td><td class="num">\(2.031\)</td><td class="num">\(0.956\)</td><td class="num">\(0.477\)</td><td class="num">\(0.670\)</td><td class="num">\(12.6\)</td></tr>
+    
+    <tr><td class=" nw">GAMG_DIC</td><td class="num">8</td><td class="num">\(1.715\)</td><td class="num">\(0.549\)</td><td class="num">\(0.416\)</td><td class="num">\(0.661\)</td><td class="num">\(5.0\)</td></tr>
+    
+    <tr><td class=" nw">GAMG_DIC</td><td class="num">12</td><td class="num">\(1.756\)</td><td class="num">\(0.604\)</td><td class="num">\(0.433\)</td><td class="num">\(0.679\)</td><td class="num">\(5.7\)</td></tr>
+    
+    <tr><td class=" nw">GAMG_DIC</td><td class="num">16</td><td class="num">\(1.903\)</td><td class="num">\(0.688\)</td><td class="num">\(0.471\)</td><td class="num">\(0.664\)</td><td class="num">\(5.5\)</td></tr>
+    
+    <tr><td class=" nw">gpu_best</td><td class="num">2</td><td class="num">\(2.282\)</td><td class="num">\(0.491\)</td><td class="num">\(0.623\)</td><td class="num">\(0.903\)</td><td class="num">\(15.9\)</td></tr>
+    
+    <tr><td class=" nw">gpu_best</td><td class="num">4</td><td class="num">\(1.760\)</td><td class="num">\(0.486\)</td><td class="num">\(0.440\)</td><td class="num">\(0.682\)</td><td class="num">\(15.8\)</td></tr>
+    
+    <tr><td class=" nw">gpu_best</td><td class="num">8</td><td class="num">\(1.669\)</td><td class="num">\(0.495\)</td><td class="num">\(0.420\)</td><td class="num">\(0.659\)</td><td class="num">\(15.6\)</td></tr>
+    
+    <tr><td class=" nw">gpu_best</td><td class="num">16</td><td class="num">\(1.817\)</td><td class="num">\(0.628\)</td><td class="num">\(0.498\)</td><td class="num">\(0.639\)</td><td class="num">\(15.7\)</td></tr>
+    
+  </table></div>
   
+  <h4>GPU solver tuning on G36 (4 ranks, 20 iterations)</h4>
+  <dl class="qrm"><dt>Question</dt><dd>Which settings of the GPU solver are fastest?</dd></dl>
   <figure class="results" style="--w: 894px"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="670.79927pt" height="267.59952pt" viewBox="0 0 670.79927 267.59952" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-13T10:40:03.780826</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -3371,7 +3453,7 @@ L 126.96246 17.218018
 L 126.96246 23.135834 
 L -132465.882366 23.135834 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #2a78d6"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_4">
     <path d="M -132465.882366 25.672042 
@@ -3379,7 +3461,7 @@ L 278.717485 25.672042
 L 278.717485 31.589858 
 L -132465.882366 31.589858 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #eb6834"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #eb6834"/>
    </g>
    <g id="patch_5">
     <path d="M -132465.882366 34.126065 
@@ -3387,7 +3469,7 @@ L 260.957869 34.126065
 L 260.957869 40.043882 
 L -132465.882366 40.043882 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #eb6834"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #eb6834"/>
    </g>
    <g id="patch_6">
     <path d="M -132465.882366 42.580089 
@@ -3395,7 +3477,7 @@ L 225.392198 42.580089
 L 225.392198 48.497905 
 L -132465.882366 48.497905 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_7">
     <path d="M -132465.882366 51.034112 
@@ -3403,7 +3485,7 @@ L 154.304515 51.034112
 L 154.304515 56.951929 
 L -132465.882366 56.951929 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_8">
     <path d="M -132465.882366 59.488136 
@@ -3411,7 +3493,7 @@ L 157.434822 59.488136
 L 157.434822 65.405952 
 L -132465.882366 65.405952 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_9">
     <path d="M -132465.882366 67.942159 
@@ -3419,7 +3501,7 @@ L 156.713456 67.942159
 L 156.713456 73.859976 
 L -132465.882366 73.859976 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_10">
     <path d="M -132465.882366 76.396183 
@@ -3427,7 +3509,7 @@ L 146.188513 76.396183
 L 146.188513 82.314 
 L -132465.882366 82.314 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_11">
     <path d="M -132465.882366 84.850207 
@@ -3435,7 +3517,7 @@ L 140.705488 84.850207
 L 140.705488 90.768023 
 L -132465.882366 90.768023 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_12">
     <path d="M -132465.882366 93.30423 
@@ -3443,7 +3525,7 @@ L 368.705406 93.30423
 L 368.705406 99.222047 
 L -132465.882366 99.222047 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_13">
     <path d="M -132465.882366 101.758254 
@@ -3451,7 +3533,7 @@ L 160.742954 101.758254
 L 160.742954 107.67607 
 L -132465.882366 107.67607 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_14">
     <path d="M -132465.882366 110.212277 
@@ -3459,7 +3541,7 @@ L 168.191655 110.212277
 L 168.191655 116.130094 
 L -132465.882366 116.130094 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_15">
     <path d="M -132465.882366 118.666301 
@@ -3467,7 +3549,7 @@ L 160.062138 118.666301
 L 160.062138 124.584118 
 L -132465.882366 124.584118 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_16">
     <path d="M -132465.882366 127.120325 
@@ -3475,7 +3557,7 @@ L 155.428881 127.120325
 L 155.428881 133.038141 
 L -132465.882366 133.038141 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_17">
     <path d="M -132465.882366 135.574348 
@@ -3483,7 +3565,7 @@ L 161.248329 135.574348
 L 161.248329 141.492165 
 L -132465.882366 141.492165 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_18">
     <path d="M -132465.882366 144.028372 
@@ -3491,7 +3573,7 @@ L 154.114965 144.028372
 L 154.114965 149.946188 
 L -132465.882366 149.946188 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #eb6834"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #eb6834"/>
    </g>
    <g id="patch_19">
     <path d="M -132465.882366 152.482395 
@@ -3499,7 +3581,7 @@ L 335.289586 152.482395
 L 335.289586 158.400212 
 L -132465.882366 158.400212 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #eb6834"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #eb6834"/>
    </g>
    <g id="patch_20">
     <path d="M -132465.882366 160.936419 
@@ -3507,7 +3589,7 @@ L 304.465548 160.936419
 L 304.465548 166.854236 
 L -132465.882366 166.854236 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #eb6834"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #eb6834"/>
    </g>
    <g id="patch_21">
     <path d="M -132465.882366 169.390443 
@@ -3515,7 +3597,7 @@ L 156.531692 169.390443
 L 156.531692 175.308259 
 L -132465.882366 175.308259 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #eb6834"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #eb6834"/>
    </g>
    <g id="patch_22">
     <path d="M -132465.882366 177.844466 
@@ -3523,7 +3605,7 @@ L 150.793228 177.844466
 L 150.793228 183.762283 
 L -132465.882366 183.762283 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #eb6834"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #eb6834"/>
    </g>
    <g id="patch_23">
     <path d="M -132465.882366 186.29849 
@@ -3531,7 +3613,7 @@ L 154.869444 186.29849
 L 154.869444 192.216306 
 L -132465.882366 192.216306 
 z
-" clip-path="url(#ped957b14a3)" style="fill: #eb6834"/>
+" clip-path="url(#p14d7daabd6)" style="fill: #eb6834"/>
    </g>
    <g id="patch_24">
     <path d="M -132465.882366 194.752513 
@@ -3539,7 +3621,7 @@ L 160.233099 194.752513
 L 160.233099 200.67033 
 L -132465.882366 200.67033 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_25">
     <path d="M -132465.882366 203.206537 
@@ -3547,7 +3629,7 @@ L 154.493442 203.206537
 L 154.493442 209.124353 
 L -132465.882366 209.124353 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_26">
     <path d="M -132465.882366 211.660561 
@@ -3555,23 +3637,23 @@ L 167.141567 211.660561
 L 167.141567 217.578377 
 L -132465.882366 217.578377 
 z
-" clip-path="url(#ped957b14a3)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p14d7daabd6)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="matplotlib.axis_1">
     <g id="xtick_1">
      <g id="line2d_1">
       <path d="M 130.216852 227.596395 
 L 130.216852 7.2 
-" clip-path="url(#ped957b14a3)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p14d7daabd6)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_2">
       <defs>
-       <path id="md0418e62e5" d="M 0 0 
+       <path id="mf616f5b354" d="M 0 0 
 L 0 3.5 
 " style="stroke: #898781; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#md0418e62e5" x="130.216852" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="130.216852" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -3624,11 +3706,11 @@ z
      <g id="line2d_3">
       <path d="M 262.680487 227.596395 
 L 262.680487 7.2 
-" clip-path="url(#ped957b14a3)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p14d7daabd6)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_4">
       <g>
-       <use xlink:href="#md0418e62e5" x="262.680487" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="262.680487" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -3669,117 +3751,117 @@ z
     <g id="xtick_3">
      <g id="line2d_5">
       <defs>
-       <path id="m3cb20645d6" d="M 0 0 
+       <path id="m25c2db830d" d="M 0 0 
 L 0 2 
 " style="stroke: #898781; stroke-width: 0.6"/>
       </defs>
       <g>
-       <use xlink:href="#m3cb20645d6" x="117.379799" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="117.379799" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_4">
      <g id="line2d_6">
       <g>
-       <use xlink:href="#m3cb20645d6" x="124.155648" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="124.155648" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_5">
      <g id="line2d_7">
       <g>
-       <use xlink:href="#m3cb20645d6" x="170.092379" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="170.092379" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_6">
      <g id="line2d_8">
       <g>
-       <use xlink:href="#m3cb20645d6" x="193.418068" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="193.418068" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_7">
      <g id="line2d_9">
       <g>
-       <use xlink:href="#m3cb20645d6" x="209.967907" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="209.967907" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_8">
      <g id="line2d_10">
       <g>
-       <use xlink:href="#m3cb20645d6" x="222.80496" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="222.80496" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_9">
      <g id="line2d_11">
       <g>
-       <use xlink:href="#m3cb20645d6" x="233.293595" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="233.293595" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_10">
      <g id="line2d_12">
       <g>
-       <use xlink:href="#m3cb20645d6" x="242.161611" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="242.161611" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_11">
      <g id="line2d_13">
       <g>
-       <use xlink:href="#m3cb20645d6" x="249.843435" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="249.843435" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_12">
      <g id="line2d_14">
       <g>
-       <use xlink:href="#m3cb20645d6" x="256.619284" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="256.619284" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_13">
      <g id="line2d_15">
       <g>
-       <use xlink:href="#m3cb20645d6" x="302.556015" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="302.556015" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_14">
      <g id="line2d_16">
       <g>
-       <use xlink:href="#m3cb20645d6" x="325.881703" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="325.881703" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_15">
      <g id="line2d_17">
       <g>
-       <use xlink:href="#m3cb20645d6" x="342.431543" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="342.431543" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_16">
      <g id="line2d_18">
       <g>
-       <use xlink:href="#m3cb20645d6" x="355.268595" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="355.268595" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_17">
      <g id="line2d_19">
       <g>
-       <use xlink:href="#m3cb20645d6" x="365.757231" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="365.757231" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
     <g id="xtick_18">
      <g id="line2d_20">
       <g>
-       <use xlink:href="#m3cb20645d6" x="374.625246" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
+       <use xlink:href="#m25c2db830d" x="374.625246" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.6"/>
       </g>
      </g>
     </g>
@@ -4119,12 +4201,12 @@ z
     <g id="ytick_1">
      <g id="line2d_21">
       <defs>
-       <path id="mb46640c4c6" d="M 0 0 
+       <path id="m4907c6a593" d="M 0 0 
 L -3.5 0 
 " style="stroke: #898781; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="20.176926" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="20.176926" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -4174,7 +4256,7 @@ z
     <g id="ytick_2">
      <g id="line2d_22">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="28.63095" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="28.63095" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -4290,7 +4372,7 @@ z
     <g id="ytick_3">
      <g id="line2d_23">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="37.084973" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="37.084973" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -4316,7 +4398,7 @@ z
     <g id="ytick_4">
      <g id="line2d_24">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="45.538997" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="45.538997" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
@@ -4375,7 +4457,7 @@ z
     <g id="ytick_5">
      <g id="line2d_25">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="53.993021" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="53.993021" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -4400,7 +4482,7 @@ z
     <g id="ytick_6">
      <g id="line2d_26">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="62.447044" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="62.447044" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_9">
@@ -4431,7 +4513,7 @@ z
     <g id="ytick_7">
      <g id="line2d_27">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="70.901068" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="70.901068" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_10">
@@ -4477,7 +4559,7 @@ z
     <g id="ytick_8">
      <g id="line2d_28">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="79.355091" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="79.355091" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_11">
@@ -4505,7 +4587,7 @@ z
     <g id="ytick_9">
      <g id="line2d_29">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="87.809115" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="87.809115" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_12">
@@ -4535,7 +4617,7 @@ z
     <g id="ytick_10">
      <g id="line2d_30">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="96.263139" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="96.263139" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_13">
@@ -4600,7 +4682,7 @@ z
     <g id="ytick_11">
      <g id="line2d_31">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="104.717162" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="104.717162" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_14">
@@ -4678,7 +4760,7 @@ z
     <g id="ytick_12">
      <g id="line2d_32">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="113.171186" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="113.171186" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_15">
@@ -4711,7 +4793,7 @@ z
     <g id="ytick_13">
      <g id="line2d_33">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="121.625209" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="121.625209" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_16">
@@ -4742,7 +4824,7 @@ z
     <g id="ytick_14">
      <g id="line2d_34">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="130.079233" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="130.079233" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_17">
@@ -4771,7 +4853,7 @@ z
     <g id="ytick_15">
      <g id="line2d_35">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="138.533256" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="138.533256" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_18">
@@ -4804,7 +4886,7 @@ z
     <g id="ytick_16">
      <g id="line2d_36">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="146.98728" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="146.98728" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_19">
@@ -4840,7 +4922,7 @@ z
     <g id="ytick_17">
      <g id="line2d_37">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="155.441304" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="155.441304" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_20">
@@ -4900,7 +4982,7 @@ z
     <g id="ytick_18">
      <g id="line2d_38">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="163.895327" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="163.895327" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_21">
@@ -4918,7 +5000,7 @@ z
     <g id="ytick_19">
      <g id="line2d_39">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="172.349351" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="172.349351" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_22">
@@ -4939,7 +5021,7 @@ z
     <g id="ytick_20">
      <g id="line2d_40">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="180.803374" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="180.803374" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_23">
@@ -4994,7 +5076,7 @@ z
     <g id="ytick_21">
      <g id="line2d_41">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="189.257398" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="189.257398" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_24">
@@ -5015,7 +5097,7 @@ z
     <g id="ytick_22">
      <g id="line2d_42">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="197.711422" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="197.711422" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_25">
@@ -5040,7 +5122,7 @@ z
     <g id="ytick_23">
      <g id="line2d_43">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="206.165445" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="206.165445" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_26">
@@ -5065,7 +5147,7 @@ z
     <g id="ytick_24">
      <g id="line2d_44">
       <g>
-       <use xlink:href="#mb46640c4c6" x="114.875313" y="214.619469" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="114.875313" y="214.619469" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_27">
@@ -5091,7 +5173,7 @@ z
    <g id="line2d_45">
     <path d="M 126.96246 227.596395 
 L 126.96246 7.2 
-" clip-path="url(#ped957b14a3)" style="fill: none; stroke-dasharray: 1,1.65; stroke-dashoffset: 0; stroke: #52514e"/>
+" clip-path="url(#p14d7daabd6)" style="fill: none; stroke-dasharray: 1,1.65; stroke-dashoffset: 0; stroke: #52514e"/>
    </g>
    <g id="patch_27">
     <path d="M 114.875313 227.596395 
@@ -5119,7 +5201,7 @@ L 417.644799 17.218018
 L 417.644799 23.135834 
 L 395.368116 23.135834 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #2a78d6"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_31">
     <path d="M 395.368116 25.672042 
@@ -5127,7 +5209,7 @@ L 473.226348 25.672042
 L 473.226348 31.589858 
 L 395.368116 31.589858 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #eb6834"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #eb6834"/>
    </g>
    <g id="patch_32">
     <path d="M 395.368116 34.126065 
@@ -5135,7 +5217,7 @@ L 472.422601 34.126065
 L 472.422601 40.043882 
 L 395.368116 40.043882 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #eb6834"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #eb6834"/>
    </g>
    <g id="patch_33">
     <path d="M 395.368116 42.580089 
@@ -5143,7 +5225,7 @@ L 573.382622 42.580089
 L 573.382622 48.497905 
 L 395.368116 48.497905 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_34">
     <path d="M 395.368116 51.034112 
@@ -5151,7 +5233,7 @@ L 545.611257 51.034112
 L 545.611257 56.951929 
 L 395.368116 56.951929 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_35">
     <path d="M 395.368116 59.488136 
@@ -5159,7 +5241,7 @@ L 547.078863 59.488136
 L 547.078863 65.405952 
 L 395.368116 65.405952 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_36">
     <path d="M 395.368116 67.942159 
@@ -5167,7 +5249,7 @@ L 538.215743 67.942159
 L 538.215743 73.859976 
 L 395.368116 73.859976 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_37">
     <path d="M 395.368116 76.396183 
@@ -5175,7 +5257,7 @@ L 535.522633 76.396183
 L 535.522633 82.314 
 L 395.368116 82.314 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_38">
     <path d="M 395.368116 84.850207 
@@ -5183,7 +5265,7 @@ L 648.622632 84.850207
 L 648.622632 90.768023 
 L 395.368116 90.768023 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_39">
     <path d="M 395.368116 93.30423 
@@ -5191,7 +5273,7 @@ L 555.250331 93.30423
 L 555.250331 99.222047 
 L 395.368116 99.222047 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_40">
     <path d="M 395.368116 101.758254 
@@ -5199,7 +5281,7 @@ L 480.97439 101.758254
 L 480.97439 107.67607 
 L 395.368116 107.67607 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_41">
     <path d="M 395.368116 110.212277 
@@ -5207,7 +5289,7 @@ L 462.037496 110.212277
 L 462.037496 116.130094 
 L 395.368116 116.130094 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_42">
     <path d="M 395.368116 118.666301 
@@ -5215,7 +5297,7 @@ L 510.270569 118.666301
 L 510.270569 124.584118 
 L 395.368116 124.584118 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_43">
     <path d="M 395.368116 127.120325 
@@ -5223,7 +5305,7 @@ L 544.909034 127.120325
 L 544.909034 133.038141 
 L 395.368116 133.038141 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_44">
     <path d="M 395.368116 135.574348 
@@ -5231,7 +5313,7 @@ L 464.740091 135.574348
 L 464.740091 141.492165 
 L 395.368116 141.492165 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_45">
     <path d="M 395.368116 144.028372 
@@ -5239,7 +5321,7 @@ L 419.727838 144.028372
 L 419.727838 149.946188 
 L 395.368116 149.946188 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #eb6834"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #eb6834"/>
    </g>
    <g id="patch_46">
     <path d="M 395.368116 152.482395 
@@ -5247,7 +5329,7 @@ L 466.422983 152.482395
 L 466.422983 158.400212 
 L 395.368116 158.400212 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #eb6834"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #eb6834"/>
    </g>
    <g id="patch_47">
     <path d="M 395.368116 160.936419 
@@ -5255,7 +5337,7 @@ L 463.261257 160.936419
 L 463.261257 166.854236 
 L 395.368116 166.854236 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #eb6834"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #eb6834"/>
    </g>
    <g id="patch_48">
     <path d="M 395.368116 169.390443 
@@ -5263,7 +5345,7 @@ L 423.229009 169.390443
 L 423.229009 175.308259 
 L 395.368116 175.308259 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #eb6834"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #eb6834"/>
    </g>
    <g id="patch_49">
     <path d="M 395.368116 177.844466 
@@ -5271,7 +5353,7 @@ L 422.419118 177.844466
 L 422.419118 183.762283 
 L 395.368116 183.762283 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #eb6834"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #eb6834"/>
    </g>
    <g id="patch_50">
     <path d="M 395.368116 186.29849 
@@ -5279,7 +5361,7 @@ L 420.222324 186.29849
 L 420.222324 192.216306 
 L 395.368116 192.216306 
 z
-" clip-path="url(#pf787220b1a)" style="fill: #eb6834"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: #eb6834"/>
    </g>
    <g id="patch_51">
     <path d="M 395.368116 194.752513 
@@ -5287,7 +5369,7 @@ L 453.439051 194.752513
 L 453.439051 200.67033 
 L 395.368116 200.67033 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_52">
     <path d="M 395.368116 203.206537 
@@ -5295,7 +5377,7 @@ L 466.831344 203.206537
 L 466.831344 209.124353 
 L 395.368116 209.124353 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="patch_53">
     <path d="M 395.368116 211.660561 
@@ -5303,18 +5385,18 @@ L 463.747867 211.660561
 L 463.747867 217.578377 
 L 395.368116 217.578377 
 z
-" clip-path="url(#pf787220b1a)" style="fill: url(#h2e600ce879); opacity: 0.55"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: url(#h8b18d828c3); opacity: 0.55"/>
    </g>
    <g id="matplotlib.axis_3">
     <g id="xtick_19">
      <g id="line2d_46">
       <path d="M 395.368116 227.596395 
 L 395.368116 7.2 
-" clip-path="url(#pf787220b1a)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_47">
       <g>
-       <use xlink:href="#md0418e62e5" x="395.368116" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="395.368116" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_28">
@@ -5339,11 +5421,11 @@ z
      <g id="line2d_48">
       <path d="M 447.424034 227.596395 
 L 447.424034 7.2 
-" clip-path="url(#pf787220b1a)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_49">
       <g>
-       <use xlink:href="#md0418e62e5" x="447.424034" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="447.424034" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_29">
@@ -5359,11 +5441,11 @@ L 447.424034 7.2
      <g id="line2d_50">
       <path d="M 499.479953 227.596395 
 L 499.479953 7.2 
-" clip-path="url(#pf787220b1a)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_51">
       <g>
-       <use xlink:href="#md0418e62e5" x="499.479953" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="499.479953" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_30">
@@ -5379,11 +5461,11 @@ L 499.479953 7.2
      <g id="line2d_52">
       <path d="M 551.535871 227.596395 
 L 551.535871 7.2 
-" clip-path="url(#pf787220b1a)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_53">
       <g>
-       <use xlink:href="#md0418e62e5" x="551.535871" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="551.535871" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_31">
@@ -5399,11 +5481,11 @@ L 551.535871 7.2
      <g id="line2d_54">
       <path d="M 603.591789 227.596395 
 L 603.591789 7.2 
-" clip-path="url(#pf787220b1a)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_55">
       <g>
-       <use xlink:href="#md0418e62e5" x="603.591789" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="603.591789" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_32">
@@ -5419,11 +5501,11 @@ L 603.591789 7.2
      <g id="line2d_56">
       <path d="M 655.647707 227.596395 
 L 655.647707 7.2 
-" clip-path="url(#pf787220b1a)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_57">
       <g>
-       <use xlink:href="#md0418e62e5" x="655.647707" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="655.647707" y="227.596395" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_33">
@@ -5551,168 +5633,168 @@ z
     <g id="ytick_25">
      <g id="line2d_58">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="20.176926" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="20.176926" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_26">
      <g id="line2d_59">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="28.63095" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="28.63095" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_27">
      <g id="line2d_60">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="37.084973" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="37.084973" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_28">
      <g id="line2d_61">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="45.538997" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="45.538997" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_29">
      <g id="line2d_62">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="53.993021" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="53.993021" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_30">
      <g id="line2d_63">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="62.447044" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="62.447044" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_31">
      <g id="line2d_64">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="70.901068" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="70.901068" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_32">
      <g id="line2d_65">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="79.355091" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="79.355091" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_33">
      <g id="line2d_66">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="87.809115" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="87.809115" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_34">
      <g id="line2d_67">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="96.263139" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="96.263139" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_35">
      <g id="line2d_68">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="104.717162" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="104.717162" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_36">
      <g id="line2d_69">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="113.171186" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="113.171186" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_37">
      <g id="line2d_70">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="121.625209" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="121.625209" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_38">
      <g id="line2d_71">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="130.079233" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="130.079233" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_39">
      <g id="line2d_72">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="138.533256" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="138.533256" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_40">
      <g id="line2d_73">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="146.98728" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="146.98728" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_41">
      <g id="line2d_74">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="155.441304" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="155.441304" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_42">
      <g id="line2d_75">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="163.895327" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="163.895327" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_43">
      <g id="line2d_76">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="172.349351" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="172.349351" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_44">
      <g id="line2d_77">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="180.803374" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="180.803374" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_45">
      <g id="line2d_78">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="189.257398" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="189.257398" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_46">
      <g id="line2d_79">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="197.711422" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="197.711422" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_47">
      <g id="line2d_80">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="206.165445" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="206.165445" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
     <g id="ytick_48">
      <g id="line2d_81">
       <g>
-       <use xlink:href="#mb46640c4c6" x="395.368116" y="214.619469" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="395.368116" y="214.619469" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
     </g>
@@ -5720,7 +5802,7 @@ z
    <g id="line2d_82">
     <path d="M 417.644799 227.596395 
 L 417.644799 7.2 
-" clip-path="url(#pf787220b1a)" style="fill: none; stroke-dasharray: 1,1.65; stroke-dashoffset: 0; stroke: #52514e"/>
+" clip-path="url(#p3b3adb60ce)" style="fill: none; stroke-dasharray: 1,1.65; stroke-dashoffset: 0; stroke: #52514e"/>
    </g>
    <g id="patch_54">
     <path d="M 395.368116 227.596395 
@@ -5735,15 +5817,15 @@ L 661.285358 227.596395
   </g>
  </g>
  <defs>
-  <clipPath id="ped957b14a3">
+  <clipPath id="p14d7daabd6">
    <rect x="114.875313" y="7.2" width="265.917241" height="220.396395"/>
   </clipPath>
-  <clipPath id="pf787220b1a">
+  <clipPath id="p3b3adb60ce">
    <rect x="395.368116" y="7.2" width="265.917241" height="220.396395"/>
   </clipPath>
  </defs>
  <defs>
-  <pattern id="h2e600ce879" patternUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
+  <pattern id="h8b18d828c3" patternUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
    <rect x="0" y="0" width="73" height="73" fill="#eb6834"/>
    <path d="M -36 36 
 L 36 -36 
@@ -5801,50 +5883,6 @@ L 108 36
 </svg>
 
     <figcaption><b>Figure 3.</b> GPU solver tuning on the 1,026,432-cell mesh (4 ranks, 20 iterations): CG iterations per pressure solve (left, log scale) and wall time per pressure solve (right), in the order they were tried. Hatched: measured while multi-core accuracy runs were going (time inflated, iteration counts unaffected); solid: nothing else running, or at most single-core set-up work. Dotted: the CPU baseline (GAMG, 4 ranks).</figcaption></figure>
-  
-  <h4>Best setups per mesh</h4>
-  <div class="table-wrap"><table class="full">
-    <tr><th class="">Mesh</th><th class="num">Cells</th><th class="num">CPU s/iter (ranks)</th><th class="num">GPU s/iter (ranks)</th><th class="num">Speed-up per iter.</th><th class="num">CPU p solve (s)</th><th class="num">GPU p solve (s)</th><th class="num">Speed-up p solve</th><th class="num">GAMG iters/solve</th><th class="num">GPU CG iters/solve</th><th class="num">GPU memory (MiB)</th></tr>
-    
-    <tr><td class="">G16</td><td class="num">90,112</td><td class="num">\(0.021\) (8)</td><td class="num">\(0.091\) (8)</td><td class="num">\(0.23\)</td><td class="num">\(0.007\)</td><td class="num">\(0.098\)</td><td class="num">\(0.08\)</td><td class="num">\(2.8\)</td><td class="num">\(12.0\)</td><td class="num">235</td></tr>
-    
-    <tr><td class="">L3</td><td class="num">304,128</td><td class="num">\(0.093\) (8)</td><td class="num">\(0.169\) (8)</td><td class="num">\(0.55\)</td><td class="num">\(0.025\)</td><td class="num">\(0.129\)</td><td class="num">\(0.19\)</td><td class="num">\(6.4\)</td><td class="num">\(13.1\)</td><td class="num">387</td></tr>
-    
-    <tr><td class="">G36</td><td class="num">1,026,432</td><td class="num">\(0.524\) (8)</td><td class="num">\(0.580\) (8)</td><td class="num">\(0.90\)</td><td class="num">\(0.157\)</td><td class="num">\(0.226\)</td><td class="num">\(0.69\)</td><td class="num">\(4.6\)</td><td class="num">\(14.4\)</td><td class="num">1107</td></tr>
-    
-    <tr><td class="">L4</td><td class="num">2,433,024</td><td class="num">\(1.715\) (8)</td><td class="num">\(1.669\) (8)</td><td class="num">\(1.03\)</td><td class="num">\(0.549\)</td><td class="num">\(0.495\)</td><td class="num">\(1.11\)</td><td class="num">\(5.0\)</td><td class="num">\(15.6\)</td><td class="num">2518</td></tr>
-    
-    <tr><td class="">G60</td><td class="num">4,752,000</td><td class="num">\(3.796\) (8)</td><td class="num">\(3.372\) (8)</td><td class="num">\(1.13\)</td><td class="num">\(1.436\)</td><td class="num">\(0.869\)</td><td class="num">\(1.65\)</td><td class="num">\(5.7\)</td><td class="num">\(16.2\)</td><td class="num">4967</td></tr>
-    
-  </table></div>
-  <p class="lead" style="margin-top:8px;font-size:14px">Speed-up = CPU time / GPU time (above 1: GPU faster). Pressure solve time from profiling, per call, including the transfers to and from the GPU.</p><h4>Rank count on L4</h4>
-  <div class="table-wrap"><table class="full">
-    <tr><th class="">Pressure solver</th><th class="num">Ranks</th><th class="num">s/iter</th><th class="num">p solve (s)</th><th class="num">U solve (s)</th><th class="num">Rest (s)</th><th class="num">p iters/solve</th></tr>
-    
-    <tr><td class="">GAMG</td><td class="num">4</td><td class="num">\(1.909\)</td><td class="num">\(0.747\)</td><td class="num">\(0.442\)</td><td class="num">\(0.669\)</td><td class="num">\(11.8\)</td></tr>
-    
-    <tr><td class="">GAMG</td><td class="num">8</td><td class="num">\(1.836\)</td><td class="num">\(0.731\)</td><td class="num">\(0.421\)</td><td class="num">\(0.667\)</td><td class="num">\(13.6\)</td></tr>
-    
-    <tr><td class="">GAMG</td><td class="num">12</td><td class="num">\(1.839\)</td><td class="num">\(0.692\)</td><td class="num">\(0.442\)</td><td class="num">\(0.677\)</td><td class="num">\(13.0\)</td></tr>
-    
-    <tr><td class="">GAMG</td><td class="num">16</td><td class="num">\(2.031\)</td><td class="num">\(0.956\)</td><td class="num">\(0.477\)</td><td class="num">\(0.670\)</td><td class="num">\(12.6\)</td></tr>
-    
-    <tr><td class="">GAMG_DIC</td><td class="num">8</td><td class="num">\(1.715\)</td><td class="num">\(0.549\)</td><td class="num">\(0.416\)</td><td class="num">\(0.661\)</td><td class="num">\(5.0\)</td></tr>
-    
-    <tr><td class="">GAMG_DIC</td><td class="num">12</td><td class="num">\(1.756\)</td><td class="num">\(0.604\)</td><td class="num">\(0.433\)</td><td class="num">\(0.679\)</td><td class="num">\(5.7\)</td></tr>
-    
-    <tr><td class="">GAMG_DIC</td><td class="num">16</td><td class="num">\(1.903\)</td><td class="num">\(0.688\)</td><td class="num">\(0.471\)</td><td class="num">\(0.664\)</td><td class="num">\(5.5\)</td></tr>
-    
-    <tr><td class="">gpu_best</td><td class="num">2</td><td class="num">\(2.282\)</td><td class="num">\(0.491\)</td><td class="num">\(0.623\)</td><td class="num">\(0.903\)</td><td class="num">\(15.9\)</td></tr>
-    
-    <tr><td class="">gpu_best</td><td class="num">4</td><td class="num">\(1.760\)</td><td class="num">\(0.486\)</td><td class="num">\(0.440\)</td><td class="num">\(0.682\)</td><td class="num">\(15.8\)</td></tr>
-    
-    <tr><td class="">gpu_best</td><td class="num">8</td><td class="num">\(1.669\)</td><td class="num">\(0.495\)</td><td class="num">\(0.420\)</td><td class="num">\(0.659\)</td><td class="num">\(15.6\)</td></tr>
-    
-    <tr><td class="">gpu_best</td><td class="num">16</td><td class="num">\(1.817\)</td><td class="num">\(0.628\)</td><td class="num">\(0.498\)</td><td class="num">\(0.639\)</td><td class="num">\(15.7\)</td></tr>
-    
-  </table></div>
-  <h4>GPU solver tuning on G36 (4 ranks, 20 iterations)</h4>
   <div class="table-wrap"><table class="full">
     <tr><th class="">Configuration: what changes</th><th class="num">CG iters/solve</th><th class="num">GPU solve (ms)</th><th class="num">Set-up per solve (ms)</th><th class="num">p solve (s)</th><th class="num">s/iter</th></tr>
     
@@ -5897,132 +5935,146 @@ L 108 36
     <tr><td class=""><code>gpu_s2c20_k10</code><br>2 sweeps, reused 20, 10 coarse CG iterations</td><td class="num">\(19.0\)</td><td class="num">\(317\)</td><td class="num">\(56\)</td><td class="num">\(0.657\)</td><td class="num">\(1.881\)</td></tr>
     
   </table></div>
+  
   <p class="lead" style="margin-top:8px;font-size:14px">Configurations after the first one up to and including the caching tests ran while the accuracy runs of the main report used 12 of the 16 hardware threads: their times are inflated; compare iteration counts there.</p><h4>Converged runs (same start field, same stopping rule)</h4>
+  <dl class="qrm"><dt>Question</dt><dd>Run to the end, how long does each side take, and do both need the same number of iterations?</dd></dl>
+  
   <div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">Cells</th><th class="num">Side</th><th class="num">Ranks</th><th class="num">Iterations</th><th class="num">Wall (s)</th><th class="num">s/iter</th><th class="num">p iters/solve</th></tr>
     
-    <tr><td class="">cpu_L3</td><td class="num">304,128</td><td class="num">CPU</td><td class="num">8</td><td class="num">213</td><td class="num">\(20.5\)</td><td class="num">\(0.092\)</td><td class="num">\(2.0\)</td></tr>
+    <tr><td class=" nw">cpu_L3</td><td class="num">304,128</td><td class="num">CPU</td><td class="num">8</td><td class="num">213</td><td class="num">\(20.5\)</td><td class="num">\(0.092\)</td><td class="num">\(2.0\)</td></tr>
     
-    <tr><td class="">gpu_L3</td><td class="num">304,128</td><td class="num">GPU</td><td class="num">8</td><td class="num">216</td><td class="num">\(33.7\)</td><td class="num">\(0.142\)</td><td class="num">\(7.1\)</td></tr>
+    <tr><td class=" nw">gpu_L3</td><td class="num">304,128</td><td class="num">GPU</td><td class="num">8</td><td class="num">216</td><td class="num">\(33.7\)</td><td class="num">\(0.142\)</td><td class="num">\(7.1\)</td></tr>
     
-    <tr><td class="">cpu_L4</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">8</td><td class="num">434</td><td class="num">\(692.9\)</td><td class="num">\(1.594\)</td><td class="num">\(3.1\)</td></tr>
+    <tr><td class=" nw">cpu_L4</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">8</td><td class="num">434</td><td class="num">\(692.9\)</td><td class="num">\(1.594\)</td><td class="num">\(3.1\)</td></tr>
     
-    <tr><td class="">gpu_L4</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">8</td><td class="num">434</td><td class="num">\(685.3\)</td><td class="num">\(1.559\)</td><td class="num">\(11.1\)</td></tr>
-    
-  </table></div>
-  <h4>All timing runs</h4>
-  <div class="table-wrap"><table class="full">
-    <tr><th class="">Run</th><th class="num">Cells</th><th class="num">Side</th><th class="num">Ranks</th><th class="num">s/iter</th><th class="num">p solve (s)</th><th class="num">U solve (s)</th><th class="num">p iters/solve</th><th class="num">GPU MiB</th></tr>
-    
-    <tr><td class="">t_G16_GAMG_np8</td><td class="num">90,112</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.022\)</td><td class="num">\(0.007\)</td><td class="num">\(0.004\)</td><td class="num">\(4.6\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G16_GAMG_DIC_np8</td><td class="num">90,112</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.021\)</td><td class="num">\(0.007\)</td><td class="num">\(0.004\)</td><td class="num">\(2.8\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G16_GAMG_DIC_np16</td><td class="num">90,112</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(0.039\) *</td><td class="num">\(0.020\)</td><td class="num">\(0.008\)</td><td class="num">\(2.9\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G16_gpu_best_np4</td><td class="num">90,112</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(0.097\)</td><td class="num">\(0.096\)</td><td class="num">\(0.005\)</td><td class="num">\(12.2\)</td><td class="num">253</td></tr>
-    
-    <tr><td class="">t_G16_gpu_best_np8</td><td class="num">90,112</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(0.091\)</td><td class="num">\(0.098\)</td><td class="num">\(0.004\)</td><td class="num">\(12.0\)</td><td class="num">235</td></tr>
-    
-    <tr><td class="">t_L3_GAMG_np8</td><td class="num">304,128</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.093\)</td><td class="num">\(0.025\)</td><td class="num">\(0.015\)</td><td class="num">\(6.4\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L3_GAMG_DIC_np8</td><td class="num">304,128</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.098\)</td><td class="num">\(0.031\)</td><td class="num">\(0.015\)</td><td class="num">\(3.7\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L3_GAMG_DIC_np16</td><td class="num">304,128</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(0.103\)</td><td class="num">\(0.048\)</td><td class="num">\(0.017\)</td><td class="num">\(3.7\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L3_gpu_best_np4</td><td class="num">304,128</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(0.191\)</td><td class="num">\(0.134\)</td><td class="num">\(0.022\)</td><td class="num">\(13.2\)</td><td class="num">371</td></tr>
-    
-    <tr><td class="">t_L3_gpu_best_np8</td><td class="num">304,128</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(0.169\)</td><td class="num">\(0.129\)</td><td class="num">\(0.015\)</td><td class="num">\(13.1\)</td><td class="num">387</td></tr>
-    
-    <tr><td class="">t_G36_GAMG_np8</td><td class="num">1,026,432</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.535\)</td><td class="num">\(0.165\)</td><td class="num">\(0.095\)</td><td class="num">\(9.5\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G36_GAMG_DIC_np8</td><td class="num">1,026,432</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.524\)</td><td class="num">\(0.157\)</td><td class="num">\(0.101\)</td><td class="num">\(4.6\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G36_GAMG_DIC_np16</td><td class="num">1,026,432</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(0.567\)</td><td class="num">\(0.179\)</td><td class="num">\(0.121\)</td><td class="num">\(4.2\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G36_gpu_best_np4</td><td class="num">1,026,432</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(0.617\)</td><td class="num">\(0.213\)</td><td class="num">\(0.128\)</td><td class="num">\(14.2\)</td><td class="num">1067</td></tr>
-    
-    <tr><td class="">t_G36_gpu_best_np8</td><td class="num">1,026,432</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(0.580\)</td><td class="num">\(0.226\)</td><td class="num">\(0.100\)</td><td class="num">\(14.4\)</td><td class="num">1107</td></tr>
-    
-    <tr><td class="">t_L4_GAMG_np4</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">4</td><td class="num">\(1.909\)</td><td class="num">\(0.747\)</td><td class="num">\(0.442\)</td><td class="num">\(11.8\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L4_GAMG_np8</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(1.836\)</td><td class="num">\(0.731\)</td><td class="num">\(0.421\)</td><td class="num">\(13.6\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L4_GAMG_np12</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">12</td><td class="num">\(1.839\)</td><td class="num">\(0.692\)</td><td class="num">\(0.442\)</td><td class="num">\(13.0\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L4_GAMG_np16</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(2.031\)</td><td class="num">\(0.956\)</td><td class="num">\(0.477\)</td><td class="num">\(12.6\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L4_GAMG_DIC_np8</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(1.724\)</td><td class="num">\(0.547\)</td><td class="num">\(0.424\)</td><td class="num">\(5.0\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L4_GAMG_DIC_np8_r2</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(1.707\)</td><td class="num">\(0.551\)</td><td class="num">\(0.408\)</td><td class="num">\(5.0\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L4_GAMG_DIC_np12</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">12</td><td class="num">\(1.756\)</td><td class="num">\(0.604\)</td><td class="num">\(0.433\)</td><td class="num">\(5.7\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L4_GAMG_DIC_np16</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(1.903\)</td><td class="num">\(0.688\)</td><td class="num">\(0.471\)</td><td class="num">\(5.5\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_L4_gpu_best_np2</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">2</td><td class="num">\(2.282\)</td><td class="num">\(0.491\)</td><td class="num">\(0.623\)</td><td class="num">\(15.9\)</td><td class="num">2527</td></tr>
-    
-    <tr><td class="">t_L4_gpu_best_np4</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(1.760\)</td><td class="num">\(0.486\)</td><td class="num">\(0.440\)</td><td class="num">\(15.8\)</td><td class="num">2524</td></tr>
-    
-    <tr><td class="">t_L4_gpu_best_np8</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(1.714\)</td><td class="num">\(0.521\)</td><td class="num">\(0.434\)</td><td class="num">\(15.6\)</td><td class="num">2518</td></tr>
-    
-    <tr><td class="">t_L4_gpu_best_np8_r2</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(1.623\)</td><td class="num">\(0.468\)</td><td class="num">\(0.407\)</td><td class="num">\(15.6\)</td><td class="num">2421</td></tr>
-    
-    <tr><td class="">t_L4_gpu_best_np16</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">16</td><td class="num">\(1.817\)</td><td class="num">\(0.628\)</td><td class="num">\(0.498\)</td><td class="num">\(15.7\)</td><td class="num">2710</td></tr>
-    
-    <tr><td class="">t_G60_GAMG_np8</td><td class="num">4,752,000</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(3.849\)</td><td class="num">\(1.745\)</td><td class="num">\(0.956\)</td><td class="num">\(14.5\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G60_GAMG_DIC_np8</td><td class="num">4,752,000</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(3.763\)</td><td class="num">\(1.410\)</td><td class="num">\(0.965\)</td><td class="num">\(5.6\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G60_GAMG_DIC_np8_r2</td><td class="num">4,752,000</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(3.828\)</td><td class="num">\(1.463\)</td><td class="num">\(0.987\)</td><td class="num">\(5.7\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G60_GAMG_DIC_np16</td><td class="num">4,752,000</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(3.965\)</td><td class="num">\(1.634\)</td><td class="num">\(1.022\)</td><td class="num">\(5.9\)</td><td class="num">–</td></tr>
-    
-    <tr><td class="">t_G60_gpu_best_np4</td><td class="num">4,752,000</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(3.493\)</td><td class="num">\(0.873\)</td><td class="num">\(0.977\)</td><td class="num">\(16.7\)</td><td class="num">4493</td></tr>
-    
-    <tr><td class="">t_G60_gpu_best_np8</td><td class="num">4,752,000</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(3.394\)</td><td class="num">\(0.897\)</td><td class="num">\(0.955\)</td><td class="num">\(16.9\)</td><td class="num">4501</td></tr>
-    
-    <tr><td class="">t_G60_gpu_best_np8_r2</td><td class="num">4,752,000</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(3.350\)</td><td class="num">\(0.840\)</td><td class="num">\(0.957\)</td><td class="num">\(15.6\)</td><td class="num">4967</td></tr>
+    <tr><td class=" nw">gpu_L4</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">8</td><td class="num">434</td><td class="num">\(685.3\)</td><td class="num">\(1.559\)</td><td class="num">\(11.1\)</td></tr>
     
   </table></div>
   
+  <h4>All timing runs</h4>
+  <dl class="qrm"><dt>Question</dt><dd>What was measured, run by run?</dd></dl>
+  
+  <div class="table-wrap"><table class="full">
+    <tr><th class="">Run</th><th class="num">Cells</th><th class="num">Side</th><th class="num">Ranks</th><th class="num">s/iter</th><th class="num">p solve (s)</th><th class="num">U solve (s)</th><th class="num">p iters/solve</th><th class="num">GPU MiB</th></tr>
+    
+    <tr><td class=" nw">t_G16_GAMG_np8</td><td class="num">90,112</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.022\)</td><td class="num">\(0.007\)</td><td class="num">\(0.004\)</td><td class="num">\(4.6\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G16_GAMG_DIC_np8</td><td class="num">90,112</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.021\)</td><td class="num">\(0.007\)</td><td class="num">\(0.004\)</td><td class="num">\(2.8\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G16_GAMG_DIC_np16</td><td class="num">90,112</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(0.039\) *</td><td class="num">\(0.020\)</td><td class="num">\(0.008\)</td><td class="num">\(2.9\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G16_gpu_best_np4</td><td class="num">90,112</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(0.097\)</td><td class="num">\(0.096\)</td><td class="num">\(0.005\)</td><td class="num">\(12.2\)</td><td class="num">253</td></tr>
+    
+    <tr><td class=" nw">t_G16_gpu_best_np8</td><td class="num">90,112</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(0.091\)</td><td class="num">\(0.098\)</td><td class="num">\(0.004\)</td><td class="num">\(12.0\)</td><td class="num">235</td></tr>
+    
+    <tr><td class=" nw">t_L3_GAMG_np8</td><td class="num">304,128</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.093\)</td><td class="num">\(0.025\)</td><td class="num">\(0.015\)</td><td class="num">\(6.4\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L3_GAMG_DIC_np8</td><td class="num">304,128</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.098\)</td><td class="num">\(0.031\)</td><td class="num">\(0.015\)</td><td class="num">\(3.7\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L3_GAMG_DIC_np16</td><td class="num">304,128</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(0.103\)</td><td class="num">\(0.048\)</td><td class="num">\(0.017\)</td><td class="num">\(3.7\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L3_gpu_best_np4</td><td class="num">304,128</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(0.191\)</td><td class="num">\(0.134\)</td><td class="num">\(0.022\)</td><td class="num">\(13.2\)</td><td class="num">371</td></tr>
+    
+    <tr><td class=" nw">t_L3_gpu_best_np8</td><td class="num">304,128</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(0.169\)</td><td class="num">\(0.129\)</td><td class="num">\(0.015\)</td><td class="num">\(13.1\)</td><td class="num">387</td></tr>
+    
+    <tr><td class=" nw">t_G36_GAMG_np8</td><td class="num">1,026,432</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.535\)</td><td class="num">\(0.165\)</td><td class="num">\(0.095\)</td><td class="num">\(9.5\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G36_GAMG_DIC_np8</td><td class="num">1,026,432</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(0.524\)</td><td class="num">\(0.157\)</td><td class="num">\(0.101\)</td><td class="num">\(4.6\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G36_GAMG_DIC_np16</td><td class="num">1,026,432</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(0.567\)</td><td class="num">\(0.179\)</td><td class="num">\(0.121\)</td><td class="num">\(4.2\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G36_gpu_best_np4</td><td class="num">1,026,432</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(0.617\)</td><td class="num">\(0.213\)</td><td class="num">\(0.128\)</td><td class="num">\(14.2\)</td><td class="num">1067</td></tr>
+    
+    <tr><td class=" nw">t_G36_gpu_best_np8</td><td class="num">1,026,432</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(0.580\)</td><td class="num">\(0.226\)</td><td class="num">\(0.100\)</td><td class="num">\(14.4\)</td><td class="num">1107</td></tr>
+    
+    <tr><td class=" nw">t_L4_GAMG_np4</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">4</td><td class="num">\(1.909\)</td><td class="num">\(0.747\)</td><td class="num">\(0.442\)</td><td class="num">\(11.8\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L4_GAMG_np8</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(1.836\)</td><td class="num">\(0.731\)</td><td class="num">\(0.421\)</td><td class="num">\(13.6\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L4_GAMG_np12</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">12</td><td class="num">\(1.839\)</td><td class="num">\(0.692\)</td><td class="num">\(0.442\)</td><td class="num">\(13.0\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L4_GAMG_np16</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(2.031\)</td><td class="num">\(0.956\)</td><td class="num">\(0.477\)</td><td class="num">\(12.6\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L4_GAMG_DIC_np8</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(1.724\)</td><td class="num">\(0.547\)</td><td class="num">\(0.424\)</td><td class="num">\(5.0\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L4_GAMG_DIC_np8_r2</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(1.707\)</td><td class="num">\(0.551\)</td><td class="num">\(0.408\)</td><td class="num">\(5.0\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L4_GAMG_DIC_np12</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">12</td><td class="num">\(1.756\)</td><td class="num">\(0.604\)</td><td class="num">\(0.433\)</td><td class="num">\(5.7\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L4_GAMG_DIC_np16</td><td class="num">2,433,024</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(1.903\)</td><td class="num">\(0.688\)</td><td class="num">\(0.471\)</td><td class="num">\(5.5\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_L4_gpu_best_np2</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">2</td><td class="num">\(2.282\)</td><td class="num">\(0.491\)</td><td class="num">\(0.623\)</td><td class="num">\(15.9\)</td><td class="num">2527</td></tr>
+    
+    <tr><td class=" nw">t_L4_gpu_best_np4</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(1.760\)</td><td class="num">\(0.486\)</td><td class="num">\(0.440\)</td><td class="num">\(15.8\)</td><td class="num">2524</td></tr>
+    
+    <tr><td class=" nw">t_L4_gpu_best_np8</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(1.714\)</td><td class="num">\(0.521\)</td><td class="num">\(0.434\)</td><td class="num">\(15.6\)</td><td class="num">2518</td></tr>
+    
+    <tr><td class=" nw">t_L4_gpu_best_np8_r2</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(1.623\)</td><td class="num">\(0.468\)</td><td class="num">\(0.407\)</td><td class="num">\(15.6\)</td><td class="num">2421</td></tr>
+    
+    <tr><td class=" nw">t_L4_gpu_best_np16</td><td class="num">2,433,024</td><td class="num">GPU</td><td class="num">16</td><td class="num">\(1.817\)</td><td class="num">\(0.628\)</td><td class="num">\(0.498\)</td><td class="num">\(15.7\)</td><td class="num">2710</td></tr>
+    
+    <tr><td class=" nw">t_G60_GAMG_np8</td><td class="num">4,752,000</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(3.849\)</td><td class="num">\(1.745\)</td><td class="num">\(0.956\)</td><td class="num">\(14.5\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G60_GAMG_DIC_np8</td><td class="num">4,752,000</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(3.763\)</td><td class="num">\(1.410\)</td><td class="num">\(0.965\)</td><td class="num">\(5.6\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G60_GAMG_DIC_np8_r2</td><td class="num">4,752,000</td><td class="num">CPU</td><td class="num">8</td><td class="num">\(3.828\)</td><td class="num">\(1.463\)</td><td class="num">\(0.987\)</td><td class="num">\(5.7\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G60_GAMG_DIC_np16</td><td class="num">4,752,000</td><td class="num">CPU</td><td class="num">16</td><td class="num">\(3.965\)</td><td class="num">\(1.634\)</td><td class="num">\(1.022\)</td><td class="num">\(5.9\)</td><td class="num">–</td></tr>
+    
+    <tr><td class=" nw">t_G60_gpu_best_np4</td><td class="num">4,752,000</td><td class="num">GPU</td><td class="num">4</td><td class="num">\(3.493\)</td><td class="num">\(0.873\)</td><td class="num">\(0.977\)</td><td class="num">\(16.7\)</td><td class="num">4493</td></tr>
+    
+    <tr><td class=" nw">t_G60_gpu_best_np8</td><td class="num">4,752,000</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(3.394\)</td><td class="num">\(0.897\)</td><td class="num">\(0.955\)</td><td class="num">\(16.9\)</td><td class="num">4501</td></tr>
+    
+    <tr><td class=" nw">t_G60_gpu_best_np8_r2</td><td class="num">4,752,000</td><td class="num">GPU</td><td class="num">8</td><td class="num">\(3.350\)</td><td class="num">\(0.840\)</td><td class="num">\(0.957\)</td><td class="num">\(15.6\)</td><td class="num">4967</td></tr>
+    
+  </table></div>
+  
+  
   <div class="callout info">Break-even sizes are interpolated between measured meshes (log scale in cells), not extrapolated.</div>
+  
 </section>
 
 <section id="same">
   <h2><span class="num">4</span> Same answer?</h2>
   <p class="lead">Converged runs on the same mesh, CPU (GAMG) and GPU (tuned OGL), from the same start field, stopped by the same residual rule. The tolerance was fixed before the runs, ten times below the mesh uncertainty of each number.</p>
   
+  
+  
+  
   <div class="table-wrap"><table class="full">
     <tr><th class="">Mesh</th><th class="num">Quantity</th><th class="num">CPU</th><th class="num">GPU</th><th class="num">GPU − CPU</th><th class="num">Tolerance</th><th class="num">OK</th></tr>
     
-    <tr><td class="">L3 (304,128 cells)</td><td class="num">\(c_D\)</td><td class="num">\(6.161445\)</td><td class="num">\(6.161445\)</td><td class="num">\(4.9 \times 10^{-12}\)</td><td class="num">\(1 \times 10^{-4}\)</td><td class="num">✓</td></tr>
+    <tr><td class=" nw">L3 (304,128 cells)</td><td class="num">\(c_D\)</td><td class="num">\(6.161445\)</td><td class="num">\(6.161445\)</td><td class="num">\(4.9 \times 10^{-12}\)</td><td class="num">\(1 \times 10^{-4}\)</td><td class="num">✓</td></tr>
     
-    <tr><td class="">L3 (304,128 cells)</td><td class="num">\(c_L\)</td><td class="num">\(0.009818\)</td><td class="num">\(0.009818\)</td><td class="num">\(7.4 \times 10^{-12}\)</td><td class="num">\(1 \times 10^{-5}\)</td><td class="num">✓</td></tr>
+    <tr><td class=" nw">L3 (304,128 cells)</td><td class="num">\(c_L\)</td><td class="num">\(0.009818\)</td><td class="num">\(0.009818\)</td><td class="num">\(7.4 \times 10^{-12}\)</td><td class="num">\(1 \times 10^{-5}\)</td><td class="num">✓</td></tr>
     
-    <tr><td class="">L3</td><td class="num">iterations to converge</td><td class="num">213</td><td class="num">216</td><td class="num">+3</td><td class="num">–</td><td class="num">–</td></tr>
+    <tr><td class=" nw">L3</td><td class="num">iterations to converge</td><td class="num">213</td><td class="num">216</td><td class="num">+3</td><td class="num">–</td><td class="num">–</td></tr>
     
-    <tr><td class="">L4 (2,433,024 cells)</td><td class="num">\(c_D\)</td><td class="num">\(6.180538\)</td><td class="num">\(6.180538\)</td><td class="num">\(6.7 \times 10^{-10}\)</td><td class="num">\(1 \times 10^{-4}\)</td><td class="num">✓</td></tr>
+    <tr><td class=" nw">L4 (2,433,024 cells)</td><td class="num">\(c_D\)</td><td class="num">\(6.180538\)</td><td class="num">\(6.180538\)</td><td class="num">\(6.7 \times 10^{-10}\)</td><td class="num">\(1 \times 10^{-4}\)</td><td class="num">✓</td></tr>
     
-    <tr><td class="">L4 (2,433,024 cells)</td><td class="num">\(c_L\)</td><td class="num">\(0.009557\)</td><td class="num">\(0.009557\)</td><td class="num">\(9.8 \times 10^{-10}\)</td><td class="num">\(1 \times 10^{-5}\)</td><td class="num">✓</td></tr>
+    <tr><td class=" nw">L4 (2,433,024 cells)</td><td class="num">\(c_L\)</td><td class="num">\(0.009557\)</td><td class="num">\(0.009557\)</td><td class="num">\(9.8 \times 10^{-10}\)</td><td class="num">\(1 \times 10^{-5}\)</td><td class="num">✓</td></tr>
     
-    <tr><td class="">L4</td><td class="num">iterations to converge</td><td class="num">434</td><td class="num">434</td><td class="num">+0</td><td class="num">–</td><td class="num">–</td></tr>
+    <tr><td class=" nw">L4</td><td class="num">iterations to converge</td><td class="num">434</td><td class="num">434</td><td class="num">+0</td><td class="num">–</td><td class="num">–</td></tr>
     
   </table></div>
   
+  
   <div class="callout info"><span class="tag">✓ Same answer</span>Same answer: drag and lift agree within the tolerance on L3 and L4.</div>
+  
 </section>
 
 <section id="breakdown">
   <h2><span class="num">5</span> Where the time goes</h2>
   <p class="lead">Seconds per iteration by part, from OpenFOAM's profiling of the best setups (mean over the run), and the GPU pressure solve split further from OGL's own timings.</p>
   
+  <h4>Per iteration (s)</h4>
+  <dl class="qrm"><dt>Question</dt><dd>Which part of an iteration does the GPU shorten?</dd></dl>
   <figure class="breakdown" style="--w: 626px"><svg xmlns:xlink="http://www.w3.org/1999/xlink" width="469.19952pt" height="253.19952pt" viewBox="0 0 469.19952 253.19952" xmlns="http://www.w3.org/2000/svg" version="1.1">
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:date>2026-11-13T10:40:03.944133</dc:date>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -6059,7 +6111,7 @@ L 75.037967 220.99659
 L 75.037967 207.726327 
 L 58.429914 207.726327 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eb6834"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eb6834"/>
    </g>
    <g id="patch_4">
     <path d="M 58.429914 207.726327 
@@ -6067,7 +6119,7 @@ L 75.037967 207.726327
 L 75.037967 201.026379 
 L 58.429914 201.026379 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_5">
     <path d="M 58.429914 201.026379 
@@ -6075,7 +6127,7 @@ L 75.037967 201.026379
 L 75.037967 195.149745 
 L 58.429914 195.149745 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_6">
     <path d="M 58.429914 195.149745 
@@ -6083,7 +6135,7 @@ L 75.037967 195.149745
 L 75.037967 183.482377 
 L 58.429914 183.482377 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_7">
     <path d="M 79.18998 220.99659 
@@ -6091,7 +6143,7 @@ L 95.798033 220.99659
 L 95.798033 44.181049 
 L 79.18998 44.181049 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: url(#h60044d0255)"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: url(#h9611aee20f)"/>
    </g>
    <g id="patch_8">
     <path d="M 79.18998 44.181049 
@@ -6099,7 +6151,7 @@ L 95.798033 44.181049
 L 95.798033 37.336204 
 L 79.18998 37.336204 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_9">
     <path d="M 79.18998 37.336204 
@@ -6107,7 +6159,7 @@ L 95.798033 37.336204
 L 95.798033 31.008766 
 L 79.18998 31.008766 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_10">
     <path d="M 79.18998 31.008766 
@@ -6115,7 +6167,7 @@ L 95.798033 31.008766
 L 95.798033 17.38079 
 L 79.18998 17.38079 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_11">
     <path d="M 120.710112 220.99659 
@@ -6123,7 +6175,7 @@ L 137.318165 220.99659
 L 137.318165 207.786126 
 L 120.710112 207.786126 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eb6834"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eb6834"/>
    </g>
    <g id="patch_12">
     <path d="M 120.710112 207.786126 
@@ -6131,7 +6183,7 @@ L 137.318165 207.786126
 L 137.318165 199.524111 
 L 120.710112 199.524111 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_13">
     <path d="M 120.710112 199.524111 
@@ -6139,7 +6191,7 @@ L 137.318165 199.524111
 L 137.318165 194.276659 
 L 120.710112 194.276659 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_14">
     <path d="M 120.710112 194.276659 
@@ -6147,7 +6199,7 @@ L 137.318165 194.276659
 L 137.318165 173.961659 
 L 120.710112 173.961659 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_15">
     <path d="M 141.470178 220.99659 
@@ -6155,7 +6207,7 @@ L 158.078231 220.99659
 L 158.078231 151.545289 
 L 141.470178 151.545289 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: url(#h60044d0255)"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: url(#h9611aee20f)"/>
    </g>
    <g id="patch_16">
     <path d="M 141.470178 151.545289 
@@ -6163,7 +6215,7 @@ L 158.078231 151.545289
 L 158.078231 143.474303 
 L 141.470178 143.474303 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_17">
     <path d="M 141.470178 143.474303 
@@ -6171,7 +6223,7 @@ L 158.078231 143.474303
 L 158.078231 138.212201 
 L 141.470178 138.212201 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_18">
     <path d="M 141.470178 138.212201 
@@ -6179,7 +6231,7 @@ L 158.078231 138.212201
 L 158.078231 116.412405 
 L 141.470178 116.412405 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_19">
     <path d="M 182.99031 220.99659 
@@ -6187,7 +6239,7 @@ L 199.598363 220.99659
 L 199.598363 196.03009 
 L 182.99031 196.03009 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eb6834"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eb6834"/>
    </g>
    <g id="patch_20">
     <path d="M 182.99031 196.03009 
@@ -6195,7 +6247,7 @@ L 199.598363 196.03009
 L 199.598363 180.005612 
 L 182.99031 180.005612 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_21">
     <path d="M 182.99031 180.005612 
@@ -6203,7 +6255,7 @@ L 199.598363 180.005612
 L 199.598363 173.101297 
 L 182.99031 173.101297 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_22">
     <path d="M 182.99031 173.101297 
@@ -6211,7 +6263,7 @@ L 199.598363 173.101297
 L 199.598363 137.017732 
 L 182.99031 137.017732 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_23">
     <path d="M 203.750376 220.99659 
@@ -6219,7 +6271,7 @@ L 220.358429 220.99659
 L 220.358429 185.011152 
 L 203.750376 185.011152 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: url(#h60044d0255)"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: url(#h9611aee20f)"/>
    </g>
    <g id="patch_24">
     <path d="M 203.750376 185.011152 
@@ -6227,7 +6279,7 @@ L 220.358429 185.011152
 L 220.358429 169.066186 
 L 203.750376 169.066186 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_25">
     <path d="M 203.750376 169.066186 
@@ -6235,7 +6287,7 @@ L 220.358429 169.066186
 L 220.358429 161.930358 
 L 203.750376 161.930358 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_26">
     <path d="M 203.750376 161.930358 
@@ -6243,7 +6295,7 @@ L 220.358429 161.930358
 L 220.358429 126.004126 
 L 203.750376 126.004126 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_27">
     <path d="M 245.270508 220.99659 
@@ -6251,7 +6303,7 @@ L 261.878561 220.99659
 L 261.878561 184.20954 
 L 245.270508 184.20954 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eb6834"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eb6834"/>
    </g>
    <g id="patch_28">
     <path d="M 245.270508 184.20954 
@@ -6259,7 +6311,7 @@ L 261.878561 184.20954
 L 261.878561 156.301914 
 L 245.270508 156.301914 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_29">
     <path d="M 245.270508 156.301914 
@@ -6267,7 +6319,7 @@ L 261.878561 156.301914
 L 261.878561 148.698119 
 L 245.270508 148.698119 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_30">
     <path d="M 245.270508 148.698119 
@@ -6275,7 +6327,7 @@ L 261.878561 148.698119
 L 261.878561 104.372088 
 L 245.270508 104.372088 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_31">
     <path d="M 266.030574 220.99659 
@@ -6283,7 +6335,7 @@ L 282.638627 220.99659
 L 282.638627 187.836244 
 L 266.030574 187.836244 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: url(#h60044d0255)"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: url(#h9611aee20f)"/>
    </g>
    <g id="patch_32">
     <path d="M 266.030574 187.836244 
@@ -6291,7 +6343,7 @@ L 282.638627 187.836244
 L 282.638627 159.64917 
 L 266.030574 159.64917 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_33">
     <path d="M 266.030574 159.64917 
@@ -6299,7 +6351,7 @@ L 282.638627 159.64917
 L 282.638627 152.002093 
 L 266.030574 152.002093 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_34">
     <path d="M 266.030574 152.002093 
@@ -6307,7 +6359,7 @@ L 282.638627 152.002093
 L 282.638627 107.83812 
 L 266.030574 107.83812 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_35">
     <path d="M 307.550706 220.99659 
@@ -6315,7 +6367,7 @@ L 324.158759 220.99659
 L 324.158759 171.686701 
 L 307.550706 171.686701 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eb6834"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eb6834"/>
    </g>
    <g id="patch_36">
     <path d="M 307.550706 171.686701 
@@ -6323,7 +6375,7 @@ L 324.158759 171.686701
 L 324.158759 138.175841 
 L 307.550706 138.175841 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_37">
     <path d="M 307.550706 138.175841 
@@ -6331,7 +6383,7 @@ L 324.158759 138.175841
 L 324.158759 130.214111 
 L 307.550706 130.214111 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_38">
     <path d="M 307.550706 130.214111 
@@ -6339,7 +6391,7 @@ L 324.158759 130.214111
 L 324.158759 84.513578 
 L 307.550706 84.513578 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="patch_39">
     <path d="M 328.310772 220.99659 
@@ -6347,7 +6399,7 @@ L 344.918824 220.99659
 L 344.918824 191.173119 
 L 328.310772 191.173119 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: url(#h60044d0255)"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: url(#h9611aee20f)"/>
    </g>
    <g id="patch_40">
     <path d="M 328.310772 191.173119 
@@ -6355,7 +6407,7 @@ L 344.918824 191.173119
 L 344.918824 158.367624 
 L 328.310772 158.367624 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #2a78d6"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #2a78d6"/>
    </g>
    <g id="patch_41">
     <path d="M 328.310772 158.367624 
@@ -6363,7 +6415,7 @@ L 344.918824 158.367624
 L 344.918824 150.567287 
 L 328.310772 150.567287 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #eda100"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #eda100"/>
    </g>
    <g id="patch_42">
     <path d="M 328.310772 150.567287 
@@ -6371,18 +6423,18 @@ L 344.918824 150.567287
 L 344.918824 104.470972 
 L 328.310772 104.470972 
 z
-" clip-path="url(#p6a264a65f7)" style="fill: #c3c2b7"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: #c3c2b7"/>
    </g>
    <g id="matplotlib.axis_1">
     <g id="xtick_1">
      <g id="line2d_1">
       <defs>
-       <path id="m6ba22763c6" d="M 0 0 
+       <path id="mf616f5b354" d="M 0 0 
 L 0 3.5 
 " style="stroke: #898781; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#m6ba22763c6" x="66.733941" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="66.733941" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_1">
@@ -6495,7 +6547,7 @@ z
     <g id="xtick_2">
      <g id="line2d_2">
       <g>
-       <use xlink:href="#m6ba22763c6" x="87.494007" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="87.494007" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_2">
@@ -6514,7 +6566,7 @@ z
     <g id="xtick_3">
      <g id="line2d_3">
       <g>
-       <use xlink:href="#m6ba22763c6" x="129.014139" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="129.014139" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_3">
@@ -6575,7 +6627,7 @@ z
     <g id="xtick_4">
      <g id="line2d_4">
       <g>
-       <use xlink:href="#m6ba22763c6" x="149.774204" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="149.774204" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_4">
@@ -6593,7 +6645,7 @@ z
     <g id="xtick_5">
      <g id="line2d_5">
       <g>
-       <use xlink:href="#m6ba22763c6" x="191.294336" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="191.294336" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_5">
@@ -6612,7 +6664,7 @@ z
     <g id="xtick_6">
      <g id="line2d_6">
       <g>
-       <use xlink:href="#m6ba22763c6" x="212.054402" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="212.054402" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_6">
@@ -6631,7 +6683,7 @@ z
     <g id="xtick_7">
      <g id="line2d_7">
       <g>
-       <use xlink:href="#m6ba22763c6" x="253.574534" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="253.574534" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_7">
@@ -6670,7 +6722,7 @@ z
     <g id="xtick_8">
      <g id="line2d_8">
       <g>
-       <use xlink:href="#m6ba22763c6" x="274.3346" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="274.3346" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_8">
@@ -6688,7 +6740,7 @@ z
     <g id="xtick_9">
      <g id="line2d_9">
       <g>
-       <use xlink:href="#m6ba22763c6" x="315.854732" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="315.854732" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_9">
@@ -6730,7 +6782,7 @@ z
     <g id="xtick_10">
      <g id="line2d_10">
       <g>
-       <use xlink:href="#m6ba22763c6" x="336.614798" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#mf616f5b354" x="336.614798" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_10">
@@ -6752,16 +6804,16 @@ z
      <g id="line2d_11">
       <path d="M 44.105469 220.99659 
 L 359.24327 220.99659 
-" clip-path="url(#p6a264a65f7)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_12">
       <defs>
-       <path id="ma74515d271" d="M 0 0 
+       <path id="m4907c6a593" d="M 0 0 
 L -3.5 0 
 " style="stroke: #898781; stroke-width: 0.8"/>
       </defs>
       <g>
-       <use xlink:href="#ma74515d271" x="44.105469" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.105469" y="220.99659" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_11">
@@ -6786,11 +6838,11 @@ z
      <g id="line2d_13">
       <path d="M 44.105469 188.371623 
 L 359.24327 188.371623 
-" clip-path="url(#p6a264a65f7)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_14">
       <g>
-       <use xlink:href="#ma74515d271" x="44.105469" y="188.371623" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.105469" y="188.371623" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_12">
@@ -6832,11 +6884,11 @@ z
      <g id="line2d_15">
       <path d="M 44.105469 155.746656 
 L 359.24327 155.746656 
-" clip-path="url(#p6a264a65f7)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_16">
       <g>
-       <use xlink:href="#ma74515d271" x="44.105469" y="155.746656" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.105469" y="155.746656" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_13">
@@ -6852,11 +6904,11 @@ L 359.24327 155.746656
      <g id="line2d_17">
       <path d="M 44.105469 123.121689 
 L 359.24327 123.121689 
-" clip-path="url(#p6a264a65f7)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_18">
       <g>
-       <use xlink:href="#ma74515d271" x="44.105469" y="123.121689" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.105469" y="123.121689" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_14">
@@ -6872,11 +6924,11 @@ L 359.24327 123.121689
      <g id="line2d_19">
       <path d="M 44.105469 90.496722 
 L 359.24327 90.496722 
-" clip-path="url(#p6a264a65f7)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_20">
       <g>
-       <use xlink:href="#ma74515d271" x="44.105469" y="90.496722" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.105469" y="90.496722" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_15">
@@ -6933,11 +6985,11 @@ z
      <g id="line2d_21">
       <path d="M 44.105469 57.871755 
 L 359.24327 57.871755 
-" clip-path="url(#p6a264a65f7)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_22">
       <g>
-       <use xlink:href="#ma74515d271" x="44.105469" y="57.871755" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.105469" y="57.871755" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_16">
@@ -6953,11 +7005,11 @@ L 359.24327 57.871755
      <g id="line2d_23">
       <path d="M 44.105469 25.246788 
 L 359.24327 25.246788 
-" clip-path="url(#p6a264a65f7)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
+" clip-path="url(#pe5e19a37f8)" style="fill: none; stroke: #e1e0d9; stroke-width: 0.6; stroke-linecap: square"/>
      </g>
      <g id="line2d_24">
       <g>
-       <use xlink:href="#ma74515d271" x="44.105469" y="25.246788" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
+       <use xlink:href="#m4907c6a593" x="44.105469" y="25.246788" style="fill: #898781; stroke: #898781; stroke-width: 0.8"/>
       </g>
      </g>
      <g id="text_17">
@@ -7503,12 +7555,12 @@ z
   </g>
  </g>
  <defs>
-  <clipPath id="p6a264a65f7">
+  <clipPath id="pe5e19a37f8">
    <rect x="44.105469" y="7.2" width="315.137801" height="213.79659"/>
   </clipPath>
  </defs>
  <defs>
-  <pattern id="h60044d0255" patternUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
+  <pattern id="h9611aee20f" patternUnits="userSpaceOnUse" x="0" y="0" width="72" height="72">
    <rect x="0" y="0" width="73" height="73" fill="#eb6834"/>
    <path d="M -36 36 
 L 36 -36 
@@ -7566,142 +7618,164 @@ L 108 36
 </svg>
 
     <figcaption><b>Figure 4.</b> Where the time of one iteration goes, best CPU (left bar of each pair) and best GPU setup (right bar), per million cells: pressure solve, momentum solve, force output (function objects) and the rest (matrix assembly, gradients, fluxes, MPI). The GPU only shortens the first part.</figcaption></figure>
-  
-  <h4>Per iteration (s)</h4>
   <div class="table-wrap"><table class="full">
     <tr><th class="">Mesh</th><th class="num">Setup</th><th class="num">Pressure solve</th><th class="num">Momentum solve</th><th class="num">Force output</th><th class="num">Rest</th><th class="num">Total</th><th class="num">Pressure share</th></tr>
     
-    <tr><td class="">G16</td><td class="num">CPU (8 ranks)</td><td class="num">\(0.007\)</td><td class="num">\(0.004\)</td><td class="num">\(0.003\)</td><td class="num">\(0.006\)</td><td class="num">\(0.021\)</td><td class="num">\(35\,\%\)</td></tr>
+    <tr><td class=" nw">G16</td><td class="num">CPU (8 ranks)</td><td class="num">\(0.007\)</td><td class="num">\(0.004\)</td><td class="num">\(0.003\)</td><td class="num">\(0.006\)</td><td class="num">\(0.021\)</td><td class="num">\(35\,\%\)</td></tr>
     
-    <tr><td class="">G16</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.098\)</td><td class="num">\(0.004\)</td><td class="num">\(0.003\)</td><td class="num">\(0.008\)</td><td class="num">\(0.112\)</td><td class="num">\(87\,\%\)</td></tr>
+    <tr><td class=" nw">G16</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.098\)</td><td class="num">\(0.004\)</td><td class="num">\(0.003\)</td><td class="num">\(0.008\)</td><td class="num">\(0.112\)</td><td class="num">\(87\,\%\)</td></tr>
     
-    <tr><td class="">L3</td><td class="num">CPU (8 ranks)</td><td class="num">\(0.025\)</td><td class="num">\(0.015\)</td><td class="num">\(0.010\)</td><td class="num">\(0.038\)</td><td class="num">\(0.088\)</td><td class="num">\(28\,\%\)</td></tr>
+    <tr><td class=" nw">L3</td><td class="num">CPU (8 ranks)</td><td class="num">\(0.025\)</td><td class="num">\(0.015\)</td><td class="num">\(0.010\)</td><td class="num">\(0.038\)</td><td class="num">\(0.088\)</td><td class="num">\(28\,\%\)</td></tr>
     
-    <tr><td class="">L3</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.129\)</td><td class="num">\(0.015\)</td><td class="num">\(0.010\)</td><td class="num">\(0.041\)</td><td class="num">\(0.195\)</td><td class="num">\(66\,\%\)</td></tr>
+    <tr><td class=" nw">L3</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.129\)</td><td class="num">\(0.015\)</td><td class="num">\(0.010\)</td><td class="num">\(0.041\)</td><td class="num">\(0.195\)</td><td class="num">\(66\,\%\)</td></tr>
     
-    <tr><td class="">G36</td><td class="num">CPU (8 ranks)</td><td class="num">\(0.157\)</td><td class="num">\(0.101\)</td><td class="num">\(0.043\)</td><td class="num">\(0.227\)</td><td class="num">\(0.528\)</td><td class="num">\(30\,\%\)</td></tr>
+    <tr><td class=" nw">G36</td><td class="num">CPU (8 ranks)</td><td class="num">\(0.157\)</td><td class="num">\(0.101\)</td><td class="num">\(0.043\)</td><td class="num">\(0.227\)</td><td class="num">\(0.528\)</td><td class="num">\(30\,\%\)</td></tr>
     
-    <tr><td class="">G36</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.226\)</td><td class="num">\(0.100\)</td><td class="num">\(0.045\)</td><td class="num">\(0.226\)</td><td class="num">\(0.598\)</td><td class="num">\(38\,\%\)</td></tr>
+    <tr><td class=" nw">G36</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.226\)</td><td class="num">\(0.100\)</td><td class="num">\(0.045\)</td><td class="num">\(0.226\)</td><td class="num">\(0.598\)</td><td class="num">\(38\,\%\)</td></tr>
     
-    <tr><td class="">L4</td><td class="num">CPU (8 ranks)</td><td class="num">\(0.549\)</td><td class="num">\(0.416\)</td><td class="num">\(0.113\)</td><td class="num">\(0.661\)</td><td class="num">\(1.739\)</td><td class="num">\(32\,\%\)</td></tr>
+    <tr><td class=" nw">L4</td><td class="num">CPU (8 ranks)</td><td class="num">\(0.549\)</td><td class="num">\(0.416\)</td><td class="num">\(0.113\)</td><td class="num">\(0.661\)</td><td class="num">\(1.739\)</td><td class="num">\(32\,\%\)</td></tr>
     
-    <tr><td class="">L4</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.495\)</td><td class="num">\(0.420\)</td><td class="num">\(0.114\)</td><td class="num">\(0.659\)</td><td class="num">\(1.688\)</td><td class="num">\(29\,\%\)</td></tr>
+    <tr><td class=" nw">L4</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.495\)</td><td class="num">\(0.420\)</td><td class="num">\(0.114\)</td><td class="num">\(0.659\)</td><td class="num">\(1.688\)</td><td class="num">\(29\,\%\)</td></tr>
     
-    <tr><td class="">G60</td><td class="num">CPU (8 ranks)</td><td class="num">\(1.436\)</td><td class="num">\(0.976\)</td><td class="num">\(0.232\)</td><td class="num">\(1.331\)</td><td class="num">\(3.976\)</td><td class="num">\(36\,\%\)</td></tr>
+    <tr><td class=" nw">G60</td><td class="num">CPU (8 ranks)</td><td class="num">\(1.436\)</td><td class="num">\(0.976\)</td><td class="num">\(0.232\)</td><td class="num">\(1.331\)</td><td class="num">\(3.976\)</td><td class="num">\(36\,\%\)</td></tr>
     
-    <tr><td class="">G60</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.869\)</td><td class="num">\(0.956\)</td><td class="num">\(0.227\)</td><td class="num">\(1.343\)</td><td class="num">\(3.395\)</td><td class="num">\(26\,\%\)</td></tr>
+    <tr><td class=" nw">G60</td><td class="num">GPU (8 ranks)</td><td class="num">\(0.869\)</td><td class="num">\(0.956\)</td><td class="num">\(0.227\)</td><td class="num">\(1.343\)</td><td class="num">\(3.395\)</td><td class="num">\(26\,\%\)</td></tr>
     
   </table></div>
+  
   <p class="lead" style="margin-top:8px;font-size:14px">Rest: matrix assembly, gradients, flux updates, MPI exchange, bookkeeping. Profiling means over all 30 iterations (first-iteration set-up and final write included), so totals are slightly above the Results.</p><h4>GPU pressure solve, per call (ms)</h4>
+  <dl class="qrm"><dt>Question</dt><dd>Inside the GPU pressure solve, where does the time go?</dd></dl>
+  
   <div class="table-wrap"><table class="full">
     <tr><th class="">Mesh</th><th class="num">Matrix update</th><th class="num">Preconditioner set-up (mean)</th><th class="num">GPU solve</th><th class="num">Copy back</th><th class="num">OGL total</th><th class="num">OpenFOAM side</th><th class="num">CG iters</th><th class="num">ms per CG iter.</th></tr>
     
-    <tr><td class="">G16</td><td class="num">\(4\)</td><td class="num">\(7\)</td><td class="num">\(70\)</td><td class="num">\(0\)</td><td class="num">\(77\)</td><td class="num">\(21\)</td><td class="num">\(12.0\)</td><td class="num">\(5.80\)</td></tr>
+    <tr><td class=" nw">G16</td><td class="num">\(4\)</td><td class="num">\(7\)</td><td class="num">\(70\)</td><td class="num">\(0\)</td><td class="num">\(77\)</td><td class="num">\(21\)</td><td class="num">\(12.0\)</td><td class="num">\(5.80\)</td></tr>
     
-    <tr><td class="">L3</td><td class="num">\(6\)</td><td class="num">\(10\)</td><td class="num">\(86\)</td><td class="num">\(1\)</td><td class="num">\(100\)</td><td class="num">\(30\)</td><td class="num">\(13.1\)</td><td class="num">\(6.52\)</td></tr>
+    <tr><td class=" nw">L3</td><td class="num">\(6\)</td><td class="num">\(10\)</td><td class="num">\(86\)</td><td class="num">\(1\)</td><td class="num">\(100\)</td><td class="num">\(30\)</td><td class="num">\(13.1\)</td><td class="num">\(6.52\)</td></tr>
     
-    <tr><td class="">G36</td><td class="num">\(14\)</td><td class="num">\(20\)</td><td class="num">\(135\)</td><td class="num">\(2\)</td><td class="num">\(165\)</td><td class="num">\(61\)</td><td class="num">\(14.4\)</td><td class="num">\(9.37\)</td></tr>
+    <tr><td class=" nw">G36</td><td class="num">\(14\)</td><td class="num">\(20\)</td><td class="num">\(135\)</td><td class="num">\(2\)</td><td class="num">\(165\)</td><td class="num">\(61\)</td><td class="num">\(14.4\)</td><td class="num">\(9.37\)</td></tr>
     
-    <tr><td class="">L4</td><td class="num">\(84\)</td><td class="num">\(40\)</td><td class="num">\(249\)</td><td class="num">\(5\)</td><td class="num">\(366\)</td><td class="num">\(129\)</td><td class="num">\(15.6\)</td><td class="num">\(15.93\)</td></tr>
+    <tr><td class=" nw">L4</td><td class="num">\(84\)</td><td class="num">\(40\)</td><td class="num">\(249\)</td><td class="num">\(5\)</td><td class="num">\(366\)</td><td class="num">\(129\)</td><td class="num">\(15.6\)</td><td class="num">\(15.93\)</td></tr>
     
-    <tr><td class="">G60</td><td class="num">\(146\)</td><td class="num">\(66\)</td><td class="num">\(407\)</td><td class="num">\(8\)</td><td class="num">\(611\)</td><td class="num">\(258\)</td><td class="num">\(16.2\)</td><td class="num">\(25.12\)</td></tr>
+    <tr><td class=" nw">G60</td><td class="num">\(146\)</td><td class="num">\(66\)</td><td class="num">\(407\)</td><td class="num">\(8\)</td><td class="num">\(611\)</td><td class="num">\(258\)</td><td class="num">\(16.2\)</td><td class="num">\(25.12\)</td></tr>
     
   </table></div>
+  
   <p class="lead" style="margin-top:8px;font-size:14px">Matrix update: OGL's copy of the new coefficients to the GPU. OpenFOAM side: the rest of the pressure solve call outside OGL's timers (gathering the ranks' matrices, conversion, scattering the solution).</p>
   <ul class="notes"><li>On the GPU the pressure solve shrinks, but the rest of the iteration does not: momentum, assembly and the force output still take G16 \(0.015\,\mathrm{s}\), L3 \(0.066\,\mathrm{s}\), G36 \(0.371\,\mathrm{s}\), L4 \(1.193\,\mathrm{s}\), G60 \(2.526\,\mathrm{s}\) per iteration on the GPU runs, against G16 \(0.013\,\mathrm{s}\), L3 \(0.063\,\mathrm{s}\), G36 \(0.371\,\mathrm{s}\), L4 \(1.191\,\mathrm{s}\), G60 \(2.539\,\mathrm{s}\) on the CPU runs (profiling means; same rank count on both sides).</li><li>GPU solve time per CG iteration per million cells: G16 \(0.1\), L3 \(0.0\), G36 \(0.0\), L4 \(0.0\), G60 \(0.0\) \(\mathrm{ms}\): it falls with size up to the largest meshes, where the GPU is finally busy. The OpenFOAM side of the GPU path (gathering the ranks' matrices, conversion, scattering the solution) costs G16 \(21\,\mathrm{ms}\), L3 \(30\,\mathrm{ms}\), G36 \(61\,\mathrm{ms}\), L4 \(129\,\mathrm{ms}\), G60 \(258\,\mathrm{ms}\) per solve.</li></ul>
+  
+  
 </section>
+
 
 <section id="insights">
   <h2><span class="num">6</span> Insights</h2>
-  <p class="lead">Performance and GPU entries of the case's live insight log: what limited speed, what helped, what to try next.</p>
+  <p class="lead">Performance and GPU entries of the case's live insight log: what limited speed, what helped, what to try next.
+    Each entry shows its problem; open it for the diagnosis, the fix and the lesson.</p>
   
-  <div class="insight resolved">
-    <div class="meta"><span class="stage">gpu</span><span class="when">logged 2026-11-11 17:27</span>
-      </div>
-    <dl><dt>Problem</dt><dd>environment.md lists the GPU multigrid options to explore as MaxLevels, MinCoarseRows and ZeroGuess. The OGL source (include/OGL/Preconditioner/Multigrid.hpp, CoarseSolver.cpp) reads them in lower camel case (maxLevels, minCoarseRows, smoother, maxIterSmoother, coarseSolver, maxIterCoarse, cycle, reuseHierarchy) and only from a preconditioner SUB-dictionary; there is no ZeroGuess option. Written as top-level keys they would be ignored silently.</dd>
+  
+  <details class="insight resolved">
+    <summary><span class="stage">gpu</span> <span class="when">logged 2026-11-11 17:27</span>
+      
+      <div class="prob">environment.md lists the GPU multigrid options to explore as MaxLevels, MinCoarseRows and ZeroGuess. The OGL source (include/OGL/Preconditioner/Multigrid.hpp, CoarseSolver.cpp) reads them in lower camel case (maxLevels, minCoarseRows, smoother, maxIterSmoother, coarseSolver, maxIterCoarse, cycle, reuseHierarchy) and only from a preconditioner SUB-dictionary; there is no ZeroGuess option. Written as top-level keys they would be ignored silently.</div></summary>
+    <dl>
       
       <dt>Diagnosis</dt><dd>The option names in the guidance were guessed, not read from the plugin. OGL looks the preconditioner options up in the dictionary of the preconditioner entry (preconditioner { preconditioner Multigrid; minCoarseRows 1000; ... }). Its defaults are weak for a large 3D problem: the coarsest level keeps 64000 rows and is 'solved' by ONE Jacobi sweep (coarseSolver Jacobi, maxIterCoarse 1), with one Jacobi smoothing sweep per level.</dd>
       <dt>Fix</dt><dd>Read the option names and defaults from ~/src/OGL before tuning; write them in a preconditioner sub-dictionary (run.py CONFIGS).</dd>
       <dt>Lesson</dt><dd>Read the plugin's source for option names and defaults before tuning; a misspelt option in an OpenFOAM dictionary is ignored without a warning.</dd>
       <dt>Guideline</dt><dd>environment.md, OGL section: replace 'MaxLevels, MinCoarseRows, ZeroGuess' by the real names, show the sub-dictionary form and the defaults (minCoarseRows 64000, coarse solver = 1 Jacobi sweep).</dd></dl>
-  </div>
+  </details>
   
-  <div class="insight resolved">
-    <div class="meta"><span class="stage">performance</span><span class="when">logged 2026-11-11 17:33</span>
-      </div>
-    <dl><dt>Problem</dt><dd>The study needs the pressure-solve time of CPU runs, but GAMG prints no timings and cfdlib.perf only counts iterations. OpenFOAM's built-in profiling (controlDict: profiling { active true; }) writes <time>/uniform/profiling with the wall time and call count of every section: fvMatrix::solve.p, fvMatrix::solve.U, each function object, for CPU and GPU runs alike (processor0/... in parallel runs).</dd>
+  
+  <details class="insight resolved">
+    <summary><span class="stage">performance</span> <span class="when">logged 2026-11-11 17:33</span>
+      
+      <div class="prob">The study needs the pressure-solve time of CPU runs, but GAMG prints no timings and cfdlib.perf only counts iterations. OpenFOAM's built-in profiling (controlDict: profiling { active true; }) writes <time>/uniform/profiling with the wall time and call count of every section: fvMatrix::solve.p, fvMatrix::solve.U, each function object, for CPU and GPU runs alike (processor0/... in parallel runs).</div></summary>
+    <dl>
       
       <dt>Diagnosis</dt><dd>Profiling is off by default and not mentioned in the guidelines. One quirk: its GAMG entry 'lduMatrix::solver.coarsestLevelCorr' reports almost the whole pressure solve (a nesting artefact), so only fvMatrix::solve.p is used.</dd>
       <dt>Fix</dt><dd>Profiling on in every run of this case (an output decision); run.py reads the totals per section from processor0.</dd>
       <dt>Lesson</dt><dd>Before writing log parsers for timings, check what the solver can already measure about itself.</dd>
       <dt>Guideline</dt><dd>SKILL.md performance section: switch on controlDict profiling for any performance study and read fvMatrix::solve.<field>; cfdlib.perf.summarize could parse uniform/profiling itself.</dd></dl>
-  </div>
+  </details>
   
-  <div class="insight resolved">
-    <div class="meta"><span class="stage">gpu</span><span class="when">logged 2026-11-11 17:33</span>
-      </div>
-    <dl><dt>Problem</dt><dd>OGL's stopping criterion has adaptMinIter (default true): every pressure solve must do at least 0.6 times the iterations of the previous one (log: 'Creating stopping criterion with minIter 421 frequency 6'), and the residual is checked only every few iterations. In a steady SIMPLE run with partial solves (relTol 0.05) this can force far more iterations than the tolerance needs.</dd>
+  
+  <details class="insight resolved">
+    <summary><span class="stage">gpu</span> <span class="when">logged 2026-11-11 17:33</span>
+      
+      <div class="prob">OGL's stopping criterion has adaptMinIter (default true): every pressure solve must do at least 0.6 times the iterations of the previous one (log: 'Creating stopping criterion with minIter 421 frequency 6'), and the residual is checked only every few iterations. In a steady SIMPLE run with partial solves (relTol 0.05) this can force far more iterations than the tolerance needs.</div></summary>
+    <dl>
       
       <dt>Diagnosis</dt><dd>Measured on the 1-million-cell mesh (4 ranks): with OGL's default multigrid, switching adaptMinIter off cut the CG iterations per pressure solve from 132 to 97. With the tuned preconditioner the effect is small (16 with it, 15 without), because the iteration count no longer varies much between solves.</dd>
       <dt>Fix</dt><dd>adaptMinIter false in every tuned GPU configuration (run.py _gpu_mg).</dd>
       <dt>Lesson</dt><dd>Library defaults tuned for transient runs with full solves can waste work in steady runs with partial solves.</dd>
       <dt>Guideline</dt><dd>environment.md OGL section: mention adaptMinIter (default on) and set it off for partial (relTol) solves.</dd></dl>
-  </div>
+  </details>
   
-  <div class="insight resolved">
-    <div class="meta"><span class="stage">performance</span><span class="when">logged 2026-11-11 17:33</span>
-      </div>
-    <dl><dt>Problem</dt><dd>The forces function object costs about 6 % of each iteration on the 2.43 million cell mesh (two calls, cylinder and walls, 0.064 s each per iteration on 16 ranks; profiling): it evaluates the stress tensor on the whole mesh, not only on the patch.</dd>
+  
+  <details class="insight resolved">
+    <summary><span class="stage">performance</span> <span class="when">logged 2026-11-11 17:33</span>
+      
+      <div class="prob">The forces function object costs about 6 % of each iteration on the 2.43 million cell mesh (two calls, cylinder and walls, 0.064 s each per iteration on 16 ranks; profiling): it evaluates the stress tensor on the whole mesh, not only on the patch.</div></summary>
+    <dl>
       
       <dt>Diagnosis</dt><dd>forces builds devRhoReff (needs grad U everywhere) every call; at 2.4 million cells that is not free.</dd>
       <dt>Fix</dt><dd>Kept every iteration (identical on CPU and GPU runs, so the comparison stays fair) and reported as part of the time outside the pressure solve.</dd>
       <dt>Lesson</dt><dd>Every-iteration function objects are a measurable cost on large meshes and dilute any linear-solver speed-up.</dd>
       <dt>Guideline</dt><dd>For long steady runs, evaluate forces every few iterations (executeInterval) once the stopping rule allows it.</dd></dl>
-  </div>
+  </details>
   
-  <div class="insight resolved">
-    <div class="meta"><span class="stage">performance</span><span class="when">logged 2026-11-11 17:58</span>
-      </div>
-    <dl><dt>Problem</dt><dd>OpenFOAM's per-iteration ClockTime in the log, which run.py and case 4 (_loop_us) use for time per iteration, is printed in whole seconds: on a 0.05 s iteration it is useless, on a 0.6 s one it carries a 5-10 % error over 20 iterations. The timeInfo function object's clockTime column has the same 1 s resolution.</dd>
+  
+  <details class="insight resolved">
+    <summary><span class="stage">performance</span> <span class="when">logged 2026-11-11 17:58</span>
+      
+      <div class="prob">OpenFOAM's per-iteration ClockTime in the log, which run.py and case 4 (_loop_us) use for time per iteration, is printed in whole seconds: on a 0.05 s iteration it is useless, on a 0.6 s one it carries a 5-10 % error over 20 iterations. The timeInfo function object's clockTime column has the same 1 s resolution.</div></summary>
+    <dl>
       
       <dt>Diagnosis</dt><dd>Time::elapsedClockTime returns whole seconds. ExecutionTime (CPU time of rank 0, 0.01 s resolution) looked like wall time on the first checks, but on the 90 thousand cell mesh with 16 ranks it was half the wall time (0.020 against 0.039 s per iteration): with 16 ranks on 16 hardware threads, MPI yields the core instead of busy-waiting. That made 16 ranks look fastest on the small meshes. Profiling's totals (time.run()) are high-resolution wall times.</dd>
       <dt>Fix</dt><dd>Time per iteration = profiled wall time of the iteration loop divided by the iteration count, on both sides (includes the first iteration's one-off costs, the same for every run of a mesh up to the GPU's CUDA start-up).</dd>
       <dt>Lesson</dt><dd>Check the resolution AND the meaning (CPU or wall) of a clock before timing with it, on the smallest case too.</dd>
       <dt>Guideline</dt><dd>cfdlib.perf: compute loop time from ExecutionTime differences (or profiling), never from ClockTime; say in SKILL.md that ClockTime has 1 s resolution.</dd></dl>
-  </div>
+  </details>
   
-  <div class="insight resolved">
-    <div class="meta"><span class="stage">gpu</span><span class="when">logged 2026-11-11 18:06</span>
-      </div>
-    <dl><dt>Problem</dt><dd>After the coarse-level fix (CG coarse solve, coarsest level at most 1000 rows) the GPU needed only 15 CG iterations per pressure solve, but the multigrid set-up then cost about 0.9 s per solve on 1 million cells, several times the solve itself, so the GPU was still slower than GAMG.</dd>
+  
+  <details class="insight resolved">
+    <summary><span class="stage">gpu</span> <span class="when">logged 2026-11-11 18:06</span>
+      
+      <div class="prob">After the coarse-level fix (CG coarse solve, coarsest level at most 1000 rows) the GPU needed only 15 CG iterations per pressure solve, but the multigrid set-up then cost about 0.9 s per solve on 1 million cells, several times the solve itself, so the GPU was still slower than GAMG.</div></summary>
+    <dl>
       
       <dt>Diagnosis</dt><dd>OGL rebuilds the multigrid hierarchy (PGM aggregation on the GPU) for every solve by default; a deeper hierarchy costs more to build.</dd>
       <dt>Fix</dt><dd>Reuse the preconditioner for 20 solves (preconditioner { caching 20; }): the pressure matrix changes slowly between SIMPLE iterations, so the stale preconditioner costs about 1-4 extra CG iterations and saves the set-up. reuseHierarchy (recompute only the coarse matrices) helped less.</dd>
       <dt>Lesson</dt><dd>On the GPU, preconditioner set-up can dominate; amortise it over solves.</dd>
       <dt>Guideline</dt><dd>environment.md OGL section: start GPU tuning from minCoarseRows ~1000, coarseSolver CG, maxIterSmoother 2, caching 20, adaptMinIter off (the settings found here), not from the defaults.</dd></dl>
-  </div>
+  </details>
   
-  <div class="insight resolved">
-    <div class="meta"><span class="stage">performance</span><span class="when">logged 2026-11-11 18:39</span>
-      </div>
-    <dl><dt>Problem</dt><dd>The CPU baseline is not 'GAMG on all cores': on this steady 3D case GAMG with the DIC-Gauss-Seidel smoother needs 5 instead of 13 iterations per pressure solve and is about 6 % faster per iteration than with Gauss-Seidel, and 8 ranks beat 16 on every mesh from 0.3 to 4.75 million cells (L4: 1.72 s per iteration on 8 ranks, 1.90 on 16). Case 4 (2D, transient) had found 16 ranks fastest.</dd>
+  
+  <details class="insight resolved">
+    <summary><span class="stage">performance</span> <span class="when">logged 2026-11-11 18:39</span>
+      
+      <div class="prob">The CPU baseline is not 'GAMG on all cores': on this steady 3D case GAMG with the DIC-Gauss-Seidel smoother needs 5 instead of 13 iterations per pressure solve and is about 6 % faster per iteration than with Gauss-Seidel, and 8 ranks beat 16 on every mesh from 0.3 to 4.75 million cells (L4: 1.72 s per iteration on 8 ranks, 1.90 on 16). Case 4 (2D, transient) had found 16 ranks fastest.</div></summary>
+    <dl>
       
       <dt>Diagnosis</dt><dd>A steady 3D SIMPLE iteration is memory-bandwidth bound; hyper-threads add MPI traffic and halo work without adding bandwidth. DIC smoothing does more per sweep but converges GAMG in fewer cycles.</dd>
       <dt>Fix</dt><dd>The study's CPU baseline is the fastest of GAMG GS / GAMG DIC-GS on 8 or 16 ranks per mesh (4-16 on L4).</dd>
       <dt>Lesson</dt><dd>'Best CPU setup' must be measured for each case; smoother and rank count both matter by 5-15 %.</dd>
       <dt>Guideline</dt><dd>primer, parallel section: add this case's numbers (8 ranks best for steady 3D, DIC-GS smoother) next to case 4's.</dd></dl>
-  </div>
+  </details>
   
-  <div class="insight resolved">
-    <div class="meta"><span class="stage">gpu</span><span class="when">logged 2026-11-11 19:15</span>
-      </div>
-    <dl><dt>Problem</dt><dd>Even fully tuned, the GPU only breaks even at about 2 million cells and saves about 11 % of the time per SIMPLE iteration at 4.75 million cells (a factor 1.13), although its pressure solve there is 1.65 times faster than the best GAMG; on a converged L4 run both took about 11.5 minutes.</dd>
+  
+  <details class="insight resolved">
+    <summary><span class="stage">gpu</span> <span class="when">logged 2026-11-11 19:15</span>
+      
+      <div class="prob">Even fully tuned, the GPU only breaks even at about 2 million cells and saves about 11 % of the time per SIMPLE iteration at 4.75 million cells (a factor 1.13), although its pressure solve there is 1.65 times faster than the best GAMG; on a converged L4 run both took about 11.5 minutes.</div></summary>
+    <dl>
       
       <dt>Diagnosis</dt><dd>Three limits stack up. (1) Amdahl: the pressure solve is only about a third of a steady SIMPLE iteration (momentum, assembly and the force output stay on the CPU), so even an infinitely fast solver gives at most about 1.5 times. (2) Each solve pays a fixed host path: the ranks' matrices are gathered and copied through host memory (no CUDA-aware MPI), tens of milliseconds outside OGL's own timers. (3) The consumer GPU's double precision is slow, so CG with multigrid needs 3 times the iterations of GAMG with DIC smoothing and gains only from memory bandwidth.</dd>
       <dt>Fix</dt><dd>Reported as the answer: break-even and gains measured, with the same converged forces on both sides.</dd>
       <dt>Lesson</dt><dd>For steady incompressible OpenFOAM runs, offloading only the pressure solve cannot give more than the pressure share allows; measure that share first (profiling) before investing in GPU tuning.</dd>
       <dt>Guideline</dt><dd>SKILL.md performance study: start by measuring the pressure share with profiling and state the Amdahl bound; it sets expectations before any GPU run.</dd></dl>
-  </div>
+  </details>
   
 </section>
 

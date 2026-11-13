@@ -16,11 +16,11 @@ from pathlib import Path
 from cfdlib.report import load_yaml
 from .analyze import QKEYS, reference, study
 from .gpu_compare import analyse
+from .gpu_run import run_spec, runs_where
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE.parents[1] / "results" / HERE.name
 RUNS = OUT / "runs"
-OPENFOAM_STUDY_WALL = 1740.0  # OpenFOAM's whole study with the live stop (ROADMAP.md, the target's time)
 
 
 def main(names=None):
@@ -28,6 +28,8 @@ def main(names=None):
     numerics = load_yaml(HERE / "numerics.yaml")
     g = problem["given"]
     C = numerics["gpucfd"]["clustered"]
+    tgt = C["target"]             # the target fixed before the runs: drag within tgt["rel"], study time below tgt["wall"]
+    explicit = numerics["gpucfd"]["scheme"]   # this analysis covers the explicit runs; the IMEX ones are gpu_imex.py's
     names = names or [L for L in C["levels"] if (RUNS / f"{L}.json").exists()]
     ref = reference(load_yaml(HERE / problem["reference"]["file"]))
     uni = json.loads((OUT / "gpu_compare.json").read_text())
@@ -48,22 +50,24 @@ def main(names=None):
         wall += r["wall_s"]
         gpu_s += r["gpu_s"]
         rows.append(dict(r, wall_protocol=wall, gpu_protocol=gpu_s))
-    # Check runs (numerics.yaml, gpucfd.clustered.variants): a level name plus the variant's suffix.
+    # Check runs: the explicit runs of the table (numerics.yaml, gpucfd.runs) that have a variant, by variant.
     by = {r["level"]: r for r in rows}
     variants = {}
-    for suf in C.get("variants", {}):
+    for v in C.get("variants", {}):
         w = 0.0
-        for L in C["levels"]:
-            if (RUNS / f"{L}{suf}.json").exists():
-                r = row(L + suf)
+        for nm in runs_where(numerics, family="clustered", variant=v, scheme=explicit):
+            if (RUNS / f"{nm}.json").exists():
+                r = row(nm)
                 w += r["wall_s"]
-                variants[L + suf] = dict(r, wall_variant_levels=w)
+                variants[nm] = dict(r, wall_variant_levels=w)
+    # the run with the cylinder moved (variant s) on each level, where it was made
+    moved = {run_spec(nm, numerics)["level"]: nm for nm in variants if run_spec(nm, numerics)["variant"] == "s"}
     # Two positions of the cylinder in the grid (variant s): both values, their middle and half their distance,
     # per level and quantity, relative to FeatFlow. Two cuts give a range, not a distribution.
     cuts = {}
     for L in C["levels"]:
-        if L in by and L + "s" in variants:
-            a, b = by[L]["rel"], variants[L + "s"]["rel"]
+        if L in by and L in moved:
+            a, b = by[L]["rel"], variants[moved[L]]["rel"]
             cuts[L] = dict(D_h=by[L]["D_h"], first=a, shifted=b, middle={k: 0.5 * (a[k] + b[k]) for k in QKEYS},
                            half_range={k: 0.5 * abs(a[k] - b[k]) for k in QKEYS})
     ug = uni["cost_gpu"]
@@ -98,28 +102,30 @@ def main(names=None):
             st = study([r["sm"][k] for r in rows[-3:]])
             diff = rows[-1]["sm"][k] - ref["value"][k]
             band = st["gci_abs"] + ref["unc"][k]
-            conv[k] = dict(p=st["p"], monotonic=st["monotonic"], extrap=st["extrap"], gci_abs=st["gci_abs"],
+            conv[k] = dict(p=st["p"], monotonic=st["monotonic"], gci_reliable=st["gci_reliable"], gci_basis=st["gci_basis"],
+                           extrap=st["extrap"], gci_abs=st["gci_abs"],
                            gci_rel=st["gci_abs"] / abs(ref["value"][k]), u_ref_rel=ref["unc"][k] / abs(ref["value"][k]),
                            diff=diff, band=band, status="ok" if abs(diff) <= band else ("warn" if abs(diff) <= 2 * band else "fail"))
     conv_shifted = {}
-    sh = [variants.get(L + "s") for L in C["levels"]]
+    sh = [variants.get(moved.get(L)) for L in C["levels"]]
     if all(sh) and len(sh) >= 3:  # the same for the three levels with the shifted cylinder
         for k in QKEYS:
             st = study([r["sm"][k] for r in sh[-3:]])
-            conv_shifted[k] = dict(p=st["p"], monotonic=st["monotonic"], gci_abs=st["gci_abs"],
+            conv_shifted[k] = dict(p=st["p"], monotonic=st["monotonic"], gci_reliable=st["gci_reliable"],
+                                   gci_basis=st["gci_basis"], gci_abs=st["gci_abs"],
                                    gci_rel=st["gci_abs"] / abs(ref["value"][k]))
     fine = rows[-1]
     target = dict(level=fine["level"], rel_cd_mean=fine["rel"]["cd_mean"], rel_cd_max=fine["rel"]["cd_max"], wall=fine["wall_protocol"],
-                  want_rel=0.0025, want_wall=OPENFOAM_STUDY_WALL,
-                  accuracy_met=bool(abs(fine["rel"]["cd_mean"]) <= 0.0025 and abs(fine["rel"]["cd_max"]) <= 0.0025),
-                  time_met=bool(fine["wall_protocol"] < OPENFOAM_STUDY_WALL),
-                  stage2_met=bool(abs(fine["rel"]["cd_mean"]) <= 0.005 and abs(fine["rel"]["cd_max"]) <= 0.005))
-    if "C3" in cuts:  # the target on both cuts
-        c3s = variants["C3s"]
+                  want_rel=tgt["rel"], want_wall=tgt["wall"],
+                  accuracy_met=bool(abs(fine["rel"]["cd_mean"]) <= tgt["rel"] and abs(fine["rel"]["cd_max"]) <= tgt["rel"]),
+                  time_met=bool(fine["wall_protocol"] < tgt["wall"]),
+                  stage2_met=bool(abs(fine["rel"]["cd_mean"]) <= tgt["stage2_rel"] and abs(fine["rel"]["cd_max"]) <= tgt["stage2_rel"]))
+    if fine["level"] in cuts:  # the target on both cuts
+        c3s = variants[moved[fine["level"]]]
         target.update(shifted_rel_cd_mean=c3s["rel"]["cd_mean"], shifted_rel_cd_max=c3s["rel"]["cd_max"],
-                      shifted_wall=variants["C3s"]["wall_variant_levels"],
-                      shifted_accuracy_met=bool(abs(c3s["rel"]["cd_mean"]) <= 0.0025 and abs(c3s["rel"]["cd_max"]) <= 0.0025),
-                      shifted_time_met=bool(variants["C3s"]["wall_variant_levels"] < OPENFOAM_STUDY_WALL),
+                      shifted_wall=c3s["wall_variant_levels"],
+                      shifted_accuracy_met=bool(abs(c3s["rel"]["cd_mean"]) <= tgt["rel"] and abs(c3s["rel"]["cd_max"]) <= tgt["rel"]),
+                      shifted_time_met=bool(c3s["wall_variant_levels"] < tgt["wall"]),
                       shifted_periodic=c3s["periodic"])
     out = dict(clustered=rows, uniform=uni_rows, openfoam=of_rows, cheap_question=cheap, target=target, convergence=conv,
                variants=variants, cuts=cuts, convergence_shifted=conv_shifted,

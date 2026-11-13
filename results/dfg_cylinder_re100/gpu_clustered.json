@@ -287,6 +287,8 @@
   "cd_max": {
    "p": 1.4121336307801335,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "extrap": 3.2357603052758033,
    "gci_abs": 0.024318277338140612,
    "gci_rel": 0.00755226004290081,
@@ -298,6 +300,8 @@
   "cd_min": {
    "p": 1.3872503767993638,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "extrap": 3.1733295901351917,
    "gci_abs": 0.02342639377024678,
    "gci_rel": 0.0074206955463419115,
@@ -309,6 +313,8 @@
   "cd_mean": {
    "p": 1.4001506641966164,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "extrap": 3.204541268794773,
    "gci_abs": 0.023867736915788303,
    "gci_rel": 0.007485803825049649,
@@ -320,6 +326,8 @@
   "cd_amp": {
    "p": 1.7387312997412894,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "extrap": 0.06258920643592016,
    "gci_abs": 0.0010899976870296219,
    "gci_rel": 0.01727413133168973,
@@ -331,6 +339,8 @@
   "cl_max": {
    "p": NaN,
    "monotonic": false,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "extrap": 0.991592281715866,
    "gci_abs": 0.017637650307220504,
    "gci_rel": 0.01788989786714728,
@@ -342,6 +352,8 @@
   "cl_min": {
    "p": 3.1908144668149543,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "extrap": -1.0109937922919014,
    "gci_abs": 0.002828062308461525,
    "gci_rel": 0.002770980118030105,
@@ -353,6 +365,8 @@
   "cl_mean": {
    "p": NaN,
    "monotonic": false,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "extrap": -0.011635626260002547,
    "gci_abs": 0.004986205284398503,
    "gci_rel": 0.2882199586357516,
@@ -364,6 +378,8 @@
   "cl_amp": {
    "p": 1.5602199642117343,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "extrap": 2.0173716923286613,
    "gci_abs": 0.03894773551679926,
    "gci_rel": 0.01939628262788808,
@@ -375,6 +391,8 @@
   "St": {
    "p": 1.709386146109964,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "extrap": 0.3017064603043337,
    "gci_abs": 0.0006904675326234618,
    "gci_rel": 0.002287225164381416,
@@ -725,54 +743,72 @@
   "cd_max": {
    "p": 1.5766707964749147,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "gci_abs": 0.02088476165983519,
    "gci_rel": 0.0064859508260357735
   },
   "cd_min": {
    "p": 1.5944128236473647,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "gci_abs": 0.018824882429616597,
    "gci_rel": 0.005963091143088663
   },
   "cd_mean": {
    "p": 1.5851904892109199,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "gci_abs": 0.019853136807840264,
    "gci_rel": 0.006226676956417094
   },
   "cd_amp": {
    "p": 1.3610944239477192,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "gci_abs": 0.0021605972378718886,
    "gci_rel": 0.034240843706369074
   },
   "cl_max": {
    "p": 0.15832411341933944,
    "monotonic": true,
+   "gci_reliable": false,
+   "gci_basis": "observed order 0.16 is below 0.5: the values barely converge, so the index is inflated",
    "gci_abs": 0.4443623357212724,
    "gci_rel": 0.450717451791533
   },
   "cl_min": {
    "p": 2.775230884463041,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "gci_abs": 0.005087665740735899,
    "gci_rel": 0.004984975250574073
   },
   "cl_mean": {
    "p": NaN,
    "monotonic": false,
+   "gci_reliable": false,
+   "gci_basis": "order 2 assumed: the three values do not approach a limit from one side",
    "gci_abs": 0.003633305369399852,
    "gci_rel": 0.21001765141039608
   },
   "cl_amp": {
    "p": 1.6837236932357051,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "gci_abs": 0.036737230985510544,
    "gci_rel": 0.018295433757724373
   },
   "St": {
    "p": 1.9457275356511725,
    "monotonic": true,
+   "gci_reliable": true,
+   "gci_basis": "observed order",
    "gci_abs": 0.0005492754389684919,
    "gci_rel": 0.00181951583068932
   }

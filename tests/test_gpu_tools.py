@@ -11,6 +11,9 @@ A small lid-driven cavity (64 x 64, Re 100) is enough: the tests are about the r
 5. tolerance_check: the strictest tolerance passes by definition, a very loose one fails, and the
    chosen tolerance is the loosest that passes.
 6. position_spread, check_fit and pick_scheme (no GPU needed).
+7. The record: time_step gives the step and the limit that set it, the perf block names each cost by its
+   clock, cfdlib.runrecord.read returns the record in the common shape, add_timing gives a spread, and a
+   stored tolerance check reads back in one layout (the older layout too).
 """
 import sys
 from pathlib import Path
@@ -45,6 +48,7 @@ def observe(s):
 s0 = make()
 DT = s0.max_dt(1.0)
 s0.close()
+s0b = make()   # kept for the time-step record of test 7 (closed there)
 ARGS = dict(dt=DT, t0=0.0, sample_dt=0.02, observe=observe, u_ref=1.0, log=lambda m: None, ptol=1e-10)
 
 # 1. the options do not change the samples
@@ -64,7 +68,9 @@ p = np.load(part)
 n = len(p["t"])
 check("partial record holds the samples up to the last log line before the end",
       0.74 < p["t"][-1] < 0.76 + ARGS["sample_dt"] and np.array_equal(p["ke"], base["series"]["ke"][:n]), f"ends at t = {p['t'][-1]:.3f}")
-rec = gpu.write_run(OUT / "runs", "cav", opt, dict(level="test"))
+step = gpu.time_step(s0b, 1.0)
+rec = gpu.write_run(OUT / "runs", "cav", opt, dict(level="test", cells=64 * 64, h=1.0 / 64, source=None, pressure_tol=1e-10,
+                                                  scheme="rk3", time_step=step))
 check("write_run saves the record and removes the partial one",
       (OUT / "runs" / "cav.npz").exists() and (OUT / "runs" / "cav.json").exists() and not part.exists())
 
@@ -141,6 +147,57 @@ check("pick_scheme: case 4's levels get the scheme that was measured faster, wit
       and abs(ps[35]["fewer_steps"] - 1) < 1e-12 and abs(ps[140]["fewer_steps"] - 3.318) < 2e-3,
       "; ".join(f"D/h {d}: {p['scheme']}, {p['fewer_steps']:.2f} times fewer steps, gain {p['expected_gain']:.2f}"
                 for d, p in ps.items()))
+
+# 7. what the record holds, and the one reader for it
+import json  # noqa: E402
+
+from cfdlib import runrecord  # noqa: E402
+
+lim = s0b.dt_limits(1.0)
+check("time_step: the step run_transient was given, both limits, and the limit that set it",
+      step["dt"] == DT and step["convective"] == lim["convective"] and step["viscous"] == lim["viscous"]
+      and step["set_by"] == ("viscous" if lim["viscous"] < lim["convective"] else "convective") and step["scheme"] == "rk3"
+      and gpu.time_step(s0b, 1.0, factor=0.5)["dt"] == 0.5 * DT,
+      f"dt {step['dt']:.3g}, convective {step['convective']:.3g}, viscous {step['viscous']:.3g}, set by the {step['set_by']} limit")
+s0b.run(DT, 200, 1e-10)   # a moving field: the step from the field itself is finite and not below the fixed-scale one
+field = gpu.time_step(s0b)
+check("time_step without a scale takes the step from the current field",
+      field["set_by"] == "current field" and DT <= field["dt"] < float("inf"), f"dt {field['dt']:.3g} against {DT:.3g}")
+s0b.close()
+p = rec["perf"]
+check("the perf block names each cost by its clock, and keeps the older names for the GPU-time values",
+      abs(p["us_per_cell_step_wall"] - 1e6 * p["wall_s"] / (p["steps"] * p["cells"])) < 1e-12
+      and abs(p["us_per_cell_step_gpu"] - 1e6 * p["gpu_s"] / (p["steps"] * p["cells"])) < 1e-12
+      and p["ms_per_step"] == p["ms_per_step_gpu"] and p["us_per_cell_step"] == p["us_per_cell_step_gpu"]
+      and p["us_per_cell_step_wall"] > p["us_per_cell_step_gpu"],
+      f"per cell and step: wall {p['us_per_cell_step_wall']:.3f}, GPU {p['us_per_cell_step_gpu']:.3f} microseconds")
+r = runrecord.read(OUT / "runs" / "cav.json")
+check("runrecord.read: the record in the common shape, costs on wall time, the time step's limits",
+      r["tool"] == "gpucfd" and r["cells"] == 4096 and r["steps"] == p["steps"] and r["wall_s"] == p["wall_s"]
+      and abs(r["us_per_cell_step_wall"] - p["us_per_cell_step_wall"]) < 1e-9 and abs(r["flow_time"] - 1.0) < 1e-9
+      and r["time_step"]["set_by"] == step["set_by"] and r["wall_spread"] is None and r["health"] == rec["health"]["status"])
+old = dict(name="M", level="M", cells=1000, dt=0.01, start_time=0.0, end_time=1.0, cores=4, wall_time=20.0, h=dict(wall=0.001, box=0.01),
+           health=dict(status="ok"), perf=dict(steps=100, wall_s=19.0, us_per_cell_step=190.0, lin_iters=dict(p=5.5)))
+ro = runrecord.read(old)
+check("runrecord.read: an OpenFOAM record gives the same keys, with nothing on a GPU clock",
+      set(ro) == set(r) and ro["tool"] == "openfoam" and ro["wall_s"] == 20.0 and abs(ro["us_per_cell_step_wall"] - 200.0) < 1e-9
+      and ro["us_per_cell_step_gpu"] is None and ro["h_min"] == 0.001 and ro["pressure_its"] == 5.5 and ro["cores"] == 4)
+r2 = runrecord.add_timing(OUT / "runs" / "cav.json", 1.05 * p["wall_s"], note="test repeat")
+check("add_timing: a repeat is kept beside the run and gives the spread of its timings",
+      len(r2["walls"]) == 2 and abs(r2["wall_spread"] - 0.05 / 1.025) < 1e-9 and r2["wall_s"] == p["wall_s"],
+      f"spread {100 * r2['wall_spread']:.1f} %")
+(OUT / "tol_new.json").write_text(json.dumps(tc, default=float))
+(OUT / "tol_old.json").write_text(json.dumps([dict(tol=1e-10, d_cd=0.0, d_cl=0.0, health="ok", div="1e-12",
+                                                    perf=dict(ms_per_step=3.0, poisson_its=9.0, wall_s=2.0, steps=100)),
+                                               dict(tol=1e-8, d_cd=2e-5, d_cl=-4e-5, health="ok", div="1e-10",
+                                                    perf=dict(ms_per_step=2.0, poisson_its=6.0, wall_s=1.5, steps=100)),
+                                               dict(tol=1e-6, d_cd=3e-3, d_cl=1e-3, health="ok", div="1e-8",
+                                                    perf=dict(ms_per_step=1.5, poisson_its=4.0, wall_s=1.2, steps=100))]))
+tn, to = gpu.read_tolerance_check(OUT / "tol_new.json"), gpu.read_tolerance_check(OUT / "tol_old.json", rule=1e-4)
+check("read_tolerance_check: a stored check reads back, and the older layout comes out in the same one",
+      tn["chosen"] == tc["chosen"] and tn["runs"][0]["wall_s"] > 0 and to["chosen"] == 1e-8
+      and [x["passes"] for x in to["runs"]] == [True, True, False] and abs(to["runs"][1]["worst"] - 4e-5) < 1e-18
+      and set(to["runs"][0]) == set(tn["runs"][0]))
 
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")
 sys.exit(1 if FAILS else 0)
