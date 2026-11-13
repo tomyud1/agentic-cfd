@@ -32,7 +32,6 @@ OpenFOAM inside the agent workflow; ? means probably, not yet checked.
 
 | # | Case | New for the agent | Candidate reference | gpucfd |
 |---|---|---|---|---|
-| 7 | **Turbulent flat plate, SA model (TMR 2DZP)** | First RANS case; wall-resolved grid (y+ about 0.1 to 1.7); NASA's own grids loaded point for point (cfdlib/structgrid.py) | TMR: 5 nested grids, CFL3D/FUN3D results for Cf at x = 0.97 and drag, with GCI. TMR's main case is compressible at M = 0.2; its incompressible Cf (cf_incomp_results_sa.dat) is 0.87 % higher on the finest grid and is the like-for-like reference. Prepared 2026-11-13: problem statement, reference data and grids are in the case folder [Luminary](https://luminary.ai/verification-and-validation/turbulent_flat_plate/) | ✘ |
 | 8 | **Differentially heated square cavity (buoyancy)** | Buoyancy (Boussinesq) and coupled heat and flow | de Vahl Davis (1983) benchmark (confirm) [Luminary](https://luminary.ai/verification-and-validation/buoyancy_cavity/) | ✘ |
 
 ## Tier 2: harder versions of what works
@@ -144,7 +143,7 @@ From the Luminary V&V manual; most RANS cases are also NASA TMR cases. A case mo
 | DrivAer car | [Luminary](https://luminary.ai/verification-and-validation/drivaer_autocfd4/) | ✘ |
 | Generic truck | [Luminary](https://luminary.ai/verification-and-validation/gtu/) | ✘ |
 
-*6 cases solved and 2 separate studies on them (listed in [README.md](README.md)), 54 planned. Counted by `cfdlib/catalogue.py`.*
+*7 cases solved and 2 separate studies on them (listed in [README.md](README.md)), 53 planned. Counted by `cfdlib/catalogue.py`.*
 
 <!-- /catalogue:backlog -->
 

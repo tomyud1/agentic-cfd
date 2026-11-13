@@ -1,0 +1,32 @@
+FoamFile { version 2.0; format ascii; class dictionary; object fvSolution; }
+
+solvers
+{
+    p
+    {
+        {{ p_solver }}
+        tolerance       {{ p_tol }};
+        relTol          {{ p_relTol }};
+        maxIter         {{ p_maxIter }};
+    }
+    "(U|nuTilda)"
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       {{ u_tol }};
+        relTol          {{ u_relTol }};
+        maxIter         200;
+    }
+}
+
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+    consistent      {{ consistent }};
+}
+
+relaxationFactors
+{
+    {% if relax_p %}fields { p {{ relax_p }}; }
+    {% endif %}equations { U {{ relax_U }}; nuTilda {{ relax_nuTilda }}; }
+}

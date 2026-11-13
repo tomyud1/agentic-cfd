@@ -43,6 +43,8 @@
     <div class="d">OpenFOAM pressure solve on an RTX 4070 (OGL plugin) vs the best CPU setup. Same answer on both sides; the GPU breaks even at about 2.0 million cells and is 1.13 times as fast as the best CPU setup per iteration at 4.75 million cells. No pressure solver could gain more than 1.57 times there: the pressure solve is 36 % of an iteration.</div></a>
   <a class="card" href="results/heated_pipe_re200/report.html"><div class="row"><span class="t">6. Heated pipe, Re = 200, uniform wall heat flux</span><span class="v warn">WARN</span></div>
     <div class="d">Steady, first heat transfer, exact solution (thermal entrance series). Local Nusselt number within 0.005 % RMS of the exact solution; fully developed Nu 0.011 % off, just outside the agent's own 0.01 % rule; gravity tested with a 3D run.</div></a>
+  <a class="card" href="results/turbulent_flat_plate_sa/report.html"><div class="row"><span class="t">7. Turbulent flat plate, Spalart-Allmaras model (NASA TMR 2DZP)</span><span class="v warn">WARN</span></div>
+    <div class="d">Steady, first turbulence model (RANS), NASA's own grids, benchmark (NASA Turbulence Modeling Resource). Grid-converged skin friction within 0.028 % of NASA's incompressible reference; just outside the 0.024 % grid-uncertainty band.</div></a>
 <!-- /catalogue:cards -->
   <footer>Code, workflow and how to reproduce: <a href="https://github.com/tomyud1/agentic-cfd">github.com/tomyud1/agentic-cfd</a></footer>
 </main>

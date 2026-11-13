@@ -1,0 +1,247 @@
+{
+ "name": "noft2_G4",
+ "level": "G4",
+ "variant": "noft2",
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/noft2_G4",
+ "cells": 52224,
+ "points": [
+  273,
+  193
+ ],
+ "cores": 4,
+ "wall_time": 55.337901460000005,
+ "iterations": 3868,
+ "cd_forces": 0.00288277134403287,
+ "live_stop": {
+  "stopped": true,
+  "decision": {
+   "ok": true,
+   "status": "ok",
+   "reason": "all settled: largest error 6.3e-08 (u_wall(x2), tol 3.1e-07)",
+   "quantities": {
+    "Cd": {
+     "state": "settled",
+     "error": 2.1913096426763696e-10,
+     "rho": 0.9849460283838818,
+     "tol": 5.765542688862759e-09,
+     "how": "geometric"
+    },
+    "u_wall(x1)": {
+     "state": "settled",
+     "error": 9.622635511617286e-09,
+     "rho": 0.9904675591717869,
+     "tol": 3.3960081892334e-07,
+     "how": "geometric"
+    },
+    "u_wall(x2)": {
+     "state": "settled",
+     "error": 6.27911705126515e-08,
+     "rho": 0.9937297593820399,
+     "tol": 3.0939842165282e-07,
+     "how": "geometric, slowing (x10)"
+    },
+    "nuTilda(x1)": {
+     "state": "settled",
+     "error": 6.146591670716167e-10,
+     "rho": 0.9857800561378158,
+     "tol": 2.1273271296575003e-08,
+     "how": "geometric"
+    },
+    "nuTilda(x2)": {
+     "state": "settled",
+     "error": 5.708584752246913e-10,
+     "rho": 0.9834181468226733,
+     "tol": 3.6921510504851e-08,
+     "how": "geometric"
+    }
+   },
+   "alternation": {
+    "Cd": 4.752709972641971e-11,
+    "u_wall(x1)": 2.2143763286521426e-11,
+    "u_wall(x2)": 1.0342817257869335e-11,
+    "nuTilda(x1)": 1.7026053416684236e-10,
+    "nuTilda(x2)": 1.0692944003835492e-10
+   },
+   "stop": true,
+   "t": 3865.0
+  },
+  "checks": 11,
+  "last": {
+   "ok": true,
+   "status": "ok",
+   "reason": "all settled: largest error 6.3e-08 (u_wall(x2), tol 3.1e-07)",
+   "quantities": {
+    "Cd": {
+     "state": "settled",
+     "error": 2.1913096426763696e-10,
+     "rho": 0.9849460283838818,
+     "tol": 5.765542688862759e-09,
+     "how": "geometric"
+    },
+    "u_wall(x1)": {
+     "state": "settled",
+     "error": 9.622635511617286e-09,
+     "rho": 0.9904675591717869,
+     "tol": 3.3960081892334e-07,
+     "how": "geometric"
+    },
+    "u_wall(x2)": {
+     "state": "settled",
+     "error": 6.27911705126515e-08,
+     "rho": 0.9937297593820399,
+     "tol": 3.0939842165282e-07,
+     "how": "geometric, slowing (x10)"
+    },
+    "nuTilda(x1)": {
+     "state": "settled",
+     "error": 6.146591670716167e-10,
+     "rho": 0.9857800561378158,
+     "tol": 2.1273271296575003e-08,
+     "how": "geometric"
+    },
+    "nuTilda(x2)": {
+     "state": "settled",
+     "error": 5.708584752246913e-10,
+     "rho": 0.9834181468226733,
+     "tol": 3.6921510504851e-08,
+     "how": "geometric"
+    }
+   },
+   "alternation": {
+    "Cd": 4.752709972641971e-11,
+    "u_wall(x1)": 2.2143763286521426e-11,
+    "u_wall(x2)": 1.0342817257869335e-11,
+    "nuTilda(x1)": 1.7026053416684236e-10,
+    "nuTilda(x2)": 1.0692944003835492e-10
+   },
+   "stop": true,
+   "t": 3865.0
+  }
+ },
+ "monitored": [
+  "Cd",
+  "u_wall(x1)",
+  "u_wall(x2)",
+  "nuTilda(x1)",
+  "nuTilda(x2)"
+ ],
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0556\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: nuTilda",
+    "status": "ok",
+    "value": "\\(\\times\\,0.153\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,0.153\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.757\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 3868,
+  "last_time": 3868.0,
+  "wall_time": 54.52,
+  "est_full_runtime": null,
+  "est_kind": null
+ },
+ "mesh_ok": false,
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/noft2_G4",
+  "solver": "simpleFoam",
+  "cells": 52224,
+  "cores": 4,
+  "steps": 3868,
+  "wall_s": 55.337901460000005,
+  "cpu_s": 220.016785,
+  "solver_cpu_s": 54.52,
+  "peak_mem_mb": 125.62109375,
+  "us_per_cell_step": 0.27394670901783996,
+  "cpu_efficiency": 0.993969680793891,
+  "write_share": 0.024176946083997786,
+  "lin_iters": {
+   "Ux": 1.2864529472595656,
+   "Uy": 1.0974663908996898,
+   "p": 1.8399689762150981,
+   "nuTilda": 1.0
+  },
+  "lin_solves_per_step": {
+   "Ux": 1.0,
+   "Uy": 1.0,
+   "p": 1.0,
+   "nuTilda": 1.0
+  },
+  "lin_iters_by_solve": {
+   "Ux": {
+    "solve 1": 1.2864529472595656,
+    "last": 1.2864529472595656
+   },
+   "Uy": {
+    "solve 1": 1.0974663908996898,
+    "last": 1.0974663908996898
+   },
+   "p": {
+    "solve 1": 1.8399689762150981,
+    "last": 1.8399689762150981
+   },
+   "nuTilda": {
+    "solve 1": 1.0,
+    "last": 1.0
+   }
+  }
+ },
+ "model_coeffs": {
+  "ft2": "false",
+  "sigmaNut": "0.66666666666667",
+  "Cs": "0.3",
+  "kappa": "0.41",
+  "Cb1": "0.1355",
+  "Cb2": "0.622",
+  "Cw2": "0.3",
+  "Cw3": "2",
+  "Cv1": "7.1",
+  "ck": "0.07",
+  "Ct3": "1.2",
+  "Ct4": "0.5"
+ },
+ "ft2": "inactive",
+ "final_residuals": {
+  "Ux": 1.781591567672e-11,
+  "Uy": 3.5242355670567e-10,
+  "p": 2.7041706165962e-10,
+  "nuTilda": 8.3437337480942e-11
+ },
+ "bounding": 0
+}

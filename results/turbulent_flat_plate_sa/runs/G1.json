@@ -1,0 +1,247 @@
+{
+ "name": "G1",
+ "level": "G1",
+ "variant": null,
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/G1",
+ "cells": 816,
+ "points": [
+  35,
+  25
+ ],
+ "cores": 1,
+ "wall_time": 10.235745862000044,
+ "iterations": 8433,
+ "cd_forces": 0.0028670288366084,
+ "live_stop": {
+  "stopped": true,
+  "decision": {
+   "ok": true,
+   "status": "ok",
+   "reason": "all settled: largest error 8.2e-10 (u_wall(x2), tol 2.5e-06)",
+   "quantities": {
+    "Cd": {
+     "state": "settled",
+     "error": 1.6990011827977547e-13,
+     "rho": 4.148680881821467,
+     "tol": 5.734057673041e-09,
+     "how": "noise floor"
+    },
+    "u_wall(x1)": {
+     "state": "settled",
+     "error": 1.9259993599973768e-10,
+     "rho": 1.6580312818182341,
+     "tol": 2.7262636704574e-06,
+     "how": "noise floor"
+    },
+    "u_wall(x2)": {
+     "state": "settled",
+     "error": 8.15700174072731e-10,
+     "rho": 3.5557976471408135,
+     "tol": 2.539922366768e-06,
+     "how": "noise floor"
+    },
+    "nuTilda(x1)": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 2.4309000283989004e-08,
+     "how": "geometric"
+    },
+    "nuTilda(x2)": {
+     "state": "settled",
+     "error": 1.8369984353117097e-13,
+     "rho": 86.46924290220821,
+     "tol": 3.6801404385471e-08,
+     "how": "noise floor"
+    }
+   },
+   "alternation": {
+    "Cd": 7.420224699900383e-11,
+    "u_wall(x1)": 9.573546140872331e-11,
+    "u_wall(x2)": 9.264849540229219e-10,
+    "nuTilda(x1)": 2.6739103988436307e-12,
+    "nuTilda(x2)": 2.3586153848443844e-11
+   },
+   "stop": true,
+   "t": 8374.0
+  },
+  "checks": 2,
+  "last": {
+   "ok": true,
+   "status": "ok",
+   "reason": "all settled: largest error 8.2e-10 (u_wall(x2), tol 2.5e-06)",
+   "quantities": {
+    "Cd": {
+     "state": "settled",
+     "error": 1.6990011827977547e-13,
+     "rho": 4.148680881821467,
+     "tol": 5.734057673041e-09,
+     "how": "noise floor"
+    },
+    "u_wall(x1)": {
+     "state": "settled",
+     "error": 1.9259993599973768e-10,
+     "rho": 1.6580312818182341,
+     "tol": 2.7262636704574e-06,
+     "how": "noise floor"
+    },
+    "u_wall(x2)": {
+     "state": "settled",
+     "error": 8.15700174072731e-10,
+     "rho": 3.5557976471408135,
+     "tol": 2.539922366768e-06,
+     "how": "noise floor"
+    },
+    "nuTilda(x1)": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 2.4309000283989004e-08,
+     "how": "geometric"
+    },
+    "nuTilda(x2)": {
+     "state": "settled",
+     "error": 1.8369984353117097e-13,
+     "rho": 86.46924290220821,
+     "tol": 3.6801404385471e-08,
+     "how": "noise floor"
+    }
+   },
+   "alternation": {
+    "Cd": 7.420224699900383e-11,
+    "u_wall(x1)": 9.573546140872331e-11,
+    "u_wall(x2)": 9.264849540229219e-10,
+    "nuTilda(x1)": 2.6739103988436307e-12,
+    "nuTilda(x2)": 2.3586153848443844e-11
+   },
+   "stop": true,
+   "t": 8374.0
+  }
+ },
+ "monitored": [
+  "Cd",
+  "u_wall(x1)",
+  "u_wall(x2)",
+  "nuTilda(x1)",
+  "nuTilda(x2)"
+ ],
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: nuTilda",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.644\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 8433,
+  "last_time": 8433.0,
+  "wall_time": 9.81,
+  "est_full_runtime": null,
+  "est_kind": null
+ },
+ "mesh_ok": false,
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/G1",
+  "solver": "simpleFoam",
+  "cells": 816,
+  "cores": 1,
+  "steps": 8433,
+  "wall_s": 10.235745862000044,
+  "cpu_s": 10.007539,
+  "solver_cpu_s": 9.81,
+  "peak_mem_mb": 85.41015625,
+  "us_per_cell_step": 1.487466643357219,
+  "cpu_efficiency": 0.9777049112906118,
+  "write_share": 0.12072846265045722,
+  "lin_iters": {
+   "Ux": 0.4407684098185699,
+   "Uy": 0.9815012451085023,
+   "p": 0.37507411360132814,
+   "nuTilda": 0.528163168504684
+  },
+  "lin_solves_per_step": {
+   "Ux": 1.0,
+   "Uy": 1.0,
+   "p": 1.0,
+   "nuTilda": 1.0
+  },
+  "lin_iters_by_solve": {
+   "Ux": {
+    "solve 1": 0.4407684098185699,
+    "last": 0.4407684098185699
+   },
+   "Uy": {
+    "solve 1": 0.9815012451085023,
+    "last": 0.9815012451085023
+   },
+   "p": {
+    "solve 1": 0.37507411360132814,
+    "last": 0.37507411360132814
+   },
+   "nuTilda": {
+    "solve 1": 0.528163168504684,
+    "last": 0.528163168504684
+   }
+  }
+ },
+ "model_coeffs": {
+  "ft2": "true",
+  "sigmaNut": "0.66666666666667",
+  "kappa": "0.41",
+  "Cb1": "0.1355",
+  "Cb2": "0.622",
+  "Cw2": "0.3",
+  "Cw3": "2",
+  "Cv1": "7.1",
+  "Cs": "0.3",
+  "ck": "0.07",
+  "Ct3": "1.2",
+  "Ct4": "0.5"
+ },
+ "ft2": "active",
+ "final_residuals": {
+  "Ux": 5.4053221788656e-13,
+  "Uy": 5.341370088279e-11,
+  "p": 4.6791319574129e-11,
+  "nuTilda": 1.1186077184181e-12
+ },
+ "bounding": 0
+}

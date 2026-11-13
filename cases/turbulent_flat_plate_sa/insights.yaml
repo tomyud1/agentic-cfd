@@ -1,0 +1,299 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling | performance
+
+- id: 1
+  stage: setup
+  logged: 2026-11-13 22:23
+  status: resolved
+  problem: 'OpenFOAM v2606 runs the Spalart-Allmaras model without the model''s f_t2 term unless the case asks for
+    it: the problem asks for the standard form (NASA''s SA), which has the term.'
+  diagnosis: 'Read in the solver''s source (<code>SpalartAllmarasBase.C</code>): the switch <code>ft2</code> is
+    false unless the case sets it, and the log then says <code>ft2 term: inactive</code>. That is NASA''s variant
+    SA-noft2, not SA. The default \(\sigma\) is 0.66666, not \(2/3\). The source also limits the model''s \(\tilde
+    S\) to at least \(0.3\,\Omega\), which the standard model does not have.'
+  fix: <code>SpalartAllmarasCoeffs { ft2 true; sigmaNut 0.666666666666667; }</code>; <code>printCoeffs on</code>,
+    and the analysis reads the coefficients the solver printed and compares them with NASA's list. A variant run
+    without the term measures what it is worth here; the analysis checks in the solution whether the limiter ever
+    acted.
+  lesson: 'A model name is not a model definition: the same name covers several published variants, and a solver''s
+    default may be another one than the benchmark''s. The source and the start-up log settle it in minutes.'
+  guideline: 'Primer, new section ''Turbulence models'': for each model used so far, which published variant OpenFOAM''s
+    default is, the switches that change it (Spalart-Allmaras: <code>ft2</code>, <code>sigmaNut</code>, the limiter
+    <code>Cs</code>), and the advice to switch <code>printCoeffs</code> on and compare the printed coefficients
+    with the reference in code.'
+  resolved: 2026-11-13 22:31
+- id: 2
+  stage: tooling
+  logged: 2026-11-13 22:23
+  status: resolved
+  problem: 'monitor.preflight() cannot run a decomposed (MPI) case: it copies the case without its processor folders,
+    so the solver finds no mesh for its ranks.'
+  diagnosis: <code>monitor.preflight()</code> copies the prepared case with <code>ignore_patterns('processor*')</code>,
+    so the copy has no decomposed mesh and <code>mpirun ... -parallel</code> cannot start.
+  fix: The short run on the finest grid is its own case (<code>pfG5</code>, its iteration count as the end), judged
+    with <code>monitor.assess</code> and <code>foam.ignored_settings</code> directly.
+  lesson: The pre-flight tool only fits serial runs; a case whose finest level needs MPI has to write its own short
+    run.
+  guideline: '<code>monitor.preflight</code>: accept a rank count (decompose inside the copy) or copy the processor
+    folders; say in its docstring that it is serial only until then.'
+  resolved: 2026-11-13 22:31
+- id: 3
+  stage: preflight
+  logged: 2026-11-13 22:25
+  status: resolved
+  problem: On the coarsest grid the live stop reported every monitored value settled (changes of zero), yet the
+    solver's residuals had stalled near one thousandth and the momentum balance was 8.5 per cent off.
+  diagnosis: 'The iteration had locked into a cycle of period 2: the whole wall layer flipped between two states
+    every iteration (wall-cell velocity changing by \(2\ \mathrm{m/s}\), the drag coefficient alternating between
+    0.00275 and 0.00318). The velocity equation and the turbulence equation are solved one after the other, and
+    with the turbulence variable relaxed by 0.9 each over-corrects the other. The stop rule sampled every 20 iterations,
+    always the same phase of the cycle, so it saw a constant; <code>steady_check</code> then reports an error of
+    zero.'
+  fix: 'Relaxation of the turbulence variable 0.5 (velocity 0.9): residuals fall to \(10^{-12}\) and the momentum
+    balance closes to \(1.7 \times 10^{-5}\). The stop rule now also needs the change between consecutive iterations
+    to be below the tolerance, and samples at an odd interval (25).'
+  lesson: Monitored values that have stopped changing do not prove convergence when they are sampled at a fixed
+    even interval. Residuals stuck at \(10^{-3}\) with 'zero' change were the sign; the momentum balance, the physical
+    check, is what showed it plainly (8.5 % off).
+  guideline: '<code>monitor.steady_check</code>: also test the change between consecutive rows over the last samples
+    and report ''oscillating'' (or default to an odd interval). <code>monitor.assess</code>: warn when residuals
+    are flat above \(10^{-6}\) over the last half of a steady run. Primer, steady runs: with a turbulence model
+    the relaxation of the turbulence variable can cause a period-2 cycle on wall-resolved grids (0.9 and 0.7 cycled
+    here, 0.5 and 0.3 converged); run the coarsest grid to its physical check before trusting a stop.'
+  resolved: 2026-11-13 22:31
+- id: 4
+  stage: preflight
+  logged: 2026-11-13 22:28
+  status: resolved
+  problem: 'Trial runs that ended at their endTime gave a different drag than the same setup stopped by the live
+    stop: the drag coefficient jumped from 0.00275 to 0.00318 in the last iteration.'
+  diagnosis: 'Not the end time. It was the same period-2 cycle as in insight 3, caught on the other phase: a run
+    that stops on an even iteration gives 0.00318, on an odd one 0.00275. My first explanation (a last iteration
+    without relaxation) was a guess; printing the last six values of the drag history showed the alternation at
+    once.'
+  fix: As insight 3. The trials were repeated with a stop at a fixed iteration through the stop file and with the
+    last three iterations kept, so consecutive fields could be compared.
+  lesson: When one setup gives two answers, look at the raw history before explaining it. An explanation is a claim
+    to check.
+  guideline: 'Workflow stage 4: ''if the same setup gives two different answers, print the last few rows of the
+    monitored history first''. A trial-run helper in <code>cfdlib</code> (run N iterations, keep the last 3, report
+    the largest change between consecutive fields) would make this check one call.'
+  resolved: 2026-11-13 22:31
+- id: 5
+  stage: preflight
+  logged: 2026-11-13 22:31
+  status: resolved
+  problem: 'The converged drag depends slightly on the velocity relaxation factor: on the coarsest grid, relaxation
+    0.9, 0.7, 0.5 and 0.3 gave drag coefficients \(2.0 \times 10^{-5}\) apart (relative), each converged to \(10^{-9}\).'
+  diagnosis: 'A known property of the face-velocity interpolation in OpenFOAM''s SIMPLE solvers (Rhie-Chow interpolation
+    built from the relaxed matrix): the pressure smoothing term carries the relaxation factor, so the converged
+    solution does too, at the level of the discretisation error.'
+  fix: Every run of the study, the variants included, uses the same factors (velocity 0.9, turbulence variable 0.5),
+    so the dependence is part of each grid's discretisation error and shrinks with it. The value is quoted in the
+    report.
+  lesson: '''Relaxation only changes how the answer is reached'' is true only to the discretisation error. A study
+    that tunes relaxation per grid level adds a small irregular error to its grid convergence.'
+  guideline: 'Primer, steady runs: state that the converged answer of <code>simpleFoam</code> depends weakly on
+    the velocity relaxation factor (measured here: \(2 \times 10^{-5}\) of the drag on an 816-cell grid), so one
+    study should keep one set of factors, or measure the dependence when it changes them.'
+- id: 6
+  stage: analysis
+  logged: 2026-11-13 22:42
+  status: resolved
+  problem: 'My check that OpenFOAM''s limiter on the model''s \(\tilde S\) never acts found it acting: in 3, 8 and
+    21 cells on grids G2 to G4, with \(\tilde S\) negative before limiting.'
+  diagnosis: 'All those cells sit right behind the leading edge, where the free-stream \(\tilde\nu = 3\nu\) meets
+    the wall before the turbulent layer has formed: \(f_{v2}\) is negative for \(\chi\) between 1 and 18, and \(\tilde\nu
+    f_{v2}/(\kappa^2 d^2)\) outweighs the vorticity in a wall cell. NASA''s page of the model says in Note 1 that
+    \(\tilde S\) must never reach zero, and lists Spalart''s own recommendation, a floor of \(0.3\,\Omega\), as
+    method (b). That is exactly OpenFOAM''s limiter, so it is part of the standard form, not a departure from it.
+    I had written ''which the standard model does not have'' in a decision from memory of the equations alone.'
+  fix: Decision and report reworded; the analysis reports how many cells are limited and how far from the leading
+    edge the last one is. A variant with the floor at \(0.1\,\Omega\) measures the effect on the skin friction at
+    the station.
+  lesson: 'Read the notes under a model''s equations as well as the equations: the notes say what an implementation
+    may do where the equations break down.'
+  guideline: 'Primer, ''Turbulence models'' (proposed in insight 1): say that <code>Cs</code> is NASA''s Note 1(b)
+    and that it acts only where the layer starts. A helper in <code>cfdlib</code> that evaluates a model''s switches
+    and limiters on a solution (how many cells, where) would make this check reusable for other models.'
+- id: 7
+  stage: production
+  logged: 2026-11-13 22:42
+  status: resolved
+  problem: 'The coarse grids ran far longer than they needed: G1 did 8433 iterations although the stop rule held
+    from about iteration 350.'
+  diagnosis: <code>foam.run</code> calls the live check every <code>watch_every</code> seconds of wall time (5 s
+    here), and the rule must hold twice in a row. An 816-cell grid does about 800 iterations per second, so two
+    checks are thousands of iterations apart. Harmless here (10 s), but the iteration counts of the coarse grids
+    say nothing about how fast they converge, and extrapolating them to the finest grid would mislead.
+  fix: None needed for the answer. The report gives the iteration at which the rule first held (<code>monitor.steady_replay</code>
+    on the stored history) next to the iterations run.
+  lesson: A stop rule checked on wall time overshoots on small grids; the recorded history gives the true count.
+  guideline: '<code>monitor.LiveStop</code> or <code>foam.run</code>: let the check interval be given in iterations
+    (function-object rows) as well as in seconds, or record in <code>live_stop.json</code> the first iteration at
+    which the rule held.'
+- id: 8
+  stage: setup
+  logged: 2026-11-13 22:42
+  status: resolved
+  problem: 'Worked first time: NASA''s PLOT3D grids became OpenFOAM meshes through <code>cfdlib.structgrid</code>
+    without any change, including the patch split at the leading edge and the cell numbering that lets a field be
+    reshaped to rows and columns.'
+  diagnosis: The tool was written for this benchmark family, with the two pitfalls in its docstring (digits of the
+    wall cells, right-handedness). <code>digits_needed</code> gave the write precision; <code>mapFields</code> between
+    the nested grids and a strip-wise decomposition for MPI worked on these meshes as on any other.
+  fix: Nothing to fix.
+  lesson: 'With the grid given, the whole mesh stage took minutes, and extracting profiles needed no sampling at
+    all: a profile is a column of the reshaped field.'
+  guideline: 'Keep. One addition would help: a function that returns the cell-centre coordinates and the plate''s
+    face centres for a grid, since every analysis rebuilds them from the points.'
+- id: 9
+  stage: report
+  logged: 2026-11-13 22:47
+  status: resolved
+  problem: 'The report contract rejects the given problem description: it is longer than the 600 characters allowed
+    for the overview, and the workflow says to pass it to the report unchanged.'
+  diagnosis: The given description is 760 characters; <code>cfdlib.contract</code> allows 600 for the overview.
+    The problem file may not be edited, and the workflow says to pass description and setup to the report unchanged,
+    so the two rules cannot both hold for this problem.
+  fix: <code>analyze.py</code> takes the first sentences that fit into 600 characters as the overview and moves
+    the remaining sentences, word for word, to the top of the setup list. Nothing is reworded or dropped.
+  lesson: A limit that the report enforces has to be checked where the problem statement is written, not when the
+    solver agent renders its report.
+  guideline: 'Check <code>problem.yaml</code> against the contract when a case is prepared (a test next to <code>tests/test_catalogue.py</code>,
+    or a <code>cfdlib.contract --problem</code> mode): description length, lettered outputs, reference file present.
+    Or let <code>report.render</code> do the split itself.'
+  resolved: 2026-11-13 22:55
+- id: 10
+  stage: report
+  logged: 2026-11-13 22:55
+  status: resolved
+  problem: 'The summary table ran off the page (1265 pixels wide in an 884 pixel column): I had written a sentence
+    in the ''Difference'' cell of each answer.'
+  diagnosis: The last column of the answers table has the class <code>num</code> and does not wrap. The contract
+    describes <code>diff</code> only as a key; the worked examples put one number there.
+  fix: Each <code>diff</code> is now one number, and the sentence that says what it is the difference of went into
+    the 'This solution' cell. The overflow check of the visual review found it at once.
+  lesson: The visual review's one-line overflow script is worth running after the very first render, before reading
+    any text.
+  guideline: '<code>report-contract.md</code>: say that <code>summary.answers[].diff</code> is a single value (it
+    does not wrap). <code>cfdlib.contract</code> could warn when it is longer than about 30 characters of visible
+    text.'
+- id: 11
+  stage: report
+  logged: 2026-11-13 22:55
+  status: resolved
+  problem: 'Three slips of mine that the checks or the review caught: figure references rendered as a bare number
+    (''6: from ...'') because I wrote the placeholder without the word Figure; parameter values in the theory section
+    given as LaTeX strings, which the typesetting check rejected as plain-text math; and a patch script piped through
+    a shell heredoc that lost its backslashes, although the machine file warns of exactly that.'
+  diagnosis: 'The figure placeholder (the word fig, a colon and the figure''s key, in braces) inserts the number
+    only; the contract says so. <code>theory.derived[].params[].value</code> must be a number; the template formats
+    it. The heredoc: Git Bash, as documented. A fourth slip followed from this very entry: quoting the placeholder
+    literally in an insight made the contract look for a figure called ''key'' and refuse the report.'
+  fix: '''Figure'' added before every placeholder; values passed as numbers; files with LaTeX edited with the file
+    tool only.'
+  lesson: All three were documented. Under time pressure I skipped re-reading the contract page before writing <code>analyze.py</code>;
+    ten minutes lost.
+  guideline: '<code>report-contract.md</code>: one line each for ''params value is a number'' and ''write the word
+    Figure before a figure placeholder''. The contract could warn when a placeholder is not preceded by ''Figure''
+    or ''Figures'', and should skip placeholders inside <code>code</code> tags, so that an insight can quote one.'
+  resolved: 2026-11-13 23:03
+- id: 12
+  stage: analysis
+  logged: 2026-11-13 22:55
+  status: resolved
+  problem: 'Two statements in my first draft of the findings were wrong and had not been computed: ''the drag converges
+    more slowly'' (its observed order on the three finest grids is higher than that of the skin friction), and an
+    explanation of the difference to CFL3D built on the sensitivity measured with the lid variant, which mixes a
+    faster stream with an accelerating one.'
+  diagnosis: The first was written before the numbers existed, from what NASA's page says about its own codes. The
+    second fitted the data to two digits, which made it look confirmed; but the lid squeezes the stream, so it changes
+    the speed and the pressure gradient together and is not a clean measure of the effect of speed.
+  fix: The drag sentence now prints the observed order of all three grid triplets and decides 'regular or not' in
+    code. For the speed effect a clean variant was added (inflow 0.3 % faster, nothing else changed), and the text
+    states what that explains and what is left, as an estimate from two stations.
+  lesson: A good fit does not validate an explanation whose input measures two things at once. Change one thing,
+    measure, then explain.
+  guideline: 'Workflow stage 5, next to ''an explanation is a claim'': when an explanation needs a sensitivity,
+    measure it with a variant that changes only that quantity. Stage 6: write no finding before its numbers exist;
+    build each from the data, including words like ''slower'' or ''same shape''.'
+- id: 13
+  stage: analysis
+  logged: 2026-11-13 22:55
+  status: resolved
+  problem: 'The verdict is WARN for a difference of 0.028 %: the acceptance rule set before the runs judged the
+    grid-converged skin friction against the two grid-convergence indices only (0.024 % together).'
+  diagnosis: 'The rule follows the workflow (''your GCI band + the reference''s own uncertainty''), and I took the
+    reference''s uncertainty to be its grid-convergence index. NASA''s page states other, larger uncertainties in
+    words: boundary-condition variations change the results by up to 0.2 %, the codes were not converged to machine
+    zero, and the files carry more digits than the convergence supports. None of these were in the band, so the
+    band was sharper than what the reference can support. The rule was not changed after the fact.'
+  fix: None to the rule. The report gives the difference, the band, and measured sizes of the things outside the
+    band (far field, stream speed, relaxation factor, station interpolation), so a reader can judge the 0.028 %.
+  lesson: A reference's uncertainty is more than its grid error. When its authors state sensitivities in words,
+    those belong in the band, and they must be written into the rule before the runs.
+  guideline: 'Workflow stage 0 (''if a reference gives no uncertainty, estimate one''): add ''include what the reference
+    says about its own sensitivity to boundary conditions and iteration, not only its grid levels''. The reference
+    YAML of a benchmark could carry such statements as numbers (here: <code>boundary_variation_percent: 0.2</code>).'
+- id: 14
+  stage: intake
+  logged: 2026-11-13 22:55
+  status: resolved
+  problem: The reference offers the incompressible skin friction as the like-for-like value and calls its 0.87 %
+    distance from the Mach 0.2 results the difference between compressible and incompressible. The profiles in the
+    same reference show that CFL3D's stream above the plate runs at 0.9985 of the reference speed at the first station,
+    while an incompressible set-up with a uniform inflow runs at 1.0018.
+  diagnosis: NASA's compressible set-up fixes the total pressure at the inflow and the static pressure at the outflow;
+    the speed over the plate follows from them and is not the reference speed. The skin friction is referred to
+    the reference speed, so it carries that difference. The clean speed variant measures how much.
+  fix: Reported in Section 7 with the measured sensitivity; the compressible results stay context only, as the problem
+    statement says.
+  lesson: Two set-ups can agree on the Reynolds number and still not have the same stream over the plate. The edge
+    velocity of a published profile is a cheap check of that.
+  guideline: When a benchmark's reference is parsed (<code>setup/parse_tmr_flatplate.py</code>), store the free-stream
+    velocity of each published profile in the YAML and say in the problem statement which reference speed the coefficients
+    use. For the next NASA cases (bump, airfoil) do the same.
+- id: 15
+  stage: performance
+  logged: 2026-11-13 22:55
+  status: resolved
+  problem: The finest grid needed 11,062 iterations (10 minutes on 8 ranks) although it started from the converged
+    solution of the grid before; its residuals were at \(10^{-9}\) after 5,000 iterations while the monitored values
+    still moved.
+  diagnosis: 'The slowest mode is the outer part of the boundary layer adjusting through the turbulence equation,
+    relaxed by 0.5 to avoid the period-2 cycle: the monitored values approach their limits non-monotonically (they
+    overshoot and return, see the history figure), about one decade per 2,400 iterations. The pressure solve is
+    cheap (3 to 5 multigrid cycles); the cost is the number of outer iterations. The stop rule waited correctly:
+    the drag crossed its final value twice before settling.'
+  fix: 'None needed: the run stayed inside the 15 minute budget.'
+  lesson: 'On this kind of flow the residuals fall long before the answer has settled: stopping on residuals at
+    \(10^{-8}\) would have left the skin friction \(10^{-5}\) off.'
+  guideline: 'Primer, steady runs with a turbulence model: say that grid sequencing saves less here than in laminar
+    cases (the mapped solution is close, but the slow mode still has to decay), and that the relaxation of the turbulence
+    variable limits the speed. Worth a trial in <code>dev/steady_speed/</code>: relaxation 0.5 for the first few
+    hundred iterations, then 0.7 to 0.8 once the wall layer has formed; and a coupled solve of velocity and turbulence.'
+- id: 16
+  stage: production
+  logged: 2026-11-13 23:01
+  status: resolved
+  problem: 'The variant with a faster inflow converged in 995 iterations to exactly the drag of the main run: the
+    changed inflow velocity never reached the solver.'
+  diagnosis: 'Every variant starts from the main solution of its grid through <code>mapFields -consistent</code>.
+    That maps boundary fields too: the fixed inflow velocity of the variant''s own field file (50.15) was overwritten
+    by the source''s (50). The run then had nothing to change and stopped after 995 iterations. Two signs gave it
+    away: the drag force was equal to the main run''s to \(7 \times 10^{-7}\), and the run converged four times
+    faster than the other variants. The lid variant was not affected (it changes a patch type, which mapFields keeps),
+    nor were the grid levels (same inflow values on all).'
+  fix: 'After mapping, <code>run.py</code> sets the inflow values of velocity and turbulence variable again with
+    <code>foamDictionary</code>, for every run. The variant was repeated: 6,479 iterations, skin friction \(+0.56\,\%\)
+    for \(+0.3\,\%\) of speed. The momentum balance in <code>metrics.py</code> now takes the inflow velocity from
+    the inflow fluxes instead of assuming the given value.'
+  lesson: 'A variant that changes a boundary value is not in effect just because the template says so: check the
+    field file the solver actually reads, or check that the answer moved.'
+  guideline: '<code>foam.map_fields</code>: say in its docstring that fixed boundary values of the target are replaced
+    by the source''s, and offer to keep the target''s boundary entries (re-apply them after mapping). The pre-flight
+    could list every boundary value that differs between the template and the mapped start field.'
+  resolved: 2026-11-13 23:03

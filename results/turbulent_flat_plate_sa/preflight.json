@@ -1,0 +1,185 @@
+[
+ {
+  "kind": "full",
+  "level": "G1",
+  "mesh": {
+   "cells": 816,
+   "ni": 34,
+   "nj": 24,
+   "patches": {
+    "inlet": 24,
+    "outlet": 24,
+    "top": 34,
+    "symmetry": 6,
+    "plate": 28,
+    "frontAndBack": 1632
+   },
+   "min_edge": 8.32003351725e-06,
+   "digits_needed": 9,
+   "max_aspect_ratio": 20653.026746012365
+  },
+  "record": "pfG1"
+ },
+ {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.113\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,0.292\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: nuTilda",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0841\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,0.12\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.283\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 300,
+  "last_time": 300.0,
+  "wall_time": 18.25,
+  "est_full_runtime": null,
+  "est_kind": null,
+  "kind": "short",
+  "level": "G5",
+  "cells": 208896,
+  "cores": 8,
+  "mesh": {
+   "cells": 208896,
+   "ni": 544,
+   "nj": 384,
+   "patches": {
+    "inlet": 384,
+    "outlet": 384,
+    "top": 544,
+    "symmetry": 96,
+    "plate": 448,
+    "frontAndBack": 417792
+   },
+   "min_edge": 5.0000000007e-07,
+   "digits_needed": 10,
+   "max_aspect_ratio": 21479.234356993005
+  },
+  "postProcessing_head": {
+   "postProcessing/forces/0/coefficient.dat": [
+    "# Force and moment coefficients",
+    "# dragDir             : (1.00000000000000e+00 0.00000000000000e+00 0.00000000000000e+00)",
+    "# sideDir             : (0.00000000000000e+00 0.00000000000000e+00 -1.00000000000000e+00)",
+    "# liftDir             : (0.00000000000000e+00 1.00000000000000e+00 0.00000000000000e+00)",
+    "299                   \t7.67741843255936e-03\t3.80967419154405e-03\t3.86774424101530e-03\t1.16140098942499e-04\t4.36118542170545e-05\t7.25282447254442e-05\t-1.44581952541949e-05\t-2.90350247356247e-05\t1.91935460813984e-03\t0.00000000000000e+00\t1.91935460813984e-03\t-1.91935460813984e-03",
+    "300                   \t7.65251311061820e-03\t3.79714734296712e-03\t3.85536576765109e-03\t1.16436849367939e-04\t4.36908390909583e-05\t7.27460102769806e-05\t-1.45275855930111e-05\t-2.91092123419847e-05\t1.91312827765455e-03\t0.00000000000000e+00\t1.91312827765455e-03\t-1.91312827765455e-03"
+   ],
+   "postProcessing/probesNut/0/nuTilda": [
+    "# Probe 0 (0.985472593445 0.00604452226939 0.5)",
+    "# Probe 1 (1.90871325404 0.0118242145631 0.5)",
+    "# Time                0                     1                    ",
+    "1                     2.998202535634e-05    2.9992755234352e-05  ",
+    "299                   2.7420940416952e-05   2.8622310413174e-05  ",
+    "300                   2.7416965964917e-05   2.8620806373746e-05  "
+   ],
+   "postProcessing/probesU/0/U": [
+    "# Probe 0 (0.985472593445 2.50000000035e-07 0.5)",
+    "# Probe 1 (1.90871325404 2.50000000035e-07 0.5)",
+    "# Time                0                     1                    ",
+    "1                     (14.380923128618 5.8831540196016e-11 0) (14.380899444385 -1.2964740161647e-17 0)",
+    "299                   (0.23940896850646 2.3740406723747e-11 0) (0.23940059363067 2.2249494691423e-16 0)",
+    "300                   (0.23862902092598 2.3795972612847e-11 0) (0.23862060451452 2.6785693042201e-16 0)"
+   ],
+   "postProcessing/wallShearStress/0/wallShearStress.dat": [
+    "# Wall shear stress   ",
+    "# Time                \tpatch                 \tmin                   \tmax                   ",
+    "300                   \tplate\t(-2.58967201605241e+01 -5.33402544826728e-01 0.00000000000000e+00)\t(-9.54468366515936e+00 9.80960871736181e-07 0.00000000000000e+00)",
+    "# Time                \tpatch                 \tmin                   \tmax                   ",
+    "300                   \tplate\t(-2.58967201605241e+01 -5.33402544826728e-01 0.00000000000000e+00)\t(-9.54468366515936e+00 9.80960871736181e-07 0.00000000000000e+00)"
+   ],
+   "postProcessing/yPlus/0/yPlus.dat": [
+    "# y+ ()               ",
+    "# Time                \tpatch                 \tmin                   \tmax                   \taverage               ",
+    "300                   \tplate\t7.72361786496131e-02\t1.27225507683668e-01\t7.74955391301944e-02",
+    "# Time                \tpatch                 \tmin                   \tmax                   \taverage               ",
+    "300                   \tplate\t7.72361786496131e-02\t1.27225507683668e-01\t7.74955391301944e-02"
+   ]
+  },
+  "perf": {
+   "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/pfG5",
+   "solver": "simpleFoam",
+   "cells": 208896,
+   "cores": 8,
+   "steps": 300,
+   "wall_s": 19.03777143399998,
+   "cpu_s": 147.298458,
+   "solver_cpu_s": 18.25,
+   "peak_mem_mb": 422.9765625,
+   "us_per_cell_step": 0.3037838834316275,
+   "cpu_efficiency": 0.967146144906281,
+   "write_share": 0.054511182550841975,
+   "lin_iters": {
+    "Ux": 1.0,
+    "Uy": 1.49,
+    "p": 4.5633333333333335,
+    "nuTilda": 1.0
+   },
+   "lin_solves_per_step": {
+    "Ux": 1.0,
+    "Uy": 1.0,
+    "p": 1.0,
+    "nuTilda": 1.0
+   },
+   "lin_iters_by_solve": {
+    "Ux": {
+     "solve 1": 1.0,
+     "last": 1.0
+    },
+    "Uy": {
+     "solve 1": 1.49,
+     "last": 1.49
+    },
+    "p": {
+     "solve 1": 4.5633333333333335,
+     "last": 4.5633333333333335
+    },
+    "nuTilda": {
+     "solve 1": 1.0,
+     "last": 1.0
+    }
+   }
+  },
+  "seconds_per_iteration": 0.06345923811333326,
+  "checkMesh": [
+   " ***High aspect ratio cells found, Max aspect ratio: 21479.234356993, number of cells 43953",
+   "    Mesh non-orthogonality Max: 2.9857674121376e-05 average: 0",
+   "    Max skewness = 1.1028464696736e-10 OK."
+  ]
+ }
+]

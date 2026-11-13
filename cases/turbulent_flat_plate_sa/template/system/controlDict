@@ -1,0 +1,69 @@
+FoamFile { version 2.0; format ascii; class dictionary; object controlDict; }
+
+application     simpleFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ max_iterations }};
+deltaT          1;
+writeControl    timeStep;
+writeInterval   {{ write_every }};
+purgeWrite      1;
+writeFormat     ascii;
+writePrecision  {{ write_precision }};
+writeCompression off;
+timeFormat      general;
+timePrecision   8;
+runTimeModifiable true;
+
+functions
+{
+    forces
+    {
+        type            forceCoeffs;
+        libs            (forces);
+        patches         (plate);
+        rho             rhoInf;
+        rhoInf          {{ rho }};
+        CofR            (0 0 0);
+        liftDir         (0 1 0);
+        dragDir         (1 0 0);
+        pitchAxis       (0 0 1);
+        magUInf         {{ U_inf }};
+        lRef            {{ plate_length }};
+        Aref            {{ plate_length }};
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    probesU
+    {
+        type            probes;
+        libs            (sampling);
+        fields          (U);
+        probeLocations  ( {% for p in probes_wall %}({{ p[0] }} {{ p[1] }} 0.5) {% endfor %});
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    probesNut
+    {
+        type            probes;
+        libs            (sampling);
+        fields          (nuTilda);
+        probeLocations  ( {% for p in probes_outer %}({{ p[0] }} {{ p[1] }} 0.5) {% endfor %});
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    wallShearStress
+    {
+        type            wallShearStress;
+        libs            (fieldFunctionObjects);
+        patches         (plate);
+        writeControl    writeTime;
+    }
+    yPlus
+    {
+        type            yPlus;
+        libs            (fieldFunctionObjects);
+        writeControl    writeTime;
+    }
+}

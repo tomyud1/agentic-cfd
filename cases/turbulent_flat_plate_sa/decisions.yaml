@@ -1,0 +1,104 @@
+# Every modelling and numerical choice for this case, written WHILE setting it up.
+# settings: path patterns of the OpenFOAM settings each decision controls (the contract checks coverage).
+
+- area: Solver
+  kind: solver
+  choice: 'OpenFOAM, <code>simpleFoam</code>: steady, incompressible, with a turbulence model. gpucfd was not an option'
+  settings: [system/controlDict/application, system/fvSchemes/ddtSchemes/*, system/controlDict/startTime,
+             system/controlDict/deltaT, system/controlDict/timePrecision]
+  why: 'The problem asks for the time-averaged (steady) flow with the Spalart-Allmaras model, on NASA''s grids. gpucfd solves laminar flow only and its grid cannot be NASA''s grid with wall cells \(5 \times 10^{-7}\) high, so it does not fit. <code>simpleFoam</code> is OpenFOAM''s steady incompressible solver and has the model. One iteration is one "time step" of size 1: time has no physical meaning in a steady run.'
+  affects: 'How the answer is reached. The converged answer depends on the solver only through its discretisation, which the grid study measures.'
+  alternatives: 'A compressible solver (<code>rhoSimpleFoam</code>) at Mach 0.2, to match NASA''s main results: the problem statement asks for the incompressible flow, and NASA gives incompressible values to compare with.'
+
+- area: Physical model
+  kind: physics
+  choice: 'Incompressible Newtonian fluid, \(\nu = 10^{-5}\ \mathrm{m^2/s}\); turbulence modelled (RANS) with the Spalart-Allmaras model in NASA''s standard form: the \(f_{t2}\) term switched on, \(\sigma = 2/3\)'
+  settings: [constant/transportProperties/*, constant/turbulenceProperties/simulationType, constant/turbulenceProperties/RAS/*]
+  why: 'Given by the problem. OpenFOAM''s model leaves the \(f_{t2}\) term out unless <code>ft2 true</code> is set (that is NASA''s variant SA-noft2) and uses \(\sigma = 0.66666\); both are set to the standard here. The other constants are OpenFOAM''s defaults; the solver prints the ones it used and the analysis compares them with NASA''s list. OpenFOAM also keeps the model''s \(\tilde S\) at or above \(0.3\,\Omega\) (<code>Cs</code>); that is method (b) of Note 1 on NASA''s page (the standard form must not let \(\tilde S\) reach zero, and leaves the method open). The analysis reports where this limiter acts, and a variant with \(0.1\,\Omega\) measures its effect.'
+  affects: 'Defines the equations. The eddy viscosity sets the wall shear stress, so a different variant or constant changes every requested output.'
+  alternatives: 'SA-noft2 (OpenFOAM''s default) and another limiter level: each run as a variant on one grid to measure the difference. The trip term of the original paper: not part of NASA''s standard form.'
+
+- area: Domain and mesh
+  kind: accuracy
+  choice: 'NASA''s five nested grids, used point for point (\(35 \times 25\) to \(545 \times 385\) points; each level has twice the cells of the one before in both directions). Written straight into OpenFOAM''s mesh files by <code>cfdlib.structgrid</code>; one cell thick, <code>empty</code> front and back (2D)'
+  settings: [0/*/boundaryField/frontAndBack/*, system/controlDict/writePrecision]
+  why: 'The problem asks for these grids, so that the grid is not a difference between this solution and NASA''s. They are fine at the wall (first cell centre at \(y^+\) from about 0.8 on the coarsest grid to 0.05 on the finest) and at the leading edge. Output precision 14 digits: the finest wall cell is \(5 \times 10^{-7}\ \mathrm{m}\) high in a domain of size 2.33, and the parallel decomposition writes the mesh again with this precision.'
+  affects: 'The discretisation error. Five levels with ratio 2 give the observed order of accuracy and the grid-converged value.'
+  alternatives: 'A grid made with <code>blockMesh</code>: could not reproduce NASA''s clustering, and the comparison would then mix grid and code differences.'
+
+- area: Boundary conditions
+  kind: physics
+  choice: 'Inflow: uniform velocity \(U_\infty\) along \(x\), \(\tilde\nu = 3\nu\), pressure extrapolated. Outflow: free-stream pressure (0), velocity and \(\tilde\nu\) extrapolated. Plate: no slip, \(\tilde\nu = 0\), \(\nu_t = 0\), no wall function. Ahead of the plate: symmetry'
+  settings: [0/U/boundaryField/inlet/*, 0/U/boundaryField/outlet/*, 0/U/boundaryField/plate/*, 0/U/boundaryField/symmetry/*,
+             0/p/boundaryField/inlet/*, 0/p/boundaryField/outlet/*, 0/p/boundaryField/plate/*, 0/p/boundaryField/symmetry/*,
+             0/nuTilda/boundaryField/inlet/*, 0/nuTilda/boundaryField/outlet/*, 0/nuTilda/boundaryField/plate/*, 0/nuTilda/boundaryField/symmetry/*,
+             0/nut/boundaryField/inlet/*, 0/nut/boundaryField/outlet/*, 0/nut/boundaryField/plate/*, 0/nut/boundaryField/symmetry/*]
+  why: 'As the problem states them. <code>inletOutlet</code> on the outflow is zero gradient unless flow comes back in (it never did). The eddy viscosity \(\nu_t\) is computed from \(\tilde\nu\); its boundary entries only say that.'
+  affects: 'Defines the problem. NASA''s compressible codes prescribe the total pressure at the inflow instead of the velocity; for an incompressible flow a uniform inflow velocity is the natural equivalent, and the problem statement gives it.'
+  alternatives: 'Total pressure at the inflow with the velocity free: closer to NASA''s compressible set-up, not what the problem states.'
+
+- area: Boundary conditions
+  kind: physics
+  choice: 'Upper side: open far field. Pressure fixed at the free-stream value; velocity and \(\tilde\nu\) extrapolated where the flow leaves, free-stream values where it enters'
+  settings: [0/U/boundaryField/top/*, 0/p/boundaryField/top/*, 0/nuTilda/boundaryField/top/*, 0/nut/boundaryField/top/*]
+  why: 'The boundary layer pushes the outer flow away from the plate (it displaces about 0.3 % of the inflow through the top), so the upper side must let fluid out; a closed lid would squeeze the stream and speed it up. Fixing the free-stream pressure there is the incompressible counterpart of NASA''s far-field condition.'
+  affects: 'The speed of the stream just outside the boundary layer, and through it the skin friction. Measured with a variant: a frictionless lid instead changes the skin friction at \(x_1\) by a few tenths of a per cent (Section 7).'
+  alternatives: 'A frictionless lid (<code>slip</code>): run as a variant to bound the influence of this side. A taller domain: not NASA''s grid.'
+
+- area: Initial state
+  kind: solver
+  choice: 'The coarsest grid starts from the uniform free stream; every finer grid starts from the converged solution of the grid before it (<code>mapFields</code>); every variant starts from the main solution on its grid'
+  settings: [0/U/internalField, 0/p/internalField, 0/nuTilda/internalField, 0/nut/internalField]
+  why: 'A steady run only has to remove the difference between its start and its answer. Starting from the coarser grid leaves only that grid''s error to remove.'
+  affects: 'The number of iterations, not the converged answer.'
+  alternatives: 'Every grid from the uniform stream: several times more iterations on the fine grids.'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Second order throughout: linear-upwind for the advection of velocity and of \(\tilde\nu\), central differences for gradients, diffusion and interpolation'
+  settings: [system/fvSchemes/gradSchemes/*, system/fvSchemes/divSchemes/*, system/fvSchemes/laplacianSchemes/*,
+             system/fvSchemes/interpolationSchemes/*, system/fvSchemes/snGradSchemes/*]
+  why: 'The grids are rectangular (no skewness, no non-orthogonality), so these schemes are formally second order and the error should fall four times per level. NASA''s codes use first-order upwind for the advection of the turbulence variable; second order was chosen here for the faster grid convergence, and the first-order choice is run as a variant on three grids, since both must lead to the same grid-converged answer. <code>bounded</code> removes a term that is zero once mass is conserved; it only helps on the way to convergence.'
+  affects: 'The discretisation error on each grid, not the grid-converged answer.'
+  alternatives: 'First-order upwind for \(\tilde\nu\) (NASA''s choice): the variant. Central differences for the velocity: unbounded at the cell Péclet numbers of the outer flow.'
+
+- area: Discretisation
+  kind: physics
+  choice: 'Distance to the wall for the model: <code>meshWave</code>'
+  settings: [system/fvSchemes/wallDist/*]
+  why: 'The model''s destruction term needs each cell''s distance \(d\) to the nearest wall. On a rectangular grid with the wall along a grid line, <code>meshWave</code> gives the exact distance for the cells above the plate (the wall face straight below). For the cells ahead of the plate it gives the distance to the nearest plate face centre, which differs from the distance to the leading edge by at most half a cell; the model is inactive there (free-stream \(\tilde\nu\)).'
+  affects: 'The destruction term, and through it the eddy viscosity. A wrong distance would be a model error that the grid study cannot remove.'
+  alternatives: '<code>exactDistance</code>: identical above the plate.'
+
+- area: Solution method
+  kind: solver
+  choice: 'SIMPLEC pressure-velocity coupling. Relaxation: velocity 0.9, \(\tilde\nu\) 0.5, pressure none'
+  settings: [system/fvSolution/SIMPLE/*, system/fvSolution/relaxationFactors/*]
+  why: 'The equations are solved one after the other and repeated until nothing changes. With \(\tilde\nu\) relaxed by 0.9 or 0.7 the iteration locked into a cycle of period 2 on the coarsest grid (the wall layer flipping between two states, drag alternating by 15 %); with 0.5 it converges to residuals below \(10^{-10}\) (Insights). A trial on the coarsest grid ranked velocity 0.9 with \(\tilde\nu\) 0.5 fastest of the settings that converge. The grids are orthogonal, so no non-orthogonal correctors.'
+  affects: 'How fast the run converges, and whether it does. The converged drag depends on the velocity factor at \(2 \times 10^{-5}\) (relative, coarsest grid; a known property of OpenFOAM''s face interpolation), so every run of the study uses the same factors.'
+  alternatives: 'SIMPLE with pressure relaxation 0.3 and velocity 0.7: converged too, about twice as slowly in the trial.'
+
+- area: Solution method
+  kind: solver
+  choice: 'Linear solvers: multigrid (GAMG, DIC Gauss-Seidel smoother) for the pressure, to 0.05 of the starting residual per iteration; preconditioned BiCGStab for velocity and \(\tilde\nu\), to 0.01'
+  settings: [system/fvSolution/solvers/*]
+  why: 'Each outer iteration only needs a partial solve; the outer iterations remove what is left. Absolute tolerances (\(10^{-10}\), \(10^{-12}\)) are above round-off, with a cap of 200 iterations per solve, so a converged run costs almost nothing per iteration. On the finest grid the pressure solve took 4.6 multigrid cycles per iteration in the pre-flight, in spite of cells 21,000 times longer than high.'
+  affects: 'Run time only; the stopping rule checks the answer.'
+  alternatives: 'Conjugate gradients for the pressure: not needed, multigrid coped with the stretched cells.'
+
+- area: Convergence
+  kind: accuracy
+  choice: 'Each run stops itself (live stop) once the estimated iteration error of five monitored values is below its tolerance: the drag coefficient and the wall-cell velocity at the two stations to \(2 \times 10^{-6}\), \(\tilde\nu\) in the outer layer at the two stations to \(10^{-5}\), all relative. Checked every 25 iterations, twice in a row, and the change between consecutive iterations must also be below the tolerance. The iteration limit of 60,000 is only a cap'
+  settings: [system/controlDict/endTime, system/controlDict/writeControl, system/controlDict/writeInterval,
+             system/controlDict/functions/liveStop/*, system/controlDict/functions/probesU/*, system/controlDict/functions/probesNut/*]
+  why: 'The skin friction changes by about \(2 \times 10^{-4}\) (relative) between the two finest grids; \(2 \times 10^{-6}\) is about 1 % of that, so iteration error cannot disturb the grid study. The wall-cell velocity is proportional to the local wall shear stress. The check between consecutive iterations is there because a period-2 cycle is invisible when sampled at an even interval (Insights). After the stop, the momentum balance of Section 3 is the physical check.'
+  affects: 'The iteration error left in each result.'
+  alternatives: 'Residual targets: they say nothing about the error of the answer, and here residuals stalled at \(10^{-3}\) in a state that was 8 % wrong.'
+
+- area: Outputs
+  kind: output
+  choice: 'Drag coefficient of the plate every iteration (<code>forceCoeffs</code>, reference area: plate length \(\times\) unit depth); wall shear stress and \(y^+\) on the plate at the end; all fields with 14 digits'
+  settings: [system/controlDict/functions/forces/*, system/controlDict/functions/wallShearStress/*, system/controlDict/functions/yPlus/*]
+  why: 'The requested outputs are built from the wall shear stress per wall face (skin friction along the plate and at the station), the drag, and the fields (profiles, eddy viscosity). The wall shear stress is the one the solver itself uses in the momentum equation: \(\nu\) times the wall-cell velocity over its distance to the wall.'
+  affects: 'What is measured. The skin friction at \(x_1\) is interpolated linearly between the two wall faces next to it, because \(x_1\) is a grid point and no wall face is centred on it.'
+  alternatives: 'A quadratic fit through three wall cells for the wall shear stress: not what the solver''s momentum balance uses.'

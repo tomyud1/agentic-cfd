@@ -1,0 +1,2055 @@
+{
+ "title": "Turbulent boundary layer on a flat plate with the Spalart-Allmaras model (NASA TMR case 2DZP)",
+ "date": "2026-11-13",
+ "verdict": "WARN",
+ "comparison_type": "benchmark",
+ "summary": {
+  "headline": "<b>WARN.</b> OpenFOAM's Spalart-Allmaras model, set to NASA's standard form, gives a grid-converged skin friction at \\(x_1\\) of \\(0.0027286\\), \\(-0.028\\,\\%\\) from NASA's incompressible reference (\\(0.0027294\\); combined grid uncertainty \\(0.024\\,\\%\\)).",
+  "answer_columns": [
+   "Requested",
+   "NASA",
+   "This solution",
+   "Difference"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Skin friction coefficient \\(C_f\\) at \\(x_1 = 0.97008\\) on each grid, and what it tends to as the grid is refined",
+    "theory": "FUN3D incompressible: \\(0.0027291\\) on the finest grid, \\(0.0027294\\) grid-converged",
+    "sim": "\\(0.0027285\\) on the finest grid, \\(0.0027286\\) \\(\\pm\\) \\(0.008\\,\\%\\) grid-converged; all five grids in Section 7. Difference: grid-converged values (finest grid: \\(-0.023\\,\\%\\))",
+    "diff": "\\(-0.028\\,\\%\\)"
+   },
+   {
+    "letter": "b",
+    "label": "Drag coefficient \\(C_D\\) of the plate on each grid",
+    "theory": "No incompressible value published. Mach 0.2, finest grid: CFL3D \\(0.0028599\\), FUN3D \\(0.0028525\\)",
+    "sim": "\\(0.0028831\\) on the finest grid, \\(0.0028832\\) grid-converged; all five grids in Section 6. Difference: against CFL3D at Mach 0.2; the skin friction at \\(x_1\\) differs from CFL3D's by the same factor (\\(+0.84\\,\\%\\))",
+    "diff": "\\(+0.81\\,\\%\\)"
+   },
+   {
+    "letter": "c",
+    "label": "Skin friction coefficient \\(C_f(x)\\) along the plate on the finest grid",
+    "theory": "No incompressible curve published. Mach 0.2: CFL3D and FUN3D on the finest grid",
+    "sim": "Figure 6: from \\(0.0038349\\) at \\(x = 0.1\\) to \\(0.0024789\\) at \\(x = 1.9\\). Difference: mean ratio to CFL3D over that range; the ratio varies by \\(0.42\\,\\%\\) around it",
+    "diff": "\\(+0.91\\,\\%\\)"
+   },
+   {
+    "letter": "d",
+    "label": "Velocity profiles at \\(x_1\\) and \\(x_2\\) on the finest grid, as \\(u/U_\\infty\\) against \\(y\\) and in wall units (\\(u^+\\) against \\(y^+\\)), with the law of the wall",
+    "theory": "The model's own law of the wall (Section 3); CFL3D profiles at Mach 0.2; log law with \\(\\kappa = 0.41\\), \\(B = 5.0\\)",
+    "sim": "Figures 7 and 8. Difference: largest departure of \\(u^+\\) from the model's law for \\(y^+ \\le 100\\). Against CFL3D: within \\(0.0035\\,U_\\infty\\); against the log law at \\(y^+ = 100\\): \\(+0.13\\) in \\(u^+\\)",
+    "diff": "\\(0.24\\,\\%\\)"
+   },
+   {
+    "letter": "e",
+    "label": "Eddy viscosity relative to the viscosity, \\(\\nu_t/\\nu\\): its profile at \\(x_1\\) and its largest value along the plate",
+    "theory": "Mach 0.2 only. Peak at \\(x_1\\): CFL3D \\(208.3\\), FUN3D \\(208.3\\); largest on the plate (CFL3D): \\(378.0\\)",
+    "sim": "Peak at \\(x_1\\): \\(209.4\\), \\(6.8\\) mm above the wall; largest on the plate: \\(381.9\\) at the end (Figure 9). Difference: peak at \\(x_1\\) against CFL3D",
+    "diff": "\\(+0.50\\,\\%\\)"
+   },
+   {
+    "letter": "f",
+    "label": "Does the solver's implementation of the model give NASA's answer? State the difference that remains on the finest grid and what it is made of (grid error, compressibility, differences in the model or the boundary conditions)",
+    "theory": "FUN3D incompressible, grid-converged \\(C_f(x_1)\\): \\(0.0027294\\)",
+    "sim": "Yes to within \\(0.028\\,\\%\\), which is just outside the grid uncertainty of the two solutions (\\(0.024\\,\\%\\)). On the finest grid: \\(-0.023\\,\\%\\), of which own grid error \\(-0.007\\,\\%\\), the reference's \\(-0.012\\,\\%\\); no compressibility in it. Parts in Section 7",
+    "diff": "\\(-0.028\\,\\%\\)"
+   }
+  ],
+  "findings": [
+   "<b>Same model, same answer?</b> Close, with a caveat. The skin friction at \\(x_1\\), taken to the limit of an infinitely fine grid, is \\(0.0027286\\), against \\(0.0027294\\) for NASA's incompressible FUN3D: \\(-0.028\\,\\%\\), with a combined grid uncertainty of \\(0.024\\,\\%\\).",
+   "<b>What the finest-grid difference is made of.</b> On the \\(545 \\times 385\\) grid the two solutions differ by \\(-0.023\\,\\%\\): this solution's grid error is \\(-0.007\\,\\%\\), the reference's \\(-0.012\\,\\%\\), and \\(-0.028\\,\\%\\) remains. Compressibility is not part of it (the reference is incompressible); against NASA's Mach 0.2 results the difference is \\(+0.84\\,\\%\\) (CFL3D, finest grid), and NASA's own incompressible run differs from that result by \\(+0.87\\,\\%\\).",
+   "<b>Grid convergence.</b> \\(C_f(x_1)\\) changes by \\(+0.016\\,\\%\\) from G4 to G5, with observed order \\(1.74\\) and a grid-convergence index of \\(0.008\\,\\%\\). The drag coefficient changes by \\(+0.011\\,\\%\\) from G4 to G5; its observed order is \\(0.95\\), \\(1.80\\), \\(2.19\\) on the grid triplets G1 to G3, G2 to G4 and G3 to G5, so it is not yet regular (NASA notes the same for its codes: the skin friction is singular at the leading edge).",
+   "<b>The model is the standard one.</b> The solver's printed constants are NASA's and the \\(f_{t2}\\) term is on (OpenFOAM leaves it out by default). Near the wall the simulated profile follows the model's exact wall-layer solution to \\(0.24\\,\\%\\) (\\(y^+ \\le 100\\)).",
+   "<b>Every run passed its physical check.</b> The drag from the wall shear stress equals the momentum lost by the stream to \\(0.0020\\,\\%\\) or better on all five grids.",
+   "<b>One change at a time.</b> Leaving out the \\(f_{t2}\\) term (OpenFOAM's default) changes \\(C_f(x_1)\\) by less than \\(0.0001\\,\\%\\); first-order advection of the turbulence variable, as in NASA's codes, moves the grid-converged value by \\(+0.003\\,\\%\\) (on G5 itself: \\(-0.008\\,\\%\\)); closing the upper side with a lid changes it by \\(+0.26\\,\\%\\).",
+   "<b>Why WARN.</b> Skin friction at \\(x_1\\), grid-converged: \\(-0.028\\,\\%\\) from NASA's incompressible FUN3D value. That is outside the combined grid-uncertainty band of \\(0.024\\,\\%\\) (so it is not grid error on either side), and inside the limit of \\(0.45\\,\\%\\) set before the runs. Context check against the compressible results (Mach 0.2, not the same flow): the ratio of \\(C_f(x)\\) to CFL3D's varies along \\(0.1 \\le x \\le 1.9\\) by up to \\(0.42\\,\\%\\) around its mean (limit \\(0.3\\,\\%\\))."
+  ],
+  "limitations": [
+   "Only one quantity has a like-for-like reference: the skin friction at \\(x_1\\) (NASA's incompressible runs). Drag, profiles and eddy viscosity are published for Mach 0.2 only; they are compared as context and cannot pass or fail.",
+   "NASA does not say how its incompressible codes set the inflow and the far field, nor how the skin friction was read at \\(x_1\\), which is a grid point with no wall face centred on it. Here it is interpolated linearly between the two neighbouring faces; applied to the finest solution, that interpolation alone shifts the value by \\(+0.05\\,\\%\\) on G1 and \\(+0.0009\\,\\%\\) on G4.",
+   "This verifies the implementation of the model against other codes. It says nothing about how well the model matches a real boundary layer.",
+   "The incompressible reference has no published uncertainty; its grid-convergence index was computed here from its three finest grids."
+  ]
+ },
+ "problem": {
+  "description": "Air flows at uniform speed along a thin, smooth flat plate. There is no pressure gradient. The boundary layer on the plate is turbulent, and the turbulence is not resolved but modelled: the time-averaged flow is computed (RANS) with the one-equation model of Spalart and Allmaras. Find the friction on the plate and the velocity profile in the boundary layer, and compare them with the results NASA publishes for this case, computed on the same family of grids.",
+  "setup": [
+   "This is a verification case: the question is whether the model, as implemented in the solver used, gives the same answer as NASA's reference codes. It is not a comparison with experiment.",
+   "Two-dimensional. Coordinates: \\(x\\) along the plate from its leading edge, \\(y\\) normal to it. Lengths are in units of the reference length \\(L\\).",
+   "Domain: the rectangle \\(x_{\\mathrm{in}} \\le x \\le x_{\\mathrm{out}}\\), \\(0 \\le y \\le H\\). The plate is the lower side from \\(x = 0\\) to \\(x = x_{\\mathrm{out}}\\).",
+   "Lower side ahead of the plate, \\(x_{\\mathrm{in}} \\le x < 0\\): symmetry (no friction, no flow through it).",
+   "Inflow, \\(x = x_{\\mathrm{in}}\\): uniform free stream of speed \\(U_\\infty\\) along \\(x\\), with the model's turbulence variable \\(\\tilde\\nu = 3\\nu\\).",
+   "Upper side, \\(y = H\\): the free stream (far field). The boundary layer stays below \\(0.03\\,L\\), so this side is far away.",
+   "Outflow, \\(x = x_{\\mathrm{out}}\\): the flow leaves at the pressure of the free stream.",
+   "Plate: smooth, no-slip wall. The boundary layer is turbulent from the leading edge on (no transition is prescribed) and is resolved down to the wall: no wall functions.",
+   "The Reynolds number is \\(Re_L = U_\\infty L / \\nu = 5 \\times 10^6\\), so \\(Re_x\\) reaches \\(10^7\\) at the end of the plate.",
+   "Treat the flow as incompressible (constant density). NASA's main results are for a compressible flow at Mach 0.2; NASA also publishes incompressible results for one quantity. The reference file gives both and says which is which.",
+   "Turbulence model: Spalart-Allmaras in its standard form (NASA's name: SA). NASA states that the variant without the \\(f_{t2}\\) term (SA-noft2) gives essentially identical results for this case.",
+   "Grids: NASA provides a family of five nested grids for this case (reference/grids/, coarsest \\(35 \\times 25\\) points, finest \\(545 \\times 385\\)). Solve on these grids, so that the grid is not a difference between this solution and the reference.",
+   "Skin friction coefficient: \\(C_f = \\tau_w / (\\tfrac12 \\rho U_\\infty^2)\\) with the wall shear stress \\(\\tau_w\\). Drag coefficient of the plate: \\(C_D = F / (\\tfrac12 \\rho U_\\infty^2 A)\\) with the friction force \\(F\\) on the plate per unit depth and the reference area \\(A = 2L\\) per unit depth (the length of the plate).",
+   "Wall units: \\(u^+ = u / u_\\tau\\), \\(y^+ = y u_\\tau / \\nu\\), with \\(u_\\tau = \\sqrt{\\tau_w / \\rho}\\)."
+  ],
+  "given": [
+   {
+    "label": "Reference length",
+    "symbol": "\\(L\\)",
+    "value": "\\(1\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Inflow position (the symmetry strip ahead of the plate is L/3 long)",
+    "symbol": "\\(x_{\\mathrm{in}}\\)",
+    "value": "\\(-0.33333\\)",
+    "unit": "m"
+   },
+   {
+    "label": "End of the plate and of the domain",
+    "symbol": "\\(x_{\\mathrm{out}}\\)",
+    "value": "\\(2\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Height of the domain",
+    "symbol": "\\(H\\)",
+    "value": "\\(1\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Free-stream speed",
+    "symbol": "\\(U_\\infty\\)",
+    "value": "\\(50\\)",
+    "unit": "m/s"
+   },
+   {
+    "label": "Kinematic viscosity (chosen with the speed to give the benchmark's Reynolds number, 5 million per metre)",
+    "symbol": "\\(\\nu\\)",
+    "value": "\\(1 \\times 10^{-5}\\)",
+    "unit": "m²/s"
+   },
+   {
+    "label": "Density",
+    "symbol": "\\(\\rho\\)",
+    "value": "\\(1.2\\)",
+    "unit": "kg/m³"
+   },
+   {
+    "label": "Turbulence variable of the model in the free stream, relative to the viscosity",
+    "symbol": "\\(\\tilde\\nu_\\infty/\\nu\\)",
+    "value": "\\(3\\)",
+    "unit": "-"
+   },
+   {
+    "label": "Station where NASA tabulates the skin friction (a grid point of all five grids)",
+    "symbol": "\\(x_1\\)",
+    "value": "\\(0.970084071\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Second station of NASA's velocity profiles",
+    "symbol": "\\(x_2\\)",
+    "value": "\\(1.90334\\)",
+    "unit": "m"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "cf_station",
+    "text": "Skin friction coefficient \\(C_f\\) at \\(x_1 = 0.97008\\) on each grid, and what it tends to as the grid is refined"
+   },
+   {
+    "letter": "b",
+    "key": "cd",
+    "text": "Drag coefficient \\(C_D\\) of the plate on each grid"
+   },
+   {
+    "letter": "c",
+    "key": "cf_x",
+    "text": "Skin friction coefficient \\(C_f(x)\\) along the plate on the finest grid"
+   },
+   {
+    "letter": "d",
+    "key": "profiles",
+    "text": "Velocity profiles at \\(x_1\\) and \\(x_2\\) on the finest grid, as \\(u/U_\\infty\\) against \\(y\\) and in wall units (\\(u^+\\) against \\(y^+\\)), with the law of the wall"
+   },
+   {
+    "letter": "e",
+    "key": "nut",
+    "text": "Eddy viscosity relative to the viscosity, \\(\\nu_t/\\nu\\): its profile at \\(x_1\\) and its largest value along the plate"
+   },
+   {
+    "letter": "f",
+    "key": "same_model",
+    "text": "Does the solver's implementation of the model give NASA's answer? State the difference that remains on the finest grid and what it is made of (grid error, compressibility, differences in the model or the boundary conditions)"
+   }
+  ],
+  "reference": "Results of NASA's Turbulence Modeling Resource for its verification case 2DZP with the Spalart-Allmaras model: skin friction at the station and drag on all five grids from two compressible codes (CFL3D and FUN3D, Mach 0.2) with NASA's own uncertainty estimate, and the skin friction at the station from two incompressible codes. Source: NASA Langley Turbulence Modeling Resource, case 2DZP (files and citation in <code>reference/</code>)."
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "Incompressible, constant properties",
+    "status": "imposed",
+    "check": "Stated by the problem. NASA's main results are for Mach 0.2; its own incompressible run differs from them by \\(+0.87\\,\\%\\) in \\(C_f(x_1)\\), so the compressible results are context only."
+   },
+   {
+    "name": "Steady, two-dimensional mean flow",
+    "status": "imposed",
+    "check": "RANS computes the time-averaged flow; the grid is one cell thick. Every run converged to a steady state (residuals at round-off)."
+   },
+   {
+    "name": "Turbulence modelled, fully turbulent from the leading edge",
+    "status": "imposed",
+    "check": "Spalart-Allmaras with \\(\\tilde\\nu = 3\\nu\\) in the free stream; no transition is modelled. The eddy viscosity rises from \\(0.21\\) \\(\\nu\\) in the free stream to \\(382\\) \\(\\nu\\) in the boundary layer."
+   },
+   {
+    "name": "Model integrated to the wall (no wall functions)",
+    "status": "ok",
+    "check": "Needs the wall-cell centre at \\(y^+\\) of about 1 or less. Largest value on the plate: \\(1.19\\) on G1, \\(0.127\\) on G5."
+   },
+   {
+    "name": "The model solved is NASA's standard form",
+    "status": "ok",
+    "check": "Constants printed by the solver equal NASA's and the \\(f_{t2}\\) term is active. OpenFOAM keeps the model's \\(\\tilde S\\) at or above \\(0.3\\,\\Omega\\), which is method (b) of Note 1 on NASA's page of the model. On the finest grid it acts in 53 of 71,019 cells of the boundary layer, all within \\(x \\le 0.018\\) of the leading edge on every grid, where the free-stream \\(\\tilde\\nu\\) first meets the wall. Lowering the limit to \\(0.1\\,\\Omega\\) changes \\(C_f(x_1)\\) by less than \\(0.0001\\,\\%\\)."
+   },
+   {
+    "name": "The upper side is far enough away",
+    "status": "ok",
+    "check": "The boundary layer reaches \\(26.2\\) mm at \\(x_2\\), \\(2.6\\,\\%\\) of the domain height. Even replacing the open far field by a closed lid changes \\(C_f(x_1)\\) by only \\(+0.26\\,\\%\\)."
+   },
+   {
+    "name": "Zero pressure gradient",
+    "status": "ok",
+    "check": "The stream above the layer is \\(+0.18\\,\\%\\) faster than \\(U_\\infty\\) at \\(x_1\\) and \\(+0.19\\,\\%\\) at \\(x_2\\): the boundary layer displaces the outer flow slightly, as it must over a plate of finite length in a finite domain."
+   }
+  ]
+ },
+ "theory": {
+  "intro": "The whole flow has no exact solution: the equations are nonlinear and coupled to the turbulence model. Theory still gives one exact result that tests the implementation directly. In the layer next to the wall the model has an exact solution, a straight line \\(\\tilde\\nu = \\kappa u_\\tau y\\), and with it the model's own law of the wall. SymPy checks it against the model's equation, and the simulation is compared with it in Section 7. The momentum balance over the domain gives the physical check of every run.",
+  "steps": [
+   {
+    "label": "Governing equations: time-averaged (RANS) momentum with an eddy viscosity",
+    "latex": "\\nabla\\cdot\\mathbf{u} = 0,\\qquad (\\mathbf{u}\\cdot\\nabla)\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nabla\\cdot\\left[(\\nu + \\nu_t)\\left(\\nabla\\mathbf{u} + \\nabla\\mathbf{u}^T\\right)\\right],\\qquad \\nu_t = \\tilde\\nu f_{v1}",
+    "note": "The turbulent fluctuations are not computed. Their effect on the mean flow is modelled as extra mixing, an eddy viscosity \\(\\nu_t\\) that varies in space and is far larger than \\(\\nu\\) inside the boundary layer. The equations are nonlinear and coupled to the model: no exact solution of the whole flow."
+   },
+   {
+    "label": "The Spalart-Allmaras model: one transport equation for the variable \\(\\tilde\\nu\\) (NASA's standard form, SA)",
+    "latex": "\\mathbf{u}\\cdot\\nabla\\tilde\\nu = c_{b1}(1 - f_{t2})\\tilde S\\tilde\\nu - \\left[c_{w1}f_w - \\frac{c_{b1}}{\\kappa^2}f_{t2}\\right]\\left(\\frac{\\tilde\\nu}{d}\\right)^2 + \\frac{1}{\\sigma}\\left[\\nabla\\cdot\\left((\\nu + \\tilde\\nu)\\nabla\\tilde\\nu\\right) + c_{b2}|\\nabla\\tilde\\nu|^2\\right]",
+    "note": "Production by the mean shear, destruction near walls (\\(d\\) is the distance to the wall) and diffusion. \\(\\tilde S = \\Omega + \\tilde\\nu f_{v2}/(\\kappa^2 d^2)\\) with the vorticity \\(\\Omega\\); the functions \\(f_{v1}, f_{v2}, f_w, f_{t2}\\) and the constants are those of NASA's page (checked by code against the saved page)."
+   },
+   {
+    "label": "Wall layer: the total shear stress is constant close to the wall",
+    "latex": "(\\nu + \\nu_t)\\frac{du}{dy} = \\frac{\\tau_w}{\\rho} = u_\\tau^2\\quad\\Longrightarrow\\quad \\frac{du^+}{dy^+} = \\frac{1}{1 + \\chi f_{v1}(\\chi)},\\qquad \\chi = \\frac{\\tilde\\nu}{\\nu}",
+    "note": "With no pressure gradient, the momentum carried by the mean flow is negligible near the wall, so the stress the wall feels is passed unchanged through the first few per cent of the boundary layer."
+   },
+   {
+    "label": "The model's exact solution in that layer, and its law of the wall",
+    "latex": "\\tilde\\nu = \\kappa u_\\tau y\\ \\ (\\chi = \\kappa y^+),\\qquad u^+(y^+) = \\int_0^{y^+}\\frac{dy'}{1 + \\kappa y' f_{v1}(\\kappa y')}",
+    "note": "The model was built so that \\(\\tilde\\nu\\) is a straight line from the wall up; SymPy confirms it satisfies the transport equation exactly, with or without \\(f_{t2}\\). The integral gives \\(u^+ = y^+\\) at the wall and a log law above, with the intercept \\(B_{\\mathrm{SA}}\\) listed below. This is what the simulated profile must follow for small \\(y/\\delta\\), on any grid fine enough: a check of the implementation that needs no other code."
+   },
+   {
+    "label": "Drag from the momentum the stream loses (the physical check of every run)",
+    "latex": "\\frac{F}{\\rho} = \\int_0^{x_{\\mathrm{out}}}\\frac{\\tau_w}{\\rho}\\,dx = -\\oint_{\\text{outer sides}}u\\,(\\mathbf{u}\\cdot\\mathbf{n})\\,ds + \\int_{\\text{inflow}}\\frac{p}{\\rho}\\,dy\\quad\\text{(+ small viscous terms)}",
+    "note": "Integrating the momentum equation over the whole domain: the friction force on the plate equals the x-momentum that leaves through the outflow and the top minus what entered, corrected for the pressure on the inflow side (the outflow and the top are at the free-stream pressure, 0). The two sides are computed independently, the left from the wall shear stress and the right from the fluxes on the outer boundaries, so their agreement checks convergence and the force extraction together."
+   }
+  ],
+  "derived": [
+   {
+    "key": "Re_L",
+    "label": "Reynolds number per reference length",
+    "symbol": "Re_L",
+    "formula": "Re_L = \\frac{U_\\infty L}{\\nu}",
+    "value": 5000000.0,
+    "value_tex": "5 \\times 10^{6}",
+    "unit_tex": "",
+    "why": "Compares the inertia of the stream with friction. It is the only parameter of the incompressible problem; the Reynolds number based on the distance from the leading edge, \\(Re_x = Re_L\\,x/L\\), says how far the boundary layer has developed.",
+    "params": [
+     {
+      "tex": "U_\\infty",
+      "meaning": "free-stream speed",
+      "value": 50.0,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "L",
+      "meaning": "reference length",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 1e-05,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "Re_L = \\frac{50 \\cdot 1}{1 \\times 10^{-5}} = 5 \\times 10^{6}"
+   },
+   {
+    "key": "Re_x1",
+    "label": "Reynolds number at the first station",
+    "symbol": "Re_{x_1}",
+    "formula": "Re_{x_1} = \\frac{U_\\infty x_1}{\\nu}",
+    "value": 4850420.3549999995,
+    "value_tex": "4.85 \\times 10^{6}",
+    "unit_tex": "",
+    "why": "Where NASA tabulates the skin friction.",
+    "params": [
+     {
+      "tex": "U_\\infty",
+      "meaning": "free-stream speed",
+      "value": 50.0,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "x_1",
+      "meaning": "first station",
+      "value": 0.970084071,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 1e-05,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "Re_{x_1} = \\frac{50 \\cdot 0.970084}{1 \\times 10^{-5}} = 4.85 \\times 10^{6}"
+   },
+   {
+    "key": "Re_out",
+    "label": "Reynolds number at the end of the plate",
+    "symbol": "Re_{x_{\\mathrm{out}}}",
+    "formula": "Re_{x_{\\mathrm{out}}} = \\frac{U_\\infty x_{\\mathrm{out}}}{\\nu}",
+    "value": 10000000.0,
+    "value_tex": "1 \\times 10^{7}",
+    "unit_tex": "",
+    "why": "The largest value on the plate; the problem statement quotes it.",
+    "params": [
+     {
+      "tex": "U_\\infty",
+      "meaning": "free-stream speed",
+      "value": 50.0,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "x_{\\mathrm{out}}",
+      "meaning": "end of the plate",
+      "value": 2.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 1e-05,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "Re_{x_{\\mathrm{out}}} = \\frac{50 \\cdot 2}{1 \\times 10^{-5}} = 1 \\times 10^{7}"
+   },
+   {
+    "key": "cw1",
+    "label": "Model constant that closes the wall layer",
+    "symbol": "c_{w1}",
+    "formula": "c_{w1} = \\frac{c_{b1}}{\\kappa^2} + \\frac{1 + c_{b2}}{\\sigma}",
+    "value": 3.2390678167757287,
+    "value_tex": "3.239",
+    "unit_tex": "",
+    "why": "Not a free constant: this value makes production, destruction and diffusion of the model cancel in the wall layer (third self-check below). A code with another value cannot give the model's law of the wall.",
+    "params": [
+     {
+      "tex": "c_{b1}",
+      "meaning": "production constant",
+      "value": 0.1355,
+      "unit": ""
+     },
+     {
+      "tex": "\\kappa",
+      "meaning": "von Kármán constant",
+      "value": 0.41,
+      "unit": ""
+     },
+     {
+      "tex": "c_{b2}",
+      "meaning": "diffusion constant",
+      "value": 0.622,
+      "unit": ""
+     },
+     {
+      "tex": "\\sigma",
+      "meaning": "diffusion constant (2/3)",
+      "value": 0.6666666666666666,
+      "unit": ""
+     }
+    ],
+    "check": "c_{w1} = \\frac{0.1355}{0.41^2} + \\frac{1 + 0.622}{2/3} = 3.23907"
+   },
+   {
+    "key": "nut_in",
+    "label": "Eddy viscosity of the inflow",
+    "symbol": "\\nu_{t,\\infty}/\\nu",
+    "formula": "\\frac{\\nu_{t,\\infty}}{\\nu} = \\chi f_{v1}(\\chi),\\quad f_{v1} = \\frac{\\chi^3}{\\chi^3 + c_{v1}^3},\\quad \\chi = \\frac{\\tilde\\nu_\\infty}{\\nu}",
+    "value": 0.21043825715555026,
+    "value_tex": "0.2104",
+    "unit_tex": "",
+    "why": "The free stream carries a little modelled turbulence, enough for the boundary layer to become turbulent at once. The largest eddy viscosity in the boundary layer is about a thousand times this.",
+    "params": [
+     {
+      "tex": "\\chi",
+      "meaning": "turbulence variable of the inflow over the viscosity (given)",
+      "value": 3.0,
+      "unit": ""
+     },
+     {
+      "tex": "c_{v1}",
+      "meaning": "model constant",
+      "value": 7.1,
+      "unit": ""
+     }
+    ],
+    "check": "\\frac{\\nu_{t,\\infty}}{\\nu} = 3 \\cdot \\frac{27}{27 + 7.1^3} = 0.210438"
+   },
+   {
+    "key": "B_sa",
+    "label": "Intercept of the model's own log law",
+    "symbol": "B_{\\mathrm{SA}}",
+    "formula": "B_{\\mathrm{SA}} = \\lim_{y^+\\to\\infty}\\left[\\int_0^{y^+}\\frac{dy'}{1 + \\kappa y' f_{v1}(\\kappa y')} - \\frac{\\ln y^+}{\\kappa}\\right]",
+    "value": 5.03339682788328,
+    "value_tex": "5.033",
+    "unit_tex": "",
+    "why": "The model's velocity profile far above the viscous layer is \\(u^+ = \\ln(y^+)/\\kappa + B_{\\mathrm{SA}}\\). The law of the wall NASA plots uses \\(\\kappa = 0.41\\), \\(B = 5.0\\) (White 1974), so the model sits \\(+0.03\\) above it in the log layer, by construction and not through any numerical error. The integral is evaluated numerically; its values at \\(y^+ = 10^5\\) and \\(10^6\\) differ by \\(5 \\times 10^{-5}\\).",
+    "params": [
+     {
+      "tex": "\\kappa",
+      "meaning": "von Kármán constant",
+      "value": 0.41,
+      "unit": ""
+     },
+     {
+      "tex": "c_{v1}",
+      "meaning": "model constant in \\(f_{v1}\\)",
+      "value": 7.1,
+      "unit": ""
+     }
+    ],
+    "check": "B_{\\mathrm{SA}} = 5.0334\\ \\ \\text{(integrated to } y^+ = 10^6\\text{)}"
+   },
+   {
+    "key": "u_tau",
+    "label": "Friction velocity at the first station (from NASA's skin friction)",
+    "symbol": "u_\\tau",
+    "formula": "u_\\tau = U_\\infty\\sqrt{C_f/2}",
+    "value": 1.8469874671339814,
+    "value_tex": "1.847",
+    "unit_tex": "\\mathrm{m/s}",
+    "why": "The velocity scale of the wall layer. Used here only to size the grids before any run: it turns the height of the first cell into wall units.",
+    "params": [
+     {
+      "tex": "U_\\infty",
+      "meaning": "free-stream speed",
+      "value": 50.0,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "C_f",
+      "meaning": "skin friction at \\(x_1\\), NASA's incompressible result on the finest grid",
+      "value": 0.002729090163,
+      "unit": ""
+     }
+    ],
+    "check": "u_\\tau = 50\\sqrt{0.00272909/2} = 1.847\\ \\mathrm{m/s}"
+   },
+   {
+    "key": "yplus_coarse",
+    "label": "Wall-cell centre in wall units, coarsest grid",
+    "symbol": "y^+_1",
+    "formula": "y^+_1 = \\frac{(\\Delta y_1/2)\\,u_\\tau}{\\nu}",
+    "value": 0.7683498816866444,
+    "value_tex": "0.7683",
+    "unit_tex": "",
+    "why": "The model is integrated to the wall (no wall functions), which needs the first cell centre at \\(y^+\\) of about 1 or below. Even NASA's coarsest grid meets this at the station.",
+    "params": [
+     {
+      "tex": "\\Delta y_1",
+      "meaning": "height of the wall cell, coarsest grid",
+      "value": 8.32003351792e-06,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "u_\\tau",
+      "meaning": "friction velocity (above)",
+      "value": 1.8469874671339814,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 1e-05,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "y^+_1 = \\frac{4.16 \\times 10^{-6} \\cdot 1.847}{1 \\times 10^{-5}} = 0.768"
+   },
+   {
+    "key": "yplus_fine",
+    "label": "Wall-cell centre in wall units, finest grid",
+    "symbol": "y^+_1",
+    "formula": "y^+_1 = \\frac{(\\Delta y_1/2)\\,u_\\tau}{\\nu}",
+    "value": 0.04617468668481399,
+    "value_tex": "0.04617",
+    "unit_tex": "",
+    "why": "Twenty times closer to the wall than needed: on the finest grid the wall layer is resolved far beyond what the model requires, so the wall shear stress there is not limited by the wall spacing.",
+    "params": [
+     {
+      "tex": "\\Delta y_1",
+      "meaning": "height of the wall cell, finest grid",
+      "value": 5.0000000007e-07,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "u_\\tau",
+      "meaning": "friction velocity (above)",
+      "value": 1.8469874671339814,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 1e-05,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "y^+_1 = \\frac{2.5 \\times 10^{-7} \\cdot 1.847}{1 \\times 10^{-5}} = 0.0462"
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "with \\(\\tilde\\nu = \\kappa u_\\tau y\\) and a constant total stress, the model's \\(\\tilde S\\) equals \\(u_\\tau/(\\kappa y)\\) at every height",
+    "ok": true
+   },
+   {
+    "name": "then \\(r = \\tilde\\nu/(\\tilde S\\kappa^2 d^2) = 1\\), so \\(g = 1\\) and \\(f_w = 1\\)",
+    "ok": true
+   },
+   {
+    "name": "the model's transport equation is satisfied exactly (production \\(-\\) destruction \\(+\\) diffusion \\(= 0\\)), for any value of \\(f_{t2}\\)",
+    "ok": true
+   },
+   {
+    "name": "at the wall the profile is \\(u^+ = y^+\\): \\(du^+/dy^+ \\to 1\\) as \\(y^+ \\to 0\\)",
+    "ok": true
+   },
+   {
+    "name": "far from the wall it is logarithmic with slope \\(1/\\kappa\\): \\(y^+\\,du^+/dy^+ \\to 1/\\kappa\\)",
+    "ok": true
+   },
+   {
+    "name": "the constants used here are the ones printed on NASA's page of the model",
+    "ok": true
+   },
+   {
+    "name": "the inflow value \\(\\tilde\\nu = 3\\nu\\) gives \\(\\nu_t = 3 f_{v1}(3)\\,\\nu\\), the value NASA's page prints for it",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "OpenFOAM, <code>simpleFoam</code>: steady, incompressible, with a turbulence model. gpucfd was not an option",
+   "settings": [
+    "system/controlDict/application",
+    "system/fvSchemes/ddtSchemes/*",
+    "system/controlDict/startTime",
+    "system/controlDict/deltaT",
+    "system/controlDict/timePrecision"
+   ],
+   "why": "The problem asks for the time-averaged (steady) flow with the Spalart-Allmaras model, on NASA's grids. gpucfd solves laminar flow only and its grid cannot be NASA's grid with wall cells \\(5 \\times 10^{-7}\\) high, so it does not fit. <code>simpleFoam</code> is OpenFOAM's steady incompressible solver and has the model. One iteration is one \"time step\" of size 1: time has no physical meaning in a steady run.",
+   "affects": "How the answer is reached. The converged answer depends on the solver only through its discretisation, which the grid study measures.",
+   "alternatives": "A compressible solver (<code>rhoSimpleFoam</code>) at Mach 0.2, to match NASA's main results: the problem statement asks for the incompressible flow, and NASA gives incompressible values to compare with."
+  },
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "Incompressible Newtonian fluid, \\(\\nu = 10^{-5}\\ \\mathrm{m^2/s}\\); turbulence modelled (RANS) with the Spalart-Allmaras model in NASA's standard form: the \\(f_{t2}\\) term switched on, \\(\\sigma = 2/3\\)",
+   "settings": [
+    "constant/transportProperties/*",
+    "constant/turbulenceProperties/simulationType",
+    "constant/turbulenceProperties/RAS/*"
+   ],
+   "why": "Given by the problem. OpenFOAM's model leaves the \\(f_{t2}\\) term out unless <code>ft2 true</code> is set (that is NASA's variant SA-noft2) and uses \\(\\sigma = 0.66666\\); both are set to the standard here. The other constants are OpenFOAM's defaults; the solver prints the ones it used and the analysis compares them with NASA's list. OpenFOAM also keeps the model's \\(\\tilde S\\) at or above \\(0.3\\,\\Omega\\) (<code>Cs</code>); that is method (b) of Note 1 on NASA's page (the standard form must not let \\(\\tilde S\\) reach zero, and leaves the method open). The analysis reports where this limiter acts, and a variant with \\(0.1\\,\\Omega\\) measures its effect.",
+   "affects": "Defines the equations. The eddy viscosity sets the wall shear stress, so a different variant or constant changes every requested output.",
+   "alternatives": "SA-noft2 (OpenFOAM's default) and another limiter level: each run as a variant on one grid to measure the difference. The trip term of the original paper: not part of NASA's standard form."
+  },
+  {
+   "area": "Domain and mesh",
+   "kind": "accuracy",
+   "choice": "NASA's five nested grids, used point for point (\\(35 \\times 25\\) to \\(545 \\times 385\\) points; each level has twice the cells of the one before in both directions). Written straight into OpenFOAM's mesh files by <code>cfdlib.structgrid</code>; one cell thick, <code>empty</code> front and back (2D)",
+   "settings": [
+    "0/*/boundaryField/frontAndBack/*",
+    "system/controlDict/writePrecision"
+   ],
+   "why": "The problem asks for these grids, so that the grid is not a difference between this solution and NASA's. They are fine at the wall (first cell centre at \\(y^+\\) from about 0.8 on the coarsest grid to 0.05 on the finest) and at the leading edge. Output precision 14 digits: the finest wall cell is \\(5 \\times 10^{-7}\\ \\mathrm{m}\\) high in a domain of size 2.33, and the parallel decomposition writes the mesh again with this precision.",
+   "affects": "The discretisation error. Five levels with ratio 2 give the observed order of accuracy and the grid-converged value.",
+   "alternatives": "A grid made with <code>blockMesh</code>: could not reproduce NASA's clustering, and the comparison would then mix grid and code differences."
+  },
+  {
+   "area": "Boundary conditions",
+   "kind": "physics",
+   "choice": "Inflow: uniform velocity \\(U_\\infty\\) along \\(x\\), \\(\\tilde\\nu = 3\\nu\\), pressure extrapolated. Outflow: free-stream pressure (0), velocity and \\(\\tilde\\nu\\) extrapolated. Plate: no slip, \\(\\tilde\\nu = 0\\), \\(\\nu_t = 0\\), no wall function. Ahead of the plate: symmetry",
+   "settings": [
+    "0/U/boundaryField/inlet/*",
+    "0/U/boundaryField/outlet/*",
+    "0/U/boundaryField/plate/*",
+    "0/U/boundaryField/symmetry/*",
+    "0/p/boundaryField/inlet/*",
+    "0/p/boundaryField/outlet/*",
+    "0/p/boundaryField/plate/*",
+    "0/p/boundaryField/symmetry/*",
+    "0/nuTilda/boundaryField/inlet/*",
+    "0/nuTilda/boundaryField/outlet/*",
+    "0/nuTilda/boundaryField/plate/*",
+    "0/nuTilda/boundaryField/symmetry/*",
+    "0/nut/boundaryField/inlet/*",
+    "0/nut/boundaryField/outlet/*",
+    "0/nut/boundaryField/plate/*",
+    "0/nut/boundaryField/symmetry/*"
+   ],
+   "why": "As the problem states them. <code>inletOutlet</code> on the outflow is zero gradient unless flow comes back in (it never did). The eddy viscosity \\(\\nu_t\\) is computed from \\(\\tilde\\nu\\); its boundary entries only say that.",
+   "affects": "Defines the problem. NASA's compressible codes prescribe the total pressure at the inflow instead of the velocity; for an incompressible flow a uniform inflow velocity is the natural equivalent, and the problem statement gives it.",
+   "alternatives": "Total pressure at the inflow with the velocity free: closer to NASA's compressible set-up, not what the problem states."
+  },
+  {
+   "area": "Boundary conditions",
+   "kind": "physics",
+   "choice": "Upper side: open far field. Pressure fixed at the free-stream value; velocity and \\(\\tilde\\nu\\) extrapolated where the flow leaves, free-stream values where it enters",
+   "settings": [
+    "0/U/boundaryField/top/*",
+    "0/p/boundaryField/top/*",
+    "0/nuTilda/boundaryField/top/*",
+    "0/nut/boundaryField/top/*"
+   ],
+   "why": "The boundary layer pushes the outer flow away from the plate (it displaces about 0.3 % of the inflow through the top), so the upper side must let fluid out; a closed lid would squeeze the stream and speed it up. Fixing the free-stream pressure there is the incompressible counterpart of NASA's far-field condition.",
+   "affects": "The speed of the stream just outside the boundary layer, and through it the skin friction. Measured with a variant: a frictionless lid instead changes the skin friction at \\(x_1\\) by a few tenths of a per cent (Section 7).",
+   "alternatives": "A frictionless lid (<code>slip</code>): run as a variant to bound the influence of this side. A taller domain: not NASA's grid."
+  },
+  {
+   "area": "Initial state",
+   "kind": "solver",
+   "choice": "The coarsest grid starts from the uniform free stream; every finer grid starts from the converged solution of the grid before it (<code>mapFields</code>); every variant starts from the main solution on its grid",
+   "settings": [
+    "0/U/internalField",
+    "0/p/internalField",
+    "0/nuTilda/internalField",
+    "0/nut/internalField"
+   ],
+   "why": "A steady run only has to remove the difference between its start and its answer. Starting from the coarser grid leaves only that grid's error to remove.",
+   "affects": "The number of iterations, not the converged answer.",
+   "alternatives": "Every grid from the uniform stream: several times more iterations on the fine grids."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "accuracy",
+   "choice": "Second order throughout: linear-upwind for the advection of velocity and of \\(\\tilde\\nu\\), central differences for gradients, diffusion and interpolation",
+   "settings": [
+    "system/fvSchemes/gradSchemes/*",
+    "system/fvSchemes/divSchemes/*",
+    "system/fvSchemes/laplacianSchemes/*",
+    "system/fvSchemes/interpolationSchemes/*",
+    "system/fvSchemes/snGradSchemes/*"
+   ],
+   "why": "The grids are rectangular (no skewness, no non-orthogonality), so these schemes are formally second order and the error should fall four times per level. NASA's codes use first-order upwind for the advection of the turbulence variable; second order was chosen here for the faster grid convergence, and the first-order choice is run as a variant on three grids, since both must lead to the same grid-converged answer. <code>bounded</code> removes a term that is zero once mass is conserved; it only helps on the way to convergence.",
+   "affects": "The discretisation error on each grid, not the grid-converged answer.",
+   "alternatives": "First-order upwind for \\(\\tilde\\nu\\) (NASA's choice): the variant. Central differences for the velocity: unbounded at the cell Péclet numbers of the outer flow."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "physics",
+   "choice": "Distance to the wall for the model: <code>meshWave</code>",
+   "settings": [
+    "system/fvSchemes/wallDist/*"
+   ],
+   "why": "The model's destruction term needs each cell's distance \\(d\\) to the nearest wall. On a rectangular grid with the wall along a grid line, <code>meshWave</code> gives the exact distance for the cells above the plate (the wall face straight below). For the cells ahead of the plate it gives the distance to the nearest plate face centre, which differs from the distance to the leading edge by at most half a cell; the model is inactive there (free-stream \\(\\tilde\\nu\\)).",
+   "affects": "The destruction term, and through it the eddy viscosity. A wrong distance would be a model error that the grid study cannot remove.",
+   "alternatives": "<code>exactDistance</code>: identical above the plate."
+  },
+  {
+   "area": "Solution method",
+   "kind": "solver",
+   "choice": "SIMPLEC pressure-velocity coupling. Relaxation: velocity 0.9, \\(\\tilde\\nu\\) 0.5, pressure none",
+   "settings": [
+    "system/fvSolution/SIMPLE/*",
+    "system/fvSolution/relaxationFactors/*"
+   ],
+   "why": "The equations are solved one after the other and repeated until nothing changes. With \\(\\tilde\\nu\\) relaxed by 0.9 or 0.7 the iteration locked into a cycle of period 2 on the coarsest grid (the wall layer flipping between two states, drag alternating by 15 %); with 0.5 it converges to residuals below \\(10^{-10}\\) (Insights). A trial on the coarsest grid ranked velocity 0.9 with \\(\\tilde\\nu\\) 0.5 fastest of the settings that converge. The grids are orthogonal, so no non-orthogonal correctors.",
+   "affects": "How fast the run converges, and whether it does. The converged drag depends on the velocity factor at \\(2 \\times 10^{-5}\\) (relative, coarsest grid; a known property of OpenFOAM's face interpolation), so every run of the study uses the same factors.",
+   "alternatives": "SIMPLE with pressure relaxation 0.3 and velocity 0.7: converged too, about twice as slowly in the trial."
+  },
+  {
+   "area": "Solution method",
+   "kind": "solver",
+   "choice": "Linear solvers: multigrid (GAMG, DIC Gauss-Seidel smoother) for the pressure, to 0.05 of the starting residual per iteration; preconditioned BiCGStab for velocity and \\(\\tilde\\nu\\), to 0.01",
+   "settings": [
+    "system/fvSolution/solvers/*"
+   ],
+   "why": "Each outer iteration only needs a partial solve; the outer iterations remove what is left. Absolute tolerances (\\(10^{-10}\\), \\(10^{-12}\\)) are above round-off, with a cap of 200 iterations per solve, so a converged run costs almost nothing per iteration. On the finest grid the pressure solve took 4.6 multigrid cycles per iteration in the pre-flight, in spite of cells 21,000 times longer than high.",
+   "affects": "Run time only; the stopping rule checks the answer.",
+   "alternatives": "Conjugate gradients for the pressure: not needed, multigrid coped with the stretched cells."
+  },
+  {
+   "area": "Convergence",
+   "kind": "accuracy",
+   "choice": "Each run stops itself (live stop) once the estimated iteration error of five monitored values is below its tolerance: the drag coefficient and the wall-cell velocity at the two stations to \\(2 \\times 10^{-6}\\), \\(\\tilde\\nu\\) in the outer layer at the two stations to \\(10^{-5}\\), all relative. Checked every 25 iterations, twice in a row, and the change between consecutive iterations must also be below the tolerance. The iteration limit of 60,000 is only a cap",
+   "settings": [
+    "system/controlDict/endTime",
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/functions/liveStop/*",
+    "system/controlDict/functions/probesU/*",
+    "system/controlDict/functions/probesNut/*"
+   ],
+   "why": "The skin friction changes by about \\(2 \\times 10^{-4}\\) (relative) between the two finest grids; \\(2 \\times 10^{-6}\\) is about 1 % of that, so iteration error cannot disturb the grid study. The wall-cell velocity is proportional to the local wall shear stress. The check between consecutive iterations is there because a period-2 cycle is invisible when sampled at an even interval (Insights). After the stop, the momentum balance of Section 3 is the physical check.",
+   "affects": "The iteration error left in each result.",
+   "alternatives": "Residual targets: they say nothing about the error of the answer, and here residuals stalled at \\(10^{-3}\\) in a state that was 8 % wrong."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Drag coefficient of the plate every iteration (<code>forceCoeffs</code>, reference area: plate length \\(\\times\\) unit depth); wall shear stress and \\(y^+\\) on the plate at the end; all fields with 14 digits",
+   "settings": [
+    "system/controlDict/functions/forces/*",
+    "system/controlDict/functions/wallShearStress/*",
+    "system/controlDict/functions/yPlus/*"
+   ],
+   "why": "The requested outputs are built from the wall shear stress per wall face (skin friction along the plate and at the station), the drag, and the fields (profiles, eddy viscosity). The wall shear stress is the one the solver itself uses in the momentum equation: \\(\\nu\\) times the wall-cell velocity over its distance to the wall.",
+   "affects": "What is measured. The skin friction at \\(x_1\\) is interpolated linearly between the two wall faces next to it, because \\(x_1\\) is a grid point and no wall face is centred on it.",
+   "alternatives": "A quadratic fit through three wall cells for the wall shear stress: not what the solver's momentum balance uses."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before the grid study: run the coarsest grid to convergence, to see what a converged run looks like and to size the limits of the physical checks, and run the finest grid briefly on its MPI ranks, to see that it starts and what an iteration costs.",
+  "runs": [
+   {
+    "name": "G1, first attempt",
+    "setup": "Coarsest grid from the uniform stream, turbulence variable relaxed by 0.9",
+    "outcome": "Did not converge: a cycle of period 2. The drag coefficient alternated between \\(0.0031795\\) and \\(0.0027472\\); residuals stalled near \\(10^{-3}\\); momentum balance \\(-6.3\\,\\%\\) off"
+   },
+   {
+    "name": "G1, to convergence",
+    "setup": "Coarsest grid from the uniform stream, turbulence variable relaxed by 0.5, live stop",
+    "outcome": "Converged: residuals below \\(10^{-10}\\), \\(C_f(x_1) = 0.0027124\\), momentum balance \\(+0.0017\\,\\%\\); 8 s"
+   },
+   {
+    "name": "G5, short run",
+    "setup": "Finest grid from the uniform stream, 8 MPI ranks, 300 iterations",
+    "outcome": "Ran without errors; 0.063 s per iteration; pressure solve 4.6 multigrid cycles per iteration"
+   }
+  ],
+  "checks": [
+   {
+    "name": "First attempt: momentum balance",
+    "value": "\\(-6.3\\,\\%\\)",
+    "status": "fail",
+    "meaning": "The stop rule sampled every 20 iterations and saw constant values; the physical check exposed the cycle. Fixed before production (relaxation 0.5, stop rule checks consecutive iterations)."
+   },
+   {
+    "name": "G1 converged: momentum balance",
+    "value": "\\(+0.0017\\,\\%\\)",
+    "status": "ok",
+    "meaning": "Drag from the wall shear stress against the momentum lost by the stream. What is left is the small viscous stress on the outflow side that the balance leaves out. It sized the production limit of \\(0.01\\,\\%\\)."
+   },
+   {
+    "name": "G1 converged: mass balance",
+    "value": "\\(2 \\times 10^{-13}\\)",
+    "status": "ok",
+    "meaning": "Sum of the boundary fluxes over the inflow."
+   },
+   {
+    "name": "G1 converged: largest residual",
+    "value": "\\(6 \\times 10^{-11}\\)",
+    "status": "ok",
+    "meaning": "With the cycle gone the residuals fall to round-off."
+   },
+   {
+    "name": "G5: Solver finished without errors",
+    "value": "no errors",
+    "status": "ok",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "G5: No NaN values",
+    "value": "none",
+    "status": "ok",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "G5: Residual trend: Ux",
+    "value": "\\(\\times\\,0.113\\) (late vs early)",
+    "status": "ok",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "G5: Residual trend: Uy",
+    "value": "\\(\\times\\,0.292\\) (late vs early)",
+    "status": "ok",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "G5: Residual trend: nuTilda",
+    "value": "\\(\\times\\,0.0841\\) (late vs early)",
+    "status": "ok",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "G5: Residual trend: p",
+    "value": "\\(\\times\\,0.12\\) (late vs early)",
+    "status": "ok",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "G5: Continuity-error trend",
+    "value": "\\(\\times\\,0.283\\) (late vs early)",
+    "status": "ok",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "G5: mesh check",
+    "value": "Mesh OK; largest aspect ratio 21,479",
+    "status": "ok",
+    "meaning": "<code>checkMesh</code> flags the stretched wall cells as a warning; they are NASA's design (thin at the wall), and the grid has no skewness and no non-orthogonality."
+   }
+  ],
+  "conclusion": "The first attempt failed in an instructive way: the run looked converged to the stop rule, while its momentum balance was \\(6.3\\,\\%\\) off. Lowering the relaxation of the turbulence variable from 0.9 to 0.5 removed the cycle, and the stop rule was extended to compare consecutive iterations. After that every check passed, and the acceptance rules were fixed in <code>numerics.yaml</code> before the production runs. On the finest grid an iteration takes 0.063 s on 8 ranks."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Air",
+    "real": "Viscous, slightly compressible at these speeds",
+    "model": "Incompressible, \\(\\nu = 1 \\times 10^{-5}\\ \\mathrm{m^2/s}\\)"
+   },
+   {
+    "aspect": "Turbulence",
+    "real": "Unsteady eddies of all sizes",
+    "model": "Time-averaged flow with the Spalart-Allmaras eddy viscosity (standard form)"
+   },
+   {
+    "aspect": "Plate",
+    "real": "Thin, smooth, \\(2L\\) long",
+    "model": "No-slip wall on the lower side from \\(x = 0\\); \\(\\tilde\\nu = 0\\)"
+   },
+   {
+    "aspect": "Free stream",
+    "real": "Unbounded",
+    "model": "Uniform inflow \\(L/3\\) ahead of the plate; open upper side at free-stream pressure, \\(H = L\\) above the plate"
+   },
+   {
+    "aspect": "Span",
+    "real": "Very wide plate",
+    "model": "Two-dimensional: one cell thick"
+   }
+  ],
+  "meshes": {
+   "intro": "NASA's five nested grids, used point for point. Each level halves the cell size in both directions. The wall-cell centre is given in wall units, as the solver reports it on the converged solution.",
+   "head": [
+    "Grid",
+    "Points",
+    "Cells",
+    "Cells on the plate",
+    "Wall cell height (m)",
+    "Mean \\(y^+\\) of the wall cell",
+    "Largest \\(y^+\\)"
+   ],
+   "rows": [
+    [
+     "G1",
+     "35 × 25",
+     "816",
+     28,
+     "\\(8.32 \\times 10^{-6}\\)",
+     "\\(0.846\\)",
+     "\\(1.19\\)"
+    ],
+    [
+     "G2",
+     "69 × 49",
+     "3,264",
+     56,
+     "\\(4.04 \\times 10^{-6}\\)",
+     "\\(0.411\\)",
+     "\\(0.64\\)"
+    ],
+    [
+     "G3",
+     "137 × 97",
+     "13,056",
+     112,
+     "\\(2 \\times 10^{-6}\\)",
+     "\\(0.204\\)",
+     "\\(0.37\\)"
+    ],
+    [
+     "G4",
+     "273 × 193",
+     "52,224",
+     224,
+     "\\(1 \\times 10^{-6}\\)",
+     "\\(0.102\\)",
+     "\\(0.22\\)"
+    ],
+    [
+     "G5",
+     "545 × 385",
+     "208,896",
+     448,
+     "\\(5 \\times 10^{-7}\\)",
+     "\\(0.051\\)",
+     "\\(0.13\\)"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Grid",
+    "\\(C_f(x_1)\\)",
+    "Observed order",
+    "\\(C_D\\)",
+    "Peak \\(\\nu_t/\\nu\\) at \\(x_1\\)",
+    "\\(\\delta_{99}\\) at \\(x_1\\) (mm)"
+   ],
+   "rows": [
+    [
+     "G1",
+     "\\(0.0027124\\)",
+     "–",
+     "\\(0.0028670\\)",
+     "\\(206.0\\)",
+     "\\(15.58\\)"
+    ],
+    [
+     "G2",
+     "\\(0.0027218\\)",
+     "–",
+     "\\(0.0028765\\)",
+     "\\(207.9\\)",
+     "\\(14.22\\)"
+    ],
+    [
+     "G3",
+     "\\(0.0027266\\)",
+     "\\(0.99\\)",
+     "\\(0.0028814\\)",
+     "\\(208.5\\)",
+     "\\(14.36\\)"
+    ],
+    [
+     "G4",
+     "\\(0.0027280\\)",
+     "\\(1.71\\)",
+     "\\(0.0028828\\)",
+     "\\(209.2\\)",
+     "\\(14.32\\)"
+    ],
+    [
+     "G5",
+     "\\(0.0027285\\)",
+     "\\(1.74\\)",
+     "\\(0.0028831\\)",
+     "\\(209.4\\)",
+     "\\(14.32\\)"
+    ],
+    [
+     "Grid-converged (G3 to G5)",
+     "\\(0.0027286\\) \\(\\pm\\) \\(0.008\\,\\%\\)",
+     "\\(1.74\\)",
+     "\\(0.0028832\\)",
+     "–",
+     "–"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Grid",
+    "Iterations",
+    "Live stop",
+    "Momentum balance",
+    "Mass balance",
+    "Change between iterations",
+    "Largest residual",
+    "Log checks",
+    "Time (s)"
+   ],
+   "rows": [
+    [
+     "G1",
+     "8,433",
+     "✓ ok",
+     "\\(+0.0017\\,\\%\\)",
+     "\\(1 \\times 10^{-13}\\)",
+     "\\(9 \\times 10^{-10}\\)",
+     "\\(5 \\times 10^{-11}\\)",
+     "✓ OK",
+     "10"
+    ],
+    [
+     "G2",
+     "4,228",
+     "✓ ok",
+     "\\(+0.0018\\,\\%\\)",
+     "\\(-7 \\times 10^{-14}\\)",
+     "\\(9 \\times 10^{-11}\\)",
+     "\\(5 \\times 10^{-10}\\)",
+     "✓ OK",
+     "15"
+    ],
+    [
+     "G3",
+     "3,222",
+     "✓ ok",
+     "\\(+0.0019\\,\\%\\)",
+     "\\(-5 \\times 10^{-13}\\)",
+     "\\(3 \\times 10^{-9}\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "✓ OK",
+     "40"
+    ],
+    [
+     "G4",
+     "5,647",
+     "✓ ok",
+     "\\(+0.0020\\,\\%\\)",
+     "\\(1 \\times 10^{-13}\\)",
+     "\\(1 \\times 10^{-9}\\)",
+     "\\(3 \\times 10^{-9}\\)",
+     "✓ OK",
+     "90"
+    ],
+    [
+     "G5",
+     "11,062",
+     "✓ ok",
+     "\\(+0.0020\\,\\%\\)",
+     "\\(-3 \\times 10^{-13}\\)",
+     "\\(4 \\times 10^{-10}\\)",
+     "\\(6 \\times 10^{-10}\\)",
+     "✓ OK",
+     "602"
+    ]
+   ],
+   "notes": [
+    "Each run stopped itself once the estimated iteration error of the drag coefficient and of the wall-cell velocity at both stations was below \\(2 \\times 10^{-6}\\) and that of \\(\\tilde\\nu\\) in the outer layer below \\(1 \\times 10^{-5}\\) (relative), twice in a row. Each grid started from the solution of the grid before it (Figure 4).",
+    "Momentum balance: momentum lost by the stream (fluxes on the inflow, outflow and upper sides, plus the pressure on the inflow side) over the friction force on the plate, minus 1. Mass balance: sum of the boundary fluxes over the inflow. Change between iterations: largest relative change of a monitored value between two consecutive iterations over the last 50, the guard against the period-2 cycle of the pre-flight.",
+    "The wall shear stress written by the solver equals \\(\\nu u_P/y_P\\) of the wall cell to \\(3 \\times 10^{-6}\\) (relative), so the skin friction is the stress in the solver's own momentum balance.",
+    "Variants (one change each, started from the main solution of the same grid): see the table in Section 7."
+   ]
+  }
+ },
+ "comparison": {
+  "kind": "Code-to-code verification: the same model on the same grids in another code. The like-for-like reference is NASA's incompressible FUN3D result for the skin friction at \\(x_1\\); the Mach 0.2 results of CFL3D and FUN3D are shown as context.",
+  "definitions": [
+   {
+    "name": "Grid-converged value",
+    "latex": "f_0 = f_5 + \\frac{f_5 - f_4}{2^p - 1},\\qquad p = \\frac{\\ln\\left[(f_3 - f_4)/(f_4 - f_5)\\right]}{\\ln 2}",
+    "meaning": "Richardson extrapolation from the three finest grids (\\(f_3, f_4, f_5\\)); \\(p\\) is the observed order of accuracy. Applied in the same way to this solution and to each of NASA's series."
+   },
+   {
+    "name": "Grid-convergence index",
+    "latex": "\\mathrm{GCI} = 1.25\\,\\frac{|f_5 - f_4|}{(2^p - 1)\\,|f_5|}",
+    "meaning": "Uncertainty of the finest-grid value due to the grid (Celik et al. 2008, the procedure NASA uses on its page)."
+   },
+   {
+    "name": "Agreement rule",
+    "latex": "|f_0 - f_0^{\\mathrm{ref}}| \\le \\mathrm{GCI}\\,|f_5| + \\mathrm{GCI}^{\\mathrm{ref}}\\,|f_5^{\\mathrm{ref}}|",
+    "meaning": "Two grid-converged values agree when they differ by less than the sum of their grid uncertainties. Outside that band and below \\(0.45\\,\\%\\): WARN. Above: FAIL. Fixed before the runs."
+   },
+   {
+    "name": "Station interpolation",
+    "latex": "C_f(x_1) = C_f^{(i)} + \\frac{x_1 - x^{(i)}}{x^{(i+1)} - x^{(i)}}\\left(C_f^{(i+1)} - C_f^{(i)}\\right)",
+    "meaning": "Linear interpolation between the two wall faces next to \\(x_1\\). The last column of the table applies it to the finest solution, sampled at each grid's faces: the error of the interpolation alone."
+   }
+  ],
+  "head": [
+   "Grid",
+   "This solution",
+   "FUN3D incompr.",
+   "Difference",
+   "SC/TETRA incompr.",
+   "CFL3D (Mach 0.2)",
+   "FUN3D (Mach 0.2)",
+   "Interpolation error"
+  ],
+  "rows": [
+   [
+    "G1",
+    "\\(0.0027124\\)",
+    "\\(0.0026958\\)",
+    "\\(+0.617\\,\\%\\)",
+    "\\(0.0022583\\)",
+    "\\(0.0027957\\)",
+    "\\(0.0026674\\)",
+    "\\(+0.055\\,\\%\\)"
+   ],
+   [
+    "G2",
+    "\\(0.0027218\\)",
+    "\\(0.0027204\\)",
+    "\\(+0.054\\,\\%\\)",
+    "\\(0.0025357\\)",
+    "\\(0.0027283\\)",
+    "\\(0.0026950\\)",
+    "\\(+0.015\\,\\%\\)"
+   ],
+   [
+    "G3",
+    "\\(0.0027266\\)",
+    "\\(0.0027266\\)",
+    "\\(-0.002\\,\\%\\)",
+    "\\(0.0026662\\)",
+    "\\(0.0027112\\)",
+    "\\(0.0027022\\)",
+    "\\(+0.004\\,\\%\\)"
+   ],
+   [
+    "G4",
+    "\\(0.0027280\\)",
+    "\\(0.0027285\\)",
+    "\\(-0.016\\,\\%\\)",
+    "\\(0.0027161\\)",
+    "\\(0.0027067\\)",
+    "\\(0.0027045\\)",
+    "\\(+0.001\\,\\%\\)"
+   ],
+   [
+    "G5",
+    "\\(0.0027285\\)",
+    "\\(0.0027291\\)",
+    "\\(-0.023\\,\\%\\)",
+    "\\(0.0027294\\)",
+    "\\(0.0027056\\)",
+    "\\(0.0027054\\)",
+    "\\(+0.000\\,\\%\\)"
+   ],
+   [
+    "Grid-converged",
+    "\\(0.0027286\\)",
+    "\\(0.0027294\\)",
+    "\\(-0.028\\,\\%\\)",
+    "\\(0.0027342\\)",
+    "\\(0.0027052\\)",
+    "\\(0.0027060\\)",
+    "–"
+   ],
+   [
+    "Observed order",
+    "\\(1.74\\)",
+    "\\(1.53\\)",
+    "–",
+    "\\(1.91\\)",
+    "\\(1.98\\)",
+    "\\(1.34\\)",
+    "–"
+   ],
+   [
+    "Grid-convergence index, finest",
+    "\\(0.008\\,\\%\\)",
+    "\\(0.015\\,\\%\\)",
+    "–",
+    "\\(0.22\\,\\%\\)",
+    "\\(0.017\\,\\%\\)",
+    "\\(0.028\\,\\%\\)",
+    "–"
+   ]
+  ],
+  "findings": [
+   "<b>What the remaining difference is made of.</b><table><thead><tr><th>Part</th><th>How it was measured</th><th>Effect on \\(C_f(x_1)\\)</th></tr></thead><tbody><tr><td>Difference on the finest grid</td><td>This solution against FUN3D incompressible, both on \\(545 \\times 385\\)</td><td>\\(-0.023\\,\\%\\)</td></tr><tr><td>Grid error of this solution</td><td>Finest grid against its own grid-converged value</td><td>\\(-0.007\\,\\%\\)</td></tr><tr><td>Grid error of the reference</td><td>FUN3D incompressible, finest grid against its grid-converged value</td><td>\\(-0.012\\,\\%\\)</td></tr><tr><td><b>Difference of the grid-converged values</b></td><td>What is left when both grid errors are removed</td><td><b>\\(-0.028\\,\\%\\)</b></td></tr><tr><td>Uncertainty of that difference</td><td>Sum of the two grid-convergence indices</td><td>\\(\\pm\\)\\(0.024\\,\\%\\)</td></tr><tr><td>Against the second incompressible code</td><td>This solution against SC/TETRA, grid-converged values (SC/TETRA is \\(+0.18\\,\\%\\) from FUN3D there)</td><td>\\(-0.204\\,\\%\\)</td></tr><tr><td>Compressibility (NASA's own measure)</td><td>FUN3D incompressible against CFL3D at Mach 0.2, finest grid</td><td>\\(+0.87\\,\\%\\)</td></tr><tr><td>Model: without the \\(f_{t2}\\) term</td><td>OpenFOAM's default against the standard form, grid G4</td><td>less than \\(0.0001\\,\\%\\)</td></tr><tr><td>Numerics: first-order advection of \\(\\tilde\\nu\\)</td><td>As NASA's codes; change of the grid-converged value (G3 to G5)</td><td>\\(+0.003\\,\\%\\)</td></tr><tr><td>Model: limiter on \\(\\tilde S\\) at \\(0.1\\,\\Omega\\) instead of \\(0.3\\,\\Omega\\)</td><td>Grid G4; the limiter only acts next to the leading edge</td><td>less than \\(0.0001\\,\\%\\)</td></tr><tr><td>Boundary: closed lid instead of the open far field</td><td>Grid G4; the stream above the layer at \\(x_1\\) is then \\(+0.10\\,\\%\\) faster</td><td>\\(+0.26\\,\\%\\)</td></tr><tr><td>Boundary: speed of the stream over the plate</td><td>Grid G4, inflow \\(+0.30\\,\\%\\) faster; \\(C_f\\) stays referred to the given \\(U_\\infty\\), as it would if the far field of another set-up let the stream run faster</td><td>\\(+0.56\\,\\%\\)</td></tr><tr><td>Solver: velocity relaxation factor 0.3 to 0.9</td><td>Spread of the converged drag on the coarsest grid</td><td>\\(0.0022\\,\\%\\)</td></tr></tbody></table>",
+   "<b>Variants, one change at a time.</b><table><thead><tr><th>Change</th><th>Grid</th><th>\\(C_f(x_1)\\)</th><th>Change of \\(C_f(x_1)\\)</th><th>Change of \\(C_D\\)</th><th>Momentum balance</th><th>Iterations</th><th>Stop</th></tr></thead><tbody><tr><td>OpenFOAM default: without the f_t2 term (SA-noft2)</td><td>G4</td><td>\\(0.0027280\\)</td><td>less than \\(0.001\\,\\%\\)</td><td>less than \\(0.001\\,\\%\\)</td><td>\\(+0.0020\\,\\%\\)</td><td>3,868</td><td>✓</td></tr><tr><td>First-order upwind for the turbulence variable, as in NASA's codes</td><td>G3</td><td>\\(0.0027270\\)</td><td>\\(+0.017\\,\\%\\)</td><td>\\(-0.022\\,\\%\\)</td><td>\\(+0.0018\\,\\%\\)</td><td>1,994</td><td>✓</td></tr><tr><td>First-order upwind for the turbulence variable, as in NASA's codes</td><td>G4</td><td>\\(0.0027278\\)</td><td>\\(-0.007\\,\\%\\)</td><td>\\(-0.030\\,\\%\\)</td><td>\\(+0.0019\\,\\%\\)</td><td>6,912</td><td>✓</td></tr><tr><td>First-order upwind for the turbulence variable, as in NASA's codes</td><td>G5</td><td>\\(0.0027283\\)</td><td>\\(-0.008\\,\\%\\)</td><td>\\(-0.021\\,\\%\\)</td><td>\\(+0.0020\\,\\%\\)</td><td>7,763</td><td>✓</td></tr><tr><td>Limiter on S-tilde at 0.1 Omega instead of 0.3 Omega</td><td>G4</td><td>\\(0.0027280\\)</td><td>less than \\(0.001\\,\\%\\)</td><td>less than \\(0.001\\,\\%\\)</td><td>\\(+0.0020\\,\\%\\)</td><td>3,875</td><td>✓</td></tr><tr><td>Inflow 0.3 % faster, skin friction still referred to the given speed</td><td>G4</td><td>\\(0.0027432\\)</td><td>\\(+0.557\\,\\%\\)</td><td>\\(+0.557\\,\\%\\)</td><td>\\(+0.0022\\,\\%\\)</td><td>6,479</td><td>✓</td></tr><tr><td>Upper side closed by a frictionless lid instead of an open far field</td><td>G4</td><td>\\(0.0027350\\)</td><td>\\(+0.256\\,\\%\\)</td><td>\\(+0.260\\,\\%\\)</td><td>\\(+0.0019\\,\\%\\)</td><td>3,955</td><td>✓</td></tr></tbody></table>",
+   "<b>Drag (b).</b> \\(0.0028831\\) on the finest grid, \\(+0.81\\,\\%\\) above CFL3D's Mach 0.2 value and \\(+1.07\\,\\%\\) above FUN3D's (the two differ by \\(0.26\\,\\%\\) from each other). The skin friction at \\(x_1\\) is \\(+0.84\\,\\%\\) above CFL3D's, so drag and local friction differ from the compressible result by the same factor to \\(-0.03\\,\\%\\). Observed order of the drag: \\(2.19\\) (CFL3D \\(1.75\\), FUN3D \\(0.80\\)).",
+   "<b>Skin friction along the plate (c).</b> The ratio to CFL3D is \\(1.0091\\) on average and goes from \\(1.0105\\) at \\(x = 0.1\\) to \\(1.0049\\) at \\(x = 1.9\\) (Figure 6). The first cells after the leading edge and the last before the outflow are left out, as NASA does: the skin friction is singular at the leading edge. Part of the difference, and of its slow fall along the plate, has a measured cause that is not density. Above the boundary layer this solution's stream is \\(+0.33\\,\\%\\) faster than CFL3D's at \\(x_1\\) and \\(+0.19\\,\\%\\) at \\(x_2\\) (Figure 7). A variant with a slightly faster inflow gives the sensitivity of this solver's skin friction to that speed: \\(C_f\\), referred to the given \\(U_\\infty\\), changes by \\(1.85\\) % per 1 % of speed. With it, the speed difference accounts for \\(+0.61\\,\\%\\) of the \\(+0.84\\,\\%\\) at \\(x_1\\) and for \\(+0.35\\,\\%\\) of the \\(+0.48\\,\\%\\) at \\(x_2\\); it predicts a fall of \\(0.26\\,\\%\\) between the stations, against \\(0.36\\,\\%\\) observed. So a large part of what NASA's page presents as the difference between compressible and incompressible results at \\(x_1\\) (\\(+0.87\\,\\%\\)) goes with the speed of the stream over the plate, which the two kinds of set-up do not fix in the same way; what remains, \\(+0.24\\,\\%\\) at \\(x_1\\), is the size left for density effects and for CFL3D's stream speeding up along the plate. This split is an estimate from two stations, not a result NASA publishes.",
+   "<b>Velocity profiles (d).</b> Largest difference from CFL3D inside the boundary layer: \\(0.0035\\) and \\(0.0022\\) (in \\(U_\\infty\\)) at \\(x_1\\) and \\(x_2\\) (Figure 7). Above the layer CFL3D's stream runs at \\(0.9985\\) and \\(1.0000\\) \\(U_\\infty\\), this solution's at \\(1.0018\\) and \\(1.0019\\): the two set-ups do not give the same free-stream speed over the plate, and the skin friction, which is referred to \\(U_\\infty\\), feels that.",
+   "<b>Wall units (d).</b> In the wall cell \\(u^+/y^+ = 1.00000\\). For \\(y^+ \\le 100\\) the profile follows the model's own law of the wall to \\(0.24\\,\\%\\) at \\(x_1\\) and \\(0.09\\,\\%\\) at \\(x_2\\) (largest near \\(y^+ = 97\\), where the stress is no longer exactly constant). At \\(y^+ = 100\\) it is \\(+0.09\\) from the model's log law and \\(+0.13\\) from the log law NASA plots (\\(\\kappa = 0.41\\), \\(B = 5.0\\)); against CFL3D's \\(u^+\\) at the same \\(y^+\\) the largest difference is \\(0.09\\,\\%\\) (Figure 8).",
+   "<b>Eddy viscosity (e).</b> Peak \\(\\nu_t/\\nu\\) at \\(x_1\\): \\(209.4\\), against \\(208.3\\) (CFL3D) and \\(208.3\\) (FUN3D), \\(+0.50\\,\\%\\). Along the plate the largest value per column is \\(+0.56\\,\\%\\) from CFL3D's on average (largest departure \\(0.80\\,\\%\\), \\(0.2 \\le x \\le 1.9\\)); it grows to \\(381.9\\) at the end of the plate (Figure 9).",
+   "<b>Rules that passed.</b> Momentum balance: on every grid the drag from the wall shear stress equals the momentum the stream loses to within \\(0.0020\\,\\%\\) (limit \\(0.01\\,\\%\\)). Mass balance: the boundary fluxes sum to \\(5 \\times 10^{-13}\\) of the inflow or less on every grid. No iteration-to-iteration cycle: over the last 50 iterations of every run the monitored values changed by at most \\(3 \\times 10^{-9}\\) (relative). The model constants the solver printed are NASA's, and the \\(f_{t2}\\) term is active. Observed order of accuracy of \\(C_f(x_1)\\) on the three finest grids: \\(1.74\\) (expected between 1 and 3). Grid-convergence index of \\(C_f(x_1)\\) on the finest grid: \\(0.008\\,\\%\\) (limit \\(0.1\\,\\%\\)): the study is sharp enough to judge a difference of a tenth of a per cent. Wall layer: for \\(y^+ \\le 100\\) the simulated \\(u^+\\) follows the model's own law of the wall to within \\(0.24\\,\\%\\) at both stations (limit \\(1\\,\\%\\)). Context check against the compressible results (Mach 0.2, not the same flow): the drag differs from CFL3D's by the same factor as the skin friction at \\(x_1\\), to within \\(-0.03\\,\\%\\) (limit \\(0.3\\,\\%\\)). Context check against the compressible results (Mach 0.2, not the same flow): velocity profiles within \\(0.0035\\,U_\\infty\\) of CFL3D's at both stations (limit \\(0.005\\,U_\\infty\\)). Context check against the compressible results (Mach 0.2, not the same flow): eddy viscosity within \\(0.80\\,\\%\\) of CFL3D's (peak at \\(x_1\\) and the largest value along the plate; limit \\(2\\,\\%\\)).",
+   "<b>Rules that did not pass.</b> Skin friction at \\(x_1\\), grid-converged: \\(-0.028\\,\\%\\) from NASA's incompressible FUN3D value. That is outside the combined grid-uncertainty band of \\(0.024\\,\\%\\) (so it is not grid error on either side), and inside the limit of \\(0.45\\,\\%\\) set before the runs. Context check against the compressible results (Mach 0.2, not the same flow): the ratio of \\(C_f(x)\\) to CFL3D's varies along \\(0.1 \\le x \\le 1.9\\) by up to \\(0.42\\,\\%\\) around its mean (limit \\(0.3\\,\\%\\))."
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "setup",
+   "logged": "2026-11-13 22:23",
+   "status": "resolved",
+   "problem": "OpenFOAM v2606 runs the Spalart-Allmaras model without the model's f_t2 term unless the case asks for it: the problem asks for the standard form (NASA's SA), which has the term.",
+   "diagnosis": "Read in the solver's source (<code>SpalartAllmarasBase.C</code>): the switch <code>ft2</code> is false unless the case sets it, and the log then says <code>ft2 term: inactive</code>. That is NASA's variant SA-noft2, not SA. The default \\(\\sigma\\) is 0.66666, not \\(2/3\\). The source also limits the model's \\(\\tilde S\\) to at least \\(0.3\\,\\Omega\\), which the standard model does not have.",
+   "fix": "<code>SpalartAllmarasCoeffs { ft2 true; sigmaNut 0.666666666666667; }</code>; <code>printCoeffs on</code>, and the analysis reads the coefficients the solver printed and compares them with NASA's list. A variant run without the term measures what it is worth here; the analysis checks in the solution whether the limiter ever acted.",
+   "lesson": "A model name is not a model definition: the same name covers several published variants, and a solver's default may be another one than the benchmark's. The source and the start-up log settle it in minutes.",
+   "guideline": "Primer, new section 'Turbulence models': for each model used so far, which published variant OpenFOAM's default is, the switches that change it (Spalart-Allmaras: <code>ft2</code>, <code>sigmaNut</code>, the limiter <code>Cs</code>), and the advice to switch <code>printCoeffs</code> on and compare the printed coefficients with the reference in code.",
+   "resolved": "2026-11-13 22:31"
+  },
+  {
+   "id": 2,
+   "stage": "tooling",
+   "logged": "2026-11-13 22:23",
+   "status": "resolved",
+   "problem": "monitor.preflight() cannot run a decomposed (MPI) case: it copies the case without its processor folders, so the solver finds no mesh for its ranks.",
+   "diagnosis": "<code>monitor.preflight()</code> copies the prepared case with <code>ignore_patterns('processor*')</code>, so the copy has no decomposed mesh and <code>mpirun ... -parallel</code> cannot start.",
+   "fix": "The short run on the finest grid is its own case (<code>pfG5</code>, its iteration count as the end), judged with <code>monitor.assess</code> and <code>foam.ignored_settings</code> directly.",
+   "lesson": "The pre-flight tool only fits serial runs; a case whose finest level needs MPI has to write its own short run.",
+   "guideline": "<code>monitor.preflight</code>: accept a rank count (decompose inside the copy) or copy the processor folders; say in its docstring that it is serial only until then.",
+   "resolved": "2026-11-13 22:31"
+  },
+  {
+   "id": 3,
+   "stage": "preflight",
+   "logged": "2026-11-13 22:25",
+   "status": "resolved",
+   "problem": "On the coarsest grid the live stop reported every monitored value settled (changes of zero), yet the solver's residuals had stalled near one thousandth and the momentum balance was 8.5 per cent off.",
+   "diagnosis": "The iteration had locked into a cycle of period 2: the whole wall layer flipped between two states every iteration (wall-cell velocity changing by \\(2\\ \\mathrm{m/s}\\), the drag coefficient alternating between 0.00275 and 0.00318). The velocity equation and the turbulence equation are solved one after the other, and with the turbulence variable relaxed by 0.9 each over-corrects the other. The stop rule sampled every 20 iterations, always the same phase of the cycle, so it saw a constant; <code>steady_check</code> then reports an error of zero.",
+   "fix": "Relaxation of the turbulence variable 0.5 (velocity 0.9): residuals fall to \\(10^{-12}\\) and the momentum balance closes to \\(1.7 \\times 10^{-5}\\). The stop rule now also needs the change between consecutive iterations to be below the tolerance, and samples at an odd interval (25).",
+   "lesson": "Monitored values that have stopped changing do not prove convergence when they are sampled at a fixed even interval. Residuals stuck at \\(10^{-3}\\) with 'zero' change were the sign; the momentum balance, the physical check, is what showed it plainly (8.5 % off).",
+   "guideline": "<code>monitor.steady_check</code>: also test the change between consecutive rows over the last samples and report 'oscillating' (or default to an odd interval). <code>monitor.assess</code>: warn when residuals are flat above \\(10^{-6}\\) over the last half of a steady run. Primer, steady runs: with a turbulence model the relaxation of the turbulence variable can cause a period-2 cycle on wall-resolved grids (0.9 and 0.7 cycled here, 0.5 and 0.3 converged); run the coarsest grid to its physical check before trusting a stop.",
+   "resolved": "2026-11-13 22:31"
+  },
+  {
+   "id": 4,
+   "stage": "preflight",
+   "logged": "2026-11-13 22:28",
+   "status": "resolved",
+   "problem": "Trial runs that ended at their endTime gave a different drag than the same setup stopped by the live stop: the drag coefficient jumped from 0.00275 to 0.00318 in the last iteration.",
+   "diagnosis": "Not the end time. It was the same period-2 cycle as in insight 3, caught on the other phase: a run that stops on an even iteration gives 0.00318, on an odd one 0.00275. My first explanation (a last iteration without relaxation) was a guess; printing the last six values of the drag history showed the alternation at once.",
+   "fix": "As insight 3. The trials were repeated with a stop at a fixed iteration through the stop file and with the last three iterations kept, so consecutive fields could be compared.",
+   "lesson": "When one setup gives two answers, look at the raw history before explaining it. An explanation is a claim to check.",
+   "guideline": "Workflow stage 4: 'if the same setup gives two different answers, print the last few rows of the monitored history first'. A trial-run helper in <code>cfdlib</code> (run N iterations, keep the last 3, report the largest change between consecutive fields) would make this check one call.",
+   "resolved": "2026-11-13 22:31"
+  },
+  {
+   "id": 5,
+   "stage": "preflight",
+   "logged": "2026-11-13 22:31",
+   "status": "resolved",
+   "problem": "The converged drag depends slightly on the velocity relaxation factor: on the coarsest grid, relaxation 0.9, 0.7, 0.5 and 0.3 gave drag coefficients \\(2.0 \\times 10^{-5}\\) apart (relative), each converged to \\(10^{-9}\\).",
+   "diagnosis": "A known property of the face-velocity interpolation in OpenFOAM's SIMPLE solvers (Rhie-Chow interpolation built from the relaxed matrix): the pressure smoothing term carries the relaxation factor, so the converged solution does too, at the level of the discretisation error.",
+   "fix": "Every run of the study, the variants included, uses the same factors (velocity 0.9, turbulence variable 0.5), so the dependence is part of each grid's discretisation error and shrinks with it. The value is quoted in the report.",
+   "lesson": "'Relaxation only changes how the answer is reached' is true only to the discretisation error. A study that tunes relaxation per grid level adds a small irregular error to its grid convergence.",
+   "guideline": "Primer, steady runs: state that the converged answer of <code>simpleFoam</code> depends weakly on the velocity relaxation factor (measured here: \\(2 \\times 10^{-5}\\) of the drag on an 816-cell grid), so one study should keep one set of factors, or measure the dependence when it changes them."
+  },
+  {
+   "id": 6,
+   "stage": "analysis",
+   "logged": "2026-11-13 22:42",
+   "status": "resolved",
+   "problem": "My check that OpenFOAM's limiter on the model's \\(\\tilde S\\) never acts found it acting: in 3, 8 and 21 cells on grids G2 to G4, with \\(\\tilde S\\) negative before limiting.",
+   "diagnosis": "All those cells sit right behind the leading edge, where the free-stream \\(\\tilde\\nu = 3\\nu\\) meets the wall before the turbulent layer has formed: \\(f_{v2}\\) is negative for \\(\\chi\\) between 1 and 18, and \\(\\tilde\\nu f_{v2}/(\\kappa^2 d^2)\\) outweighs the vorticity in a wall cell. NASA's page of the model says in Note 1 that \\(\\tilde S\\) must never reach zero, and lists Spalart's own recommendation, a floor of \\(0.3\\,\\Omega\\), as method (b). That is exactly OpenFOAM's limiter, so it is part of the standard form, not a departure from it. I had written 'which the standard model does not have' in a decision from memory of the equations alone.",
+   "fix": "Decision and report reworded; the analysis reports how many cells are limited and how far from the leading edge the last one is. A variant with the floor at \\(0.1\\,\\Omega\\) measures the effect on the skin friction at the station.",
+   "lesson": "Read the notes under a model's equations as well as the equations: the notes say what an implementation may do where the equations break down.",
+   "guideline": "Primer, 'Turbulence models' (proposed in insight 1): say that <code>Cs</code> is NASA's Note 1(b) and that it acts only where the layer starts. A helper in <code>cfdlib</code> that evaluates a model's switches and limiters on a solution (how many cells, where) would make this check reusable for other models."
+  },
+  {
+   "id": 7,
+   "stage": "production",
+   "logged": "2026-11-13 22:42",
+   "status": "resolved",
+   "problem": "The coarse grids ran far longer than they needed: G1 did 8433 iterations although the stop rule held from about iteration 350.",
+   "diagnosis": "<code>foam.run</code> calls the live check every <code>watch_every</code> seconds of wall time (5 s here), and the rule must hold twice in a row. An 816-cell grid does about 800 iterations per second, so two checks are thousands of iterations apart. Harmless here (10 s), but the iteration counts of the coarse grids say nothing about how fast they converge, and extrapolating them to the finest grid would mislead.",
+   "fix": "None needed for the answer. The report gives the iteration at which the rule first held (<code>monitor.steady_replay</code> on the stored history) next to the iterations run.",
+   "lesson": "A stop rule checked on wall time overshoots on small grids; the recorded history gives the true count.",
+   "guideline": "<code>monitor.LiveStop</code> or <code>foam.run</code>: let the check interval be given in iterations (function-object rows) as well as in seconds, or record in <code>live_stop.json</code> the first iteration at which the rule held."
+  },
+  {
+   "id": 8,
+   "stage": "setup",
+   "logged": "2026-11-13 22:42",
+   "status": "resolved",
+   "problem": "Worked first time: NASA's PLOT3D grids became OpenFOAM meshes through <code>cfdlib.structgrid</code> without any change, including the patch split at the leading edge and the cell numbering that lets a field be reshaped to rows and columns.",
+   "diagnosis": "The tool was written for this benchmark family, with the two pitfalls in its docstring (digits of the wall cells, right-handedness). <code>digits_needed</code> gave the write precision; <code>mapFields</code> between the nested grids and a strip-wise decomposition for MPI worked on these meshes as on any other.",
+   "fix": "Nothing to fix.",
+   "lesson": "With the grid given, the whole mesh stage took minutes, and extracting profiles needed no sampling at all: a profile is a column of the reshaped field.",
+   "guideline": "Keep. One addition would help: a function that returns the cell-centre coordinates and the plate's face centres for a grid, since every analysis rebuilds them from the points."
+  },
+  {
+   "id": 9,
+   "stage": "report",
+   "logged": "2026-11-13 22:47",
+   "status": "resolved",
+   "problem": "The report contract rejects the given problem description: it is longer than the 600 characters allowed for the overview, and the workflow says to pass it to the report unchanged.",
+   "diagnosis": "The given description is 760 characters; <code>cfdlib.contract</code> allows 600 for the overview. The problem file may not be edited, and the workflow says to pass description and setup to the report unchanged, so the two rules cannot both hold for this problem.",
+   "fix": "<code>analyze.py</code> takes the first sentences that fit into 600 characters as the overview and moves the remaining sentences, word for word, to the top of the setup list. Nothing is reworded or dropped.",
+   "lesson": "A limit that the report enforces has to be checked where the problem statement is written, not when the solver agent renders its report.",
+   "guideline": "Check <code>problem.yaml</code> against the contract when a case is prepared (a test next to <code>tests/test_catalogue.py</code>, or a <code>cfdlib.contract --problem</code> mode): description length, lettered outputs, reference file present. Or let <code>report.render</code> do the split itself.",
+   "resolved": "2026-11-13 22:55"
+  },
+  {
+   "id": 10,
+   "stage": "report",
+   "logged": "2026-11-13 22:55",
+   "status": "resolved",
+   "problem": "The summary table ran off the page (1265 pixels wide in an 884 pixel column): I had written a sentence in the 'Difference' cell of each answer.",
+   "diagnosis": "The last column of the answers table has the class <code>num</code> and does not wrap. The contract describes <code>diff</code> only as a key; the worked examples put one number there.",
+   "fix": "Each <code>diff</code> is now one number, and the sentence that says what it is the difference of went into the 'This solution' cell. The overflow check of the visual review found it at once.",
+   "lesson": "The visual review's one-line overflow script is worth running after the very first render, before reading any text.",
+   "guideline": "<code>report-contract.md</code>: say that <code>summary.answers[].diff</code> is a single value (it does not wrap). <code>cfdlib.contract</code> could warn when it is longer than about 30 characters of visible text."
+  },
+  {
+   "id": 11,
+   "stage": "report",
+   "logged": "2026-11-13 22:55",
+   "status": "resolved",
+   "problem": "Three slips of mine that the checks or the review caught: figure references rendered as a bare number ('6: from ...') because I wrote the placeholder without the word Figure; parameter values in the theory section given as LaTeX strings, which the typesetting check rejected as plain-text math; and a patch script piped through a shell heredoc that lost its backslashes, although the machine file warns of exactly that.",
+   "diagnosis": "The figure placeholder (the word fig, a colon and the figure's key, in braces) inserts the number only; the contract says so. <code>theory.derived[].params[].value</code> must be a number; the template formats it. The heredoc: Git Bash, as documented. A fourth slip followed from this very entry: quoting the placeholder literally in an insight made the contract look for a figure called 'key' and refuse the report.",
+   "fix": "'Figure' added before every placeholder; values passed as numbers; files with LaTeX edited with the file tool only.",
+   "lesson": "All three were documented. Under time pressure I skipped re-reading the contract page before writing <code>analyze.py</code>; ten minutes lost.",
+   "guideline": "<code>report-contract.md</code>: one line each for 'params value is a number' and 'write the word Figure before a figure placeholder'. The contract could warn when a placeholder is not preceded by 'Figure' or 'Figures', and should skip placeholders inside <code>code</code> tags, so that an insight can quote one.",
+   "resolved": "2026-11-13 23:03"
+  },
+  {
+   "id": 12,
+   "stage": "analysis",
+   "logged": "2026-11-13 22:55",
+   "status": "resolved",
+   "problem": "Two statements in my first draft of the findings were wrong and had not been computed: 'the drag converges more slowly' (its observed order on the three finest grids is higher than that of the skin friction), and an explanation of the difference to CFL3D built on the sensitivity measured with the lid variant, which mixes a faster stream with an accelerating one.",
+   "diagnosis": "The first was written before the numbers existed, from what NASA's page says about its own codes. The second fitted the data to two digits, which made it look confirmed; but the lid squeezes the stream, so it changes the speed and the pressure gradient together and is not a clean measure of the effect of speed.",
+   "fix": "The drag sentence now prints the observed order of all three grid triplets and decides 'regular or not' in code. For the speed effect a clean variant was added (inflow 0.3 % faster, nothing else changed), and the text states what that explains and what is left, as an estimate from two stations.",
+   "lesson": "A good fit does not validate an explanation whose input measures two things at once. Change one thing, measure, then explain.",
+   "guideline": "Workflow stage 5, next to 'an explanation is a claim': when an explanation needs a sensitivity, measure it with a variant that changes only that quantity. Stage 6: write no finding before its numbers exist; build each from the data, including words like 'slower' or 'same shape'."
+  },
+  {
+   "id": 13,
+   "stage": "analysis",
+   "logged": "2026-11-13 22:55",
+   "status": "resolved",
+   "problem": "The verdict is WARN for a difference of 0.028 %: the acceptance rule set before the runs judged the grid-converged skin friction against the two grid-convergence indices only (0.024 % together).",
+   "diagnosis": "The rule follows the workflow ('your GCI band + the reference's own uncertainty'), and I took the reference's uncertainty to be its grid-convergence index. NASA's page states other, larger uncertainties in words: boundary-condition variations change the results by up to 0.2 %, the codes were not converged to machine zero, and the files carry more digits than the convergence supports. None of these were in the band, so the band was sharper than what the reference can support. The rule was not changed after the fact.",
+   "fix": "None to the rule. The report gives the difference, the band, and measured sizes of the things outside the band (far field, stream speed, relaxation factor, station interpolation), so a reader can judge the 0.028 %.",
+   "lesson": "A reference's uncertainty is more than its grid error. When its authors state sensitivities in words, those belong in the band, and they must be written into the rule before the runs.",
+   "guideline": "Workflow stage 0 ('if a reference gives no uncertainty, estimate one'): add 'include what the reference says about its own sensitivity to boundary conditions and iteration, not only its grid levels'. The reference YAML of a benchmark could carry such statements as numbers (here: <code>boundary_variation_percent: 0.2</code>)."
+  },
+  {
+   "id": 14,
+   "stage": "intake",
+   "logged": "2026-11-13 22:55",
+   "status": "resolved",
+   "problem": "The reference offers the incompressible skin friction as the like-for-like value and calls its 0.87 % distance from the Mach 0.2 results the difference between compressible and incompressible. The profiles in the same reference show that CFL3D's stream above the plate runs at 0.9985 of the reference speed at the first station, while an incompressible set-up with a uniform inflow runs at 1.0018.",
+   "diagnosis": "NASA's compressible set-up fixes the total pressure at the inflow and the static pressure at the outflow; the speed over the plate follows from them and is not the reference speed. The skin friction is referred to the reference speed, so it carries that difference. The clean speed variant measures how much.",
+   "fix": "Reported in Section 7 with the measured sensitivity; the compressible results stay context only, as the problem statement says.",
+   "lesson": "Two set-ups can agree on the Reynolds number and still not have the same stream over the plate. The edge velocity of a published profile is a cheap check of that.",
+   "guideline": "When a benchmark's reference is parsed (<code>setup/parse_tmr_flatplate.py</code>), store the free-stream velocity of each published profile in the YAML and say in the problem statement which reference speed the coefficients use. For the next NASA cases (bump, airfoil) do the same."
+  },
+  {
+   "id": 15,
+   "stage": "performance",
+   "logged": "2026-11-13 22:55",
+   "status": "resolved",
+   "problem": "The finest grid needed 11,062 iterations (10 minutes on 8 ranks) although it started from the converged solution of the grid before; its residuals were at \\(10^{-9}\\) after 5,000 iterations while the monitored values still moved.",
+   "diagnosis": "The slowest mode is the outer part of the boundary layer adjusting through the turbulence equation, relaxed by 0.5 to avoid the period-2 cycle: the monitored values approach their limits non-monotonically (they overshoot and return, see the history figure), about one decade per 2,400 iterations. The pressure solve is cheap (3 to 5 multigrid cycles); the cost is the number of outer iterations. The stop rule waited correctly: the drag crossed its final value twice before settling.",
+   "fix": "None needed: the run stayed inside the 15 minute budget.",
+   "lesson": "On this kind of flow the residuals fall long before the answer has settled: stopping on residuals at \\(10^{-8}\\) would have left the skin friction \\(10^{-5}\\) off.",
+   "guideline": "Primer, steady runs with a turbulence model: say that grid sequencing saves less here than in laminar cases (the mapped solution is close, but the slow mode still has to decay), and that the relaxation of the turbulence variable limits the speed. Worth a trial in <code>dev/steady_speed/</code>: relaxation 0.5 for the first few hundred iterations, then 0.7 to 0.8 once the wall layer has formed; and a coupled solve of velocity and turbulence."
+  },
+  {
+   "id": 16,
+   "stage": "production",
+   "logged": "2026-11-13 23:01",
+   "status": "resolved",
+   "problem": "The variant with a faster inflow converged in 995 iterations to exactly the drag of the main run: the changed inflow velocity never reached the solver.",
+   "diagnosis": "Every variant starts from the main solution of its grid through <code>mapFields -consistent</code>. That maps boundary fields too: the fixed inflow velocity of the variant's own field file (50.15) was overwritten by the source's (50). The run then had nothing to change and stopped after 995 iterations. Two signs gave it away: the drag force was equal to the main run's to \\(7 \\times 10^{-7}\\), and the run converged four times faster than the other variants. The lid variant was not affected (it changes a patch type, which mapFields keeps), nor were the grid levels (same inflow values on all).",
+   "fix": "After mapping, <code>run.py</code> sets the inflow values of velocity and turbulence variable again with <code>foamDictionary</code>, for every run. The variant was repeated: 6,479 iterations, skin friction \\(+0.56\\,\\%\\) for \\(+0.3\\,\\%\\) of speed. The momentum balance in <code>metrics.py</code> now takes the inflow velocity from the inflow fluxes instead of assuming the given value.",
+   "lesson": "A variant that changes a boundary value is not in effect just because the template says so: check the field file the solver actually reads, or check that the answer moved.",
+   "guideline": "<code>foam.map_fields</code>: say in its docstring that fixed boundary values of the target are replaced by the source's, and offer to keep the target's boundary entries (re-apply them after mapping). The pre-flight could list every boundary value that differs between the template and the mapped start field.",
+   "resolved": "2026-11-13 23:03"
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The problem (not to scale). Air enters from the left with uniform speed. The lower side is a symmetry line up to \\(x = 0\\) and the plate from there on. The boundary layer, drawn far too thick, is turbulent from the leading edge. \\(x_1\\) and \\(x_2\\) are the two stations of the profiles."
+  },
+  {
+   "key": "law",
+   "section": "theory",
+   "caption": "The model's own law of the wall: \\(u^+\\) from one integration of the wall-layer solution, with its two limits. Its log-law intercept is \\(B_{\\mathrm{SA}} = 5.033\\); the law NASA plots uses \\(B = 5.0\\)."
+  },
+  {
+   "key": "cycle",
+   "section": "preflight",
+   "caption": "The pre-flight on the coarsest grid. With the turbulence variable relaxed by 0.9 the drag coefficient flips between two values every iteration and never settles; with 0.5 it converges. Sampled every 20 iterations, the flipping run looks perfectly constant."
+  },
+  {
+   "key": "history",
+   "section": "simulation",
+   "caption": "The run on the finest grid (208,896 cells, started from the G4 solution). Left: residuals. Right: the five monitored values, as their distance from the final value. The run stopped itself at iteration 11,062."
+  },
+  {
+   "key": "grid_cf",
+   "section": "convergence",
+   "caption": "Grid convergence, plotted like NASA's own figures against the grid spacing \\(h = 1/\\sqrt{N}\\) (\\(h = 0\\) is an infinitely fine grid). Left: skin friction at \\(x_1\\); this solution heads for \\(0.0027286\\), NASA's incompressible FUN3D for \\(0.0027294\\), and the two compressible codes for values \\(0.89\\,\\%\\) and \\(0.86\\,\\%\\) below that. Right: drag coefficient; NASA publishes it for the compressible flow only."
+  },
+  {
+   "key": "cf_x",
+   "section": "comparison",
+   "caption": "Skin friction along the plate on the finest grid. Left: this solution and NASA's two compressible codes. Right: the ratio of this solution to each; against CFL3D it is \\(1.0091\\) on average and falls from \\(1.0105\\) at \\(x = 0.1\\) to \\(1.0049\\) at \\(x = 1.9\\). The two ends of the plate are outside that range: there the codes differ locally (leading-edge singularity, outflow boundary)."
+  },
+  {
+   "key": "profiles",
+   "section": "comparison",
+   "caption": "Velocity profiles at the two stations on the finest grid. Left: \\(u/U_\\infty\\) against the height (log scale). Right: this solution minus CFL3D. Outside the boundary layer the difference stays at \\(+0.0033\\) and \\(+0.0019\\) (in \\(U_\\infty\\)): the two flows do not have the same free-stream speed above the plate."
+  },
+  {
+   "key": "wall_units",
+   "section": "comparison",
+   "caption": "Velocity in wall units on the finest grid, with the model's own law of the wall (Section 3) and the log law NASA plots. For \\(y^+ \\le 100\\) the simulation follows the model's law to \\(0.24\\,\\%\\)."
+  },
+  {
+   "key": "nut",
+   "section": "comparison",
+   "caption": "Eddy viscosity over the viscosity on the finest grid. Left: profile at \\(x_1\\), peak \\(209.4\\) (CFL3D \\(208.3\\), FUN3D \\(208.3\\)). Right: the largest value in each grid column along the plate, up to \\(381.9\\)."
+  }
+ ],
+ "performance": {
+  "intro": "Cost of each run. Grids G1 to G3 ran on one core, G4 on 4 and G5 on 8 MPI ranks (strips along the plate), one run at a time.",
+  "head": [
+   "Run",
+   "Cells",
+   "Cores",
+   "Iterations",
+   "Wall (s)",
+   "µs per cell per iteration",
+   "CPU efficiency",
+   "Pressure cycles per iteration",
+   "\\(\\tilde\\nu\\) iterations per solve"
+  ],
+  "rows": [
+   [
+    "G1",
+    "816",
+    1,
+    "8,433",
+    "10",
+    "\\(1.49\\)",
+    "\\(0.98\\)",
+    "\\(0.4\\)",
+    "\\(0.5\\)"
+   ],
+   [
+    "G2",
+    "3,264",
+    1,
+    "4,228",
+    "15",
+    "\\(1.10\\)",
+    "\\(0.99\\)",
+    "\\(1.6\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "G3",
+    "13,056",
+    1,
+    "3,222",
+    "40",
+    "\\(0.96\\)",
+    "\\(1.00\\)",
+    "\\(2.0\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "G4",
+    "52,224",
+    4,
+    "5,647",
+    "90",
+    "\\(0.31\\)",
+    "\\(1.00\\)",
+    "\\(2.7\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "G5",
+    "208,896",
+    8,
+    "11,062",
+    "602",
+    "\\(0.26\\)",
+    "\\(1.00\\)",
+    "\\(3.4\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "noft2 G4",
+    "52,224",
+    4,
+    "3,868",
+    "55",
+    "\\(0.27\\)",
+    "\\(0.99\\)",
+    "\\(1.8\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "upwind G3",
+    "13,056",
+    1,
+    "1,994",
+    "25",
+    "\\(0.97\\)",
+    "\\(0.99\\)",
+    "\\(2.2\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "upwind G4",
+    "52,224",
+    4,
+    "6,912",
+    "95",
+    "\\(0.26\\)",
+    "\\(1.00\\)",
+    "\\(1.7\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "upwind G5",
+    "208,896",
+    8,
+    "7,763",
+    "401",
+    "\\(0.25\\)",
+    "\\(1.00\\)",
+    "\\(3.4\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "limiter G4",
+    "52,224",
+    4,
+    "3,875",
+    "55",
+    "\\(0.27\\)",
+    "\\(0.99\\)",
+    "\\(1.7\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "speed G4",
+    "52,224",
+    4,
+    "6,479",
+    "105",
+    "\\(0.31\\)",
+    "\\(1.00\\)",
+    "\\(3.1\\)",
+    "\\(1.0\\)"
+   ],
+   [
+    "lid G4",
+    "52,224",
+    4,
+    "3,955",
+    "60",
+    "\\(0.29\\)",
+    "\\(1.00\\)",
+    "\\(2.2\\)",
+    "\\(1.0\\)"
+   ]
+  ],
+  "notes": [
+   "Wall time of all runs in the table: 25.9 min. Not counted: the pre-flight and the relaxation trials on the coarsest grid (seconds each).",
+   "The coarse grids ran longer than they needed: the stop rule is checked every 5 s of wall time, and a small grid does thousands of iterations in that time.",
+   "Multigrid coped with wall cells 21,000 times longer than high: a few cycles per pressure solve. What costs iterations here is the outer loop, limited by the relaxation the turbulence equation needs to avoid the period-2 cycle.",
+   "Next to try: a coupled or implicit treatment of the turbulence source terms, or a relaxation that starts at 0.5 and rises once the wall layer has formed."
+  ]
+ },
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.turbulent_flat_plate_sa.run preflight",
+    "what": "Coarsest grid to convergence; short run on the finest grid"
+   },
+   {
+    "cmd": "python -m cases.turbulent_flat_plate_sa.run trials",
+    "what": "Relaxation trials on the coarsest grid: the period-2 cycle and four settings that converge"
+   },
+   {
+    "cmd": "python -m cases.turbulent_flat_plate_sa.run production",
+    "what": "G1 to G5, live stop, each from the grid before"
+   },
+   {
+    "cmd": "python -m cases.turbulent_flat_plate_sa.run sensitivity",
+    "what": "The variants, one change each: OpenFOAM default: without the f_t2 term (SA-noft2); first-order upwind for the turbulence variable, as in NASA's codes; limiter on S-tilde at 0.1 Omega instead of 0.3 Omega; inflow 0.3 % faster, skin friction still referred to the given speed; upper side closed by a frictionless lid instead of an open far field"
+   },
+   {
+    "cmd": "python -m cases.turbulent_flat_plate_sa.analyze",
+    "what": "Comparison with NASA's data, figures, this report"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/turbulent_flat_plate_sa/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/reference/",
+    "what": "NASA's grids, data files and pages, as downloaded"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/numerics.yaml",
+    "what": "Grids, solver settings, stopping rule, acceptance rules, variants"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/decisions.yaml",
+    "what": "Every choice with the settings it controls"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/insights.yaml",
+    "what": "Live workflow log"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/theory.py",
+    "what": "The model's wall-layer solution and law of the wall (SymPy), derived numbers"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/run.py",
+    "what": "Cases, runs, live stop, post-processing"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/metrics.py",
+    "what": "Skin friction, drag, profiles, balances per run"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/common.py",
+    "what": "Readers for the problem, NASA's grids and data files"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/sketch.py",
+    "what": "The problem sketch"
+   },
+   {
+    "path": "cases/turbulent_flat_plate_sa/template/",
+    "what": "OpenFOAM case with placeholders"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/<G1..G5>",
+    "what": "Production runs"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/<variant>_<grid>",
+    "what": "Variants"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/pf*, trial_*",
+    "what": "Pre-flight runs and relaxation trials"
+   },
+   {
+    "path": "results/turbulent_flat_plate_sa/",
+    "what": "runs/*.json|npz, preflight.json, results.json, report.html"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "23 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "One run at a time. G4 used 4 MPI ranks and G5 used 8.",
+   "The relaxation trials are needed only for the relaxation line of the first table in Section 7 and for Figure 3. The first diagnosis of the period-2 cycle (comparing the fields of consecutive iterations) was done with one-off scripts that are not kept."
+  ]
+ },
+ "data": {
+  "levels": [
+   "G1",
+   "G2",
+   "G3",
+   "G4",
+   "G5"
+  ],
+  "h": [
+   0.035007,
+   0.0175035,
+   0.00875175,
+   0.00437588,
+   0.00218794
+  ],
+  "cf": [
+   0.0027124458646789478,
+   0.0027218400888081224,
+   0.0027265825153406672,
+   0.002728029269712067,
+   0.002728461855079299
+  ],
+  "cd": [
+   0.0028670288366084,
+   0.00287646164196076,
+   0.00288135619030294,
+   0.00288276650520497,
+   0.00288307520181075
+  ],
+  "study_cf": {
+   "R": 0.2990040160127136,
+   "monotonic": true,
+   "p": 1.7417632330635935,
+   "p_used": 1.7417632330635935,
+   "extrap": 0.0027286463707755734,
+   "gci_abs": 2.3064462034273956e-07,
+   "gci": 8.453283666523393e-05,
+   "delta": 4.3258536723241384e-07,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
+  },
+  "study_cd": {
+   "R": 0.21888487835994996,
+   "monotonic": true,
+   "p": 2.1917558053692714,
+   "p_used": 2.1917558053692714,
+   "extrap": 0.002883161705089376,
+   "gci_abs": 1.0812909828264685e-07,
+   "gci": 3.750477899942917e-05,
+   "delta": 3.08696605780083e-07,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
+  },
+  "reference_series": {
+   "fun_inc": [
+    0.002695820527,
+    0.002720381133,
+    0.002726642415,
+    0.002728461055,
+    0.002729090163
+   ],
+   "sct": [
+    0.00225826,
+    0.00253575,
+    0.0026662,
+    0.00271606,
+    0.00272937
+   ],
+   "cfl": [
+    0.00279568508,
+    0.00272834697,
+    0.00271115173,
+    0.00270673749,
+    0.00270562153
+   ],
+   "fun": [
+    0.0026673777377449,
+    0.00269497594242929,
+    0.00270215403362043,
+    0.00270448474835251,
+    0.00270540472596778
+   ],
+   "cd_cfl": [
+    0.00295438152,
+    0.00288437885,
+    0.00286620917,
+    0.00286130951,
+    0.00285985288
+   ],
+   "cd_fun": [
+    0.002773859,
+    0.002822641,
+    0.002840045,
+    0.002847933,
+    0.002852469
+   ]
+  },
+  "reference_studies": {
+   "fun_inc": {
+    "R": 0.3459222275988185,
+    "monotonic": true,
+    "p": 1.5314803763014302,
+    "p_used": 1.5314803763014302,
+    "extrap": 0.0027294228794596366,
+    "gci_abs": 4.158955745457717e-07,
+    "gci": 0.00015239349002987544,
+    "delta": 6.291080000002565e-07,
+    "gci_reliable": true,
+    "gci_basis": "observed order"
+   },
+   "sct": {
+    "R": 0.2669474528680277,
+    "monotonic": true,
+    "p": 1.9053723115796242,
+    "p_used": 1.9053723115796242,
+    "extrap": 0.002734216952120383,
+    "gci_abs": 6.058690150478656e-06,
+    "gci": 0.002219812685886727,
+    "delta": 1.3309999999999884e-05,
+    "gci_reliable": true,
+    "gci_basis": "observed order"
+   },
+   "cfl": {
+    "R": 0.25280909057957895,
+    "monotonic": true,
+    "p": 1.9838797536101658,
+    "p_used": 1.9838797536101658,
+    "extrap": 0.0027052439493453558,
+    "gci_abs": 4.719758183052779e-07,
+    "gci": 0.00017444266061309688,
+    "delta": 1.1159599999999506e-06,
+    "gci_reliable": true,
+    "gci_basis": "observed order"
+   },
+   "fun": {
+    "R": 0.3947190973685759,
+    "monotonic": true,
+    "p": 1.3411017732433166,
+    "p_used": 1.3411017732433166,
+    "extrap": 0.0027060046668089996,
+    "gci_abs": 7.49926051524323e-07,
+    "gci": 0.0002771955132354767,
+    "delta": 9.199776152702538e-07,
+    "gci_reliable": true,
+    "gci_basis": "observed order"
+   },
+   "cd_cfl": {
+    "R": 0.29729205699987765,
+    "monotonic": true,
+    "p": 1.7500471768149268,
+    "p_used": 1.7500471768149268,
+    "extrap": 0.0028592366289197303,
+    "gci_abs": 7.70313850336796e-07,
+    "gci": 0.0002693543628498806,
+    "delta": 1.4566300000000247e-06,
+    "gci_reliable": true,
+    "gci_basis": "observed order"
+   },
+   "cd_fun": {
+    "R": 0.5750507099391187,
+    "monotonic": true,
+    "p": 0.7982389114357565,
+    "p_used": 0.7982389114357565,
+    "extrap": 0.002858607214797135,
+    "gci_abs": 7.672768496418891e-06,
+    "gci": 0.0026898691962713326,
+    "delta": 4.535999999999863e-06,
+    "gci_reliable": true,
+    "gci_basis": "observed order"
+   }
+  },
+  "cf_diff": -0.00028449555761655976,
+  "cf_band": 0.00023687798609518194,
+  "cf_fine_diff": -0.0002302261498060565,
+  "interpolation_bias": [
+   0.0005498469820215401,
+   0.00014602603210556175,
+   3.727657018925967e-05,
+   9.322335641881452e-06,
+   0.0
+  ],
+  "cd_shift": -0.0003216927739706499,
+  "shape_mean": 1.0091063383961494,
+  "shape_spread": 0.004182451531606568,
+  "inner_dev": 0.002365350648085185,
+  "du_max": 0.0034876494574902495,
+  "nut_peak": 209.3538274002755,
+  "nut_along_dev": 0.008048819492749937,
+  "relax_spread": 2.2023398629185287e-05,
+  "metrics": [
+   {
+    "cf": 0.0027124458646789478,
+    "cd": 0.0028670288366084,
+    "cd_sum": 0.002867028836608395,
+    "momentum": 1.7128505588104304e-05,
+    "mass": 1.366107227340763e-13,
+    "top_outflow": 0.0028072186447441988,
+    "alternation": 8.608136917122257e-10,
+    "limiter": {
+     "min_ratio": 0.4017057602431061,
+     "cells_limited": 0,
+     "cells": 335,
+     "x_last": null
+    },
+    "yplus_max": 1.1945736667505,
+    "yplus_mean": 0.8461850791597446,
+    "wall_cell": 3.441148217486756e-07,
+    "res_max": 5.341370088279e-11
+   },
+   {
+    "cf": 0.0027218400888081224,
+    "cd": 0.00287646164196076,
+    "cd_sum": 0.002876461641960763,
+    "momentum": 1.8077551291684202e-05,
+    "mass": -6.655731521476582e-14,
+    "top_outflow": 0.002763812849816765,
+    "alternation": 9.278564836709012e-11,
+    "limiter": {
+     "min_ratio": -0.32554566760063847,
+     "cells_limited": 3,
+     "cells": 1260,
+     "x_last": 0.00402810260034
+    },
+    "yplus_max": 0.64398557820828,
+    "yplus_mean": 0.41091980585625787,
+    "wall_cell": 6.814063868709752e-07,
+    "res_max": 5.2589014092764e-10
+   },
+   {
+    "cf": 0.0027265825153406672,
+    "cd": 0.00288135619030294,
+    "cd_sum": 0.002881356190302932,
+    "momentum": 1.930409058470417e-05,
+    "mass": -5.030287297813629e-13,
+    "top_outflow": 0.0027490176811778965,
+    "alternation": 2.8987068487333446e-09,
+    "limiter": {
+     "min_ratio": -2.527226798010698,
+     "cells_limited": 8,
+     "cells": 4883,
+     "x_last": 0.01832196654745
+    },
+    "yplus_max": 0.36777359411382,
+    "yplus_mean": 0.20398368839973813,
+    "wall_cell": 1.2616010951482792e-06,
+    "res_max": 9.5267953959234e-09
+   },
+   {
+    "cf": 0.002728029269712067,
+    "cd": 0.00288276650520497,
+    "cd_sum": 0.0028827665052049713,
+    "momentum": 2.0239567519730883e-05,
+    "mass": 1.2454481890245006e-13,
+    "top_outflow": 0.0027431228826903585,
+    "alternation": 1.1862790460740048e-09,
+    "limiter": {
+     "min_ratio": -3.4754229269655235,
+     "cells_limited": 21,
+     "cells": 18722,
+     "x_last": 0.0152167758963
+    },
+    "yplus_max": 0.2150877809184,
+    "yplus_mean": 0.1017892934105281,
+    "wall_cell": 2.0971434457894844e-06,
+    "res_max": 3.1139261497146e-09
+   },
+   {
+    "cf": 0.002728461855079299,
+    "cd": 0.00288307520181075,
+    "cd_sum": 0.002883075201810755,
+    "momentum": 2.0155712256997305e-05,
+    "mass": -2.7031710203573313e-13,
+    "top_outflow": 0.002740614956486356,
+    "alternation": 3.889549041239495e-10,
+    "limiter": {
+     "min_ratio": -6.718962875776606,
+     "cells_limited": 53,
+     "cells": 71019,
+     "x_last": 0.01264668998125
+    },
+    "yplus_max": 0.12700418382337,
+    "yplus_mean": 0.05086191188684137,
+    "wall_cell": 3.1790916150686854e-06,
+    "res_max": 6.0151113123003e-10
+   }
+  ],
+  "passed": [
+   "Momentum balance: on every grid the drag from the wall shear stress equals the momentum the stream loses to within \\(0.0020\\,\\%\\) (limit \\(0.01\\,\\%\\)).",
+   "Mass balance: the boundary fluxes sum to \\(5 \\times 10^{-13}\\) of the inflow or less on every grid.",
+   "No iteration-to-iteration cycle: over the last 50 iterations of every run the monitored values changed by at most \\(3 \\times 10^{-9}\\) (relative).",
+   "The model constants the solver printed are NASA's, and the \\(f_{t2}\\) term is active.",
+   "Observed order of accuracy of \\(C_f(x_1)\\) on the three finest grids: \\(1.74\\) (expected between 1 and 3).",
+   "Grid-convergence index of \\(C_f(x_1)\\) on the finest grid: \\(0.008\\,\\%\\) (limit \\(0.1\\,\\%\\)): the study is sharp enough to judge a difference of a tenth of a per cent.",
+   "Wall layer: for \\(y^+ \\le 100\\) the simulated \\(u^+\\) follows the model's own law of the wall to within \\(0.24\\,\\%\\) at both stations (limit \\(1\\,\\%\\)).",
+   "Context check against the compressible results (Mach 0.2, not the same flow): the drag differs from CFL3D's by the same factor as the skin friction at \\(x_1\\), to within \\(-0.03\\,\\%\\) (limit \\(0.3\\,\\%\\)).",
+   "Context check against the compressible results (Mach 0.2, not the same flow): velocity profiles within \\(0.0035\\,U_\\infty\\) of CFL3D's at both stations (limit \\(0.005\\,U_\\infty\\)).",
+   "Context check against the compressible results (Mach 0.2, not the same flow): eddy viscosity within \\(0.80\\,\\%\\) of CFL3D's (peak at \\(x_1\\) and the largest value along the plate; limit \\(2\\,\\%\\))."
+  ],
+  "warns": [
+   "Skin friction at \\(x_1\\), grid-converged: \\(-0.028\\,\\%\\) from NASA's incompressible FUN3D value. That is outside the combined grid-uncertainty band of \\(0.024\\,\\%\\) (so it is not grid error on either side), and inside the limit of \\(0.45\\,\\%\\) set before the runs.",
+   "Context check against the compressible results (Mach 0.2, not the same flow): the ratio of \\(C_f(x)\\) to CFL3D's varies along \\(0.1 \\le x \\le 1.9\\) by up to \\(0.42\\,\\%\\) around its mean (limit \\(0.3\\,\\%\\))."
+  ],
+  "fails": [],
+  "total_wall_s": 1555.7160489090004,
+  "variants": {
+   "noft2": [
+    {
+     "level": "G4",
+     "cf": 0.002728028250807036,
+     "cd": 0.00288277134403287,
+     "d_cf": -3.7349490411564545e-07,
+     "d_cd": 1.6785361884874561e-06
+    }
+   ],
+   "upwind": [
+    {
+     "level": "G3",
+     "cf": 0.002727033923720231,
+     "cd": 0.00288073455816393,
+     "d_cf": 0.00016555830495645907,
+     "d_cd": -0.0002157428995056554
+    },
+    {
+     "level": "G4",
+     "cf": 0.0027278320491632086,
+     "cd": 0.0028818907488714,
+     "d_cf": -7.229414693155078e-05,
+     "d_cd": -0.00030379024176530045
+    },
+    {
+     "level": "G5",
+     "cf": 0.0027282518880971584,
+     "cd": 0.00288247628118177,
+     "d_cf": -7.695434031806947e-05,
+     "d_cd": -0.0002077367349312409
+    }
+   ],
+   "limiter": [
+    {
+     "level": "G4",
+     "cf": 0.002728031483527814,
+     "cd": 0.00288276049286878,
+     "d_cf": 8.115073293346597e-07,
+     "d_cd": -2.0856133091662343e-06
+    }
+   ],
+   "speed": [
+    {
+     "level": "G4",
+     "cf": 0.0027432232672356784,
+     "cd": 0.00288149598158067,
+     "d_cf": 0.005569587427929346,
+     "d_cd": 0.0055656209755625685
+    }
+   ],
+   "lid": [
+    {
+     "level": "G4",
+     "cf": 0.0027350153007913006,
+     "cd": 0.00289024873514598,
+     "d_cf": 0.0025608343564331726,
+     "d_cd": 0.0025955032873787864
+    }
+   ]
+  },
+  "upwind_study": {
+   "R": 0.5260312619325265,
+   "monotonic": true,
+   "p": 0.9267795537446644,
+   "p_used": 0.9267795537446644,
+   "extrap": 0.0027287178437319847,
+   "gci_abs": 5.824445435328703e-07,
+   "gci": 0.00021348635222208202,
+   "delta": 4.198389339498537e-07,
+   "gci_reliable": true,
+   "gci_basis": "observed order"
+  }
+ }
+}

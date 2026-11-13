@@ -1,0 +1,159 @@
+{
+ "name": "trial_U03_nt03",
+ "level": "G1",
+ "variant": "relaxation U 0.3, nuTilda 0.3",
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/trial_U03_nt03",
+ "cells": 816,
+ "points": [
+  35,
+  25
+ ],
+ "cores": 1,
+ "wall_time": 4.655751065000004,
+ "iterations": 3268,
+ "cd_forces": 0.00286709197897136,
+ "live_stop": {
+  "stopped": true,
+  "decision": {
+   "stop": true,
+   "status": "ok",
+   "reason": "fixed count",
+   "t": 3262.0,
+   "quantities": {}
+  },
+  "checks": 9,
+  "last": {
+   "stop": true,
+   "status": "ok",
+   "reason": "fixed count",
+   "t": 3262.0,
+   "quantities": {}
+  }
+ },
+ "monitored": [
+  "Cd",
+  "u_wall(x1)",
+  "u_wall(x2)",
+  "nuTilda(x1)",
+  "nuTilda(x2)"
+ ],
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,8.11 \\times 10^{-7}\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: nuTilda",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,8.45 \\times 10^{-6}\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.19 \\times 10^{-5}\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 3268,
+  "last_time": 3268.0,
+  "wall_time": 4.25,
+  "est_full_runtime": null,
+  "est_kind": null
+ },
+ "mesh_ok": false,
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/turbulent_flat_plate_sa/trial_U03_nt03",
+  "solver": "simpleFoam",
+  "cells": 816,
+  "cores": 1,
+  "steps": 3268,
+  "wall_s": 4.655751065000004,
+  "cpu_s": 4.432453000000001,
+  "solver_cpu_s": 4.25,
+  "peak_mem_mb": 85.52734375,
+  "us_per_cell_step": 1.7458926822335437,
+  "cpu_efficiency": 0.9520382293033953,
+  "write_share": 0.14084753584221188,
+  "lin_iters": {
+   "Ux": 1.0,
+   "Uy": 1.0,
+   "p": 1.2062423500611996,
+   "nuTilda": 1.0
+  },
+  "lin_solves_per_step": {
+   "Ux": 1.0,
+   "Uy": 1.0,
+   "p": 1.0,
+   "nuTilda": 1.0
+  },
+  "lin_iters_by_solve": {
+   "Ux": {
+    "solve 1": 1.0,
+    "last": 1.0
+   },
+   "Uy": {
+    "solve 1": 1.0,
+    "last": 1.0
+   },
+   "p": {
+    "solve 1": 1.2062423500611996,
+    "last": 1.2062423500611996
+   },
+   "nuTilda": {
+    "solve 1": 1.0,
+    "last": 1.0
+   }
+  }
+ },
+ "model_coeffs": {
+  "ft2": "true",
+  "sigmaNut": "0.66666666666667",
+  "Cs": "0.3",
+  "kappa": "0.41",
+  "Cb1": "0.1355",
+  "Cb2": "0.622",
+  "Cw2": "0.3",
+  "Cw3": "2",
+  "Cv1": "7.1",
+  "ck": "0.07",
+  "Ct3": "1.2",
+  "Ct4": "0.5"
+ },
+ "ft2": "active",
+ "final_residuals": {
+  "Ux": 3.0316859383618e-12,
+  "Uy": 1.0106328703296e-10,
+  "p": 1.9579361130288e-10,
+  "nuTilda": 1.6540016208967e-11
+ },
+ "bounding": 0
+}

@@ -13,7 +13,67 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-13
 
-### Case 7 prepared: turbulent flat plate with the Spalart-Allmaras model, commit hash to be filled in
+### Case 7 solved: turbulent flat plate, verdict WARN (0.028 % from NASA), commit hash to be filled in
+The project's first case with a turbulence model. A fresh agent (Claude Fable 5.2, high effort)
+solved it with the workflow and OpenFOAM in 52 minutes, without help. This commit holds the case
+exactly as that agent left it.
+[Report](https://tomyud1.github.io/agentic-cfd/results/turbulent_flat_plate_sa/report.html).
+
+Words: *skin friction* is the drag force per area that the flow puts on the wall, as a
+coefficient. A *turbulence model* (here Spalart-Allmaras) replaces the fast swirling motion of a
+turbulent flow by one extra equation, so that a steady solution can be computed. *Grid-converged*
+means the value the solutions approach as the grid gets finer, estimated from the three finest
+grids. *Mach 0.2* means the reference flow was slightly compressible (speed one fifth of the
+speed of sound).
+
+- **The result.**
+
+  | Quantity | This solution | NASA | Difference |
+  |---|---|---|---|
+  | Skin friction at NASA's point, finest grid (545 × 385 points) | 0.0027285 | 0.0027291 (incompressible) | −0.023 % |
+  | Same, grid-converged | 0.0027286 | 0.0027294 | −0.028 % |
+  | Drag of the plate, finest grid | 0.0028831 | 0.0028599 (Mach 0.2) | +0.81 %, context only |
+
+- **Why WARN.** Before the runs the agent fixed its own rule: pass only if the grid-converged
+  friction is inside the grid uncertainty of the two solutions added together (0.024 %). The result
+  is 0.028 % away: just outside. No check failed. The rule was not changed afterwards.
+- **Is the rule too strict?** Probably. It counts grid error only. The agent's own test shows that
+  the way the top boundary is set moves the friction by 0.26 %, ten times the remaining difference,
+  and NASA says in words that boundary choices move its results by up to 0.2 %. The verdict stays
+  as it is; what the workflow learned from this is in the improvements that follow this commit.
+- **OpenFOAM's model is NASA's model.** NASA warned in 2014 that OpenFOAM's version did not match.
+  In the version used here (v2606) the constants are NASA's. One small term is off by default; the
+  agent switched it on, and measured that it changes the friction by less than 0.0001 %.
+- **How it was verified.**
+  - *By the agent:* five grids with the friction approaching its limit at order 1.74 (NASA's own
+    code: 1.53); the momentum the flow loses equals the drag to 0.002 % on every grid; the velocity
+    near the wall follows the model's own exact wall law within 0.24 %; a second numerical scheme
+    gives a grid-converged friction 0.003 % from the first.
+  - *By the dev agent:* friction on all five grids, the grid-converged value, both uncertainty
+    bands and the drag recomputed from the raw run data with a separate script: every headline
+    number matches. The problem statement and reference data are unchanged, and no shared tool was
+    touched.
+- **A solver that looked converged but was not.** With one setting the solution flipped between
+  two states on every iteration. Our stop rule sampled every 20 iterations, always saw the same
+  state, and declared the run settled. The agent caught it with a physical check: the drag did not
+  match the momentum the flow had lost (8.6 % off). The guard for the stop rule is in the
+  improvements that follow this commit.
+- **A hint about NASA's data.** NASA calls the 0.87 % between its Mach 0.2 and its incompressible
+  friction a compressibility effect. The agent estimates that most of it (0.61 of 0.84 % at the
+  point) comes from a slightly different flow speed above the plate in the two set-ups, not from
+  density. This rests on two points along the plate: a hint, not a conclusion.
+- **Cost.** 52 minutes, 26 of them solver runs; the finest grid took 10 minutes on 8 processor
+  cores (11,062 iterations). No person stepped in.
+- **Open:**
+  - Only the friction at one point has a like-for-like reference. Drag, friction along the plate
+    and velocity profiles are compared with NASA's Mach 0.2 results, as context.
+  - A second WARN-only check did not pass: the ratio of our friction to the Mach 0.2 friction
+    varies by 0.42 % along the plate (limit 0.3 %); the flow-speed difference above explains the
+    size.
+  - How strict an accuracy rule should be when the reference states part of its uncertainty only
+    in words is a question for Prof. Frankel.
+
+### Case 7 prepared: turbulent flat plate with the Spalart-Allmaras model (`ed6c3e1`)
 - **What:** everything a fresh agent needs to solve the project's first turbulence case is now in the
   repository. The case is NASA's standard check of a turbulence model: air flowing along a flat
   plate, with the turbulence replaced by a model (Spalart-Allmaras). Nothing was solved; this is the
