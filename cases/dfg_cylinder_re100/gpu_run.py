@@ -4,6 +4,8 @@ Usage (repo root, inside WSL):
   python -m cases.dfg_cylinder_re100.gpu_run preflight     # short runs on G1 (from rest) and G3 (from G1): cost, health
   python -m cases.dfg_cylinder_re100.gpu_run production [NAME ...]  # G1 0..15 s from rest; G2, G2_dtx0.5, G3 (run_table)
   python -m cases.dfg_cylinder_re100.gpu_run ptol          # pressure-tolerance study on G1 from its developed field
+  python -m cases.dfg_cylinder_re100.gpu_run clustered [C1 C2 C3]   # the protocol on grids clustered around the cylinder
+  python -m cases.dfg_cylinder_re100.gpu_run timing C3     # cost per step of a level before running it
 Outputs: results/dfg_cylinder_re100/runs/<G..>.json + .npz (cfdlib.gpu.write_run), gpu_preflight.json;
 final velocity fields in ~/gpucfd_runs/dfg_cylinder_re100/ (outside git, like OpenFOAM's run directories).
 
@@ -36,15 +38,25 @@ def make(level, problem, numerics):
     from gpucfd import gcfd, bodies as B
     g = {k: v["value"] for k, v in problem["given"].items()}
     G = numerics["gpucfd"]
-    k = G["levels"].index(level)
-    n = (G["n_G1"][0] * 2 ** k, G["n_G1"][1] * 2 ** k, 1)
     H, Um = g["H"], g["Um"]
+    grid = None
+    if level in G["levels"]:
+        k = G["levels"].index(level)
+        n = (G["n_G1"][0] * 2 ** k, G["n_G1"][1] * 2 ** k, 1)
+    else:  # grids clustered around the cylinder (numerics.yaml, gpucfd.clustered)
+        from gpucfd import grids
+        C = G["clustered"]
+        k = C["levels"].index(level)
+        n = (C["n_C1"][0] * 2 ** k, C["n_C1"][1] * 2 ** k, 1)
+        h = g["D"] / (C["D_h_C1"] * 2 ** k)
+        grid = (grids.clustered(n[0], g["L"], C["band"][0], h, C["grow"][0]),
+                grids.clustered(n[1], H, C["band"][1], h, C["grow"][1]), None)
 
     def inflow(X, Y, Z):
         return (4 * Um * Y * (H - Y) / H ** 2, 0 * X, 0 * X)
     bnd = {"x-": ("inflow", inflow), "x+": "outflow", "y-": "wall", "y+": "wall"}
     s = gcfd.NavierStokes(n, (g["L"], H, 1.0), g["nu"], scheme=G["scheme"], boundaries=bnd,
-                          bodies=[B.Cylinder((g["xc"], g["yc"]), g["D"] / 2)])
+                          bodies=[B.Cylinder((g["xc"], g["yc"]), g["D"] / 2)], grid=grid)
     return s, inflow
 
 
@@ -65,11 +77,16 @@ def observer(problem, numerics):
     px, py = numerics["probes"][0]
 
     def probe_v(s, q):
+        v = q[1][0]
+        if s.stretched:  # v lives at the cell centres in x and the faces in y: linear between the true positions
+            xs, ys = s._axis(0, False), s._axis(1, True)
+            i, j = int(np.searchsorted(xs, px)) - 1, int(np.searchsorted(ys, py)) - 1
+            a, b = (px - xs[i]) / (xs[i + 1] - xs[i]), (py - ys[j]) / (ys[j + 1] - ys[j])
+            return (1 - a) * (1 - b) * v[j, i] + a * (1 - b) * v[j, i + 1] + (1 - a) * b * v[j + 1, i] + a * b * v[j + 1, i + 1]
         hx, hy = s.length[0] / s.n[0], s.length[1] / s.n[1]   # v lives at x = (i + 1/2) hx, y = j hy
         fx, fy = px / hx - 0.5, py / hy
         i, j = int(np.floor(fx)), int(np.floor(fy))
         a, b = fx - i, fy - j
-        v = q[1][0]
         return (1 - a) * (1 - b) * v[j, i] + a * (1 - b) * v[j, i + 1] + (1 - a) * b * v[j + 1, i] + a * b * v[j + 1, i + 1]
 
     def observe(s):
@@ -115,8 +132,11 @@ def load_field(name, level, problem, numerics):
     return s
 
 
-def one(name, level, problem, numerics, t0, t1, src=None, factor=1.0, ptol=None, runs_dir=RUNS_DIR, log=print):
-    """Run one level from rest (src None) or from the last field of simulation src; returns (s, record)."""
+def one(name, level, problem, numerics, t0, t1, src=None, factor=1.0, ptol=None, runs_dir=RUNS_DIR, log=print,
+        stop_after=None):
+    """Run one level from rest (src None) or from the last field of simulation src; returns (s, record).
+    stop_after: end the run at the first periodicity check that passes at least this long after t0 (t1 is
+    then the longest the run may go)."""
     from gpucfd import steady
     G = numerics["gpucfd"]
     ptol = G["pressure_tol"] if ptol is None else ptol
@@ -124,13 +144,19 @@ def one(name, level, problem, numerics, t0, t1, src=None, factor=1.0, ptol=None,
     div0 = from_rest(s, inflow) if src is None else steady.prolong(src, s)
     nu = problem["given"]["nu"]["value"]
     dt = s.max_dt(G["u_dt"], G["cfl"]) * factor
-    h = min(s.length[d] / s.n[d] for d in range(2))
+    h = s._hmin() if s.stretched else min(s.length[d] / s.n[d] for d in range(2))
     log(f"{name}: grid {s.n[0]} x {s.n[1]} ({int(np.prod(s.n))} cells), D/h {0.1 / h:.1f}, dt {dt:.3g} "
         f"(convective {G['cfl'] * h / G['u_dt']:.3g}, viscous {0.15 * h * h / nu:.3g}), t {t0:g} -> {t1:g}, "
         f"start div {div0:.1e}", flush=True)
+    watch = periodic_watch(numerics)
+    if stop_after is not None:
+        inner = watch
+
+        def watch(t, d):
+            return inner(t, d) if t - t0 >= stop_after - 1e-9 else None
     res = gpu.run_transient(s, dt, t0, t1, G["sample_dt"], observer(problem, numerics), u_ref=problem["given"]["Um"]["value"],
-                            log=lambda m: print(m, flush=True), tag=f"{name} ", watch=periodic_watch(numerics),
-                            ptol=ptol, cfl_limit=1.0)
+                            log=lambda m: print(m, flush=True), tag=f"{name} ", watch=watch,
+                            ptol=ptol, cfl_limit=1.0, stop_on_watch=stop_after is not None)
     rec = gpu.write_run(runs_dir, name, res, dict(level=level, n=list(s.n[:2]), cells=int(np.prod(s.n)), h=h, D_h=0.1 / h,
                                                   source=getattr(src, "_name", None), dt_factor=factor, pressure_tol=ptol,
                                                   scheme=G["scheme"], sample_dt=G["sample_dt"], force_per_unit_depth=True))
@@ -168,6 +194,47 @@ def production(names):
         s.close()
         if source is not None:
             source.close()
+
+
+def clustered(names):
+    """The same protocol on the grids clustered around the cylinder (numerics.yaml, gpucfd.clustered): C1 from
+    rest for develop_end seconds; each finer level from the coarser one's saved last field, for at least
+    run_length seconds and until the case's periodicity rule holds (checked live every second), at most
+    max_length. One run does what a fixed run plus extend() did for G2 and G3."""
+    problem, numerics = load()
+    C, t = numerics["gpucfd"]["clustered"], numerics["time"]
+    for nm in names:
+        k = C["levels"].index(nm)
+        tol = C.get("pressure_tol", {}).get(nm)  # per level (the tolerance rule applied on each level)
+        if k == 0:
+            s, _ = one(nm, nm, problem, numerics, 0.0, t["develop_end"], ptol=tol)
+            s.close()
+            continue
+        prev = C["levels"][k - 1]
+        t0 = json.loads((RUNS_DIR / f"{prev}.json").read_text())["end_time"]
+        source = load_field(prev, prev, problem, numerics)
+        s, _ = one(nm, nm, problem, numerics, t0, t0 + C["max_length"], src=source, stop_after=t["run_length"], ptol=tol)
+        s.close()
+        source.close()
+
+
+def timing(level, steps=200):
+    """Cost of a level before it is run: `steps` time steps from the coarser level's saved field (not recorded)."""
+    from gpucfd import steady
+    problem, numerics = load()
+    G = numerics["gpucfd"]
+    C = G["clustered"]
+    prev = C["levels"][C["levels"].index(level) - 1]
+    source = load_field(prev, prev, problem, numerics)
+    s, _ = make(level, problem, numerics)
+    steady.prolong(source, s)
+    dt = s.max_dt(G["u_dt"], G["cfl"])
+    s.run(dt, 20, G["pressure_tol"])
+    st = s.run(dt, steps, G["pressure_tol"])
+    print(f"{level}: {s.n[0]} x {s.n[1]}, dt {dt:.4g}, {st['ms'] / steps:.2f} ms per step, {st['poisson_its']:.1f} pressure "
+          f"iterations per projection; 1 s of flow = {1 / dt:.0f} steps = {st['ms'] / steps / dt / 1000:.0f} GPU-s", flush=True)
+    s.close()
+    source.close()
 
 
 def extend(name, max_length=12.0):
@@ -230,12 +297,27 @@ def tune_ptol(tols=(1e-10, 1e-8, 1e-6, 1e-4), length=1.0):
     ptol_summary(tols)
 
 
-def ptol_summary(tols=(1e-10, 1e-8, 1e-6, 1e-4)):
+def tune_ptol_level(level, tols=(1e-10, 1e-9, 1e-8), length=0.35):
+    """The same study on another level, from its saved last field, over about one shedding cycle: does the
+    tolerance tuned on G1 still hold there? Same rule (max |delta cd| and |delta cl| below 1e-4 against the
+    strictest). Writes gpu_tuning/ptol_<level>.json. Added for C3, whose forces were noisy with 1e-8."""
+    problem, numerics = load()
+    t0 = json.loads((RUNS_DIR / f"{level}.json").read_text())["end_time"]
+    tdir = OUT / "gpu_tuning"
+    for tol in tols:
+        src = load_field(level, level, problem, numerics)
+        s, rec = one(f"ptol_{level}_{tol:g}", level, problem, numerics, t0, t0 + length, src=src, ptol=tol, runs_dir=tdir)
+        s.close()
+        src.close()
+    ptol_summary(tols, prefix=f"ptol_{level}_", out=f"ptol_{level}.json")
+
+
+def ptol_summary(tols=(1e-10, 1e-8, 1e-6, 1e-4), prefix="ptol_", out="ptol.json"):
     """Compare the tolerance runs in gpu_tuning/ with the strictest; writes gpu_tuning/ptol.json."""
     tdir = OUT / "gpu_tuning"
-    recs = [json.loads((tdir / f"ptol_{tol:g}.json").read_text()) for tol in tols]
-    data = [np.load(tdir / f"ptol_{tol:g}.npz") for tol in tols]
-    out = []
+    recs = [json.loads((tdir / f"{prefix}{tol:g}.json").read_text()) for tol in tols]
+    data = [np.load(tdir / f"{prefix}{tol:g}.npz") for tol in tols]
+    out_name, out = out, []
     for tol, rec, d in zip(tols, recs, data):
         r = dict(tol=tol, perf=rec["perf"], health=rec["health"]["status"],
                  d_cd=float(np.max(np.abs(d["cd"] - data[0]["cd"]))), d_cl=float(np.max(np.abs(d["cl"] - data[0]["cl"]))),
@@ -243,7 +325,7 @@ def ptol_summary(tols=(1e-10, 1e-8, 1e-6, 1e-4)):
         out.append(r)
         print(f"ptol {tol:g}: max |d cd| {r['d_cd']:.2e}, max |d cl| {r['d_cl']:.2e}, {r['perf']['ms_per_step']:.2f} ms/step, "
               f"{r['perf']['poisson_its']:.1f} pressure iterations per step, divergence {r['div']}", flush=True)
-    (tdir / "ptol.json").write_text(json.dumps(out, indent=1, default=float))
+    (tdir / out_name).write_text(json.dumps(out, indent=1, default=float))
 
 
 def preflight():
@@ -273,7 +355,7 @@ if __name__ == "__main__":
     if mode == "production":
         production(sys.argv[2:] or list(run_table(load()[1])))
     elif mode == "ptol":
-        tune_ptol()
+        tune_ptol() if len(sys.argv) < 3 else tune_ptol_level(sys.argv[2])
     elif mode == "extend":
         for nm in sys.argv[2:]:
             extend(nm)
@@ -281,5 +363,9 @@ if __name__ == "__main__":
         ptol_summary()
     elif mode == "preflight":
         preflight()
+    elif mode == "clustered":
+        clustered(sys.argv[2:] or load()[1]["gpucfd"]["clustered"]["levels"])
+    elif mode == "timing":
+        timing(sys.argv[2])
     else:
         raise SystemExit(f"unknown mode {mode}")

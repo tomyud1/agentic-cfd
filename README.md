@@ -48,12 +48,14 @@ GPU.
   an independent reference code and the order of accuracy. Speed-only changes must give
   bit-identical results.
 - **What it handles:** incompressible laminar flow in a box with walls, inflow and outflow, and
-  bodies of any shape inside the flow. On the DFG cylinder benchmark (Re 20), drag is within 0.14%
-  at 70 cells per diameter; the three-grid study takes 6 GPU-minutes.
-- **Not yet:** turbulence, heat transfer, stretched grids around bodies (cells clustered toward
-  walls work in boxes without bodies). Until then OpenFOAM's body-fitted grid is the better choice
-  for bodies at Re 100 (case 4: drag within 0.25% at 13 thousand cells, against 1.0% at 442 thousand
-  for gpucfd).
+  bodies of any shape inside the flow, on uniform grids or with cells clustered toward walls and
+  around bodies. On the DFG cylinder benchmark (Re 20), drag is within 0.14% at 70 cells per
+  diameter; the three-grid study takes 6 GPU-minutes. At Re 100 (case 4), with cells clustered
+  around the cylinder, drag is within 0.11% at 140 cells per diameter, and the three-grid study
+  takes 24 minutes against 29 for OpenFOAM's.
+- **Not yet:** turbulence, heat transfer, an implicit time scheme with bodies. OpenFOAM's
+  body-fitted grid is still the cheaper way to a given accuracy for bodies at Re 100 (case 4: drag
+  within 0.25% at 13 thousand cells in under 3 minutes; gpucfd needs 459 thousand cells).
 
 ## How it works
 
@@ -95,10 +97,10 @@ index.html                    the report gallery served by GitHub Pages (generat
 
 ## Roadmap
 
-The ordered plan is in [ROADMAP.md](ROADMAP.md). In short: stretched grids for gpucfd, so that it
-competes with OpenFOAM on flows around bodies; turbulence (RANS) as the next problem type; a
-shorter workflow that offers its records to the agent instead of prescribing them; then a second
-machine and a second agent.
+The ordered plan is in [ROADMAP.md](ROADMAP.md). In short: an implicit time scheme for gpucfd around
+bodies (its grids can now be clustered there), so that it competes with OpenFOAM on such flows;
+turbulence (RANS) as the next problem type; a shorter workflow that offers its records to the
+agent instead of prescribing them; then a second machine and a second agent.
 
 ## Background papers
 

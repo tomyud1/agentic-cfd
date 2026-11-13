@@ -5,14 +5,20 @@ both and compare them.
 When to choose gpucfd instead of OpenFOAM (measured numbers and limits: gpucfd/DESIGN.md):
 - It fits: incompressible, laminar, constant density and viscosity, single phase, no heat transfer;
   a rectangular box (periodic, wall, inflow or outflow sides) with solid bodies inside it given as
-  shapes (cylinder, sphere, box, or any signed-distance function); a uniform grid fine enough for
-  central differences (cell Reynolds number U h / nu about 2 or below).
+  shapes (cylinder, sphere, box, or any signed-distance function); a grid fine enough for central
+  differences (cell Reynolds number U h / nu about 2 or below), uniform or stretched per direction
+  (gpucfd.grids: cells clustered toward walls, or a band of fine cells around a body).
 - It does not fit: turbulence models (RANS/LES), heat transfer, multiphase, compressible flow, STL
-  geometry, body-fitted or stretched grids (thin boundary layers need a uniform grid fine everywhere).
+  geometry, body-fitted or unstructured grids. A stretched grid is still rows and columns: the fine
+  band around a body crosses the whole domain in each direction (case 4: 3.85 times fewer cells
+  than uniform, not the 30 times of a body-fitted grid).
 - Where it pays: many time steps on grids of 10^4 to 10^7 cells (one RTX 4070 runs a 2D step in a
   few milliseconds). Bodies force the explicit RK3 scheme, whose time step is limited by
-  0.15 h^2 / nu as well as by the flow speed; at high resolution and low Reynolds number that limit
-  dominates (DFG 2D-1 at 70 cells per diameter).
+  0.15 h^2 / nu with the smallest cell as well as by the flow speed; at high resolution that limit
+  dominates (case 4 at 140 cells per diameter: 3.3 times below the convective limit).
+- With bodies and the explicit scheme, check the pressure tolerance on the finest grid, not only on
+  the coarsest: the pressure noise grows as the time step shrinks (case 4: 1e-8 on the coarsest
+  level, 1e-10 at 140 cells per diameter; numerics.yaml of cases/dfg_cylinder_re100).
 - Steady problems: march to steady state with gpucfd.steady (grid sequencing and an error-based stop).
 
 check_fit() turns this into a checklist for a given problem; its reasons go into decisions.yaml.
@@ -33,13 +39,16 @@ BLOCKERS = {
     "variable_properties": "needs variable density or viscosity",
     "stl_geometry": "the geometry comes as STL/CAD (gpucfd takes shapes or signed-distance functions)",
     "non_box_domain": "the domain is not a rectangular box (bodies inside a box are fine)",
+    "body_fitted_grid": "needs a body-fitted or unstructured grid (gpucfd grids are rows and columns of cells, "
+                        "stretched per direction, with the bodies immersed)",
 }
 
 
 def check_fit(cell_reynolds=None, needs_stretched_grid=False, **needs):
     """Whether gpucfd can solve a problem. needs: flags named as in BLOCKERS (True = the problem needs it).
     cell_reynolds: U h / nu on the finest grid you can afford (above about 2 central differences
-    oscillate). needs_stretched_grid: thin layers that a uniform grid cannot resolve at an affordable size.
+    oscillate). needs_stretched_grid: thin layers that a uniform grid cannot resolve at an affordable size;
+    since 2026-11-13 a note, not a blocker (stretched grids with bodies: gpucfd/DESIGN.md, rungs 12 and 13).
     Returns dict(ok, blockers[], notes[])."""
     unknown = set(needs) - set(BLOCKERS)
     if unknown:
@@ -47,7 +56,9 @@ def check_fit(cell_reynolds=None, needs_stretched_grid=False, **needs):
     blockers = [BLOCKERS[k] for k, v in needs.items() if v]
     notes = []
     if needs_stretched_grid:
-        blockers.append("needs a stretched or body-fitted grid (gpucfd grids are uniform)")
+        notes.append("thin layers: use a grid stretched per direction (gpucfd.grids.tanh toward walls, "
+                     "gpucfd.grids.clustered around a body). The fine bands cross the whole domain, and with bodies the "
+                     "explicit time step follows the smallest cell squared: estimate cells and steps before choosing gpucfd")
     if cell_reynolds is not None:
         if cell_reynolds > 10:
             blockers.append(f"cell Reynolds number {cell_reynolds:.3g}: central differences would oscillate")
@@ -86,7 +97,8 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
     n_total = max(1, math.ceil((t_end - t0) / dt - 1e-9))
     dt = (t_end - t0) / n_total
     nsub = max(1, int(math.floor(sample_dt / dt + 1e-9)))
-    h = min(s.length[d] / s.n[d] for d in range(3) if s.n[d] > 1)
+    # the cell size of the Courant and divergence checks: on a stretched grid the smallest cell (strict)
+    h = s._hmin() if getattr(s, "stretched", False) else min(s.length[d] / s.n[d] for d in range(3) if s.n[d] > 1)
     cells = int(np.prod(s.n))
     ts, series = [], {}
     gpu_ms = obs_s = its = 0.0

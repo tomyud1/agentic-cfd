@@ -41,6 +41,34 @@ def results():
         for c, a in enumerate(s.get()):
             out[f"abc_{scheme}_{c}"] = a
         s.close()
+    if hasattr(gcfd.lib(), "gcfd_ns_body"):  # immersed bodies on uniform grids (added 2026-11-13, stage 2)
+        from gpucfd import bodies as B
+        ctr = (0.5, 0.5, 0.5)  # closed Couette cell between two immersed cylinders
+        s = gcfd.NavierStokes((32, 32, 1), (1.0,) * 3, 0.025, walls=(True, True, False),
+                              bodies=[B.Cylinder(ctr, 0.2, velocity=B.rotation(ctr, 5.0)), B.Inside(B.Cylinder(ctr, 0.45))])
+        s.run(s.max_dt(1.0), 100, 1e-10)
+        for c, a in enumerate(s.get()):
+            out[f"couette_body_{c}"] = a
+        out["couette_body_p"] = s.pressure()
+        s.close()
+
+        def inflow(X, Y, Z):  # open channel with a cylinder (DFG geometry)
+            return (4 * 0.3 * Y * (0.41 - Y) / 0.41 ** 2, 0 * X, 0 * X)
+        s = gcfd.NavierStokes((384, 72, 1), (2.2, 0.41, 1.0), 1e-3, bodies=[B.Cylinder((0.2, 0.2), 0.05)],
+                              boundaries={"x-": ("inflow", inflow), "x+": "outflow", "y-": "wall", "y+": "wall"})
+        q = []
+        for c in range(2):
+            X, Y, Z = s.face_coords(c)
+            q.append(np.where(s.fluid[c], inflow(X, Y, Z)[c], 0.0))
+        s.set(q)
+        s.project()
+        s.run(s.max_dt(0.45), 60, 1e-8)
+        for c, a in enumerate(s.get()):
+            out[f"channel_body_{c}"] = a
+        out["channel_body_p"] = s.pressure()
+        out["channel_body_F"] = s.forces(((0.1, 0.3), (0.1, 0.3), (0, 1)))
+        out["channel_body_ps"] = s.surface_pressure([[0.15, 0.2, 0.5], [0.25, 0.2, 0.5]])
+        s.close()
     return out
 
 

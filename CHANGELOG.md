@@ -13,7 +13,95 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-13
 
-### gpucfd: stretched grids, stage 1 (walls, no bodies), commit hash to be filled in
+### gpucfd: cells clustered around a body (stretched grids, stage 2), commit hash to be filled in
+- **What:** the GPU solver can now use small cells around a body and larger ones far from it
+  (ROADMAP step 2, stage 2 of 3). Until now, with a body in the flow, every cell had to have the
+  size the body needs.
+  - `grids.clustered(n, length, band, h, grow)` makes such a grid: one cell size inside a band
+    around the body, growing with the distance from it.
+  - The solver parts that deal with a body now use the true cell sizes: the rules that put the
+    body into the flow, the pressure solver, and the force and surface-pressure output.
+  - Case 4 (cylinder shedding vortices, Re 100) has three clustered grids, C1 to C3, with 35, 70
+    and 140 cells across the cylinder's diameter (`gpu_run.py clustered`, `gpu_clustered.py`).
+- **Why it matters:** near a body the flow changes quickly and needs small cells. With one cell
+  size, that meant small cells in the whole channel. This is the stage that tests, on case 4,
+  whether clustering makes gpucfd competitive around bodies. The target was fixed in advance: drag
+  within 0.25 % of the benchmark in less wall time than OpenFOAM's study (about 1740 s).
+- **The tests: the question each one asks, what came out, what it means.** The design, the pass
+  rules and a cost estimate were written in `gpucfd/DESIGN.md` before the solver was changed.
+  1. *Did the change break what already worked?* On grids with equal cells the new build gives
+     the same numbers as the old one to the last digit (26 of 26 stored results, two of them with
+     bodies), and every older test passes. Everything verified earlier still holds.
+  2. *Is the new code the old method, or a different one?* Fed a grid with equal cells, the new
+     code path behaves like the old code: same rules for the body, results equal to about one part
+     in a trillion. So it is the old method plus uneven cells.
+  3. *Is the force output right on uneven cells?* With no body in the flow the computed force is
+     zero (7e-16), as it must be. Drag and lift can be trusted as arithmetic.
+  4. *Is the flow around a body still accurate on uneven cells?* This was the risky part. On a
+     flow with a known exact answer (fluid between a rotating and a fixed cylinder), with the cell
+     size varying by a factor 3, halving the cells cuts the error by 5 to 6; a factor 4 is the
+     goal. The method works; the backup method was not needed.
+  5. *Same answer with fewer cells?* On the steady cylinder (Re 20) the clustered grid gives the
+     drag of the equal-cell grid (-0.56 % against -0.65 % from the benchmark) with a quarter of
+     the cells. Clustering pays, but by 4 times, not 30: the grid is still rows and columns, so
+     the band of small cells crosses the whole channel.
+  6. *Why did one check fail?* The pressure difference between the front and the back of the
+     cylinder came out 1.9 % off where the equal-cell grid had 0.2 %. Moving the cylinder by a
+     fraction of a cell on the equal-cell grid moved its own answer between 0.2 % and 2.4 %. So
+     the earlier 0.2 % was a lucky position, not the grid's accuracy, and the new code is not at
+     fault. Pressure read at the surface is good to about 2 % at this resolution; drag moves by
+     only 0.25 %. The check now compares against that range and still reports the first failure.
+  7. *Is the clustered grid faster at the same accuracy?* Case 4, same cells at the cylinder as
+     the finest equal-cell grid: drag error 1.07 % against 0.99 %, in 241 s against 315 s. Yes,
+     about a quarter faster. Lift and shedding frequency are a little worse, because the cells
+     behind the cylinder are larger.
+  8. *Does it reach the target?* With 140 cells across the diameter the drag is 0.1 % from the
+     benchmark and the three grids together take 1421 s. The target is met as it was defined.
+- **Key numbers, case 4, differences from the FeatFlow benchmark:**
+
+  | Run | Cells | Drag | Lift maximum | Shedding frequency | Wall time, all grids |
+  |---|---|---|---|---|---|
+  | gpucfd, clustered, 70 cells per diameter | 115 thousand | -1.07 % | -5.2 % | +0.54 % | 241 s |
+  | gpucfd, equal cells, 70 cells per diameter | 442 thousand | -0.99 % | -3.4 % | +0.29 % | 315 s |
+  | gpucfd, clustered, 140 cells per diameter | 459 thousand | -0.09 % | -0.85 % | +0.13 % | 1421 s |
+  | OpenFOAM, four grids fitted to the cylinder | 215 thousand | +0.25 % | +0.41 % | -0.13 % | about 1740 s |
+
+- **Read the 0.1 % with these cautions:**
+  - It may be partly luck. Judged only by how the answer changes from grid to grid, without the
+    benchmark, the three grids support about 0.75 %. The finest grid is better than the trend,
+    and check 6 shows that the position of the cylinder in the grid matters.
+  - It is drag. Lift is about 1 % low.
+  - OpenFOAM is still the cheaper tool for this accuracy on this problem: its second grid has the
+    drag at 0.24 % after about 3 minutes. We beat the time of its whole four-grid study.
+  - 1421 s is the second attempt (next point). Tuning runs are not counted, on either side.
+- **Found while building:**
+  - *The pressure solve has to be stricter on finer grids.* With small cells and the present time
+    scheme the time step is tiny, and a tolerance that was fine on the coarse grid then leaves
+    noise in the forces. The first finest-grid run never settled into a repeating cycle: its drag
+    peaks jittered by 0.07 %. Case 4's own tolerance rule, applied on each grid, gives 1e-8, 1e-9
+    and 1e-10 for C1, C2, C3; the rerun settled in 3 s of flow. The stricter setting doubles the
+    cost of a step. The finest equal-cell run of 2026-11-12 fails the same check slightly (lift
+    off by 4e-4); it was not rerun, and by that rule its 315 s would be about 385 s.
+  - *A mistake of mine, caught by a number that looked too good.* On the new grids the pressure
+    solver stopped too early (2 iterations where 8 were expected), because a limit inside it was
+    written for equal cells. Fixed before any result was used; the count is now 5.
+  - *A stop rule I did not follow.* The first finest-grid run was to be stopped at 8 s of flow if
+    not settled. Stopping it would have thrown its record away, so it ran to 15 s (45 minutes).
+    The limit is now part of the run, which then stops by itself and keeps its record.
+  - *The estimate made beforehand was too pessimistic.* It expected the clustered grid to lose
+    check 7 and to miss the target (0.35 % in 1870 s). A step costs less than assumed, because
+    with a body the new pressure smoother needs fewer iterations (5 against 7.7).
+- **Open:**
+  - Repeat the finest grid with the cylinder moved by half a cell (20 minutes): is 0.1 % typical?
+  - Stage 3, an implicit time scheme with bodies. The finest grid is 83 % of the time; its time
+    step is 3.3 times smaller than the flow speed alone would need, and the strict pressure
+    tolerance comes from the same cause.
+  - Lift and shedding frequency on the clustered grids: try a longer band of small cells behind
+    the cylinder.
+  - `workflow/WORKFLOW.md` still tells the solver agent that gpucfd needs equal cells. Its advice
+    (OpenFOAM for bodies at Re 100) is still right; the wording is out of date.
+
+### gpucfd: stretched grids, stage 1 (walls, no bodies) (`bdee4b7`)
 - **What:** the GPU solver can now use cells of unequal size, for example small at the walls and
   large in the middle (ROADMAP step 2, stage 1 of 3).
   - A direction is described by its face positions: `NavierStokes(..., grid=(None, y, None))` with

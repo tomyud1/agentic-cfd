@@ -1,0 +1,70 @@
+{
+ "name": "C1",
+ "tool": "gpucfd",
+ "level": "C1",
+ "n": [
+  256,
+  112
+ ],
+ "cells": 28672,
+ "h": 0.0028571428571427804,
+ "D_h": 35.000000000000945,
+ "source": null,
+ "dt_factor": 1.0,
+ "pressure_tol": 1e-08,
+ "scheme": "rk3",
+ "sample_dt": 0.0025,
+ "force_per_unit_depth": true,
+ "dt": 0.0010158472165786266,
+ "start_time": 0.0,
+ "end_time": 15.0,
+ "health": {
+  "status": "warn",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A blow-up means the time step is too large for the flow speed or the viscous limit."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "warn",
+    "value": "1.18",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1)."
+   },
+   {
+    "name": "Divergence after projection",
+    "status": "warn",
+    "value": "1.0e-06",
+    "meaning": "max |div u| h / U after each step: the velocity must stay divergence-free (mass conservation)."
+   }
+  ],
+  "steps": 14766,
+  "last_time": 15.0
+ },
+ "perf": {
+  "gpu_s": 94.11654309082031,
+  "wall_s": 112.04207348823547,
+  "observe_s": 15.36838150024414,
+  "steps": 14766,
+  "cells": 28672,
+  "sample_steps": 2,
+  "poisson_its": 3.9828660436137073,
+  "ms_per_step": 6.373868555520812,
+  "us_per_cell_step": 0.22230289325895689
+ },
+ "watch_first": {
+  "t": 6.001625355546526,
+  "text": "periodic (cl spread 3.8e-04)"
+ },
+ "gpu": "NVIDIA GeForce RTX 4070",
+ "python": "3.12.3",
+ "wall_time": 112.04207348823547
+}

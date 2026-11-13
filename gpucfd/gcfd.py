@@ -75,6 +75,9 @@ def lib():
             L.gcfd_poisson_create_s.argtypes = [_ip, _dp, _ip, ctypes.c_int, ctypes.c_int, ctypes.c_int, vp, vp, vp]
             L.gcfd_set_lines.argtypes = [ctypes.c_int]
             L.gcfd_set_ns_sweeps.argtypes = [ctypes.c_int]
+        if hasattr(L, "gcfd_ns_body_ok"):  # bodies on stretched grids (from 2026-11-13, stage 2)
+            L.gcfd_ns_body_ok.restype = ctypes.c_int
+            L.gcfd_ns_body_ok.argtypes = [ctypes.c_void_p]
         _lib = L
     return _lib
 
@@ -218,8 +221,9 @@ class NavierStokes:
     ghost faces' image points from the surface, in cells (default sqrt(dim) + 0.05, the least that keeps
     their interpolation stencils in the fluid).
     grid: stretched grid, per direction None (uniform) or the n + 1 face positions from 0 to the length
-    (gpucfd.grids.tanh clusters cells toward walls); bounded directions only, no bodies yet. Use
-    dt_cfl() for the time step: max_dt() takes the smallest cell with the largest velocity."""
+    (gpucfd.grids.tanh clusters cells toward walls, gpucfd.grids.clustered around a body); bounded
+    directions only. With bodies the ghost rules use the local cell size (bodies.build). Use dt_cfl()
+    for the time step: max_dt() takes the smallest cell with the largest velocity."""
 
     SIDES = ("x-", "x+", "y-", "y+", "z-", "z+")
 
@@ -233,8 +237,6 @@ class NavierStokes:
         self.walls = tuple(bool(w) for w in walls)
         self.faces, fargs = _faces(self.n, self.length, grid)
         self.stretched = any(a is not None for a in self.faces)
-        if self.stretched and bodies:
-            raise ValueError("immersed bodies on stretched grids are not built yet (stage 2, see DESIGN.md)")
         if self.stretched:
             kinds, planes = self._sides(wall_velocity or {}, boundaries or {})
             self.kinds = kinds
@@ -287,6 +289,8 @@ class NavierStokes:
                 lib().gcfd_ns_body(h, c, r["mask"], int(r["idx"].size), r["idx"], r["a0"],
                                    np.ascontiguousarray(r["nb"].ravel()), np.ascontiguousarray(r["w"].ravel()))
             lib().gcfd_ns_body_done(h)
+            if self.stretched and not (hasattr(lib(), "gcfd_ns_body_ok") and lib().gcfd_ns_body_ok(h)):
+                raise ValueError("gcfd: bodies refused on this stretched grid (see stderr)")
             self.fluid = [r["mask"].reshape(self.shape) > 0 for r in rules]
             self.n_ghost = [r["n_ghost"] for r in rules]
 
@@ -501,7 +505,7 @@ class NavierStokes:
         term (rhs - grad p is the momentum change rate) and gives the same force for any box around the
         same bodies, to round-off (rung 10 checks it)."""
         if self.stretched:
-            raise NotImplementedError("forces: not on stretched grids yet (stage 2, with bodies)")
+            return self._forces_s(box)
         q = self.get()
         p = self.pressure()
         act = [d for d in range(3) if self.n[d] > 1]
@@ -566,9 +570,9 @@ class NavierStokes:
 
     def pressure_at(self, points):
         """Pressure interpolated (bi- or trilinear, from cell centres) at points (array (m, 3))."""
-        if self.stretched:
-            raise NotImplementedError("pressure_at: not on stretched grids yet (stage 2, with bodies)")
         P = np.atleast_2d(np.asarray(points, np.float64))
+        if self.stretched:
+            return self._pressure_at_s(P)
         p = self.pressure()
         act = [d for d in range(3) if self.n[d] > 1]
         lo, fr = [], []
@@ -608,10 +612,147 @@ class NavierStokes:
         ph, which = _b.phi(self.bodies, *X)
         nrm = _b.normals(self.bodies, which, X, act, 1e-6 * hmax)
         B = [X[d] - ph * nrm[d] for d in range(3)]
+        if self.stretched:  # the local cell size: the largest width of the cell that holds the surface point
+            hl = np.zeros(len(P))
+            for d in act:
+                f = self.faces[d] if self.faces[d] is not None else np.linspace(0.0, self.length[d], self.n[d] + 1)
+                i = np.clip(np.searchsorted(f, B[d], side="right") - 1, 0, self.n[d] - 1)
+                hl = np.maximum(hl, np.diff(f)[i])
+            sn = np.asarray(s, np.float64)
+            vals = [self.pressure_at(np.stack([B[d] + si * hl * nrm[d] for d in range(3)], 1)) for si in sn]
+            out = np.zeros(len(P))
+            for a, si in enumerate(sn):  # Lagrange weights at distance 0 (they depend on the ratios only)
+                w = np.prod([(0.0 - sj) / (si - sj) for b, sj in enumerate(sn) if b != a])
+                out += w * vals[a]
+            return out
         sv = np.asarray(s, np.float64) * hmax
         vals = [self.pressure_at(np.stack([B[d] + si * nrm[d] for d in range(3)], 1)) for si in sv]
         out = np.zeros(len(P))
         for a, si in enumerate(sv):  # Lagrange weights at distance 0
             w = np.prod([(0.0 - sj) / (si - sj) for b, sj in enumerate(sv) if b != a])
             out += w * vals[a]
+        return out
+
+    # ------------------------------------------------------------------------------ stretched grids
+    def _forces_s(self, box):
+        """forces() on a stretched grid: the same balance with the true box of every velocity unknown
+        (width dm, centre to centre, along its own direction; the cell width dc across) and the fluxes of
+        the stretched stencil (src/gcfd.cu, rhs_s)."""
+        q = self.get()
+        p = self.pressure()
+        act = [d for d in range(3) if self.n[d] > 1]
+        per = [self.kinds[2 * d] == 0 for d in range(3)]
+        dc = [self.widths(d) for d in range(3)]
+        # per face 0..n: distance between the two cell centres, and the share of the flow through the
+        # half cell on the face's high side (a mirror cell beyond a bounded side; periodic: uniform)
+        dm = [np.concatenate(([w[0]], 0.5 * (w[:-1] + w[1:]), [w[-1]])) for w in dc]
+        fw = [np.concatenate(([0.5], w[1:] / (w[:-1] + w[1:]), [0.5])) for w in dc]
+        F = np.zeros(3)
+
+        def wrap(d, i):
+            return np.mod(i, self.n[d]) if per[d] else i
+
+        def take(a, idx):
+            I = []
+            for d in range(3):
+                i = np.asarray(idx[d])
+                if per[d]:
+                    i = np.mod(i, self.n[d])
+                elif np.any(i < 0) or np.any(i >= self.n[d]):
+                    raise ValueError("forces: the box reaches a non-periodic side")
+                I.append(i)
+            return a[I[2], I[1], I[0]]
+
+        for c in range(self.ncomp):
+            R = self.rhs(c) - self.g[c]
+            rng = []
+            for d in range(3):
+                if self.n[d] == 1:
+                    rng.append(np.array([0]))
+                    continue
+                x = self._axis(d, d == c)
+                tol = 1e-9 * self.length[d]
+                sel = np.flatnonzero((x >= box[d][0] - tol) & (x <= box[d][1] + tol))
+                if sel.size == 0:
+                    raise ValueError("forces: empty box")
+                rng.append(sel)
+            K, J, I = np.meshgrid(rng[2], rng[1], rng[0], indexing="ij")
+            idx = [I, J, K]
+            e = [np.eye(3, dtype=int)[d] for d in range(3)]
+
+            def sh(ix, v):
+                return [ix[d] + v[d] for d in range(3)]
+
+            def width(d, ix):  # width of this component's box along d
+                return (dm[d] if d == c else dc[d])[wrap(d, ix[d])]
+            vol = np.ones(I.shape)
+            for d in act:
+                vol = vol * width(d, idx)
+            fl = take(self.fluid[c], idx) if self.fluid is not None else np.ones(I.shape, bool)
+            gp = (take(p, idx) - take(p, sh(idx, -e[c]))) / dm[c][wrap(c, idx[c])]
+            S = np.sum(np.where(fl, take(R, idx) - gp, 0.0) * vol)
+
+            def flux(d, ix):  # flux of c-momentum in direction d at the + side of faces ix
+                qf, qp = take(q[c], ix), take(q[c], sh(ix, e[d]))
+                if d == c:  # the + side is the centre of cell ix: midway between its two faces
+                    U = 0.5 * (qf + qp)
+                    return U * U - self.nu * (qp - qf) / dc[d][wrap(d, ix[d])] + take(p, ix)
+                f = fw[c][wrap(c, ix[c])]
+                a = f * take(q[d], sh(ix, e[d])) + (1.0 - f) * take(q[d], sh(ix, e[d] - e[c]))
+                return a * 0.5 * (qf + qp) - self.nu * (qp - qf) / dm[d][wrap(d, ix[d]) + 1]
+            out = 0.0
+            for d in act:
+                top = [x.take([-1], axis=2 - d) for x in idx]
+                bot = [x.take([0], axis=2 - d) for x in idx]
+                bot = sh(bot, -e[d])
+                if self.fluid is not None:
+                    for ix in (top, sh(top, e[d]), bot):
+                        if not np.all(take(self.fluid[c], ix)):
+                            raise ValueError("forces: the box surface cuts a body")
+                area = np.ones(top[0].shape)
+                for d2 in act:
+                    if d2 != d:
+                        area = area * width(d2, top)
+                out += np.sum((flux(d, top) - flux(d, bot)) * area)
+            F[c] = -(S + out)
+        return F
+
+    def _pressure_at_s(self, P):
+        """pressure_at() on a stretched grid: linear between the true cell centres (the nearest centre's
+        value beyond the first or last one, as on a uniform grid)."""
+        p = self.pressure()
+        act = [d for d in range(3) if self.n[d] > 1]
+        lo, hi, fr = [], [], []
+        for d in range(3):
+            if d not in act:
+                lo.append(np.zeros(len(P), int))
+                hi.append(np.zeros(len(P), int))
+                fr.append(np.zeros(len(P)))
+                continue
+            n = self.n[d]
+            if self.kinds[2 * d] == 0:  # periodic: uniform
+                t = P[:, d] / (self.length[d] / n) - 0.5
+                i0 = np.floor(t).astype(int)
+                lo.append(np.mod(i0, n))
+                hi.append(np.mod(i0 + 1, n))
+                fr.append(t - i0)
+                continue
+            xc = self._axis(d, False)
+            i0 = np.searchsorted(xc, P[:, d], side="right") - 1
+            a, b = np.clip(i0, 0, n - 1), np.clip(i0 + 1, 0, n - 1)
+            dx = xc[b] - xc[a]
+            lo.append(a)
+            hi.append(b)
+            fr.append(np.where(dx > 0, (P[:, d] - xc[a]) / np.where(dx > 0, dx, 1.0), 0.0))
+        out = np.zeros(len(P))
+        for c2 in (0, 1) if 2 in act else (0,):
+            for c1 in (0, 1):
+                for c0 in (0, 1):
+                    cm = (c0, c1, c2)
+                    w = np.ones(len(P))
+                    ix = []
+                    for d in range(3):
+                        w = w * ((fr[d] if cm[d] else 1 - fr[d]) if d in act else 1.0)
+                        ix.append(hi[d] if (cm[d] and d in act) else lo[d])
+                    out += w * p[ix[2], ix[1], ix[0]]
         return out

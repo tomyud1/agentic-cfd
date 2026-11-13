@@ -1,0 +1,114 @@
+"""Case 4 on gpucfd grids clustered around the cylinder, next to the uniform-grid run and OpenFOAM.
+
+Usage (repo root, inside WSL):  python -m cases.dfg_cylinder_re100.gpu_clustered [C1 C2 ...]
+Reads results/dfg_cylinder_re100/runs/C*.json|npz (gpu_run.py clustered), gpu_compare.json (the uniform G
+levels and OpenFOAM, gpu_compare.py) and the case YAML files. Writes results/dfg_cylinder_re100/gpu_clustered.json.
+Every number is computed here.
+
+What it answers (numerics.yaml, gpucfd.clustered, fixed before the runs):
+- at the drag error of the uniform G3 run, does the clustered protocol take less wall time?
+- how close does the finest clustered level come to FeatFlow, and in what wall time against OpenFOAM's study?
+"""
+import json
+import sys
+from pathlib import Path
+
+from cfdlib.report import load_yaml
+from .analyze import QKEYS, reference, study
+from .gpu_compare import analyse
+
+HERE = Path(__file__).resolve().parent
+OUT = HERE.parents[1] / "results" / HERE.name
+RUNS = OUT / "runs"
+OPENFOAM_STUDY_WALL = 1740.0  # OpenFOAM's whole study with the live stop (ROADMAP.md, the target's time)
+
+
+def main(names=None):
+    problem = load_yaml(HERE / "problem.yaml")
+    numerics = load_yaml(HERE / "numerics.yaml")
+    g = problem["given"]
+    C = numerics["gpucfd"]["clustered"]
+    names = names or [L for L in C["levels"] if (RUNS / f"{L}.json").exists()]
+    ref = reference(load_yaml(HERE / problem["reference"]["file"]))
+    uni = json.loads((OUT / "gpu_compare.json").read_text())
+    rows, wall, gpu_s = [], 0.0, 0.0
+    for nm in names:
+        r = analyse(nm, g, numerics)
+        m, p = r["meta"], r["meta"]["perf"]
+        wall += p["wall_s"]
+        gpu_s += p["gpu_s"]
+        rows.append(dict(level=nm, n=m["n"], cells=m["cells"], D_h=m["D_h"], dt=m["dt"], t0=m["start_time"], t1=m["end_time"],
+                         steps=p["steps"], gpu_s=p["gpu_s"], wall_s=p["wall_s"], ms_per_step=p["ms_per_step"],
+                         poisson_its=p["poisson_its"], wall_protocol=wall, gpu_protocol=gpu_s, health=m["health"]["status"],
+                         periodic=r["periodic"], periodic_from=(m["watch_first"] or {}).get("t"), mass=r["mass"],
+                         St_fft=r["St_fft"], St_probe=r["St_probe"],
+                         sm={k: r["sm"][k] for k in QKEYS},
+                         rel={k: (r["sm"][k] - ref["value"][k]) / abs(ref["value"][k]) for k in QKEYS}))
+    ug = uni["cost_gpu"]
+    uni_rows, w = [], 0.0
+    for c in ug:
+        w += c["wall_s"]
+        sm = uni["runs"][c["level"]]["sm"]
+        uni_rows.append(dict(level=c["level"], cells=c["cells"], D_h=c["D_h"], steps=c["steps"], gpu_s=c["gpu_s"], wall_s=c["wall_s"],
+                             ms_per_step=c["ms_per_step"], wall_protocol=w,
+                             rel={k: (sm[k] - ref["value"][k]) / abs(ref["value"][k]) for k in QKEYS}))
+    of_rows, w = [], 0.0
+    for c in uni["cost_openfoam"]:
+        w += c["wall_s"]
+        of_rows.append(dict(level=c["level"], cells=c["cells"], cores=c["cores"], wall_s=c["wall_s"], wall_protocol=w,
+                            rel_cd_mean=c["err_cd_mean"] / abs(ref["value"]["cd_mean"])))
+    g3 = uni_rows[-1]
+    # The cheap question: the clustered level with the uniform G3's cells per diameter at the body, its drag
+    # error and the wall time of the protocol up to it, against G1 + G2 + G3. Stated as measured: the errors
+    # are close, not equal, so `no_larger_error` says whether the clustered one is at most the uniform one.
+    match = min(rows, key=lambda r: abs(r["D_h"] - g3["D_h"]))
+    cheap = dict(level=match["level"], D_h=match["D_h"], rel_cd_mean=match["rel"]["cd_mean"], rel_cd_max=match["rel"]["cd_max"],
+                 rel_cl_max=match["rel"]["cl_max"], rel_St=match["rel"]["St"], wall=match["wall_protocol"], cells=match["cells"],
+                 uniform_rel_cd_mean=g3["rel"]["cd_mean"], uniform_rel_cd_max=g3["rel"]["cd_max"], uniform_rel_cl_max=g3["rel"]["cl_max"],
+                 uniform_rel_St=g3["rel"]["St"], uniform_wall=g3["wall_protocol"], uniform_cells=g3["cells"],
+                 faster=bool(match["wall_protocol"] < g3["wall_protocol"]), time_ratio=match["wall_protocol"] / g3["wall_protocol"],
+                 no_larger_error=bool(abs(match["rel"]["cd_mean"]) <= abs(g3["rel"]["cd_mean"])))
+    # What the clustered levels say about their own error, with no reference: observed order and the grid
+    # convergence index of the finest level (the case's U_sim without the time-step part), per quantity.
+    conv = {}
+    if len(rows) >= 3:
+        for k in QKEYS:
+            st = study([r["sm"][k] for r in rows[-3:]])
+            diff = rows[-1]["sm"][k] - ref["value"][k]
+            band = st["gci_abs"] + ref["unc"][k]
+            conv[k] = dict(p=st["p"], monotonic=st["monotonic"], extrap=st["extrap"], gci_abs=st["gci_abs"],
+                           gci_rel=st["gci_abs"] / abs(ref["value"][k]), u_ref_rel=ref["unc"][k] / abs(ref["value"][k]),
+                           diff=diff, band=band, status="ok" if abs(diff) <= band else ("warn" if abs(diff) <= 2 * band else "fail"))
+    fine = rows[-1]
+    target = dict(level=fine["level"], rel_cd_mean=fine["rel"]["cd_mean"], rel_cd_max=fine["rel"]["cd_max"], wall=fine["wall_protocol"],
+                  want_rel=0.0025, want_wall=OPENFOAM_STUDY_WALL,
+                  accuracy_met=bool(abs(fine["rel"]["cd_mean"]) <= 0.0025 and abs(fine["rel"]["cd_max"]) <= 0.0025),
+                  time_met=bool(fine["wall_protocol"] < OPENFOAM_STUDY_WALL),
+                  stage2_met=bool(abs(fine["rel"]["cd_mean"]) <= 0.005 and abs(fine["rel"]["cd_max"]) <= 0.005))
+    out = dict(clustered=rows, uniform=uni_rows, openfoam=of_rows, cheap_question=cheap, target=target, convergence=conv,
+               reference={k: ref["value"][k] for k in QKEYS})
+    (OUT / "gpu_clustered.json").write_text(json.dumps(out, indent=1, default=float))
+
+    def line(r):
+        e = r["rel"]
+        return (f"cd_max {100 * e['cd_max']:+.2f} % cd_mean {100 * e['cd_mean']:+.2f} % cl_max {100 * e['cl_max']:+.2f} % "
+                f"cl_amp {100 * e['cl_amp']:+.2f} % St {100 * e['St']:+.2f} %")
+    for r in rows:
+        print(f"{r['level']}: {r['cells']} cells, D/h {r['D_h']:.0f}, dt {r['dt']:.3g}, t {r['t0']:g}-{r['t1']:.2f}, {r['steps']} steps, "
+              f"{r['ms_per_step']:.2f} ms/step ({r['poisson_its']:.1f} its), GPU {r['gpu_s']:.0f} s, wall {r['wall_s']:.0f} s "
+              f"(protocol so far {r['wall_protocol']:.0f} s) | {line(r)} | periodic {r['periodic']} health {r['health']}")
+    for r in uni_rows:
+        print(f"uniform {r['level']}: {r['cells']} cells, D/h {r['D_h']:.1f}, {r['ms_per_step']:.2f} ms/step, wall {r['wall_s']:.0f} s "
+              f"(protocol so far {r['wall_protocol']:.0f} s) | {line(r)}")
+    for r in of_rows:
+        print(f"OpenFOAM {r['level']}: {r['cells']} cells, wall {r['wall_s']:.0f} s (so far {r['wall_protocol']:.0f} s), cd_mean "
+              f"{100 * r['rel_cd_mean']:+.2f} %")
+    for k, c in conv.items():
+        print(f"convergence {k}: order {c['p']:.2f} monotonic {c['monotonic']} GCI {100 * c['gci_rel']:.2f} % reference unc "
+              f"{100 * c['u_ref_rel']:.2f} % -> {c['status']}")
+    print("cheap question:", cheap)
+    print("target:", target)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:] or None)

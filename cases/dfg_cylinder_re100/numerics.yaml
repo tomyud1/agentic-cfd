@@ -91,6 +91,37 @@ gpucfd:                       # the same problem on gpucfd (gpu_run.py, cfdlib.g
   #  - expected: cd_max within 0.3 % and St within 1 % of FeatFlow on G3 (DFG 2D-1 drag was 0.14 % off
   #    at D/h 70); all levels periodic; total GPU time below 5 minutes (OpenFOAM: 42 min wall, M4 on 16 ranks).
   #  - FAIL if a run blows up or a primary quantity is more than 2 bands off.
+  clustered:                  # the same problem on grids clustered around the cylinder (gpucfd stretched grids,
+                              # stage 2, added 2026-11-13; design, cost estimate and targets: gpucfd/DESIGN.md)
+    # Cells of one size h in a band around the cylinder, growing linearly with the distance from the band up to a
+    # far-field factor that gpucfd.grids.clustered solves so that n cells fill the channel (4.43 in x, 2.10 in y at
+    # every level). n = n_C1 * 2^k, h = D / (D_h_C1 * 2^k): D/h = 35, 70, 140 at the body with 28672, 114688 and
+    # 458752 cells (the uniform G levels have D/h 17.6, 35, 70 with nearly the same cell counts).
+    levels: [C1, C2, C3]
+    n_C1: [256, 112]
+    D_h_C1: 35
+    band: [[0.10, 0.35], [0.10, 0.30]]   # fine cells: one diameter ahead of the cylinder's centre, 1.5 behind, one to each side
+    grow: [0.10, 0.05]                   # distance over which the cells grow to the far-field size, x and y [m]
+    max_length: 8.0                      # longest run of a finer level [s] (the stop fixed before the runs)
+    pressure_tol: {C1: 1.0e-8, C2: 1.0e-9, C3: 1.0e-10}
+    # CHANGED after the first runs (2026-11-13). C2 and C3 were first run with the 1e-8 tuned on G1. C3 then never
+    # passed the periodicity rule in 15 s: the flow had settled after about 2 s, but the drag peaks jittered by
+    # +-0.07 % from cycle to cycle (records kept in gpu_tuning/C*_first_ptol1e-8). The tolerance rule above (the
+    # loosest tolerance whose cd and cl stay within 1e-4 of the 1e-10 run), applied on each level over one cycle
+    # (gpu_run.py ptol <level>, gpu_tuning/ptol_<level>.json), gives: C1 1e-8 (1.4e-5); C2 1e-9 (1e-8 is off by
+    # 6.8e-4 in cl); C3 1e-10 (1e-8 is off by 6.0e-3, 1e-9 by 2.5e-4 in cl). Reason: the explicit scheme updates
+    # the pressure by (projection result) / dt, so a fixed relative tolerance means more pressure noise as the
+    # time step shrinks. The uniform G3 fails the same check with 1e-8 (cl off by 3.9e-4; 1e-9 passes at 1.42 times
+    # the time per step); it was not rerun, so its recorded 201 s would be about 270 s by this rule.
+    # Everything else as above: scheme, cfl, u_dt (the time step uses the smallest cell), sample_dt, force_box,
+    # pressure_tol. Protocol (gpu_run.py clustered): C1 from rest 0..15 s; each finer level from the coarser one's
+    # last field, at least run_length (3 s) and until the periodicity rule holds, checked live every second.
+    # Decided BEFORE the runs (2026-11-13, gpucfd/DESIGN.md "Stretched grids, stage 2"):
+    #  - cheap question: C2 has the body resolution of G3 (D/h 70). Is the wall time of C1 + C2 below the 315 s of
+    #    G1 + G2 + G3 at the same drag error (about -1.0 %)? Expected: no (about 490 s).
+    #  - C3: drag within 0.5 % of FeatFlow; its wall time is reported against OpenFOAM's study (about 1740 s).
+    #    Timed over 200 steps first; not started above a projection of 45 minutes; stopped if not periodic after 8 s.
+    #  - if C2's drag error is more than twice G3's, one variant with a wider band is run on C2 before C3.
 sensitivity:                  # extra run on M3: linear-upwind convection instead of central
   mesh: M3
   div_U: 'Gauss linearUpwind grad(U)'

@@ -114,6 +114,7 @@ __device__ __forceinline__ void stencil_s(const T* p, const Level& L, const Coef
   const int ii[3] = {i, j, k};
   off = T(0);
   diag = T(0);
+  T full = T(0);  // bodies: the diagonal without them (for a cell with no fluid face)
   const T* blk = K.s;
 #pragma unroll
   for (int d = 0; d < 3; ++d) {
@@ -124,10 +125,19 @@ __device__ __forceinline__ void stencil_s(const T* p, const Level& L, const Coef
     int sm, sp;
     const T vm = nbr(p, L, c, ii[d], d, -1, sm);
     const T vp = nbr(p, L, c, ii[d], d, +1, sp);
-    const T gm = g[ii[d]], gp = g[ii[d] + 1], wc = w[ii[d]];
+    T gm = g[ii[d]], gp = g[ii[d] + 1];
+    const T wc = w[ii[d]];
+    if (K.b[d]) {  // face coefficients (bodies), as in stencil(): a non-periodic side keeps its own rule
+      const int n = L.n[d];
+      const size_t s = L.stride(d);
+      full += wc * (gm + gp);
+      gm *= (ii[d] > 0 || L.bc[2 * d] == PERIODIC) ? K.b[d][c] : T(1);
+      gp *= ii[d] < n - 1 ? K.b[d][c + s] : (L.bc[2 * d + 1] == PERIODIC ? K.b[d][c - size_t(n - 1) * s] : T(1));
+    }
     off += wc * (gm * vm + gp * vp);
     diag += wc * (gm * T(1 - sm) + gp * T(1 - sp));
   }
+  if (diag == T(0) && full != T(0)) diag = full;  // no fluid face (inside a body): decoupled
 }
 
 // Laplacian(p)[c] = off - diag * p[c]
@@ -201,13 +211,21 @@ template <typename T>
 __device__ __forceinline__ void line_row(const T* x, const T* b, const Level& L, const Coef<T>& K, const T* const* w,
                                          const T* const* g, const int* I, int dir, size_t c, T& l, T& di, T& h, T& rh) {
   const int m = I[dir], n = L.n[dir];
-  T off = T(0), diag = T(0);
+  T off = T(0), diag = T(0), full = T(0);
   l = T(0);
   h = T(0);
 #pragma unroll
   for (int d = 0; d < 3; ++d) {
     if (K.c[d] == T(0)) continue;
-    const T wc = w[d][I[d]], gm = g[d][I[d]], gp = g[d][I[d] + 1];
+    const T wc = w[d][I[d]];
+    T gm = g[d][I[d]], gp = g[d][I[d] + 1];
+    if (K.b[d]) {  // bodies: zero coefficient on a face in a body (same rule as stencil_s)
+      const int nd = L.n[d];
+      const size_t s = L.stride(d);
+      full += wc * (gm + gp);
+      gm *= (I[d] > 0 || L.bc[2 * d] == PERIODIC) ? K.b[d][c] : T(1);
+      gp *= I[d] < nd - 1 ? K.b[d][c + s] : (L.bc[2 * d + 1] == PERIODIC ? K.b[d][c - size_t(nd - 1) * s] : T(1));
+    }
     if (d == dir) {  // neighbours in the line are unknowns; a side keeps its rule (bounded directions only)
       if (m > 0) {
         l = wc * gm;
@@ -229,6 +247,9 @@ __device__ __forceinline__ void line_row(const T* x, const T* b, const Level& L,
       diag += wc * (gm * T(1 - sm) + gp * T(1 - sp));
     }
   }
+  // A cell with no fluid face is an identity row (l = h = 0 there already), so a line cut by a body
+  // falls apart into independent pieces.
+  if (diag == T(0) && full != T(0)) diag = full;
   di = -diag;
   rh = b[c] - off;  // l x_(m-1) - diag x_m + h x_(m+1) = b - (the other lines' part)
 }
@@ -981,6 +1002,11 @@ struct Solver : Base {
   std::vector<T*> s_d;
   T* vol = nullptr;
   double vtot = 0.0;
+  // Stretched grids with bodies: cell volume on the cells that have a fluid face (0 inside bodies), and
+  // its sum there and over the cut cells: the sums and means of a singular problem run over the fluid.
+  std::vector<double> vol_h;
+  T* vact = nullptr;
+  double vact_tot = 0.0, vcut_tot = 0.0;
   T* cinv = nullptr;
   int line_dirs = 0;        // bit d: zebra line relaxation along direction d
   const char* error = nullptr;  // set-up refused (reason), checked by the C API
@@ -1096,6 +1122,7 @@ struct Solver : Base {
             }
         CK(cudaMalloc(&vol, N * sizeof(T)));
         upload(v.data(), vol, N);
+        vol_h = v;
       }
       if (!has_c) glast = g;
       faces = nxt;
@@ -1204,7 +1231,7 @@ struct Solver : Base {
     for (size_t l = 0; l < L.size(); ++l) {
       const Level& F = L[l];
       for (int d = 0; d < 3; ++d) {
-        if (cur[d].empty() || int(l) >= mask_levels()) continue;
+        if (cur[d].empty() || int(l) >= (stretched ? 1 : mask_levels())) continue;
         T* a;
         CK(cudaMalloc(&a, F.cells() * sizeof(T)));
         upload(cur[d].data(), a, F.cells());
@@ -1248,6 +1275,21 @@ struct Solver : Base {
         }
         CK(cudaMalloc(&cut, F.cells() * sizeof(T)));
         upload(cu.data(), cut, F.cells());
+        if (stretched) {
+          std::vector<double> va(F.cells());
+          vact_tot = vcut_tot = 0.0;
+          for (size_t q = 0; q < F.cells(); ++q) {
+            va[q] = vol_h[q] * ac[q];
+            vact_tot += va[q];
+            vcut_tot += vol_h[q] * cu[q];
+          }
+          cudaFree(vact);
+          CK(cudaMalloc(&vact, F.cells() * sizeof(T)));
+          upload(va.data(), vact, F.cells());
+          // The coarsest level is solved by the inverse of the Laplacian without bodies; with a single
+          // level that would be the whole solver.
+          if (L.size() < 2) error = "bodies on a stretched grid need at least two multigrid levels (even cell counts)";
+        }
       }
       if (l + 1 == L.size()) break;
       const Level& C = L[l + 1];
@@ -1365,6 +1407,7 @@ struct Solver : Base {
     for (double* a : geo_d) cudaFree(a);
     for (T* a : s_d) cudaFree(a);
     cudaFree(vol);
+    cudaFree(vact);
     cudaFree(cinv);
     cudaFree(act);
     cudaFree(cut);
@@ -1418,6 +1461,11 @@ struct Solver : Base {
     for (size_t q = 0; q < n; ++q) h[q] = double(t[q]);
   }
   void remove_mean(T* a, size_t n) {
+    if (vact) {  // stretched, bodies: the volume-weighted mean over the cells with a fluid face
+      dot_dev<T>(a, vact, n, part, &cg->s);
+      k_sub_mean_m<T><<<lin_blocks(n), 256, 0, gs()>>>(a, act, &cg->s, vact_tot, n);
+      return;
+    }
     if (vol) {  // stretched: the volume-weighted mean
       dot_dev<T>(a, vol, n, part, &cg->s);
       k_sub_wmean<T><<<lin_blocks(n), 256, 0, gs()>>>(a, &cg->s, vtot, n);
@@ -1567,7 +1615,10 @@ struct Solver : Base {
       abort();
     }
     T* R = b[0];  // residual (the level-0 rhs array is free: the V-cycle takes its own arguments)
-    if (singular && act) {  // bodies: the sum over the fluid region is taken out in its cut cells
+    if (singular && vact) {  // the same on a stretched grid: the volume-weighted sum
+      dot_dev<T>(F, vact, N, part, &cg->s);
+      k_sub_mean_m<T><<<lin_blocks(N), 256, 0, gs()>>>(F, cut, &cg->s, vcut_tot, N);
+    } else if (singular && act) {  // bodies: the sum over the fluid region is taken out in its cut cells
       dot_dev<T>(F, act, N, part, &cg->s);
       k_sub_mean_m<T><<<lin_blocks(N), 256, 0, gs()>>>(F, cut, &cg->s, n_cut, N);
     } else if (singular) {
@@ -2093,6 +2144,7 @@ struct NS {
   // Stretched grids: volume of each velocity unknown's box, per component (weights of the dot products
   // of the implicit diffusion solves, whose operator is symmetric in that weighted sum). Null: uniform.
   T* wq[3] = {nullptr, nullptr, nullptr};
+  std::vector<double> geo_h;  // host copy of Level::geo
   // Smoothing sweeps before and after the coarse correction on stretched grids. One alternating line
   // sweep each: measured on 256^2 clustered grids, 9-12 CG iterations against 7-10 with two sweeps, at
   // half the cost per iteration (6-8 ms per solve to 1e-10 against 10-13 ms).
@@ -2150,6 +2202,7 @@ struct NS {
     if (L.geo) {  // box volumes of the velocity unknowns: dm along the component's direction, dc across
       std::vector<double> g(geo_size(L));
       CK(cudaMemcpy(g.data(), L.geo, g.size() * sizeof(double), cudaMemcpyDeviceToHost));
+      geo_h = g;
       std::vector<double> v(N);
       for (int s = 0; s < ncomp; ++s) {
         for (int k = 0; k < L.n[2]; ++k)
@@ -2257,6 +2310,28 @@ struct NS {
       for (int d = 0; d < 3; ++d)
         if (L.n[d] > 1) hmin = std::min(hmin, L.h[d]);
       fscale_f = std::sqrt(P->n_act) / hmin;
+      if (L.geo) {
+        // Stretched: the solver's norms are volume-weighted, so the same floor (a divergence of
+        // max|u| / h in every fluid cell, h the cell's smallest width) is sqrt(sum of volume / h^2).
+        // With uniform positions that is sqrt(volume) times the uniform floor, as the norms are.
+        std::vector<double> ac(L.cells());
+        CK(cudaMemcpy(ac.data(), P->act, L.cells() * sizeof(double), cudaMemcpyDeviceToHost));
+        double sum = 0.0;
+        for (int k = 0; k < L.n[2]; ++k)
+          for (int j = 0; j < L.n[1]; ++j)
+            for (int i = 0; i < L.n[0]; ++i) {
+              const int I[3] = {i, j, k};
+              double v = 1.0, hc = 1e300;
+              for (int d = 0; d < 3; ++d) {
+                if (L.n[d] == 1) continue;
+                const double w = 1.0 / geo_h[geo_off(L, d) + I[d]];
+                v *= w;
+                hc = std::min(hc, w);
+              }
+              sum += ac[i + size_t(L.n[0]) * (j + size_t(L.n[1]) * k)] * v / (hc * hc);
+            }
+        fscale_f = std::sqrt(sum);
+      }
     }
     closed = P->singular;
     if (closed) {  // the rim faces of the fluid region and their correction weights (k_ib_cons)
@@ -2269,10 +2344,15 @@ struct NS {
       std::vector<double> rs[3];
       double den = 0.0;
       for (int s = 0; s < ncomp; ++s) {
-        const double area = vol / L.h[s];
+        double area = vol / L.h[s];
         for (long long f : idxh[s]) {
           const int i = int(f % L.n[0]), j = int((f / L.n[0]) % L.n[1]), k = int(f / (L.n[0] * (long long)L.n[1]));
           const int I[3] = {i, j, k};
+          if (L.geo) {  // stretched: the face's own area (the cell widths across its direction)
+            area = 1.0;
+            for (int d = 0; d < 3; ++d)
+              if (d != s && L.n[d] > 1) area *= 1.0 / geo_h[geo_off(L, d) + I[d]];
+          }
           if (wall_dir_h(s) && I[s] == 0) continue;  // a boundary face: not part of the region's rim
           int J[3] = {i, j, k};
           J[s] = (I[s] - 1 + L.n[s]) % L.n[s];
@@ -2292,7 +2372,7 @@ struct NS {
         r = Rim();
         r.n = int(ri[s].size());
         if (!r.n) continue;
-        for (double& v : rs[s]) v *= vol / den;
+        for (double& v : rs[s]) v *= (L.geo ? 1.0 : vol) / den;
         CK(cudaMalloc(&r.idx, r.n * sizeof(long long)));
         CK(cudaMalloc(&r.sa, r.n * sizeof(double)));
         CK(cudaMemcpy(r.idx, ri[s].data(), r.n * sizeof(long long), cudaMemcpyHostToDevice));
@@ -2374,7 +2454,7 @@ struct NS {
       for (int s = 0; s < ncomp; ++s) boundary_faces(s);
     if (closed) {  // zero net flow into the closed fluid region (k_ib_cons)
       k_ns_div<T><<<grid3(L), B3, 0, gs()>>>(q[0], q[1], q[2], dv, L, W);
-      dot_dev<T>(dv, P->act, L.cells(), hpart, dsum);
+      dot_dev<T>(dv, P->vact ? P->vact : P->act, L.cells(), hpart, dsum);  // stretched: the net flow itself
       for (int s = 0; s < ncomp; ++s)
         if (rim[s].n) k_ib_cons<T><<<(rim[s].n + 255) / 256, 256, 0, gs()>>>(q[s], rim[s].idx, rim[s].sa, rim[s].n, dsum);
     }
@@ -2606,13 +2686,14 @@ void gcfd_ns_scheme(void* s, int scheme, double htol) {
 // Call for every component, then gcfd_ns_body_done (before the first run).
 void gcfd_ns_body(void* s, int comp, const double* mask, int n, const long long* idx, const double* a0,
                   const long long* nb, const double* w) {
-  if (static_cast<NS*>(s)->L.geo) {
-    fprintf(stderr, "gcfd: immersed bodies on stretched grids are not built yet\n");
-    abort();
-  }
   static_cast<NS*>(s)->set_body(comp, mask, n, idx, a0, nb, w);
 }
 void gcfd_ns_body_done(void* s) { static_cast<NS*>(s)->body_done(); }
+// After gcfd_ns_body_done: 1 if the bodies were accepted, 0 if not (reason on stderr).
+int gcfd_ns_body_ok(void* s) {
+  NS* m = static_cast<NS*>(s);
+  return (refused(m->P) || refused(static_cast<Solver<float>*>(m->P->pre))) ? 0 : 1;
+}
 // Pressure (per unit density) at the cell centres. IMEX, or with bodies: the pressure carried by the
 // incremental projection. Explicit scheme without bodies: from the last projection of the last step.
 void gcfd_ns_get_p(void* s, double* h) {

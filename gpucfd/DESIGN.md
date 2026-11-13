@@ -6,8 +6,8 @@ solve to the GPU, copies matrices through host memory every solve, and is capped
 
 ## Scope (first version)
 - Incompressible, single phase, laminar (constant density and viscosity).
-- Structured Cartesian grids, uniform or stretched per direction (cells clustered toward walls;
-  stage 1, 2026-11-13: without bodies), 2D or 3D (2D = one cell in z).
+- Structured Cartesian grids, uniform or stretched per direction (cells clustered toward walls or
+  around a body; 2026-11-13), 2D or 3D (2D = one cell in z).
 - Staggered (MAC) grid: pressure at cell centres, each velocity component on its faces. Discretely
   divergence-free velocity, no pressure checkerboarding.
 - Projection method: predict velocity, solve a pressure Poisson equation, correct.
@@ -16,7 +16,8 @@ solve to the GPU, copies matrices through host memory every solve, and is capped
   On stretched grids: zebra line relaxation and the transposed prolongation as restriction.
 - Boundaries: periodic, walls (no-slip, moving lid), inflow (prescribed velocity profile), outflow
   (pressure zero, zero velocity gradient).
-- Immersed bodies of any shape given by a signed distance (ghost-cell method), with forces.
+- Immersed bodies of any shape given by a signed distance (ghost-cell method), with forces, on
+  uniform and on stretched grids.
 
 Not in scope: everything else OpenFOAM does. OpenFOAM stays the reference to check against.
 
@@ -39,6 +40,7 @@ optimisation that breaks anything is caught at once.
 | 10 | Immersed bodies | circular Couette flow between immersed cylinders and a tilted channel (exact), 3D extrusions, DFG benchmark 2D-1 | velocity order 2 (mean over the grids); 3D = 2D; drag, pressure difference and lift converge to the benchmark; forces independent of the box |
 | 11 | Steady-state tooling | iteration-error estimator on sequences with a known limit; prolongation of a converged Couette flow; three-grid Couette study sequenced and from rest | estimate exact for one mode, never too small otherwise, noise floors recognised; prolongation keeps the coarse accuracy; sequenced = from rest within the stop tolerances, and cheaper |
 | 12 | Stretched grids (cells clustered toward walls) | the new code path with uniform face positions against the uniform code; Laplacian against numpy; direct solve; manufactured solutions; multigrid against the cell aspect ratio; kinetic energy of convection; Poiseuille, channel mode, Kovasznay, open channel; cavity Re 100 | equal to round-off; order 2; iterations independent of the grid and within twice the uniform count up to aspect ratio 64; energy conserved to round-off; cavity within 0.01 U of Ghia and converging to the uniform solution |
+| 13 | Immersed bodies on stretched grids | the stretched code path with uniform face positions against the uniform code with bodies; force balance of a random field; circular Couette flow on grids whose cell size varies by 3; 3D extrusion; DFG 2D-1 on grids clustered around the cylinder | equal to round-off; force zero to round-off; velocity order 2 (mean over the grids); 3D = 2D; drag converges to the benchmark and equals the uniform grid's at the same cells per diameter within its error; forces independent of the box; reproducible bit for bit |
 
 The numpy references are written separately from the CUDA code, not translated from it, so a shared
 mistake is unlikely.
@@ -60,7 +62,7 @@ gpucfd/
   build.sh         compiles src/ into build/libgcfd.so (nvcc, run inside WSL)
   src/             CUDA C++ (header-only pieces + one .cu with the C API)
   gcfd.py          Python wrapper (ctypes); numpy arrays in and out
-  grids.py         face positions for stretched grids (tanh clustering)
+  grids.py         face positions for stretched grids (tanh toward walls, a fine band around a body)
   tests/           the verification ladder (python -m gpucfd.tests.<name>)
   bench/           benchmarks; results as JSON in bench/results/
 ```
@@ -82,8 +84,9 @@ Built and verified: the pressure Poisson solver (rungs 0-5), Navier-Stokes on pe
 (rung 6), walls (rung 7), reproducibility (rung 8), inflow and outflow (rung 9), immersed bodies
 (rung 10), and two time schemes: explicit RK3 and IMEX (implicit diffusion). Run the whole ladder
 with `bash gpucfd/run_ladder.sh` (or `python -m gpucfd.tests.test_poisson | test_ns | test_walls |
-test_open | test_bodies | test_steady | test_stretched | test_reproducible`); results in
-`gpucfd/tests/results/`. Stretched grids (rung 12) were added on 2026-11-13.
+test_open | test_bodies | test_steady | test_stretched | test_stretched_bodies |
+test_reproducible`); results in `gpucfd/tests/results/`. Stretched grids (rung 12) and bodies on
+them (rung 13) were added on 2026-11-13.
 
 | Rung | Result |
 |---|---|
@@ -102,6 +105,7 @@ test_open | test_bodies | test_steady | test_stretched | test_reproducible`); re
 | 10 | Immersed bodies (`test_bodies`, explicit scheme): circular Couette flow between immersed cylinders, velocity order 2.50, 2.10 (rms), pressure away from the walls 2.37, 1.48; channel at atan(1/2) to the grid, mean order 2.24; 3D extrusions equal 2D; DFG 2D-1 drag -2.26 % / -0.65 % (D/h 17.6 / 35), pressure difference -0.23 % at D/h 35; forces exact discrete momentum balance (box-independent to 2e-18). Details: Immersed bodies, below |
 | 11 | Steady-state tooling (`test_steady`, `gpucfd/steady.py`): iteration-error estimator exact for one geometric mode, conservative (9x) for an oscillating one, never too small while a fast mode dies out once the slow rate is known, noise floors recognised in 97 % of noisy histories and sized (covers the true error 97 % of the time); prolongation 32^2 -> 64^2 of the Couette flow keeps the coarse error (5.5e-3 vs 6.0e-3); Couette 32/64/128 sequenced vs from rest: same answers (worst 0.29 of the allowance), 7.1 s vs 14.2 s GPU on the refined grids. DFG 2D-1 study (one-off): 20x at D/h 35. Details: Steady flows, below |
 | 12 | Stretched grids (`test_stretched`, 2026-11-13): with uniform face positions the new code path equals the uniform code (Laplacian exactly, solutions 1.5e-11, Navier-Stokes 1e-14 / 7e-16); stretched Laplacian equals the numpy reference to 6e-15, solutions equal a direct solve to 2e-12; manufactured solutions order 1.99-2.01 (2D and 3D, cell ratio 8); pressure iterations 9 / 10-11 / 11-12 at wall aspect ratio 4 / 16 / 64 on 64^2 to 512^2 (uniform 8-9); convection conserves kinetic energy to 1e-17; Poiseuille from rest order 2.03 (IMEX) and 2.05 (RK3), decaying channel mode 2.03-2.04 (2D and 3D, both schemes), Kovasznay L2 order 2.07, 2.02, open channel 2.04 with flow out = flow in exactly; both schemes reach the same steady state (cavity 5e-9 U, Kovasznay 2e-8, open channel 1e-9); cavity Re 100 on clustered grids within 0.005 (u) / 0.009 (v) U of Ghia and 0.0052, 0.0013, 0.00025 U from the uniform 256^2 solution at N = 32, 64, 128; reproducible bit for bit. Details: Stretched grids, below |
+| 13 | Immersed bodies on stretched grids (`test_stretched_bodies`, 2026-11-13): force balance of a random field 7e-16; with uniform face positions the stretched code path has identical ghost rules and equals the uniform code after 100 steps (velocity 5e-13 closed cell, 5e-11 open channel; force 2e-13); circular Couette flow with cell size varying by 3, velocity order 2.69, 2.34, divergence 3e-13, 3D = 2D to 6e-13; 5 pressure iterations per projection with a body (uniform: 7.7); DFG 2D-1 drag -2.23 % / -0.56 % at D/h 17.5 / 35 with 3.85 times fewer cells than the uniform grids at -2.26 % / -0.65 %; forces box-independent to 5e-18; reproducible bit for bit. The surface pressure difference depends on where the grid cuts the cylinder (-0.2 to -2.4 % at D/h 35, both grid types). Details: Stretched grids, stage 2, below |
 
 Bugs the ladder caught while building (each would have produced plausible-looking wrong results):
 1. Multigrid corrections on coarse levels started from leftover memory (rung 2 and 4 failures).
@@ -424,7 +428,9 @@ faster at equal accuracy: OpenFOAM's O-grid reaches 0.25 % at 13432 cells in 97 
 need roughly 140-280 cells per diameter for (estimated from order 1.5; not run: D/h 140 is 1.8 million
 cells with a viscous time-step limit, about 40 GPU-minutes). The cost is in the grid, not the solver:
 a uniform grid has to resolve the boundary layer everywhere, and the immersed body converges at order
-1.5. Stretched grids (next steps) attack exactly that.
+1.5. Stretched grids (next steps) attack exactly that. (Done 2026-11-13: with cells clustered around the
+cylinder, 140 cells per diameter fit in 459 thousand cells and give the drag within 0.11 % in 1 421 s for
+three levels. See "Stretched grids, stage 2".)
 
 ### Stretched grids, stage 1: boxes with walls, no bodies (2026-11-13)
 
@@ -432,7 +438,8 @@ a uniform grid has to resolve the boundary layer everywhere, and the immersed bo
 stretched grid keeps the same number of cells per direction but lets their widths vary: small at
 the walls, large in the middle. This is stage 1 of three (ROADMAP step 2): the discretisation and
 the pressure solver on such grids, for boxes with walls, inflow/outflow and periodic sides. Bodies
-on stretched grids and IMEX with bodies are stages 2 and 3 and are refused for now.
+on stretched grids and IMEX with bodies are stages 2 and 3 and were refused at this stage (stage 2:
+below).
 
 **Design, written before any code was run.**
 
@@ -670,14 +677,314 @@ thick), not a general factor, and it says nothing about time: the grids are too 
 It is the regime of a body's boundary layer in a large domain, which stage 2 has to measure on
 case 4.
 
+### Stretched grids, stage 2: immersed bodies (2026-11-13)
+
+**Why.** Stage 1 left bodies refused on stretched grids. Case 4 showed what that costs: the
+cylinder needs small cells (its boundary layer is about a tenth of its diameter), and a uniform
+grid then has small cells in the whole channel. Stage 2 lets the cells be small around the body
+only, and measures on case 4 what that is worth.
+
+**Design, written before any solver code was changed.**
+
+*What stays as it is.* The method of "Immersed bodies" above: faces of a velocity component inside
+a body get their value from a rule (ghost-cell method), the pressure sees the bodies as walls (zero
+gradient through a face in a body), forces come from the solver's own momentum balance over a box.
+The stretched discretisation of stage 1 reads the faces in bodies through its usual stencils, so
+the momentum equation needs no change. Four things need the cell sizes:
+
+1. **The ghost rules** (`bodies.build`). Formulation A, the one built first: the same construction
+   as on a uniform grid. A ghost face G, its closest surface point B, the image point
+   I = B + s_I n in the fluid, and u_G = U_B + (u_I - U_B) phi_G / s_I (a straight line along the
+   normal through the wall value and the fluid value). On unequal cells:
+   - u_I is interpolated (bi- or trilinear) between the component's true node positions, so the
+     weights follow the local cell sizes;
+   - "near the surface" and the image distance use the *local* cell size h_loc at G (the largest
+     distance from G to a neighbouring node of its component, over the directions) in place of the
+     one global h: ghost band 1.5 h_loc, s_I = (sqrt(dim) + 0.05) h_loc, moved outward in steps of
+     0.25 h_loc until the interpolation stencil holds fluid faces only (the existing check).
+   With uniform positions this is the existing rule, number for number. A line over a distance of
+   a few local cells still has an error of order h_loc^2.
+   Formulation B, named now as the second attempt if A does not converge or is unstable: no image
+   point; a least-squares linear fit through the wall value at B and the nearest fluid faces, which
+   has no distance to choose on cells of very different size.
+2. **The pressure equation.** The face coefficient b (1 between fluid cells, 0 for a face in a
+   body) multiplies the face's gradient in the stretched Laplacian:
+   (1 / dc_i) [ b_(i+1) (p_(i+1) - p_i) / dm_(i+1) - b_i (p_i - p_(i-1)) / dm_i ] per direction.
+   Multiplied by the cell volume it stays symmetric, so the volume-weighted conjugate gradients of
+   stage 1 apply unchanged. The line smoother puts the same coefficients into each line's
+   tridiagonal system: a line cut by a body falls apart into independent pieces, and a cell with
+   no fluid face is an identity row. As on uniform grids, only the finest multigrid level sees the
+   bodies (averaged coefficients on coarse levels broke the preconditioner there). A closed fluid
+   region (singular problem) uses volume-weighted sums over the fluid cells and face areas for the
+   rim correction.
+3. **Forces.** The box balance with the true sizes: every velocity unknown's box has width dm
+   along its own direction and dc across, and the fluxes are the ones of stage 1's stencil. The
+   sum must still telescope exactly, which a random field tests (zero force with no body).
+4. **Pressure at a point** (`pressure_at`, `surface_pressure`): interpolation between the true
+   cell centres; the surface samples at 1.5, 2.5, 3.5 local cells.
+
+*The grid for a body in a large domain* (`grids.clustered`, new): cells of one size h in a band
+around the body, growing linearly with the distance from the band up to a far-field factor c that
+is solved so that n cells fill the length. Doubling n and halving h refines every cell by two.
+The grid is still a tensor product: the fine band in x runs across the whole channel height and
+the fine band in y along its whole length.
+
+*Uniform grids.* All new code sits behind the stretched switch, in C and in Python, so uniform
+results must stay bit-identical.
+
+**Pass criteria, fixed in advance.**
+1. Uniform grids bit-identical to the build before this change (`tests/same_as_build.py`), and
+   the whole ladder passes.
+2. New rung 13 (`tests/test_stretched_bodies.py`, results in
+   `tests/results/test_stretched_bodies.json`):
+   - no body, random field on a stretched grid: `forces` returns zero to round-off (1e-12);
+   - uniform face positions through the stretched code path: the ghost rules equal the uniform
+     ones (1e-12); after the same number of steps the velocity, the force and the surface pressure
+     equal the uniform code's to 1e-9 (closed Couette cell and the open DFG channel);
+   - circular Couette flow (exact) on grids whose cell size varies smoothly by a factor 3 across
+     both cylinders: velocity order 2 by rung 10's rule (mean order at least 1.8, no pair below
+     1.2); divergence at the solver tolerance (closed region); the 3D extrusion equals 2D;
+   - pressure iterations per projection with bodies on a clustered grid: reported; wanted within
+     twice the uniform-grid count with bodies, and not growing with the grid;
+   - DFG 2D-1 (Re 20, steady) on grids clustered around the cylinder, D/h 17.5 and 35 at the body
+     in the ladder (D/h 70 as a one-off run): drag converges to the benchmark at order 1.5 or
+     better; at equal D/h the drag and the pressure difference agree with the uniform grid's
+     within the uniform grid's own error against the benchmark; forces from two boxes agree to
+     round-off; the error against the cell count is tabulated next to rung 10's uniform grids;
+   - two identical runs bit-identical, CUDA graphs on = off.
+3. Case 4 (DFG 2D-2, Re 100) on clustered grids C1, C2, C3 (below), by the rules of the gpucfd
+   block of `cases/dfg_cylinder_re100/numerics.yaml`: same scheme, same time-step rule
+   (`max_dt`: 0.8 h / 2.25 and 0.15 h^2 / nu with the smallest cell), same pressure tolerance,
+   same force box and sampling, C1 from rest for 15 s, each finer level from the coarser one's
+   last field, run for at least 3 s and until the case's periodicity rule holds (checked live every
+   second; at most 15 s). Reported: drag, lift, Strouhal number against FeatFlow, cells, time
+   step, wall time, next to uniform G3 and OpenFOAM.
+4. A plain statement against the target.
+
+**The grids for case 4 and the cost estimate** (cell counts from `grids.clustered`; no flow run
+yet). Band of fine cells: x from 0.10 to 0.35 (one diameter ahead of the cylinder's centre, one
+and a half behind), y from 0.10 to 0.30; growth over 0.10 in x and 0.05 in y. The far-field
+factor comes out at 4.43 in x and 2.10 in y at every level.
+
+| Level | Cells | D/h at the body | D/h far wake | Uniform grid with this D/h | Time step: viscous / convective limit |
+|---|---|---|---|---|---|
+| C1 | 256 x 112 = 28 672 | 35 | 7.9 | 110 880 | 1.22e-3 / 1.02e-3 |
+| C2 | 512 x 224 = 114 688 | 70 | 15.8 | 441 980 (G3) | 3.06e-4 / 5.08e-4 |
+| C3 | 1024 x 448 = 458 752 | 140 | 31.6 | 1 767 920 | 7.65e-5 / 2.54e-4 |
+| C4 | 2048 x 896 = 1 835 008 | 280 | 63 | 7 071 680 | 1.91e-5 / 1.27e-4 |
+
+So the clustered grid has 3.85 times fewer cells than the uniform grid with the same cells at the
+body, not 30 times: the channel is only 4.1 diameters high and the fine bands cross it.
+
+Cost per step, assumed from what is measured: case 4's uniform runs took 6.4, 7.8 and 10.3 ms per
+step at 28, 111 and 442 thousand cells (RK3, bodies), and stage 1 measured the stretched code
+path at twice the uniform one. That gives 12.8, 15.7, 20.6 and about 84 ms per step for C1 to C4.
+Note what the uniform numbers say: 16 times the cells cost only 1.6 times per step, because these
+grids are still latency-bound. Fewer cells therefore buy little time per step here.
+
+| Run | Steps | Projected GPU time |
+|---|---|---|
+| C1, 15 s from rest | 14 800 | 189 s |
+| C2, about 5 s to periodic | 16 300 | 257 s |
+| C3, about 5 s | 65 400 | 1 346 s |
+| C4, about 5 s | 261 000 | about 6 hours |
+
+Projected protocol times (wall = GPU plus about 25 s per level for sampling, as in the uniform
+runs), and the drag error expected from the measured order 1.5 if only the cells at the body
+matter (which the runs have to show):
+
+| Up to | Expected drag error | Projected wall time | Against |
+|---|---|---|---|
+| C2 (D/h 70) | -1.0 % (as uniform G3) | about 490 s | uniform G1-G3: 315 s |
+| C3 (D/h 140) | -0.35 % | about 1 870 s | target: 0.25 % in under 1 740 s |
+| D/h 176 (0.25 % by order 1.5) | -0.25 % | about 3 600 s | the same target |
+| C4 (D/h 280) | -0.12 % | about 6 hours | the same target |
+
+**What the estimate says, before building:**
+- *The cheap question* (same drag error as uniform G3, less wall time?) is expected to come out
+  **no**: about 490 s against 315 s. The clustered grid has a quarter of the cells, but a step
+  costs twice as much per cell and small grids are latency-bound.
+- *The target (0.25 % in under 1 740 s) is not expected from stage 2 alone.* With the explicit
+  scheme the time step follows the smallest cell squared: at D/h 140 it is 3.3 times below the
+  convective limit, at D/h 280 6.6 times. The level that should give 0.25 % (D/h about 176) is
+  projected at twice the target time. It needs stage 3 (IMEX with bodies: 4 times fewer steps
+  there), and even then the projection lands near the target, not clearly under it (1 550 to
+  1 950 s if an IMEX step costs 1.5 to 2 times an explicit one), so the speed of the stretched
+  code path matters as well.
+- **Stage 2's own target is therefore:** the correctness criteria 1 and 2; the cheap question
+  answered by measurement, whichever way it falls; and one run of C3 (D/h 140 at the body, the
+  cell count of uniform G3): drag within 0.5 % of FeatFlow, half the error of uniform G3, with its
+  wall time stated against the 1 740 s. C4 is not run (6 hours).
+- Stops, fixed now: every level as in criterion 3. C3 is timed over 200 steps first; it is not
+  started if its projection exceeds 45 minutes, and it is stopped if the drag has not settled
+  into a cycle after 8 s of flow time. If C2's drag error is more than twice uniform G3's, the
+  far wake or the band is too coarse: one variant with a wider band is run on C2 before C3.
+
+**Results (2026-11-13).** Criteria 1 and 2 pass, with one check of criterion 2 failed as written
+and replaced (below). On case 4 the cheap question comes out yes for drag, and the level C3 meets
+the step's target: drag within 0.25 % of FeatFlow in less wall time than OpenFOAM's study. The
+limits of that statement are listed with it.
+
+*What changed from the plan while building, each from a measurement:*
+1. **Formulation A worked at the first attempt**; formulation B was not needed and not built.
+2. **A tolerance floor was in the wrong norm.** The first iteration count looked too good: 2
+   pressure iterations per projection on the clustered grid against 8 on the uniform one. With
+   bodies the pressure tolerance has a floor (item 4 of "Immersed bodies"), written for plain
+   sums; the stretched solver's norms are volume-weighted, so the floor was about 100 times too
+   high and the solve stopped early. Now the floor is the same quantity in the weighted norm.
+   After the fix: 5 iterations against 7.7, with a smaller remaining divergence.
+3. **The pressure-difference check failed as written, and the cause was the check.** At D/h 35
+   the clustered grid gave the DFG 2D-1 pressure difference to -1.94 % where rung 10's uniform
+   grid has -0.23 %; the criterion asked for agreement within the uniform grid's own error. A
+   separate study (`tests/shift_study.py`, 8 runs) moved the cylinder along x by 0, 1/4, 1/2 and
+   3/4 of a cell on both grids:
+
+   | Grid, D/h 35 | Drag error over the four positions | Pressure difference error | Lift (reference 0.0106) |
+   |---|---|---|---|
+   | uniform, 110 592 cells | -0.65, -0.62, -0.69, -0.85 % | -0.23, -1.90, -2.39, -0.75 % | 0.012, 0.029, 0.016, 0.021 |
+   | clustered, 28 672 cells | -0.56, -0.70, -0.85, -0.83 % | -1.94, -2.44, -0.71, -0.54 % | 0.024, 0.011, 0.010, 0.014 |
+
+   So rung 10's -0.23 % was one lucky position of the surface between the grid lines. At 35
+   cells per diameter the surface pressure difference is good to about 2.4 %, the drag to about
+   0.25 % around its mean error, and the lift (0.2 % of the drag) to a factor 2 to 3, on either
+   grid. The check now compares the clustered value with the uniform grid's band over the four
+   positions; the test output still states the first failure. This also corrects what "Steady
+   flows" above calls open (the pressure difference "getting worse" at D/h 70): it is scatter.
+4. **The pressure tolerance has to be checked on the level it is used on.** Case 4's first C3 run
+   used the 1e-8 tuned on the coarsest uniform grid and never passed the periodicity rule in 15 s
+   of flow, although the flow had settled after 2 s: the drag peaks jittered by 0.07 % from cycle
+   to cycle (uniform G3: 0.001 %), with 1.5 pressure iterations per projection. The case's own
+   tolerance rule (the loosest tolerance whose drag and lift stay within 1e-4 of the 1e-10 run),
+   applied on each level over one shedding cycle:
+
+   | Level | 1e-8 against 1e-10: drag / lift | 1e-9 | Rule gives | ms per step at 1e-8 / 1e-9 / 1e-10 |
+   |---|---|---|---|---|
+   | C1 | 1.4e-5 / 1.4e-5 | | 1e-8 | 6.4 / 8.1 / 10.2 |
+   | C2 | 5.2e-5 / 6.8e-4 | 1.3e-6 / 3.1e-6 | 1e-9 | 9.4 / 12.5 / 15.4 |
+   | C3 | 6.0e-3 / 6.2e-3 | 5.3e-5 / 2.5e-4 | 1e-10 | 13.5 / 19.7 / 28.7 |
+   | uniform G3 | 7.3e-5 / 3.9e-4 | 1.3e-5 / 1.0e-5 | 1e-9 | 10.6 / 15.1 / 18.6 |
+
+   Why: the explicit scheme updates the pressure by (projection result) / (stage time step), and
+   the tolerance floor is relative to max|u| / h, so with a time step that shrinks like h^2 a
+   fixed relative tolerance leaves more and more pressure noise. C2 and C3 were rerun with the
+   tolerances the rule gives; the first runs are kept in the case's `gpu_tuning/`. The uniform G3
+   fails the same check with the 1e-8 it was run with; it was not rerun, and its time is quoted
+   both as recorded and as the rule would make it.
+5. **A stop rule was broken once, and why.** The first C3 run was to be stopped at 8 s of flow if
+   not periodic. A run only writes its record when it returns, so stopping it would have thrown
+   away 24 minutes of recorded forces; it was left to its own limit of 15 s (2 680 s of wall
+   time). That record is what showed the jitter. The limit is now part of the run
+   (`max_length` 8 s), so a run stops by itself and keeps its record.
+6. **The cost estimate was too pessimistic,** by 1.3 to 2 times per step. It assumed a stretched
+   step at twice a uniform one (stage 1, no bodies). With a body the line smoother needs fewer
+   iterations than the point smoother (5.0 against 7.7 on the same grid: one line solve couples a
+   cell to everything along its row, also around the body), which pays for most of its price:
+   8.9 against 8.5 ms per step on the same 27 648 cells. At equal cell count and tolerance the
+   clustered levels cost 1.2 to 1.5 times the uniform ones per step (table above, C3 against G3).
+   The finer levels also became periodic after 3 s where the uniform ones needed 5.
+
+*Criterion 1: uniform grids unchanged.* `same_as_build`: 26 of 26 arrays bit-identical to the
+library and the Python files before this change. Two body cases were added to that check first
+(a closed Couette cell and an open channel with a cylinder: velocity, pressure, force and
+surface pressure). The whole ladder passes: nine test files, rung 13
+included, 0 failed (its rerun changed only timings in the older result files, which were restored).
+
+*Criterion 2: rung 13* (`test_stretched_bodies`):
+
+| Check | Result |
+|---|---|
+| No body, random field on a stretched grid: force from the box balance | 7e-16 (2D), 1e-16 (3D, clustered in x and y) |
+| Uniform face positions through the stretched code path | the ghost rules are identical; after 100 steps the closed Couette cell differs by 5e-13 (velocity) and 4e-12 (pressure), the open channel with a cylinder by 5e-11 (velocity), 2e-13 (force), 7e-12 (surface pressure) |
+| Circular Couette flow, cell size varying smoothly by 3 across both cylinders (N = 32, 64, 128) | velocity rms error 1.24e-2, 1.93e-3, 3.81e-4: order 2.69, 2.34 (mean 2.51); max error order 2.79, 1.72. Uniform grids at the same N (rung 10): 6.0e-3, 1.1e-3, 2.5e-4; the clustered grids are 1.5 to 2 times less accurate here because their largest cells, 1.5 times the mean, sit on the outer cylinder |
+| Couette pressure, rms beyond 1.5 local cells of the walls | 2.93e-3, 6.15e-4, 2.22e-4: order 2.25, 1.47 (mean 1.86) |
+| Closed region on a stretched grid | max divergence h_min / U 3e-13 (the rim correction with face areas) |
+| 3D: the Couette flow extruded along z, clustered in x and y | equals 2D to 6e-13 |
+| Pressure iterations per projection, DFG channel, tolerance 1e-10 | clustered 5.0, 5.0, 4.6 at D/h 17.5, 35, 70; uniform 7.7, 7.5: fewer, and not growing with the grid |
+| DFG 2D-1 (Re 20) drag, clustered grids | -2.23 % at D/h 17.5 (7 168 cells), -0.56 % at D/h 35 (28 672 cells): order 2.0. One-off third grid: -0.17 % at D/h 70 (114 688 cells), order 1.7; the three grids together took 250 GPU-s |
+| The same against the uniform grids of rung 10 at equal D/h | -2.26 % (27 648 cells), -0.65 % (110 592 cells): the same drag with 3.85 times fewer cells; the differences (0.03 and 0.09 points) are inside the scatter of item 3. D/h 70 (one-off): -0.14 % with 442 368 cells, 374 GPU-s for its three grids |
+| DFG 2D-1 pressure difference | D/h 35: -1.94 %, inside the uniform grid's band over cut positions (-0.23 to -2.39 %); as first written this check failed (item 3). D/h 70 (one-off): +0.08 % (uniform: -0.47 %) |
+| Forces from two boxes, one reaching into the stretched cells | agree to 5e-18 |
+| Reproducibility | two runs bit-identical, CUDA graphs on = off |
+
+Not tested: the tilted channel of rung 10 (its box is periodic, and periodic directions must stay
+uniform); 3D bodies on grids clustered in three directions; `steady.prolong` between clustered
+grids is used by the two studies but has no check of its own (it only sets a start field).
+
+*Criterion 3: case 4 (DFG 2D-2, Re 100) on clustered grids* (`gpu_run.py clustered`,
+`gpu_clustered.py`, numbers in `results/dfg_cylinder_re100/gpu_clustered.json`). Errors against
+FeatFlow level 6; wall time includes sampling the forces.
+
+| Level | Cells | D/h at the body | Time step | Pressure tolerance | Flow time | ms per step | Wall time | Protocol so far | Drag max / mean | Lift max / amplitude | St |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| C1 | 28 672 | 35 | 1.02e-3 | 1e-8 | 15 s from rest | 6.4 | 112 s | 112 s | -3.79 / -3.67 % | -6.3 / -13.0 % | +1.90 % |
+| C2 | 114 688 | 70 | 3.06e-4 | 1e-9 | 3.0 s (periodic) | 12.6 | 129 s | 241 s | -1.12 / -1.07 % | -5.15 / -4.11 % | +0.54 % |
+| C3 | 458 752 | 140 | 7.65e-5 | 1e-10 | 3.0 s (periodic) | 29.5 | 1 180 s | **1 421 s** | **-0.11 / -0.09 %** | -0.85 / -1.08 % | +0.13 % |
+| uniform G1 | 27 648 | 17.6 | 2.02e-3 | 1e-8 | 15 s from rest | 6.4 | 64 s | 64 s | -16.8 / -16.5 % | -27 / -38 % | +5.56 % |
+| uniform G2 | 110 592 | 35 | 1.01e-3 | 1e-8 | 5 s | 7.8 | 50 s | 114 s | -5.19 / -5.06 % | -8.5 / -14.3 % | +1.42 % |
+| uniform G3 | 442 368 | 70 | 3.04e-4 | 1e-8 | 5 s | 10.3 | 201 s | 315 s | -1.04 / -0.99 % | -3.36 / -3.16 % | +0.29 % |
+| OpenFOAM M2 | 13 432 | body-fitted | | | 3 s | | 97 s | 153 s | mean +0.24 % | | |
+| OpenFOAM M4 | 214 912 | body-fitted | | | 3 s | | 2 110 s | 2 548 s (about 1 740 s with the live stop) | +0.25 / +0.25 % | +0.41 / +0.33 % | -0.13 % |
+
+- **The cheap question: does the clustered grid reach uniform G3's drag error in less wall time?
+  Yes, with two qualifications.** C2 has G3's cells at the body and a quarter of its cells in
+  all: mean drag -1.07 % against -0.99 %, in 241 s against 315 s (0.77 times). The
+  qualifications: C2's drag error is 0.08 points larger (the scatter with the position of the
+  surface in the grid was 0.2 points at D/h 35 and is not measured at D/h 70), so it is "about
+  the same", not "no larger"; and its lift and Strouhal number are
+  worse (-5.2 % and +0.54 % against -3.4 % and +0.29 %), which points at the wake, where C2's
+  cells are 4.4 times larger than at the body. With the tolerance its own rule asks for (item 4),
+  G3 would take about 270 s and the uniform protocol about 385 s; then the factor is 0.63.
+- **C3: drag within 0.11 % of FeatFlow, 1 421 s for the whole protocol.** Stage 2's own target
+  (0.5 %) and the step's target (0.25 % in less than OpenFOAM's 1 740 s) are both met, the time
+  with a margin of 18 %. The estimate above expected -0.35 % in about 1 870 s.
+- The uniform grid with C3's body resolution would have 1.77 million cells and the same time
+  step; it was not run (the estimate in "case 4" above was 40 GPU-minutes for one level).
+
+**Against the target, and what limits the statement.**
+*Met as it was defined:* the finest clustered level's drag is 0.11 % (maximum) and 0.09 % (mean)
+from FeatFlow, inside 0.25 %, and the three levels took 1 421 s of wall time on this PC against
+about 1 740 s for OpenFOAM's four-level study. What a reader has to know with it:
+1. **The three levels do not prove 0.25 % by themselves.** The drag converges at observed order
+   1.4 (errors -3.67, -1.07, -0.09 %), and the grid convergence index of C3, the case's own
+   uncertainty measure, is 0.75 %. The last step is better than the trend (order 1.5 from C2
+   gives about -0.4 %), so part of the 0.1 % may be a favourable position of the surface in the
+   grid. A
+   user without the reference could claim about 0.75 %, not 0.25 %. A fourth level (6 hours with
+   the explicit scheme) or C3 repeated with the cylinder shifted by half a cell would settle it;
+   neither was run. FeatFlow's own uncertainty for the drag (level 6 against level 5) is 0.24 %.
+2. **It is drag.** Lift is 0.85 to 1.1 % low and the Strouhal number 0.13 % high; OpenFOAM's M4
+   has +0.41 %, +0.33 % and -0.13 %. By the case's rule applied to C1 to C3 (band = grid
+   convergence index + FeatFlow's uncertainty) every primary quantity is inside its band except
+   the lift minimum (1.16 % off, band 0.64 %: WARN). The bands are wide, 1.0 % for the drag,
+   because the levels are still far apart.
+3. **The time is one measured run per level,** after a first attempt that failed on the pressure
+   tolerance (item 4). The tolerance studies (about 7 minutes of GPU time) and the failed C3 run
+   (45 minutes) are not in the 1 421 s, as OpenFOAM's tuning is not in its 1 740 s.
+4. **OpenFOAM is still far cheaper for this accuracy on this problem.** Its second grid has the
+   drag at +0.24 % after 153 s (M1 and M2), nine times less than 1 421 s. The target compares
+   with its whole four-level study, which is what a grid-convergence study costs each tool. A
+   body-fitted grid needs 13 thousand cells where the clustered Cartesian grid needs 459 thousand.
+5. **The explicit scheme pays twice at the finest level.** C3's time step is 3.3 times below the
+   convective limit, and the tight pressure tolerance it forces doubles the cost per step (29.5
+   against 13.2 ms). C3 is 83 % of the protocol's time. Both go away with an implicit viscous
+   term (stage 3); that is where the next factor is, not in the grid.
+6. One flow, 2D, one PC, Re 100. In 3D the same clustering needs plane relaxation (stage 1's
+   open item) before it can be tried on case 5.
+
 ## Limitations (2026-11-12)
 
 **Problems it cannot solve yet**
 - Geometry: a box with immersed bodies of fixed shape (any exact signed distance; surfaces may move
-  tangentially, bodies may not translate). Stretched grids only without bodies (stage 1, 2026-11-13),
-  so around a body the grid is still uniform and a boundary layer forces it fine everywhere. Bodies need the explicit scheme (IMEX with bodies
-  is unstable, see above), and the pressure next to a body surface converges irregularly in the max
-  norm (the cells next to it; forces come from the momentum balance away from them).
+  tangentially, bodies may not translate). Around a body the grid can be clustered (stage 2,
+  2026-11-13), but it stays rows and columns: the fine band crosses the whole domain in each
+  direction, so the saving is bounded (case 4: 3.85 times fewer cells, where a body-fitted grid
+  has 30 times fewer). Bodies need the explicit scheme (IMEX with bodies is unstable, see above),
+  so the smallest cell sets the time step (0.15 h_min^2 / nu) and, through it, the pressure
+  tolerance that keeps the forces clean (case 4: 1e-8, 1e-9, 1e-10 at 35, 70, 140 cells per
+  diameter; check it on the finest level). The pressure next to a body surface converges
+  irregularly in the max norm, and the surface pressure depends on where the grid cuts the body
+  (DFG 2D-1 pressure difference at 35 cells per diameter: -0.2 to -2.4 % over four positions);
+  forces come from the momentum balance away from the surface and scatter far less (0.25 %).
 - Boundaries: periodic; no-slip walls that can slide tangentially (a moving lid); inflow with any
   steady velocity profile; outflow with zero pressure and zero velocity gradient. No symmetry/slip
   boundaries, no prescribed-pressure inlets, no time-varying inflow (the profile is fixed per run;
@@ -694,11 +1001,12 @@ case 4.
   grid, which is solved slowly by one thread block.
 - Stretched grids (2026-11-13): bounded directions only (a periodic direction must be uniform); at
   most 3072 cells along a stretched direction (1536 with a double-precision pressure solver); cell
-  counts must coarsen to at most 1024 cells; no bodies, and `forces`, `pressure_at` and
-  `surface_pressure` refuse; a 3D grid clustered in two directions converges slowly (23-38 pressure
-  iterations at ratio 16, growing with the grid); grid sequencing (`steady.prolong`) reads the
-  stretched positions but has not been tested on them. With the explicit scheme the smallest cell
-  sets the viscous time step for the whole domain (0.15 h_min^2 / nu): use IMEX.
+  counts must coarsen to at most 1024 cells; with bodies, at least two multigrid levels; a 3D
+  grid clustered in two directions converges slowly (23-38 pressure iterations at ratio 16, growing
+  with the grid), and bodies on 3D grids clustered in all three directions are untested; grid
+  sequencing (`steady.prolong`) works between stretched grids in the two cylinder studies but has
+  no check of its own. With the explicit scheme the smallest cell sets the viscous time step for
+  the whole domain (0.15 h_min^2 / nu): use IMEX where there is no body.
 - Tooling: no field output for ParaView, no restart files; forces on bodies and surface pressure
   come from Python (`NavierStokes.forces`, `surface_pressure`), fields through `get` and `pressure`.
   One GPU, no MPI.
@@ -712,7 +1020,9 @@ case 4.
 - Large grids are limited by memory bandwidth, and the pressure is solved three times per time
   step (once per Runge-Kutta stage).
 - Stretched grids cost about twice the time per step of a uniform grid with the same cells (line
-  relaxation; 8.5 against 4.3 ms on 128^2), and another 45 % at wall aspect ratio 64.
+  relaxation; 8.5 against 4.3 ms on 128^2), and another 45 % at wall aspect ratio 64. With a body
+  the gap is smaller, 1.2 to 1.5 times at the same cells and tolerance (the line smoother needs 5
+  pressure iterations where the point smoother needs 7.7).
 - Steady problems are time-marched: the number of time units to settle is set by the physics (27
   for the Re 100 cavity; in a grid study, sequencing and the error-based stop of `steady.py` cut the
   finer grids to a few time units, 20x at DFG D/h 35), and convection is explicit, so the time step is bounded by the flow speed
@@ -730,8 +1040,10 @@ case 4.
 4. ~~Inflow/outflow~~ (done 2026-11-12, rung 9, below).
 5. ~~Curved bodies (immersed boundary) with force coefficients~~ (done 2026-11-12, rung 10, above).
    Open: IMEX with bodies (instability with the incremental pressure).
-   Steady studies: grid sequencing and an error-based stop (done 2026-11-12, rung 11, above). Open:
-   the surface pressure difference on the finest DFG grid.
+   Steady studies: grid sequencing and an error-based stop (done 2026-11-12, rung 11, above). The
+   surface pressure difference that seemed to get worse on the finest DFG grid is scatter with the
+   position of the surface in the grid (stage 2, item 3). Open: a surface pressure that does not
+   depend on the cut.
 6. ~~gpucfd as a backend of the agent's pipeline (cfdlib)~~ (done 2026-11-12, case 4, above): 8x faster
    than OpenFOAM over the protocol, but less accurate per cell (drag -1.0 % against +0.25 %).
 7. Stretched grids (boundary layers without refining everywhere). Case 4 shows this is what decides
@@ -740,17 +1052,23 @@ case 4.
    M4) in less wall time than OpenFOAM's study.
    - ~~Stage 1: grids with walls, no bodies~~ (done 2026-11-13, rung 12, above). The pressure solver
      holds 7-10 iterations up to aspect ratio 64 in 2D.
-   - Stage 2: bodies on stretched grids. Needs: the ghost-cell rules of `bodies.py` on unequal cells
-     (image distance and interpolation weights from the local cell sizes), the body's face
-     coefficients in the stretched stencil and in the line solves, the force balance and the
-     surface pressure with the cell sizes. Then case 4 with cells clustered around the cylinder.
-   - Speed of the stretched code path, now 2 times the uniform one per step. Candidates, each to be
-     measured: both zebra colours and both directions in fewer kernels, parallel cyclic reduction
-     in place of one thread per line solve, a diagonal preconditioner for the diffusion solves.
+   - ~~Stage 2: bodies on stretched grids~~ (done 2026-11-13, rung 13, above). Case 4 with cells
+     clustered around the cylinder: drag within 0.11 % of FeatFlow at 140 cells per diameter, three
+     levels in 1 421 s of wall time (OpenFOAM's study: about 1 740 s). The measure of success is
+     met as defined; the levels' own uncertainty estimate is 0.75 %, see the limits there.
+   - Speed of the stretched code path, 1.2 to 1.5 times the uniform one per step with a body (2 times
+     without). Candidates, each to be measured: both zebra colours and both directions in fewer
+     kernels, parallel cyclic reduction in place of one thread per line solve, a diagonal
+     preconditioner for the diffusion solves.
    - 3D grids clustered in two directions: plane relaxation or semi-coarsening (needed for case 5).
-8. IMEX with bodies (the time step on fine grids is set by the explicit viscous limit; on case 4's G3
-   it is 0.6 times the convective one). On a stretched grid with a body this is no longer optional:
-   the explicit limit follows the smallest cell squared.
+   - Open from stage 2: is C3's 0.1 % typical or a favourable cut (repeat with the cylinder shifted
+     by half a cell, 20 minutes); a wider fine band behind the cylinder for the lift and the
+     Strouhal number (C2: -5.2 % and +0.54 % against uniform G3's -3.4 % and +0.29 %); the uniform
+     G3 with the pressure tolerance its rule asks for (1e-9), for a like-for-like time.
+8. IMEX with bodies. Case 4 on the clustered grids shows what it is worth: the finest level is 83 %
+   of the protocol's time, its time step is 3.3 times below the convective limit, and the explicit
+   pressure update forces a tolerance of 1e-10 there (twice the cost per step). At 280 cells per
+   diameter the explicit scheme would need about 6 hours.
 9. 3D cylinder (DFG 3D, case 5) once stretched grids work.
 
 ## Comparison with OpenFOAM (2026-11-12)

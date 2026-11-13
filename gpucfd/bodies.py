@@ -9,6 +9,7 @@ velocity field (a rotating cylinder, a moving wall). The geometry is fixed in ti
 
 How the solver uses it (src/gcfd.cu, k_ib_set): every face of a velocity component that is not in the
 fluid (phi <= 0 at the face) gets its value from a rule built here.
+  (On a stretched grid h below is the local cell size at the face: see build.)
 - Ghost face (within 1.5 h of the surface): G, its closest surface point B = G - phi n and the image
   point I = B + s_I n in the fluid. The velocity along the normal is taken as linear through the body's
   velocity at B and the fluid velocity at I (bi- or trilinear interpolation from FLUID faces only:
@@ -191,13 +192,87 @@ def interp_nodes(ns, comp, I, active):
     return np.stack(nodes, 1), np.stack(weights, 1)
 
 
+def interp_nodes_s(ns, comp, I, active):
+    """interp_nodes on a stretched grid: the weights are linear between the component's true node
+    positions (periodic directions are uniform there and keep the uniform rule). A point beyond the
+    first or last node of a bounded direction gets a node index -1 with a non-zero weight, as in
+    interp_nodes, so the caller rejects the stencil."""
+    m = I[0].size
+    per = [ns.kinds[2 * d] == 0 for d in range(3)]
+    lo, fr = [], []
+    for d in range(3):
+        if d not in active:
+            lo.append(np.zeros(m, np.int64))
+            fr.append(None)
+            continue
+        p = I[d].ravel()
+        if per[d]:
+            h = ns.length[d] / ns.n[d]
+            t = (p - (0.0 if d == comp else 0.5 * h)) / h
+            i0 = np.floor(t).astype(np.int64)
+            lo.append(i0)
+            fr.append(t - i0)
+            continue
+        x = ns._axis(d, d == comp)
+        xe = np.concatenate(([2 * x[0] - x[1]], x, [2 * x[-1] - x[-2]]))  # one virtual node beyond each end
+        i0 = np.clip(np.searchsorted(x, p, side="right") - 1, -1, x.size - 1).astype(np.int64)
+        lo.append(i0)
+        fr.append((p - xe[i0 + 1]) / (xe[i0 + 2] - xe[i0 + 1]))
+    nodes, weights = [], []
+    combos = [(a, b, c) for c in ((0, 1) if 2 in active else (0,)) for b in ((0, 1) if 1 in active else (0,))
+              for a in ((0, 1) if 0 in active else (0,))]
+    for cmb in combos:
+        idx = []
+        w = np.ones(m)
+        bad = np.zeros(m, bool)
+        for d in range(3):
+            i = lo[d] + cmb[d]
+            if d in active:
+                w = w * (fr[d] if cmb[d] else 1.0 - fr[d])
+            if per[d]:
+                i = np.mod(i, ns.n[d])
+            else:
+                bad |= (i < 0) | (i >= ns.n[d])
+                i = np.clip(i, 0, ns.n[d] - 1)
+            idx.append(i)
+        flat = idx[0] + ns.n[0] * (idx[1] + ns.n[1] * idx[2])
+        flat[bad] = -1
+        nodes.append(flat)
+        weights.append(w)
+    return np.stack(nodes, 1), np.stack(weights, 1)
+
+
+def local_size(ns, comp, active):
+    """Stretched grids: the local cell size at every face of component comp (shape (nz, ny, nx)): the
+    largest distance to a neighbouring node of that component, over the active directions. Beyond a
+    bounded side the neighbour is the mirror image of the first cell. On a uniform grid this is the
+    largest of the cell sizes, the h of the uniform rules."""
+    out = np.zeros(ns.shape)
+    for d in active:
+        w = ns.widths(d)
+        if d == comp:  # nodes are the low faces: neighbours one cell away on either side
+            a = np.maximum(w, np.concatenate(([w[0]], w[:-1])))
+        else:          # nodes are cell centres: neighbours half of each adjoining cell away
+            dm = np.concatenate(([w[0]], 0.5 * (w[:-1] + w[1:]), [w[-1]]))
+            a = np.maximum(dm[:-1], dm[1:])
+        shp = [1, 1, 1]
+        shp[2 - d] = -1
+        out = np.maximum(out, a.reshape(shp))
+    return out
+
+
 def build(ns, bodies, band=1.5, s_image=None):
     """Per velocity component: fluid mask and the rules of the faces in bodies (see the module text).
-    Returns a list of dicts (mask, idx, a0, nb, w, n_ghost)."""
+    Returns a list of dicts (mask, idx, a0, nb, w, n_ghost).
+    On a stretched grid the one cell size h of the rules (ghost band, image distance and its steps) is
+    the local cell size at each ghost face (local_size), and the image point is interpolated between the
+    true node positions (interp_nodes_s). With uniform face positions these are the uniform rules."""
     active = [d for d in range(3) if ns.n[d] > 1]
     h = [ns.length[d] / ns.n[d] for d in range(3)]
-    hmax = max(h[d] for d in active)
-    sI0 = (np.sqrt(len(active)) + 0.05) * hmax if s_image is None else float(s_image) * hmax
+    hmax = max(h[d] for d in active)  # stretched: the mean cell size, only a scale for the two tolerances below
+    stretched = bool(getattr(ns, "stretched", False))
+    interp = interp_nodes_s if stretched else interp_nodes
+    fI = (np.sqrt(len(active)) + 0.05) if s_image is None else float(s_image)
     nsb = 2 ** len(active)
     out = []
     for c in range(ns.ncomp):
@@ -206,6 +281,8 @@ def build(ns, bodies, band=1.5, s_image=None):
         fluid = (ph > 1e-12 * hmax).ravel()
         solid = np.flatnonzero(~fluid)
         m = solid.size
+        # the cell size of the rules at every face in a body
+        hl = local_size(ns, c, active).ravel()[solid] if stretched else np.full(m, hmax)
         a0 = np.zeros(m)
         nb = np.zeros((m, nsb), np.int64)
         w = np.zeros((m, nsb))
@@ -213,7 +290,7 @@ def build(ns, bodies, band=1.5, s_image=None):
         nb[:] = first_fluid  # weight 0 (deep faces): any fluid face
         phs, ws = ph.ravel()[solid], which.ravel()[solid]
         P = [A.ravel()[solid] for A in (X, Y, Z)]
-        g = phs > -band * hmax
+        g = phs > -band * hl
         # deep faces: the body's velocity there
         for k, b in enumerate(bodies):
             sel = (~g) & (ws == k)
@@ -229,25 +306,26 @@ def build(ns, bodies, band=1.5, s_image=None):
                 sel = ws[gi] == k
                 if np.any(sel):
                     UB[sel] = b.vel(*[x[sel] for x in B], c)
-            sI = np.full(gi.size, sI0)
+            hg = hl[gi]
+            sI = fI * hg
             todo = np.ones(gi.size, bool)
             NB = np.zeros((gi.size, nsb), np.int64)
             WT = np.zeros((gi.size, nsb))
             while np.any(todo):
-                if np.max(sI[todo]) > 4.0 * hmax:
-                    bad = np.flatnonzero(todo)[0]
+                if np.any(sI[todo] > 4.0 * hg[todo]):
+                    bad = np.flatnonzero(todo & (sI > 4.0 * hg))[0]
                     raise ValueError(f"bodies: no fluid stencil for the image point of the face at "
                                      f"{tuple(float(Pg[d][bad]) for d in range(3))} (component {c}): body too close "
                                      "to a non-periodic side or another body, or features thinner than a few cells")
                 t = np.flatnonzero(todo)
                 I = [B[d][t] + sI[t] * nrm[d][t] for d in range(3)]
-                nodes, wts = interp_nodes(ns, c, I, active)
+                nodes, wts = interp(ns, c, I, active)
                 okn = (nodes >= 0) & fluid[np.maximum(nodes, 0)]
                 ok = np.all(okn | (wts == 0.0), axis=1)
                 NB[t[ok]] = np.where(nodes[ok] >= 0, nodes[ok], first_fluid)
                 WT[t[ok]] = wts[ok]
                 todo[t[ok]] = False
-                sI[t[~ok]] += 0.25 * hmax
+                sI[t[~ok]] += 0.25 * hg[t[~ok]]
             r = phs[gi] / sI  # <= 0: the ghost face lies on the far side of the surface
             a0[gi] = (1.0 - r) * UB
             w[gi] = r[:, None] * WT
