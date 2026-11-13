@@ -36,7 +36,7 @@ Three parts:
 goal. The goal is to solve CFD problems well and to have tools that are better and faster. The
 method is to throw verified CFD problems at the project: a fresh solver agent takes a problem with a
 known answer and solves it with the workflow and tools, logging every limitation it meets. The dev
-agent (usually Claude Opus 5.5) then reviews the problem, the report, its verification and the
+agent (usually Claude) then reviews the problem, the report, its verification and the
 insights, and improves the workflow and the tools. In a session you are one of the two: the solver
 agent starts from [`AGENTS.md`](AGENTS.md), the dev agent from this file.
 

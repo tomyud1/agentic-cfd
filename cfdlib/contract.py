@@ -7,6 +7,8 @@ CLI:
   python -m cfdlib.contract results/<case>/results.json [<rendered OpenFOAM case dir>]
   python -m cfdlib.contract --decisions cases/<case>/decisions.yaml <rendered OpenFOAM case dir>
       (during setup: are the decisions complete and do they cover every setting in the case?)
+  python -m cfdlib.contract --problem cases/<case>/problem.yaml
+      (when a problem statement is written: will the report accept it as given?)
 """
 import fnmatch
 import json
@@ -32,6 +34,37 @@ DECISION_KINDS = {
     "output": "Decides what is measured or saved",
 }
 FIG_REF = re.compile(r"\{fig:([\w.-]+)\}")
+_CODE = re.compile(r"<code>.*?</code>", re.S)
+DESCRIPTION_MAX = 600                          # characters of problem.description (the overview)
+
+
+def fig_refs(text):
+    """Figure keys a text refers to. A placeholder quoted inside <code> is text about the syntax, not a
+    reference (case 7: an insight that quoted one made the check look for a figure of that name)."""
+    return FIG_REF.findall(_CODE.sub(" ", text))
+
+
+def check_problem_file(path):
+    """Violations in a problem statement (cases/<name>/problem.yaml) that would only show when the
+    solver agent renders its report: checked when the problem is written, the agent is not left with a
+    given file it may not change and a contract that refuses it (case 7: description of 760 characters)."""
+    import yaml
+    path = Path(path)
+    p = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    e = []
+    _req(p, ["name", "title", "description", "setup", "given", "quantities_of_interest"], "problem.yaml", e)
+    n = len(str(p.get("description", "")))         # counted as check() counts it in the report
+    if n > DESCRIPTION_MAX:
+        e.append(f"description: {n} characters; the report's overview allows {DESCRIPTION_MAX} (1-3 sentences). "
+                 "Move the details to `setup`")
+    if not isinstance(p.get("setup", []), list):
+        e.append("setup: a list of short statements (geometry, boundary conditions, definitions)")
+    if "quantities_of_interest" in p and not p["quantities_of_interest"]:
+        e.append("quantities_of_interest: list the requested outputs")
+    ref = (p.get("reference") or {}).get("file") if isinstance(p.get("reference"), dict) else None
+    if ref and not (path.parent / ref).exists():
+        e.append(f"reference.file: {ref} not found next to the problem statement")
+    return e + control_chars(p, "problem.yaml")
 
 # Settings that cannot change the solution or the report; everything else in 0/, constant/
 # and system/ must be covered by a decision's `settings` patterns.
@@ -80,7 +113,7 @@ def check(results, case_dir=None, figures=None):
     _req(p, ["description", "given", "wanted"], "problem", e)
     if not isinstance(p.get("setup", []), list):
         e.append("problem.setup: a list of short statements (geometry, boundary conditions, definitions)")
-    if len(str(p.get("description", ""))) > 600:
+    if len(str(p.get("description", ""))) > DESCRIPTION_MAX:
         e.append("problem.description: keep it to an overview of 1-3 sentences; put the details in problem.setup "
                  "(a list of short statements)")
     if not p.get("wanted"):
@@ -150,7 +183,7 @@ def check(results, case_dir=None, figures=None):
     if not any(f.get("section") == "problem" for f in r["figures"]):
         e.append("figures: the problem section needs a sketch")
     for where, text in _strings(r):
-        for k in FIG_REF.findall(text):
+        for k in fig_refs(text):
             if k not in keys:
                 e.append(f"{where}: {{fig:{k}}} refers to no figure")
 
@@ -172,6 +205,8 @@ _E_NOTATION = re.compile(r"(?<![\w.])\d+(?:\.\d+)?[eE][-+]?\d+\b")
 _ASCII_MATH = re.compile(r"\w\s*\^\s*[\w{(-]|\w\*\w|\b\d+(?:\.\d+)?\s*x\s*10\b")
 _UNICODE_MATH = re.compile(r"[√∂∫∑∏≈≤≥±∞∇ατδνρψωμσΔΩ]")
 _NUM_SYMBOL = re.compile(r"(?<![\w.])\d+(?:\.\d+)?\s+([B-Zbcdefhijklnopqrtuvwyz])\b")
+# "Figure", "Figures 3 and", "Fig." ... right before a figure placeholder (which renders as the number only)
+_FIG_LEAD = re.compile(r"(?:Figures?|Figs?\.?)(?:\s|&nbsp;|[(,]|and|or|to|\{fig:[\w.-]+\}|[-–])*$", re.I)
 
 
 def _strings(obj, where="results"):
@@ -202,6 +237,18 @@ def lint(results):
         for m in _NUM_SYMBOL.finditer(plain):
             warnings.append(f"{where}: '{m.group()}' looks like a number times a symbol in plain text "
                             "(write \\(0.009\\,U\\) instead)")
+        nocode = _CODE.sub(" ", text)
+        for m in FIG_REF.finditer(nocode):
+            if not _FIG_LEAD.search(nocode[:m.start()]):
+                warnings.append(f"{where}: {m.group()} becomes a bare number in the text; write "
+                                f"'Figure {m.group()}'")
+    summary = results.get("summary")
+    for i, a in enumerate(summary.get("answers", []) if isinstance(summary, dict) else []):
+        lines = re.split(r"<br\s*/?>|</?div[^>]*>", str(a.get("diff", ""))) if isinstance(a, dict) else []
+        longest = max((len(_MATH_OR_CODE.sub(" ", x).split()) for x in lines), default=0)
+        if longest > 10:                           # the solved cases have at most 7 words on a line here
+            warnings.append(f"results.summary.answers[{i}].diff: a line of {longest} words; this column does not "
+                            "wrap and pushes the table off the page. Give one value here and put the words in `sim`")
     errors += control_chars(results)
     return errors, warnings
 
@@ -246,6 +293,12 @@ if __name__ == "__main__":
         dec = yaml.safe_load(Path(args[1]).read_text(encoding="utf-8"))
         errs = check_decisions(dec) + uncovered_settings(dec, args[2]) + control_chars(dec, "decisions")
         print("\n".join(errs) if errs else f"Decisions OK: {len(dec)} decisions cover every setting in {args[2]}")
+        sys.exit(1 if errs else 0)
+    if args[:1] == ["--problem"]:
+        if len(args) != 2:
+            sys.exit("usage: python -m cfdlib.contract --problem cases/<case>/problem.yaml")
+        errs = check_problem_file(args[1])
+        print("\n".join(errs) if errs else f"Problem statement OK: {args[1]}")
         sys.exit(1 if errs else 0)
     res = json.loads(Path(args[0]).read_text(encoding="utf-8"))
     errs = check(res, args[1] if len(args) > 1 else None)

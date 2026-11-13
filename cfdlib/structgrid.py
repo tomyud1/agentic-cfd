@@ -72,6 +72,26 @@ def index_range(coordinate, lo=None, hi=None, tol=1e-9):
     return (0 if lo is None else at(lo), len(c) - 1 if hi is None else at(hi))
 
 
+def centres(x, y, side=None, cells=None):
+    """Where the values of a solution on this grid sit, without sampling.
+
+    side None: the cell centres xc[j, i], yc[j, i] (a field read with foam.read_internal_field and
+      reshaped to (nj, ni) lines up with them; a profile is one column).
+    side "i-", "i+", "j-" or "j+": the centres (xf, yf) of the boundary faces on that side, in the face
+      order of a patch there; cells = the patch's (start, stop) range as given to write_polymesh.
+    A centre is the mean of the cell's (or face's) corner points: exact for rectangles and
+    parallelograms, which covers the straight-lined grids met so far. On a curved grid OpenFOAM's own
+    centres differ slightly: write them with `postProcess -func writeCellCentres`."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    if side is None:
+        return tuple(0.25 * (a[:-1, :-1] + a[:-1, 1:] + a[1:, :-1] + a[1:, 1:]) for a in (x, y))
+    if side not in SIDES:
+        raise ValueError(f"side must be None or one of {SIDES}")
+    line = {"i-": np.s_[:, 0], "i+": np.s_[:, -1], "j-": np.s_[0, :], "j+": np.s_[-1, :]}[side]
+    a, b = (0, None) if cells is None else cells
+    return tuple(0.5 * (c[line][:-1] + c[line][1:])[a:b] for c in (x, y))
+
+
 def write_polymesh(case_dir, x, y, patches, types=None, thickness=1.0, empty_name="frontAndBack"):
     """Write constant/polyMesh (points, faces, owner, neighbour, boundary) for the block x[j, i], y[j, i].
 

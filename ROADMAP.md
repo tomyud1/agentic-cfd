@@ -12,9 +12,9 @@ change the order.
 
 | Part | Works today | Missing |
 |---|---|---|
-| Workflow | Problem statement to checked report, on laminar flow (steady, unsteady, 2D, 3D) and heat transfer | Turbulence, real geometry, a problem with no reference answer |
+| Workflow | Problem statement to checked report, on laminar flow (steady, unsteady, 2D, 3D), heat transfer, and one turbulent flow with a turbulence model (flat plate) | Turbulent flows with pressure gradients and separation, real geometry, a problem with no reference answer |
 | Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
-| Agent | Claude Opus 5.5, high effort, on one PC | Never tried with another agent or on another machine |
+| Agent | Claude at high effort (case 7: Fable 5.2), on one PC | Never tried with another agent or on another machine |
 
 ## Now: until the meeting (development PC)
 
@@ -89,10 +89,22 @@ case 4's gap to OpenFOAM is now accuracy per cell, not time):
 
 ### 3. Case 7: turbulent flat plate (RANS, Spalart-Allmaras, NASA TMR)
 
-The first turbulence case, with a fresh agent. Preparation as in `dev/LOOP.md`: TMR's data in
-`reference/`, and a tool-gap check (turbulence dictionaries in the contract, y+ extraction). The
-project keeps solving known cases until the capabilities are there; case 8 (buoyancy cavity)
-follows.
+**Done (2026-11-13).** A fresh agent solved the first turbulence case in 52 minutes: skin friction
+0.028 % from NASA's incompressible value, verdict WARN by a rule that counted grid error only
+(0.024 %). The project keeps solving known cases until the capabilities are there; case 8
+(buoyancy cavity) follows.
+
+*Open after case 7, a decision for the student:* whether to make this kind of flow faster with
+our own tools. The baseline is now measured: the finest grid (209 thousand cells) took 10 minutes
+on 8 cores. What costs is the number of outer iterations (11,062) more than the price of one.
+Two routes, cheapest first:
+- *Tune OpenFOAM* (`dev/steady_speed/`): relax the turbulence variable by 0.5 only until the wall
+  layer has formed, then by 0.7 to 0.8; or solve velocity and turbulence together. A day of trials
+  on recorded grids, no new solver.
+- *A turbulence model in gpucfd.* Weeks, not days: the model's equation, wall distance, cells of
+  aspect ratio 10^4 at the wall (the pressure solver's hardest case so far), and a steady solver
+  (gpucfd marches in time). The target has to be fixed first, against the incompressible reference
+  with its uncertainty, with a stop rule, as stage 2 taught.
 
 ### 4. Workflow: offer, do not force
 
@@ -103,7 +115,8 @@ The instruction to read every solved case is gone: the solved cases are now a li
   the rest into offers with their trade-offs.
 - Split it into a short core plus topic references opened when the physics calls for them (heat
   transfer, periodic flows, steady speed-up, performance study). Case stories move to their topic.
-- From case 7 on, record what each case cost (agent, minutes, tokens) in the catalogue.
+- Record what each case cost (agent, minutes, tokens) in the catalogue. Case 7's cost is in the
+  changelog only (Fable 5.2 at high effort, 52 minutes, 26 of them solver runs; tokens not recorded).
 - The same diet for `gpucfd/DESIGN.md` (about 1500 lines): one file per stage, with DESIGN.md as
   the index, status table and limits. Less urgent: no agent reads it on every case.
 
@@ -154,6 +167,9 @@ The instruction to read every solved case is gone: the solved cases are now a li
    band is honest? Today the tools assume second order with a safety factor of 1.25 and mark the
    number as a placeholder; common practice (Roache) is a factor of 3. Switching would widen the
    bands of cases 4 and 5 and can change their verdicts.
+   Case 7 adds an example: its friction is 0.028 % from NASA's value and got a WARN, because the
+   band held only the grid error of the two solutions (0.024 %), while a boundary choice alone
+   moves the result by 0.26 %. Is such a band too strict to be useful?
 3. May the repository stay public? Who owns the code under the Technion's rules, and should gpucfd
    move to a private repository?
 4. His criticism of one report (the failed case 5 is the most instructive).

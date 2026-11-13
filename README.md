@@ -29,9 +29,9 @@ solves is used to improve it ([how it works](#how-it-works)).
 ## Results
 
 Each case is given to a **fresh agent** that has never seen it, with only the problem statement, the
-tools and the guidelines. So far that covers laminar flow, steady and unsteady, in 2D and 3D, and
-heat transfer, each checked against an exact solution or a published benchmark (Ghia et al.,
-FeatFlow). Every report ends in a verdict, PASS, WARN or FAIL, set by accuracy rules the agent fixed
+tools and the guidelines. So far that covers laminar flow, steady and unsteady, in 2D and 3D, heat
+transfer, and a first turbulent flow with a turbulence model (RANS), each checked against an exact
+solution or a published benchmark (Ghia et al., FeatFlow, NASA's Turbulence Modeling Resource). Every report ends in a verdict, PASS, WARN or FAIL, set by accuracy rules the agent fixed
 before seeing its results. Verdicts are never softened: the failures are listed in
 [cases/README.md](cases/README.md) next to the passes.
 
@@ -100,8 +100,8 @@ index.html                    the report gallery served by GitHub Pages (generat
 ## Roadmap
 
 The ordered plan is in [ROADMAP.md](ROADMAP.md). In short:
-turbulence (RANS) as the next problem type; a shorter workflow that offers its records to the
-agent instead of prescribing them; then a second machine and a second agent.
+more problem types (buoyancy next, then harder turbulent flows); a shorter workflow that offers its
+records to the agent instead of prescribing them; then a second machine and a second agent.
 
 ## Background papers
 

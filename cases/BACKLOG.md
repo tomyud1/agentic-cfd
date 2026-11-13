@@ -47,7 +47,7 @@ OpenFOAM inside the agent workflow; ? means probably, not yet checked.
 
 | # | Case | New for the agent | Candidate reference | gpucfd |
 |---|---|---|---|---|
-| 13 | **Bump in a channel, SA and SST (TMR 2DB)** | Pressure gradients; comparing two turbulence models | TMR verification [Luminary](https://luminary.ai/verification-and-validation/bump_in_channel/) | ✘ |
+| 13 | **Bump in a channel, SA and SST (TMR 2DB)** | Pressure gradients; comparing two turbulence models | TMR verification. When preparing (lessons of case 7): find out whether TMR gives incompressible results for this case; store the free-stream speed of each published profile and TMR's stated sensitivity to boundary conditions in the reference file, as numbers [Luminary](https://luminary.ai/verification-and-validation/bump_in_channel/) | ✘ |
 | 14 | **NACA 0012, SA (TMR 2DN00)** | Airfoil, far field, lift and drag against experiment | TMR validation; Luminary publishes CL 1.0907 and CD 0.012453 at 10 degrees, a commercial result to compare against [Luminary](https://luminary.ai/verification-and-validation/naca0012_val/) | ✘ |
 | 15 | **Backward-facing step, turbulent (TMR 2DBFS, Driver & Seegmiller)** | Turbulent separation, where RANS models are known to struggle | TMR validation [Luminary](https://luminary.ai/verification-and-validation/backstep/) | ✘ |
 | 16 | **NASA wall-mounted hump (TMR 2DWMH)** | Separation and reattachment, a known hard case for RANS | TMR validation [Luminary](https://luminary.ai/verification-and-validation/wall_mounted_hump/) | ✘ |

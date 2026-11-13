@@ -191,12 +191,21 @@ def preflight(case_dir, solver, end_time_short, end_time_full, timeout=600, cour
     Copies case_dir to <case_dir>_preflight (the prepared case itself is not touched), sets endTime
     to end_time_short, runs the solver with a timeout, and returns assess() plus a projected run
     time for end_time_full (see assess() for residual_targets on steady runs).
+
+    solver: the command as you would run it, e.g. "simpleFoam" or "mpirun -np 8 simpleFoam -parallel".
+    A parallel command needs the case decomposed already (decomposePar): its processor folders are
+    then copied too. A serial command leaves them out.
     """
     case_dir = Path(case_dir)
     pf = case_dir.parent / (case_dir.name + "_preflight")
     if pf.exists():
         shutil.rmtree(pf)
-    shutil.copytree(case_dir, pf, ignore=shutil.ignore_patterns("log.*", "postProcessing", "processor*"))
+    parallel = "-parallel" in solver.split()
+    if parallel and not any(case_dir.glob("processor*")):
+        raise ValueError(f"preflight: '{solver}' is a parallel command, but {case_dir} has no processor "
+                         "folders. Run decomposePar on the prepared case first")
+    skip = ("log.*", "postProcessing") if parallel else ("log.*", "postProcessing", "processor*")
+    shutil.copytree(case_dir, pf, ignore=shutil.ignore_patterns(*skip))
     foam.run(f"foamDictionary -entry endTime -set {end_time_short} system/controlDict", pf, "setEndTime")
     timed_out = False
     try:
@@ -349,6 +358,18 @@ def _fallback_error(s, m=5, safety=10.0):
     return math.inf, None
 
 
+def _cycle(x):
+    """Period (2 to 6 rows) of a regular cycle in the rows x, or None: the values repeat after p rows
+    ten times more closely than they follow each other. Random scatter (a noise floor) does not: its
+    values p rows apart differ as much as neighbours do."""
+    x = np.asarray(x, float)
+    step = np.max(np.abs(np.diff(x))) if len(x) > 1 else 0.0
+    for p in range(2, 7):
+        if step > 0 and len(x) > 2 * p and np.max(np.abs(x[p:] - x[:-p])) < 0.1 * step:
+            return p
+    return None
+
+
 def steady_check(values, tol, every=10, names=None):
     """Iteration error of each monitored series of a steady run, now.
 
@@ -356,7 +377,12 @@ def steady_check(values, tol, every=10, names=None):
     column, in the units of values. every: sampling interval in rows; the changes between samples must
     shrink visibly (if the error never settles, sample more sparsely). Returns dict(ok, status, reason,
     quantities): per column state 'settled' (error < tol), 'floor' (changes stopped shrinking above
-    tol: running longer will not help, so it counts as done with a warning) or 'running'.
+    tol: running longer will not help, so it counts as done with a warning), 'running', or 'oscillating'
+    (consecutive rows repeat in a cycle of 2 to 6 rows with steps above tol, whatever the samples say:
+    the iteration flips between states, so the run is NOT converged and the check does not hold; status
+    'warn'). 'settled' also needs the largest change between consecutive rows, over the last `every`
+    rows, to be below tol. These guards see a cycle only if `values` has every iteration: a function
+    object that writes every n-th iteration hides a cycle of period n (write every iteration).
 
     The error is iteration_error's geometric estimate. While the decay is visibly slowing down (the
     fitted rate three samples ago was clearly faster: a fast mode dying out and a slower one taking
@@ -381,12 +407,25 @@ def steady_check(values, tol, every=10, names=None):
         if not math.isfinite(err):
             err, how = _fallback_error(s[:, j])
         state = "settled" if err < tols[j] else "floor" if e["noise"] else "running"
+        if state in ("settled", "floor"):
+            # The samples say done; do the rows between them agree? A solution that flips between two
+            # states on every iteration is constant when sampled at an even interval (case 7, insight 3:
+            # drag 0.00275 / 0.00318 in turn, stopped as "settled, change zero") and looks like a noise
+            # floor at an odd one.
+            x = v[-(max(every, 12) + 1):, j]
+            step = float(np.max(np.abs(np.diff(x)))) if len(x) > 1 else 0.0
+            period = _cycle(x) if step >= tols[j] else None
+            if period:
+                state, err, how = "oscillating", step, f"cycle of period {period} between rows"
+            elif state == "settled" and step >= tols[j]:
+                state, err, how = "running", step, "consecutive rows still differ by more than tol"
         if np.ptp(v[:, j]) == 0.0:
             # Never changed: truly constant (upstream of a heater) or not reached by the solution yet (far
             # downstream of a moving front). The data cannot tell, so it does not decide the stop.
             state, how = "constant", "never changed"
         q[names[j]] = dict(state=state, error=err, rho=e["rho"], tol=float(tols[j]), how=how)
-    running = [n for n, x in q.items() if x["state"] == "running"]
+    cycling = [n for n, x in q.items() if x["state"] == "oscillating"]
+    running = [n for n, x in q.items() if x["state"] == "running"] + cycling
     floors = [n for n, x in q.items() if x["state"] == "floor"]
     const = [n for n, x in q.items() if x["state"] == "constant"]
     if len(const) == k:
@@ -394,6 +433,13 @@ def steady_check(values, tol, every=10, names=None):
                     reason="running: no monitored value has changed yet")
     judged = [n for n in q if n not in const]
     worst = max(judged, key=lambda n: q[n]["error"] / q[n]["tol"] if q[n]["tol"] > 0 else math.inf)
+    if cycling:
+        c = max(cycling, key=lambda n: q[n]["error"] / q[n]["tol"] if q[n]["tol"] > 0 else math.inf)
+        return dict(ok=False, status="warn", quantities=q,
+                    reason=f"oscillating: {len(cycling)} of {k} repeat in a cycle between rows (worst {c}: "
+                           f"{q[c]['error']:.2g} between consecutive rows, tol {q[c]['tol']:.2g}; {q[c]['how']}). "
+                           "If this lasts, the iteration cycles instead of converging and running longer will "
+                           "not help: lower a relaxation factor")
     if running:
         reason = f"running: {len(running)} of {k} not settled (worst {worst}: error {q[worst]['error']:.2g})"
     elif floors:
@@ -412,7 +458,14 @@ def steady_decider(fo, fname, tol, columns=None, every=10, hold=2, names=None):
     steady_check, and stop once it has held for `hold` consecutive checks.
 
     columns: indices into the flattened value columns (after the iteration column; a vector is three
-    columns); None = all. tol, every, names: as in steady_check, for the chosen columns."""
+    columns); None = all. tol, every, names: as in steady_check, for the chosen columns.
+
+    The checks come at intervals of wall time (foam.run's watch_every), so a small grid passes
+    thousands of iterations between two of them and runs far past the point where the rule first held
+    (case 7: 8433 iterations run on 816 cells, rule held from about 350). The decision that stops the
+    run therefore also carries t_first_held, the iteration at which the rule first held `hold` times in
+    a row on the recorded history (steady_replay): quote that, not the iterations run, when you say how
+    fast a grid converged or extrapolate the cost of a finer one."""
     tails, streak = {}, {}
 
     def decide(case):
@@ -424,6 +477,9 @@ def steady_decider(fo, fname, tol, columns=None, every=10, hold=2, names=None):
         r = steady_check(v, tol, every, names)
         streak[key] = streak.get(key, 0) + 1 if r["ok"] else 0
         r.update(stop=streak[key] >= hold, t=float(a[-1, 0]))
+        if r["stop"]:
+            i = steady_replay(v, tol, every, hold)["index"]
+            r["t_first_held"] = float(a[i, 0]) if i is not None else None
         return r
     return decide
 

@@ -111,6 +111,36 @@ with tempfile.TemporaryDirectory() as tmp:
             break
     print(f"steady decider (checks every 100 rows): stop at row {first:.0f}; {r['reason']}")
     assert first is not None and first >= 521, first
+    # the decision also says where the rule first held on the history (case 7, insight 7): the replay's row
+    print(f"  rule first held at row {r['t_first_held']:.0f} (checks came every 100 rows)")
+    assert r["t_first_held"] == 521, r["t_first_held"]
+# A solution that flips between two states on every iteration (case 7, insight 3): the recorded trial
+# with the turbulence variable relaxed by 0.9. Sampled every 20 rows it is constant, and was stopped
+# as settled; the check must now refuse it at every point of the history, for even and odd sampling.
+h7 = np.load(ROOT / "results/turbulent_flat_plate_sa/runs/trial_base.npz")["hist"]
+tol7 = 1e-5 * np.abs(h7[-1])                                # the run's own tolerance: 1e-5 of each value
+for every7 in (20, 25):
+    r7 = monitor.steady_check(h7, tol7, every=every7)
+    held7 = monitor.steady_replay(h7, tol7, every=every7, hold=2)["index"]
+    states7 = sorted({q["state"] for q in r7["quantities"].values()})
+    print(f"period-2 cycle, sampled every {every7}: ok {r7['ok']}, states {states7}, replay stop {held7}")
+    assert not r7["ok"] and held7 is None, (every7, r7["reason"], held7)
+r7 = monitor.steady_check(h7, tol7, every=20)
+assert "oscillating" in r7["reason"] and r7["status"] == "warn", r7["reason"]
+print(" ", r7["reason"][:150])
+# and it must not hold back a run that converges: the main run of the same grid stops where it did before
+g7 = np.load(ROOT / "results/turbulent_flat_plate_sa/runs/G1.npz")["hist"]
+held7 = monitor.steady_replay(g7, 1e-5 * np.abs(g7[-1]), every=25, hold=2)["index"]
+true7 = float(np.max(np.abs(g7[held7] - g7[-1]) / np.abs(g7[-1])))
+print(f"converging run of the same grid: rule holds from row {held7 + 1} of {len(g7)}, true error {true7:.1e} of the value")
+assert held7 is not None and true7 < 1e-5, (held7, true7)
+# synthetic traps: a decaying flip is not a cycle (it settles once it is below the tolerance); a lasting one is
+k7 = np.arange(400.0)
+decay7 = 1.0 + 1e-2 * (-0.9) ** k7
+cycle7 = 1.0 + 1e-3 * (-1.0) ** k7 + 1e-2 * 0.9 ** k7
+s7 = [monitor.steady_check(v, 1e-6, every=10)["quantities"]["c0"]["state"] for v in (decay7, cycle7, cycle7[:-1])]
+print("decaying flip, lasting flip (two phases):", s7)
+assert s7 == ["settled", "oscillating", "oscillating"], s7
 print("steady stop: ok")
 
 # 8. contract: a dictionary the parser cannot read is reported, not skipped silently
@@ -194,6 +224,23 @@ if (run10 / "N128").exists() and (run10 / "N256").exists():
     left = sorted(f.name for f in (tgt / "0").iterdir())
     print(f"map_fields: kept {left}, removed {removed10}")
     assert left == ["U", "p"], left
+    # a fixed boundary value of this case survives the mapping (case 7, insight 16): lid speed 1.25, source 1
+    shutil.rmtree(tgt / "0")
+    shutil.copytree(run10 / "N256" / "0", tgt / "0")
+    lid10 = "movingWall"
+    assert foam._fixed_values(tgt / "0/U") == {lid10: "uniform (1.0 0 0)"}, foam._fixed_values(tgt / "0/U")
+    foam.run(f"foamDictionary 0/U -entry boundaryField/{lid10}/value -set 'uniform (1.25 0 0)'", tgt, "setLid")
+    foam.map_fields(tgt, run10 / "N128", keep_boundary=False)
+    lost10 = np.atleast_2d(foam.read_boundary_field(tgt / "0/U", lid10))[:, 0].max()
+    shutil.rmtree(tgt / "0")
+    shutil.copytree(run10 / "N256" / "0", tgt / "0")
+    foam.run(f"foamDictionary 0/U -entry boundaryField/{lid10}/value -set 'uniform (1.25 0 0)'", tgt, "setLid")
+    foam.map_fields(tgt, run10 / "N128")
+    kept10 = np.atleast_2d(foam.read_boundary_field(tgt / "0/U", lid10))[:, 0].max()
+    inner10 = foam.read_internal_field(tgt / "0/U")
+    print(f"map_fields, lid speed set to 1.25: plain mapFields leaves {lost10:g} (the source's), "
+          f"keep_boundary leaves {kept10:g}; mapped interior {inner10.shape}, max |U| {np.abs(inner10).max():.3f}")
+    assert lost10 == 1.0 and kept10 == 1.25 and np.abs(inner10).max() > 0.5, (lost10, kept10)
     shutil.rmtree(tgt)
 else:
     print("map_fields: case 2 runs not on this machine, skipped")
@@ -230,4 +277,69 @@ boundaryField
         except ValueError as e:
             assert ("stores no value" in str(e)) == (bad == "outlet"), e
     print("read_boundary_field: list, uniform value, and a clear error for a patch without values")
+    fld.write_text("""FoamFile { version 2.0; format ascii; class volVectorField; object U; }
+internalField uniform (0 0 0);
+boundaryField
+{
+    inlet   { type fixedValue; value uniform (50.15 0 0); }   // the variant's own speed
+    plate   { type noSlip; }
+    top     { type inletOutlet; inletValue uniform (50 0 0); value uniform (50 0 0); }
+    profile { type fixedValue; value nonuniform List<vector> 2((1 0 0) (2 0 0)); }
+    outlet  { type zeroGradient; }
+}
+""")
+    fv = foam._fixed_values(fld)
+    assert fv == {"inlet": "uniform (50.15 0 0)"}, fv
+    print("fixed boundary values found for map_fields to keep:", fv)
+# monitor.preflight on a decomposed case (case 7, insight 2): a parallel command without processor folders is
+# refused with the reason; with them, the short copy runs on its ranks and is assessed.
+run10 = RUN / "turbulent_flat_plate_sa/G1"
+if run10.exists():
+    src10 = run10.parent / "_test_preflight_mpi"
+    for d10 in (src10, src10.parent / (src10.name + "_preflight")):
+        shutil.rmtree(d10, ignore_errors=True)
+    shutil.copytree(run10, src10, ignore=shutil.ignore_patterns(
+        "processor*", "postProcessing", "log.*", "[1-9]*", "*.json", "*.pid", monitor.STOP_FILE))
+    (src10 / "system/decomposeParDict").write_text(
+        "FoamFile { version 2.0; format ascii; class dictionary; object decomposeParDict; }\n"
+        "numberOfSubdomains 2;\nmethod simple;\ncoeffs { n (2 1 1); }\n")
+    cmd10 = "mpirun -np 2 simpleFoam -parallel"
+    try:
+        monitor.preflight(src10, cmd10, end_time_short=30, end_time_full=1000)
+        raise AssertionError("expected a ValueError: no processor folders")
+    except ValueError as e:
+        assert "decomposePar" in str(e), e
+    foam.run("decomposePar -force", src10, "decomposePar")
+    pf10 = monitor.preflight(src10, cmd10, end_time_short=30, end_time_full=1000, timeout=120)
+    print(f"preflight on 2 ranks: {pf10['steps']} iterations, status {pf10['status']}, "
+          f"projected full run {pf10['est_full_runtime']:.1f} s")
+    assert pf10["steps"] == 30 and pf10["status"] != "fail" and not pf10["timed_out"], pf10
+    for d10 in (src10, src10.parent / (src10.name + "_preflight")):
+        shutil.rmtree(d10)
+else:
+    print("preflight on a decomposed case: case 7 runs not on this machine, skipped")
 print("foam safety: ok")
+
+# 11. Checks that came from case 7's report stage (insights 9, 10, 11): a problem statement the report
+#     would refuse is caught when it is written; a quoted figure placeholder is not a reference; a
+#     placeholder without the word Figure and a sentence in the summary's last column are warned about.
+with tempfile.TemporaryDirectory() as tmp:
+    pr = Path(tmp) / "problem.yaml"
+    base11 = "name: x\ntitle: T\nsetup: ['a']\ngiven: []\nquantities_of_interest: [{key: a, text: b}]\n"
+    pr.write_text(base11 + "description: " + "word " * 130 + "\nreference: {file: reference/missing.yaml}\n")
+    e11 = contract.check_problem_file(pr)
+    pr.write_text(base11 + "description: A short overview.\n")
+    print("problem statement check:", [x[:60] for x in e11], "| short one:", contract.check_problem_file(pr))
+    assert len(e11) == 2 and "description" in e11[0] and "missing.yaml" in e11[1] and contract.check_problem_file(pr) == []
+e11 = contract.check_problem_file(ROOT / "cases/turbulent_flat_plate_sa/problem.yaml")
+assert len(e11) == 1 and e11[0].startswith("description: "), e11   # the case that led to the check (kept as given)
+for c11 in ("plane_poiseuille", "lid_driven_cavity_re100", "stokes_first_problem", "dfg_cylinder_re100",
+            "dfg_cylinder_3d_re20", "heated_pipe_re200"):
+    assert contract.check_problem_file(ROOT / f"cases/{c11}/problem.yaml") == [], c11
+assert contract.fig_refs("see Figure {fig:a}; the placeholder <code>{fig:key}</code> inserts a number") == ["a"]
+w11 = contract.lint({"summary": {"answers": [{"diff": "\\(0.03\\,\\%\\)"}, {"diff": "\\(+0.008\\) (0.95 band)<br>\\(+0.008\\) (0.97 band)<div class='sub'>extrapolated: 0.02</div>"},
+                                             {"diff": "the difference between the two values on the finest grid of the family"}]},
+                     "x": ["{fig:a}: from the data", "Figures {fig:a} and {fig:b} show it", "(Figure&nbsp;{fig:c})"]})[1]
+print("report warnings:", [w[:58] for w in w11])
+assert len(w11) == 2 and "bare number" in w11[0] and "answers[2].diff" in w11[1], w11
+print("report-stage checks: ok")

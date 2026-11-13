@@ -29,7 +29,7 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-from .contract import FIG_REF, _req, _strings, lint
+from .contract import FIG_REF, _req, _strings, fig_refs, lint
 from .report import TEMPLATES, _svg_width_px, keep_run_record
 
 CORE = ["setup", "method", "results", "same_answer", "breakdown"]          # always there, in this order
@@ -156,7 +156,7 @@ def check_study(s, figures=None):
         if any(not isinstance(c, int) or not 0 <= c < len(t.get("head", [])) for c in t.get("nowrap") or []):
             e.append(f"{where}.nowrap: column numbers, counted from 0")
     for where, text in _strings(s):
-        for k in FIG_REF.findall(text):
+        for k in fig_refs(text):
             if k not in keys:
                 e.append(f"{where}: {{fig:{k}}} refers to no figure")
     e += [f"typesetting: {x}" for x in lint(s)[0]]

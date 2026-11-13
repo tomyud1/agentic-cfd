@@ -13,7 +13,83 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-13
 
-### Case 7 solved: turbulent flat plate, verdict WARN (0.028 % from NASA), commit hash to be filled in
+### What case 7 taught the tools and the workflow, commit hash to be filled in
+The agent that solved case 7 logged 16 problems and surprises. Each one gets an answer here: a tool
+fix where code can prevent it next time, a line of guidance where it cannot, or a stated reason for
+doing nothing. No simulation was run for this entry.
+
+- **The stop rule no longer accepts a solution that flips between states.**
+  - *Problem:* with one setting the solution alternated between two states on every iteration.
+    The stop rule looked at every 20th iteration, saw the same state each time, and ended the run
+    as converged (insights 3 and 4).
+  - *Now:* the rule also looks at neighbouring iterations. A regular cycle of 2 to 6 iterations is
+    reported as "oscillating" and the run is not stopped (`monitor.steady_check`).
+  - *Checked:* on the recorded run that fooled it, the rule now refuses to stop at every point of
+    the history, for even and for odd sampling. The same grid's good run still stops where it did
+    (iteration 351 of 8433). The stop points of the 12 recorded histories of cases 2 and 6 are
+    unchanged.
+- **Starting a run from another solution keeps the run's own boundary values.**
+  - *Problem:* a test run with a 0.3 % faster inflow was started from the main solution. OpenFOAM's
+    mapping tool copied the old inflow speed over the new one without a word, so the run repeated
+    the main answer (insight 16).
+  - *Now:* `foam.map_fields` writes the run's own fixed values back after mapping and prints each
+    one that had been replaced.
+  - *Checked:* on case 2's recorded runs with the lid speed set to 1.25: the plain mapping leaves 1
+    (the source's value), the tool leaves 1.25.
+  - *Limit:* it covers constant fixed values. A boundary value given as a list, or by a special
+    boundary type, is still the agent's to check; the tool's text and the primer say so.
+- **The short test run works on parallel cases** (`monitor.preflight`, insight 2). It used to drop
+  the pieces a parallel run needs. *Checked:* 30 iterations on 2 processor cores on case 7's
+  coarsest grid; a parallel command on a case that is not split yet is refused with the reason.
+- **How fast did a grid really converge?** The stop rule is checked every few seconds, so a tiny
+  grid runs thousands of iterations past the point where it first held (8433 run, 351 needed). The
+  stop record now also holds that point (`t_first_held`, insight 7). *Not done:* checking by
+  iteration count instead of by the clock. The overshoot cost 10 seconds, and it would change
+  where every run stops.
+- **A problem statement is checked when it is written** (insight 9). My statement for case 7 had
+  an overview of 650 characters; the report allows 600, and the agent may not edit the statement.
+  New: `python -m cfdlib.contract --problem <file>`, a test on every prepared case that is not
+  solved yet, and a line in the loop's preparation step. Case 7's statement stays as it was given.
+- **Three report slips now get a warning** (insights 10 and 11): a sentence in the summary's last
+  column (it does not wrap and pushed the table off the page), a figure reference that would show
+  as a bare number, and a figure placeholder quoted as an example, which the checker took for a
+  real reference and refused.
+- **Positions of cells and wall faces from a published grid** (`structgrid.centres`, insight 8),
+  so an analysis does not rebuild them by hand.
+- **Guidance, in the most specific place.**
+  - *OpenFOAM primer, new section "Turbulence models":* check which published variant a solver's
+    default is, with the Spalart-Allmaras switches found here (insights 1 and 6); the setting that
+    caused the flipping; why the error numbers of the solver fall long before the answer has
+    settled (insight 15). One caution added to the steady-run section: the converged answer
+    depends very slightly on one solver setting, so keep it fixed within a grid study (insight 5).
+  - *Workflow:* a reference's uncertainty is more than its grid error (insight 13); an explanation
+    that needs a sensitivity should measure it with a test that changes one thing only
+    (insight 12). With the pointers to the tool changes above, the workflow grew by 12 lines.
+  - *Loop, preparation step:* record what the source says about its own uncertainty, and check
+    which reference speed its coefficients use (insight 14). The same note is on the next NASA
+    case in the case list.
+- **Declined, with the reason.**
+  - *A warning when the solver's error numbers stay flat* (insight 3): they are flat in every
+    unsteady run, so it would warn falsely there. The new check names the cycle directly.
+  - *A helper for trial runs* (insight 4) and *a general tool that evaluates a turbulence model's
+    switches on a solution* (insight 6): one case needed each; case 7's folder is the worked
+    example.
+  - *"Write no finding before its numbers exist"* (insight 12): already the firm rule that code
+    computes every number.
+  - *Changing case 7's reference file* (insights 13 and 14): it is the record of what the agent
+    was given.
+- **Queued in the roadmap:** making this kind of flow faster (insight 15), as the student's open
+  decision after case 7: first by tuning OpenFOAM (a day of trials), or with a turbulence model in
+  gpucfd (weeks). And one more example for the accuracy question to Prof. Frankel (insight 13).
+- **Re-check of the old work.** All tests pass (the gpucfd run tools were not re-tested: nothing
+  they use changed). All seven main reports and both study pages were rebuilt from saved data. The
+  seven main reports come out byte for byte as committed. The 4b study page changed in one place:
+  the commit it names for its data, which was one commit behind (a page committed together with
+  its data cannot know that commit's name).
+- **Housekeeping.** Case 7 is in the rebuild script; the dry-run script from the preparation is
+  now in `dev/agent_checks/`; the case list says what a later agent can learn from case 7's folder.
+
+### Case 7 solved: turbulent flat plate, verdict WARN (0.028 % from NASA) (`fcda82a`)
 The project's first case with a turbulence model. A fresh agent (Claude Fable 5.2, high effort)
 solved it with the workflow and OpenFOAM in 52 minutes, without help. This commit holds the case
 exactly as that agent left it.

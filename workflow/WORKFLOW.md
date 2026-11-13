@@ -26,7 +26,8 @@ cfdlib/                       shared tools (do NOT modify; log needed changes as
   foam.py        render_case, run (timeout, PID file), stop, running; read fields (cell values, values on a
                  boundary patch) and postProcessing .dat files
   structgrid.py  a published structured grid (PLOT3D file) as an OpenFOAM mesh, point for point, with named
-                 patches (read_plot3d_2d, index_range, write_polymesh): for benchmarks that provide their grids
+                 patches (read_plot3d_2d, index_range, write_polymesh): for benchmarks that provide their grids;
+                 centres gives the cell and wall-face positions, so a profile is a column, without sampling
   monitor.py     parse_log, assess (health checks), preflight (short test run + run-time projection),
                  LiveStop / judge / settled (end a run live once its physical check holds),
                  peek (look into a run at any moment: progress, health, verdict, history as numbers),
@@ -77,12 +78,15 @@ case, if you want to see the full set of files once.
   `cases/<name>/problem.yaml` from the description in the worked examples' format: physical inputs
   only, no numerics. Ask for anything essential that is missing, show the file to the user, and
   start only after they confirm. From then on it is the given problem.
+  `python -m cfdlib.contract --problem <file>` says whether the report will accept it as written.
 - Read `problem.yaml` and any `reference/` files. List the requested outputs (they get letters a, b, c...).
 - Compute the governing dimensionless numbers (Re, Ma, ...) in code. Decide which physics apply.
 - If data is missing or contradictory, choose a documented assumption and flag it in the report's
   limitations. Never silently invent inputs.
 - If a reference gives no uncertainty, estimate one (its grid, its printed digits, a second source)
-  and record how; you will need it in stage 5.
+  and record how; you will need it in stage 5. A reference's uncertainty is more than its grid
+  error: count what its authors say about boundary conditions and iteration too (case 7's band held
+  the grid error of both sides only, 0.024 %, while NASA's page states 0.2 % for boundary choices).
 
 ### 1. Theory: what can be known without the simulation
 - Exact solution available: derive it with SymPy, self-check it (satisfies equations and boundary
@@ -172,7 +176,8 @@ case, if you want to see the full set of files once.
 ### 3. Pre-flight test (mandatory, before any long run)
 - `cfdlib.monitor.preflight()` on the coarsest AND finest meshes with a short run (a few % of the
   full length). It works in a separate `<case>_preflight` copy; render pre-flight and production
-  cases into separate directories too, so re-running one never deletes the other.
+  cases into separate directories too, so re-running one never deletes the other. It takes the
+  command as you would run it, so an MPI command works on a case that is already decomposed.
 - It reports crashes, NaN, Courant number, residual/Courant/continuity trends and projects run time.
   Transient runs: the projection is reliable. Steady runs: pass `residual_targets`; the result is a
   **lower bound** (SIMPLE slows down later and on finer meshes).
@@ -226,11 +231,15 @@ case, if you want to see the full set of files once.
     - It handles values converged to their printed digits: on case 6's recorded runs it would have
       stopped L4 at iteration 1611 instead of 3289.
     - It is cautious while the decay is still slowing down.
+    - It does not stop on a solution that flips between states from one iteration to the next
+      (reported as "oscillating"; case 7). For that it needs the monitored values of every iteration.
+    - Its checks come at intervals of wall time, so a small grid runs far past the point where the
+      rule first held. The decision records that point (`t_first_held`).
     - A value that has never changed is listed as "constant so far" and does not decide the stop. A
       probe far downstream of a moving front looks constant until the front arrives, so put probes
       where the answer changes.
   - `foam.map_fields(case, coarser_case)` starts a mesh from the coarser mesh's answer (grid
-    sequencing).
+    sequencing), or a variant from the main run. It keeps the case's own fixed boundary values.
   - Less relaxation (SIMPLEC with U 0.97-0.99) is a larger pseudo time step. The best value
     depends on the mesh, so a short side-by-side trial is a cheap way to pick it.
 
@@ -296,7 +305,10 @@ case, if you want to see the full set of files once.
   −0.06 % was real.
 - A coarse-mesh match can be luck (error cancellation). Report differences honestly, where and why.
 - An explanation is a claim: check it against the data (sign, size, scaling) before writing it. In
-  case 3 the first explanation of an error had the wrong sign and a third of the size.
+  case 3 the first explanation of an error had the wrong sign and a third of the size. If it needs
+  a sensitivity, measure that with a variant that changes one thing only (case 7: a closed top
+  boundary changed the stream's speed and its pressure gradient together, and still fitted the data
+  to two digits).
 
 ### 6. Report
 - Build `results.json` in `analyze.py` and call `report.render(results, svgs, out, case_dir=<finest case>)`.

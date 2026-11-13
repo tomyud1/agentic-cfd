@@ -77,10 +77,40 @@ def run(cmd, case_dir, log_name=None, timeout=None, watch=None, watch_every=10.0
     return wall
 
 
-def map_fields(case_dir, source_dir, consistent=True, keep_new=False):
+def _fixed_values(path):
+    """{patch: text after `value`} for the fixedValue patches of an ASCII field file with a uniform value."""
+    from .foamdict import _strip_comments
+    text = _strip_comments(Path(path).read_text(errors="replace"))
+    b = text.find("boundaryField")
+    if b < 0:
+        return {}
+    out, k = {}, text.index("{", b) + 1
+    name = re.compile(r"\s*([^\s{};]+)\s*\{")
+    while True:
+        m = name.match(text, k)                    # the next patch; none left at the closing brace
+        if not m:
+            return out
+        depth, k = 1, m.end()
+        while depth and k < len(text):             # to the end of this patch's block
+            depth += (text[k] == "{") - (text[k] == "}")
+            k += 1
+        block = text[m.end():k - 1]
+        v = re.search(r"(?<![A-Za-z0-9_])value\s+(uniform\s+[^;]+);", block)
+        if re.search(r"(?<![A-Za-z0-9_])type\s+fixedValue\s*;", block) and v:
+            out[m.group(1)] = " ".join(v.group(1).split())
+
+
+def map_fields(case_dir, source_dir, consistent=True, keep_new=False, keep_boundary=True):
     """Initial fields of case_dir = the latest time of source_dir, interpolated by mapFields (grid
     sequencing: a fine mesh starts from a coarser mesh's converged answer, so it only has to remove
     the coarse mesh's error). consistent: same geometry and patch names (meshes of one family).
+
+    mapFields also maps the boundary values, so a fixed value of this case (an inflow velocity, a wall
+    temperature) is replaced by the source's. keep_boundary (default) writes this case's own uniform
+    fixedValue entries back afterwards and prints each one that the source had changed (case 7: a
+    variant with a faster inflow ran with the old speed and gave the main run's answer). It covers
+    `type fixedValue` with `value uniform ...`; other prescribed values (a non-uniform list, a derived
+    type's own keywords) are left as mapFields wrote them, so check those yourself.
 
     mapFields maps every volume field in the source time, including post-processing output written
     there (C, Cx, Cy, Cz, V from writeCellCentres / writeCellVolumes). Field files the target did not
@@ -95,8 +125,22 @@ def map_fields(case_dir, source_dir, consistent=True, keep_new=False):
         if " " in str(Path(p).resolve()):
             raise ValueError(f"map_fields: OpenFOAM cannot use a path with a space: {p}")
     before = {f for d in time_dirs(case_dir) for f in d.iterdir() if f.is_file()}
+    own = {f: _fixed_values(f) for f in sorted(before)} if keep_boundary else {}
     flag = " -consistent" if consistent else ""
     wall = run(f"mapFields {Path(source_dir).resolve()}{flag} -sourceTime latestTime", case_dir, "mapFields")
+    for f, patches in own.items():
+        rel = f.relative_to(case_dir)
+        for patch, value in patches.items():
+            want = np.array(value.replace("uniform", " ").replace("(", " ").replace(")", " ").split(), dtype=float)
+            try:
+                got = np.atleast_2d(read_boundary_field(f, patch))
+                same = bool(np.all(got == want))
+            except ValueError:
+                same = False
+            run(f"foamDictionary {rel} -entry boundaryField/{patch}/value -set '{value}'", case_dir, "keepBoundary")
+            if not same:
+                print(f"map_fields: {rel}, patch {patch}: the source's boundary values differed; "
+                      f"kept this case's own '{value}'", flush=True)
     removed = []
     if not keep_new:
         for d in time_dirs(case_dir):

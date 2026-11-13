@@ -33,8 +33,14 @@ solves the problem (the **solver agent**) never needs this file.
    slow or stuck without it: a fresh-agent run is the expensive step.
 2. **Prepare.**
    - Write `cases/<name>/problem.yaml`: physical inputs only, no numerical choices.
+     `python -m cfdlib.contract --problem cases/<name>/problem.yaml` says whether the report will
+     accept it as written (the solver agent may not change it).
    - Put the reference data in `cases/<name>/reference/`, transcribed from the original source,
-     with the citation. Never from memory, never from a second-hand page.
+     with the citation. Never from memory, never from a second-hand page. Record as numbers what
+     the source says about its own uncertainty beyond its grid levels (boundary conditions,
+     iteration), and which reference quantities its coefficients are divided by. Check that the
+     reference's set-up really has them (case 7: NASA's Mach 0.2 runs have a stream 0.15 % slower
+     than the reference speed at the tabulated point; the edge of a published profile shows it).
    - Tool-gap check: can the tools read this solver's log and dictionaries, and extract the
      requested outputs? Fix gaps now.
    - Commit the problem before launching, so the review can show it was not changed.

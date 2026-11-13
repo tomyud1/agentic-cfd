@@ -55,6 +55,27 @@ Tutorials live in `$FOAM_TUTORIALS/incompressible/<solver>/...` (e.g. `icoFoam/c
   1/cos(θ/2) − 1 (θ the full wedge angle). That is 1.5e-4 at 2° and 1e-5 at 0.5°, and refinement does
   not remove it. Choose θ so the bias sits well below the target accuracy.
 
+## Turbulence models (RANS; measured in case 7, a flat plate with Spalart-Allmaras)
+- **A model name covers several published variants,** and a solver's default may be another one
+  than the benchmark's. Set `printCoeffs on` in the model's dictionary and compare the coefficients
+  the solver prints with the reference's list, in code.
+  - Spalart-Allmaras in v2606: the default leaves out the model's f_t2 term (NASA calls that
+    variant SA-noft2); `ft2 true` gives the standard model. `sigmaNut` defaults to 0.66666, not 2/3.
+    The lower limit on the model's S̃ (`Cs 0.3`) is part of the standard form (NASA's Note 1(b)) and
+    acts only in a few cells where the layer starts. On the flat plate the f_t2 term changed the
+    skin friction by less than 0.0001 %.
+- **The relaxation of the turbulence variable can lock the iteration into a cycle** on a
+  wall-resolved grid. With nuTilda relaxed by 0.9 or 0.7 the whole wall layer flipped between two
+  states on every iteration (drag coefficient 0.00275 and 0.00318 in turn); 0.5 and 0.3 converged.
+  `monitor.steady_check` reports such a cycle as "oscillating" and does not stop on it. The
+  momentum balance shows it too (8.6 % off), and so do residuals stuck near 1e-3.
+- **Residuals fall long before the answer settles.** The outer part of the boundary layer adjusts
+  slowly through the turbulence equation: on the finest grid the residuals were at 1e-9 after 5000
+  iterations while the skin friction was still 1e-5 off, and the stop came at 11,062 (about one
+  decade per 2400 iterations). Grid sequencing saves less than in laminar cases for the same reason.
+- A wall-resolved grid (first cell at y+ below 1) has cells of aspect ratio 10^4 and needs many
+  digits (pitfall 6). `checkMesh` complains about the aspect ratio; that is the grid's design.
+
 ## Non-uniform inlet profile (no compilation)
 `exprFixedValue` with `valueExpr` (v2606 keyword; `expression` is rejected) and `pos()` for the face
 centre, e.g. a parabola: `valueExpr "vector(4*Um*pos().y()*(H - pos().y())/(H*H), 0, 0)";` plus a
@@ -159,7 +180,10 @@ cells per core, communication dominates): measure; a common rule of thumb is tha
    steady SIMPLE run cheap; the stop rule on the monitored values still decides convergence.
 16. **mapFields carries post-processing fields** (C, Cx, Cy, Cz, V from writeCellCentres) into the
    next mesh, and rewrites field files in expanded form. `foam.map_fields` deletes the new fields; the
-   expanded patch entries need a decision.
+   expanded patch entries need a decision. mapFields also replaces the target's fixed boundary values
+   by the source's (case 7: a variant with a faster inflow ran at the old speed and gave the main
+   run's answer). `foam.map_fields` writes the case's own uniform `fixedValue` entries back and prints
+   each one that differed; any other prescribed boundary value is yours to check after mapping.
 
 ## Steady runs: getting to the answer fast (measured on case 2's cavity)
 A steady SIMPLE run is a march in pseudo-time. Under-relaxation sets the pseudo time step of each
@@ -198,8 +222,11 @@ each counted to the same answer: the probes within 1e-6 U of the residual-conver
 - **What did not work:** pimpleFoam as a pseudo-transient march (implicit Euler, Courant 5-50, one
   outer corrector) diverged within ten steps. The segregated pressure-velocity coupling needs outer
   iterations with relaxation at large time steps, which brings back the cost.
-- MPI adds its own factor on top (Parallel runs, above). None of this changes the converged answer,
-  only how fast you reach it, so a speed setting needs a check of the answer, not a re-derivation.
+- MPI adds its own factor on top (Parallel runs, above). None of this changes the converged answer
+  beyond the grid's own error, only how fast you reach it, so a speed setting needs a check of the
+  answer, not a re-derivation. One caution: `simpleFoam`'s converged answer depends weakly on the
+  velocity relaxation factor (case 7: drag 2e-5 apart, relative, between U 0.3 and 0.9 on 816
+  cells). Keep one set of factors within a grid study, or measure the dependence.
 
 Scripts and raw numbers: `dev/steady_speed/`.
 

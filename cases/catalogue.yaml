@@ -109,6 +109,7 @@ cases:
     status: solved
     folder: turbulent_flat_plate_sa
     tests: Steady, first turbulence model (RANS), NASA's own grids, benchmark (NASA Turbulence Modeling Resource)
+    shows: "Turbulence model (simpleFoam with Spalart-Allmaras): a published grid family loaded point for point (cfdlib.structgrid), so profiles are columns of the solution without sampling; the model's printed coefficients compared with the reference's in code; the model's own exact wall law as theory; a like-for-like reference told apart from context data; variants that change one thing each (model term, scheme, limiter, inflow speed, top boundary) started from the main run; MPI on the finest grid. Key lessons: an iteration that flipped between two states looked converged, and the acceptance band held grid error only"
     headline: Grid-converged skin friction within 0.028 % of NASA's incompressible reference; just outside the 0.024 % grid-uncertainty band
     reports: [{path: results/turbulent_flat_plate_sa/report.html}]
     luminary: turbulent_flat_plate
@@ -166,7 +167,7 @@ cases:
     status: planned
     tier: turbulence
     new: Pressure gradients; comparing two turbulence models
-    reference: TMR verification
+    reference: "TMR verification. When preparing (lessons of case 7): find out whether TMR gives incompressible results for this case; store the free-stream speed of each published profile and TMR's stated sensitivity to boundary conditions in the reference file, as numbers"
     luminary: bump_in_channel
     gpucfd: "no"
 

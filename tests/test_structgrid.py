@@ -59,6 +59,11 @@ try:
           dict(inlet=3, outlet=3, top=4, sym=1, plate=3, frontAndBack=24), str(info["patches"]))
     check("index_range finds the cells from a coordinate", structgrid.index_range(xi, lo=1.0) == (1, 4)
           and structgrid.index_range(xi, hi=2.5) == (0, 2) and raises(lambda: structgrid.index_range(xi, lo=1.2)) is not None)
+    xc, yc = structgrid.centres(X, Y)
+    xf, yf = structgrid.centres(X, Y, "j-", (1, None))
+    check("centres of the cells and of the plate's faces", xc.shape == (3, 4) and abs(xc[0, 0] - 0.5) < 1e-15
+          and abs(yc[0, 0] - 0.075) < 1e-15 and np.allclose(xf, [1.75, 2.75, 3.5]) and np.allclose(yf, 0.05 * xf)
+          and raises(lambda: structgrid.centres(X, Y, "k+")) is not None, f"plate faces at x = {xf.tolist()}")
     e1 = raises(lambda: structgrid.write_polymesh(tmp / "bad", X, Y, {k: v for k, v in allp.items() if k != "sym"}))
     e2 = raises(lambda: structgrid.write_polymesh(tmp / "bad", X, Y, dict(allp, sym=("j-", (0, 2)))))
     e3 = raises(lambda: structgrid.write_polymesh(tmp / "bad", X[:, ::-1], Y[:, ::-1], allp))
