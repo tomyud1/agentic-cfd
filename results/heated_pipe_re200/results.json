@@ -1,0 +1,1803 @@
+{
+ "title": "Laminar water flow in a tube heated with a uniform wall heat flux",
+ "date": "2026-11-13",
+ "verdict": "WARN",
+ "comparison_type": "verification",
+ "summary": {
+  "headline": "<b>WARN.</b> The simulated local Nusselt number matches the exact solution to \\(0.005\\,\\%\\) (RMS, finest mesh), the fully developed value to \\(+0.011\\,\\%\\) and the 5 % entrance length \\(60.1\\,D\\) to \\(-0.067\\,\\%\\).",
+  "answer_columns": [
+   "Requested",
+   "Exact solution",
+   "Simulation (L4)",
+   "Difference"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Local Nusselt number \\(Nu(x)\\) along the heated section, compared with the exact solution",
+    "theory": "Series solution, Figure {fig:nu}",
+    "sim": "RMS difference \\(0.005\\,\\%\\)<div class='sub'>over \\(0.5\\,D \\le x \\le 100\\,D\\), length-weighted; largest \\(0.024\\,\\%\\) near \\(x = 0\\)</div>",
+    "diff": "\\(0.005\\,\\%\\)"
+   },
+   {
+    "letter": "b",
+    "label": "Nusselt number of the fully developed region, far from the start of heating",
+    "theory": "\\(Nu_{fd} = 48/11 = 4.36364\\)<div class='sub'>at the outlet the exact value is still \\(4.38665\\)</div>",
+    "sim": "\\(4.36412\\)<div class='sub'>tail fit \\(60\\text{\u2013}100\\,D\\); at the outlet \\(4.38691\\) (\\(+0.0058\\,\\%\\))</div>",
+    "diff": "\\(+0.011\\,\\%\\)"
+   },
+   {
+    "letter": "c",
+    "label": "Thermal entrance length: the distance from the start of heating at which \\(Nu(x)\\) comes within 5 % of its fully developed value",
+    "theory": "\\(60.11\\,D = 0.2404\\,\\mathrm{m}\\)<div class='sub'>\\(x^+ = 0.0431\\)</div>",
+    "sim": "\\(60.07\\,D\\)<div class='sub'>crossing of \\(1.05\\,Nu_{fd}\\) with its own \\(Nu_{fd}\\)</div>",
+    "diff": "\\(-0.067\\,\\%\\)"
+   },
+   {
+    "letter": "d",
+    "label": "Wall temperature \\(T_w(x)\\) and bulk temperature \\(T_b(x)\\) along the heated section, and both at the outlet",
+    "theory": "\\(T_w(L_h) = 20.7649\\), \\(T_b(L_h) = 20.4599\\,\\mathrm{\u00b0C}\\)<div class='sub'>profiles: Figure {fig:temps}</div>",
+    "sim": "\\(T_w = 20.7649\\), \\(T_b = 20.4599\\,\\mathrm{\u00b0C}\\)<div class='sub'>largest \\(T_w\\) difference along the tube \\(0.0044\\,\\%\\) of \\(\\Delta T_{fd}\\)</div>",
+    "diff": "\\(-1.3 \\times 10^{-5}\\), \\(4.4 \\times 10^{-6}\\,\\mathrm{K}\\)"
+   }
+  ],
+  "findings": [
+   "<b>Verification gave WARN.</b> On the finest mesh (480 cells along the heated section, 80 across the radius) the local Nusselt number follows the exact solution with an RMS difference of \\(0.005\\,\\%\\); the error falls with observed order \\(p = 1.42\\) (second-order schemes: 2 expected). By region, from L3 to L4: order \\(1.25\\) near the start of heating (\\(0.5\\text{\u2013}10\\,D\\)) and \\(1.60\\) downstream (\\(40\\text{\u2013}100\\,D\\)). Near \\(x = 0\\) the convergence slows, probably because part of the difference there does not shrink with the mesh: the simulated velocity at \\(x = 0\\) is slightly flatter than the parabola (Assumptions; a flatter profile has a larger wall shear and so a higher \\(Nu\\), the sign seen), and the simulation conducts heat along the axis, which the exact solution neglects. The two were not separated by a run.",
+   "Fully developed Nusselt number: the simulation's own tail gives \\(4.3641\\) against \\(48/11 = 4.3636\\) (\\(+0.011\\,\\%\\)). The tube is not quite long enough to be fully developed: at the outlet the exact \\(Nu\\) is still \\(0.53\\,\\%\\) above \\(Nu_{fd}\\). Of the \\(+0.011\\,\\%\\), \\(+0.0081\\,\\%\\) is the bias of the tail fit itself (the same fit on the exact solution); the entrance length carries a fit bias of \\(-0.072\\,\\%\\).",
+   "Energy is conserved to \\(1 \\times 10^{-9}\\) on every mesh, so the outlet bulk temperature is exact up to the iteration and round-off error, as it must be.",
+   "Thermal entrance length (\\(Nu \\le 1.05\\,Nu_{fd}\\)): \\(60.07\\,D\\) simulated, \\(60.11\\,D\\) exact. Heat diffuses about 7 times more slowly than momentum (\\(Pr = 7.01\\)), so the temperature profile takes far longer to develop than the velocity profile, which is already within \\(0.08\\,\\%\\) of the parabola at the end of the 20-diameter unheated section.",
+   "Gravity also makes the wall temperature vary around the tube: at the outlet the top of the wall is \\(0.034\\,\\mathrm{K}\\) warmer than the bottom (\\(11\\,\\%\\) of \\(\\Delta T_{fd}\\)), while the peripheral mean and \\(Nu\\) barely change. The exact solution's single \\(T_w(x)\\) is the peripheral mean.",
+   "Gravity (horizontal tube): measured effect on \\(Nu\\) at most \\(0.15\\,\\%\\), below the \\(1\\,\\%\\) rule: for \\(Nu\\) and the peripheral-mean wall temperature the no-buoyancy exact solution describes the real tube (up to \\(120\\,D\\); the effect still grows toward the outlet).",
+   "<b>Warning:</b> fully developed Nu (tail fit): 0.0111 % > 0.01 %.",
+   "<b>Warning:</b> observed order of the Nu(x) error 1.42 outside [1.5, 3.0]."
+  ],
+  "limitations": [
+   "The exact solution assumes a parabolic velocity at the start of heating and no axial conduction; the simulation keeps both effects of the real tube. Their effect is part of the measured difference, largest near \\(x = 0\\).",
+   "Constant properties: the viscosity change (\\(0.69\\,\\%\\) between wall and bulk) is estimated, not simulated.",
+   "Buoyancy was checked on one 3D mesh only (the effect is a difference of two runs on the same mesh, so most of the mesh error cancels); a 3D mesh study was not made.",
+   "The outlet is at \\(120\\,D\\): the flow there is \\(0.53\\,\\%\\) short of fully developed, so \\(Nu_{fd}\\) comes from a fit of the simulated tail, not from a direct reading."
+  ]
+ },
+ "problem": {
+  "description": "Water flows slowly through a small horizontal tube. After an unheated entrance section, the tube wall is heated electrically with the same heat flux everywhere. Find how the wall and the water warm up along the heated section and how the heat transfer coefficient (Nusselt number) develops, and compare the simulation with the exact solution of this problem.\n",
+  "setup": [
+   "A straight horizontal tube of inner diameter \\(D\\). Coordinates: \\(x\\) along the axis, measured from the start of the heated section, \\(r\\) from the axis.",
+   "Inlet, \\(x = -L_0\\): water enters with a uniform velocity \\(U\\) over the cross-section and a uniform temperature \\(T_{\\mathrm{in}}\\).",
+   "Unheated section, \\(-L_0 < x < 0\\): the wall is thermally insulated (no heat flux).",
+   "Heated section, \\(0 < x < L_h\\): a uniform heat flux \\(q_w\\) flows from the wall into the water, the same at every point of the wall.",
+   "Outlet, \\(x = L_h\\): the water leaves the tube freely.",
+   "The wall is no-slip (the water sticks to it). Gravity acts downward, perpendicular to the tube axis.",
+   "Local Nusselt number: \\(Nu(x) = h(x) D / k\\) with \\(h(x) = q_w / (T_w(x) - T_b(x))\\), where \\(T_w\\) is the wall temperature and \\(T_b\\) the bulk (flow-weighted mean) temperature at \\(x\\)."
+  ],
+  "given": [
+   {
+    "label": "Tube inner diameter",
+    "symbol": "\\(D\\)",
+    "value": "\\(0.004\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Length of the unheated entrance section (\\(20\\,D\\))",
+    "symbol": "\\(L_0\\)",
+    "value": "\\(0.08\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Length of the heated section (\\(120\\,D\\))",
+    "symbol": "\\(L_h\\)",
+    "value": "\\(0.48\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Mean velocity (uniform at the inlet)",
+    "symbol": "\\(U\\)",
+    "value": "\\(0.05\\)",
+    "unit": "m/s"
+   },
+   {
+    "label": "Inlet water temperature",
+    "symbol": "\\(T_{\\mathrm{in}}\\)",
+    "value": "\\(20\\)",
+    "unit": "\u00b0C"
+   },
+   {
+    "label": "Wall heat flux into the water over the heated section",
+    "symbol": "\\(q_w\\)",
+    "value": "\\(200\\)",
+    "unit": "W/m\u00b2"
+   },
+   {
+    "label": "Density (water, 20 \u00b0C)",
+    "symbol": "\\(\\rho\\)",
+    "value": "\\(998.2\\)",
+    "unit": "kg/m\u00b3"
+   },
+   {
+    "label": "Kinematic viscosity (water, 20 \u00b0C)",
+    "symbol": "\\(\\nu\\)",
+    "value": "\\(1.004 \\times 10^{-6}\\)",
+    "unit": "m\u00b2/s"
+   },
+   {
+    "label": "Thermal conductivity (water, 20 \u00b0C)",
+    "symbol": "\\(k\\)",
+    "value": "\\(0.598\\)",
+    "unit": "W/(m K)"
+   },
+   {
+    "label": "Specific heat (water, 20 \u00b0C)",
+    "symbol": "\\(c_p\\)",
+    "value": "\\(4182\\)",
+    "unit": "J/(kg K)"
+   },
+   {
+    "label": "Thermal expansion coefficient (water, 20 \u00b0C)",
+    "symbol": "\\(\\beta\\)",
+    "value": "\\(2.07 \\times 10^{-4}\\)",
+    "unit": "1/K"
+   },
+   {
+    "label": "Dynamic viscosity of water at 25 \u00b0C (for judging how much the properties change)",
+    "symbol": "\\(\\mu_{25}\\)",
+    "value": "\\(8.9 \\times 10^{-4}\\)",
+    "unit": "Pa s"
+   },
+   {
+    "label": "Gravitational acceleration",
+    "symbol": "\\(g\\)",
+    "value": "\\(9.81\\)",
+    "unit": "m/s\u00b2"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "nu_x",
+    "text": "Local Nusselt number \\(Nu(x)\\) along the heated section, compared with the exact solution"
+   },
+   {
+    "letter": "b",
+    "key": "nu_fd",
+    "text": "Nusselt number of the fully developed region, far from the start of heating"
+   },
+   {
+    "letter": "c",
+    "key": "l_th",
+    "text": "Thermal entrance length: the distance from the start of heating at which \\(Nu(x)\\) comes within 5 % of its fully developed value"
+   },
+   {
+    "letter": "d",
+    "key": "t_wall",
+    "text": "Wall temperature \\(T_w(x)\\) and bulk temperature \\(T_b(x)\\) along the heated section, and both at the outlet"
+   }
+  ],
+  "reference": null
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "Laminar flow",
+    "status": "ok",
+    "check": "\\(Re = UD/\\nu = 199.2\\), far below the usual pipe transition value of about 2300 (approximate)."
+   },
+   {
+    "name": "Incompressible",
+    "status": "ok",
+    "check": "\\(Ma = u_{\\max}/c = 6.7 \\times 10^{-5}\\) with the speed of sound in water about 1482 m/s (approximate); density changes by \\(\\beta\\,\\Delta T_{\\max} = 1.6 \\times 10^{-4}\\)."
+   },
+   {
+    "name": "Constant properties",
+    "status": "ok",
+    "check": "From the two given viscosities, \\(d\\mu/dT \\approx -2.24 \\times 10^{-5}\\,\\mathrm{Pa\\,s/K}\\). The hottest water (outlet wall, \\(0.767\\,\\mathrm{K}\\) above the inlet) is \\(1.7\\,\\%\\) less viscous; wall and bulk differ by \\(0.69\\,\\%\\). With the Sieder-Tate exponent \\(0.14\\) (approximate) that changes \\(Nu\\) by about \\(0.1\\,\\%\\), below the mesh error."
+   },
+   {
+    "name": "No buoyancy (gravity does not change the flow)",
+    "status": "ok",
+    "check": "Measured: the same 3D half-tube mesh run with and without gravity. Gravity changes the peripherally averaged \\(Nu\\) by at most \\(0.15\\,\\%\\) (at \\(x = 118.4\\,D\\)), \\(+0.15\\,\\%\\) at the outlet; the secondary flow peaks at \\(9.2 \\times 10^{-4}\\,U\\), and the top and bottom of the wall differ by up to \\(11\\,\\%\\) of \\(\\Delta T_{fd}\\). Indicators: \\(Gr = g\\beta\\Delta T_{fd}D^3/\\nu^2 = 39.5\\), \\(Ra = 277\\), \\(Gr/Re^2 = 1 \\times 10^{-3}\\). Rule (fixed before the runs): \\(< 1\\,\\%\\) for the no-buoyancy idealisation to hold."
+   },
+   {
+    "name": "No viscous heating",
+    "status": "ok",
+    "check": "\\(Br = \\mu U^2/(q_w D) = 3.1 \\times 10^{-6}\\): the friction heat is negligible against the wall flux."
+   },
+   {
+    "name": "Axial heat conduction negligible (exact solution only)",
+    "status": "ok",
+    "check": "\\(Pe = 1396 \\gg 1\\). The simulation keeps axial conduction; the exact solution drops it. The difference is largest just after \\(x = 0\\) and is part of what the comparison measures."
+   },
+   {
+    "name": "Fully developed velocity at the start of heating (exact solution only)",
+    "status": "ok",
+    "check": "The simulation develops the velocity from a uniform inlet over \\(L_0 = 20\\,D = 0.1\\,Re\\,D\\). At \\(x = 0\\) its centreline velocity is \\(-0.08\\,\\%\\) from the parabola's \\(2U\\) and the largest difference across the profile is \\(0.081\\,\\%\\) of \\(2U\\) (finest mesh, Figure {fig:velocity}). On the meshes L1 to L4 the centreline difference is \\(-0.53\\,\\%\\), \\(-0.25\\,\\%\\), \\(-0.12\\,\\%\\), \\(-0.08\\,\\%\\): it shrinks with each refinement (at first order on the coarse meshes, set by the singular corner where the uniform inlet meets the no-slip wall), so most of it is mesh error. Extrapolated to zero cell size (last three meshes) it is \\(-0.06\\,\\%\\): a small real deficit remains after 20 diameters, far below the 1 % rule."
+   },
+   {
+    "name": "Steady, axisymmetric",
+    "status": "imposed",
+    "check": "Steady solver; without gravity nothing varies around the axis, so a \\(0.5^\\circ\\) wedge is exact. The wedge's flat wall faces change the perimeter-to-area ratio by \\(9.5 \\times 10^{-6}\\)."
+   }
+  ]
+ },
+ "theory": {
+  "intro": "This problem has an exact solution: the extended Graetz problem for a uniform wall heat flux (Siegel, Sparrow and Hallman 1958), for a parabolic velocity profile, constant properties and no axial conduction. Its fully developed part is derived and checked by SymPy; the entrance region is an eigenfunction series (Kummer functions) evaluated with mpmath and checked against an independent finite-volume solution of the same equation. Nothing is taken from tables.",
+  "steps": [
+   {
+    "label": "Energy equation (steady, constant properties, axial conduction neglected)",
+    "latex": "u(r)\\,\\frac{\\partial T}{\\partial x} = \\frac{\\alpha}{r}\\frac{\\partial}{\\partial r}\\!\\left(r\\frac{\\partial T}{\\partial r}\\right),\\qquad u(r) = 2U\\left(1 - \\frac{r^2}{a^2}\\right),\\quad a = \\frac{D}{2}",
+    "note": "Heat carried along by the flow (left) balances heat conducted across the tube (right). The velocity is the fully developed parabola from the start of heating."
+   },
+   {
+    "label": "Boundary conditions",
+    "latex": "k\\left.\\frac{\\partial T}{\\partial r}\\right|_{r=a} = q_w,\\qquad \\left.\\frac{\\partial T}{\\partial r}\\right|_{r=0} = 0,\\qquad T(0, r) = T_{\\mathrm{in}}",
+    "note": "Uniform flux into the water at the wall, symmetry on the axis, uniform temperature where heating starts."
+   },
+   {
+    "label": "Dimensionless form",
+    "latex": "\\eta = \\frac{r}{a},\\quad X = \\frac{x\\,\\alpha}{U a^2} = \\frac{4x}{D\\,Pe},\\quad \\theta = \\frac{(T - T_{\\mathrm{in}})\\,k}{q_w a}:\\qquad 2(1-\\eta^2)\\,\\frac{\\partial\\theta}{\\partial X} = \\frac{1}{\\eta}\\frac{\\partial}{\\partial\\eta}\\!\\left(\\eta\\frac{\\partial\\theta}{\\partial\\eta}\\right)",
+    "note": "No parameter is left: one solution serves every tube, flow rate and heat flux."
+   },
+   {
+    "label": "Fully developed part (SymPy)",
+    "latex": "\\theta_{fd} = 2X + f(\\eta),\\qquad f(\\eta) = - \\frac{\\eta^{4}}{4} + \\eta^{2} - \\frac{7}{24},\\qquad \\theta_b = 2X",
+    "note": "The bulk temperature rises linearly (energy balance); the profile shape f does not change. The constant in f makes its flow-weighted mean zero."
+   },
+   {
+    "label": "Entrance region: eigenfunction series",
+    "latex": "\\theta = 2X + f(\\eta) + \\sum_{n=1}^{\\infty} C_n R_n(\\eta)\\, e^{-\\lambda_n^2 X/2},\\qquad (\\eta R_n')' + \\lambda_n^2 \\eta (1-\\eta^2) R_n = 0,\\quad R_n'(1) = 0",
+    "note": "The difference from the fully developed state decays along the tube. The eigenfunctions are Kummer functions; the first eigenvalues are 5.0675, 9.1576, 13.1972. 80 terms are summed; coefficients from \\(\\theta(0,\\eta) = 0\\) by orthogonality (weight \\(\\eta(1-\\eta^2)\\))."
+   },
+   {
+    "label": "Local Nusselt number",
+    "latex": "Nu(x) = \\frac{q_w D}{k\\,(T_w - T_b)} = \\frac{2}{\\theta_w - \\theta_b} = \\frac{2}{\\tfrac{11}{24} + \\sum_n C_n R_n(1)\\,e^{-\\lambda_n^2 X/2}}",
+    "note": "Infinite at the start of heating (the thermal boundary layer has zero thickness there), falling to \\(48/11\\) downstream."
+   }
+  ],
+  "derived": [
+   {
+    "key": "Re",
+    "label": "Reynolds number",
+    "symbol": "Re",
+    "formula": "Re = \\frac{U D}{\\nu}",
+    "value": 199.20318725099602,
+    "value_tex": "199.2",
+    "unit_tex": "",
+    "params": [
+     {
+      "tex": "U",
+      "meaning": "mean velocity",
+      "value": 0.05,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "D",
+      "meaning": "tube diameter",
+      "value": 0.004,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity of water",
+      "value": 1.004e-06,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "Re = \\frac{(0.05\\,\\mathrm{m/s})(0.004\\,\\mathrm{m})}{(1.004 \\times 10^{-6}\\,\\mathrm{m^2/s})} = 199.2",
+    "why": "Ratio of inertia to viscous forces. It sets whether the flow is laminar and how long the velocity profile needs to develop after the inlet."
+   },
+   {
+    "key": "Pr",
+    "label": "Prandtl number",
+    "symbol": "Pr",
+    "formula": "Pr = \\frac{\\nu}{\\alpha}",
+    "value": 7.008645969230771,
+    "value_tex": "7.009",
+    "unit_tex": "",
+    "params": [
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity of water",
+      "value": 1.004e-06,
+      "unit": "\\mathrm{m^2/s}"
+     },
+     {
+      "tex": "\\alpha",
+      "meaning": "thermal diffusivity, \\(\\alpha = k/(\\rho c_p)\\)",
+      "value": 1.432516358234875e-07,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "Pr = \\frac{(1.004 \\times 10^{-6}\\,\\mathrm{m^2/s})}{(1.433 \\times 10^{-7}\\,\\mathrm{m^2/s})} = 7.009",
+    "why": "Ratio of momentum to heat diffusion. Water's Pr of about 7 means heat spreads across the tube seven times more slowly than momentum: the thermal entrance region is much longer than the hydrodynamic one."
+   },
+   {
+    "key": "Pe",
+    "label": "P\u00e9clet number",
+    "symbol": "Pe",
+    "formula": "Pe = Re\\,Pr = \\frac{U D}{\\alpha}",
+    "value": 1396.1446153846157,
+    "value_tex": "1396",
+    "unit_tex": "",
+    "params": [
+     {
+      "tex": "U",
+      "meaning": "mean velocity",
+      "value": 0.05,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "D",
+      "meaning": "tube diameter",
+      "value": 0.004,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\alpha",
+      "meaning": "thermal diffusivity, \\(\\alpha = k/(\\rho c_p)\\)",
+      "value": 1.432516358234875e-07,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "Pe = \\frac{(0.05\\,\\mathrm{m/s})(0.004\\,\\mathrm{m})}{(1.433 \\times 10^{-7}\\,\\mathrm{m^2/s})} = 1396",
+    "why": "Ratio of heat carried along the tube by the flow to heat conducted along it. At \\(Pe \\gg 1\\) axial conduction is negligible, which the exact solution assumes."
+   },
+   {
+    "key": "nu_fd",
+    "label": "Fully developed Nusselt number",
+    "symbol": "Nu_{fd}",
+    "formula": "Nu_{fd} = \\frac{2}{\\theta_w - \\theta_b} = \\frac{2}{f(1)} = \\frac{48}{11}",
+    "value": 4.363636363636363,
+    "value_tex": "4.36364",
+    "unit_tex": "",
+    "params": [],
+    "check": "Nu_{fd} = \\frac{2}{11/24} = \\frac{48}{11} = 4.36364",
+    "why": "Far from the start of heating the temperature profile keeps its shape and only rises; the heat transfer coefficient is then constant. Requested output (b)."
+   },
+   {
+    "key": "dT_fd",
+    "label": "Wall-to-bulk temperature difference, fully developed",
+    "symbol": "\\Delta T_{fd}",
+    "formula": "\\Delta T_{fd} = T_w - T_b = \\frac{q_w D}{k\\,Nu_{fd}}",
+    "value": 0.306577480490524,
+    "value_tex": "0.3066",
+    "unit_tex": "\\mathrm{K}",
+    "params": [
+     {
+      "tex": "q_w",
+      "meaning": "wall heat flux",
+      "value": 200.0,
+      "unit": "\\mathrm{W/m^2}"
+     },
+     {
+      "tex": "D",
+      "meaning": "tube diameter",
+      "value": 0.004,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "k",
+      "meaning": "thermal conductivity of water",
+      "value": 0.598,
+      "unit": "\\mathrm{W/(m\\,K)}"
+     }
+    ],
+    "check": "\\Delta T_{fd} = \\frac{(200\\,\\mathrm{W/m^2})(0.004\\,\\mathrm{m})}{(0.598\\,\\mathrm{W/(m\\,K)})\\,(4.36364)} = 0.3066\\,\\mathrm{K}",
+    "why": "How much hotter the wall is than the water's mean in the fully developed region."
+   },
+   {
+    "key": "l_th",
+    "label": "Thermal entrance length (5 %)",
+    "symbol": "L_{th}",
+    "formula": "Nu(L_{th}) = 1.05\\,Nu_{fd}",
+    "value": 0.24043154584023868,
+    "value_tex": "0.2404",
+    "unit_tex": "\\mathrm{m}",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "tube diameter",
+      "value": 0.004,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "U",
+      "meaning": "mean velocity",
+      "value": 0.05,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "\\alpha",
+      "meaning": "thermal diffusivity, \\(\\alpha = k/(\\rho c_p)\\)",
+      "value": 1.432516358234875e-07,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ],
+    "check": "L_{th} = x^+ D\\,Pe = 0.04305 \\times 0.004 \\times 1396 = 0.2404\\,\\mathrm{m}",
+    "why": "Requested output (c). The series gives it as the root of \\(Nu(x) = 1.05\\,Nu_{fd}\\); in the dimensionless distance \\(x^+ = x/(D\\,Re\\,Pr)\\) it is a pure number, \\(x^+ = 0.04305\\), independent of the data. Here \\(L_{th} = 60.11\\,D\\)."
+   },
+   {
+    "key": "T_b_out",
+    "label": "Bulk temperature at the outlet",
+    "symbol": "T_b(L_h)",
+    "formula": "T_b(L_h) = T_{\\mathrm{in}} + \\frac{4\\,q_w L_h}{\\rho\\,c_p\\,U D}",
+    "value": 20.459938362510194,
+    "value_tex": "20.4599",
+    "unit_tex": "\\mathrm{\u00b0C}",
+    "params": [
+     {
+      "tex": "T_{\\mathrm{in}}",
+      "meaning": "inlet temperature",
+      "value": 20.0,
+      "unit": "\\mathrm{\u00b0C}"
+     },
+     {
+      "tex": "q_w",
+      "meaning": "wall heat flux",
+      "value": 200.0,
+      "unit": "\\mathrm{W/m^2}"
+     },
+     {
+      "tex": "L_h",
+      "meaning": "heated length",
+      "value": 0.48,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\rho",
+      "meaning": "density",
+      "value": 998.2,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "c_p",
+      "meaning": "specific heat",
+      "value": 4182.0,
+      "unit": "\\mathrm{J/(kg\\,K)}"
+     },
+     {
+      "tex": "U",
+      "meaning": "mean velocity",
+      "value": 0.05,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "D",
+      "meaning": "tube diameter",
+      "value": 0.004,
+      "unit": "\\mathrm{m}"
+     }
+    ],
+    "check": "T_b(L_h) = 20 + \\frac{4 \\cdot 200 \\cdot 0.48}{998.2 \\cdot 4182 \\cdot 0.05 \\cdot 0.004} = 20.4599",
+    "why": "Energy balance alone: all heat put in through the wall over \\(L_h\\) is carried away by the water. Exact for any velocity profile, so it also checks the simulation's energy conservation."
+   },
+   {
+    "key": "T_w_out",
+    "label": "Wall temperature at the outlet",
+    "symbol": "T_w(L_h)",
+    "formula": "T_w(L_h) = T_b(L_h) + \\frac{q_w D}{k\\,Nu(L_h)}",
+    "value": 20.76490715071226,
+    "value_tex": "20.7649",
+    "unit_tex": "\\mathrm{\u00b0C}",
+    "params": [
+     {
+      "tex": "q_w",
+      "meaning": "wall heat flux",
+      "value": 200.0,
+      "unit": "\\mathrm{W/m^2}"
+     },
+     {
+      "tex": "D",
+      "meaning": "tube diameter",
+      "value": 0.004,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "k",
+      "meaning": "thermal conductivity of water",
+      "value": 0.598,
+      "unit": "\\mathrm{W/(m\\,K)}"
+     }
+    ],
+    "check": "T_w(L_h) = 20.4599 + \\frac{200 \\times 0.004}{0.598 \\times 4.38665} = 20.7649\\,\\mathrm{\u00b0C}",
+    "why": "Requested output (d): the hottest point of the wall. The series gives \\(Nu(L_h) = 4.38665\\), still \\(0.53\\,\\%\\) above \\(Nu_{fd}\\)."
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "\\(\\theta_{fd} = 2X + f(\\eta)\\) satisfies \\(2(1-\\eta^2)\\,\\partial\\theta/\\partial X = \\frac{1}{\\eta}\\partial_\\eta(\\eta\\,\\partial_\\eta\\theta)\\)",
+    "ok": true
+   },
+   {
+    "name": "wall heat flux \\(\\partial\\theta/\\partial\\eta = 1\\) at \\(\\eta = 1\\)",
+    "ok": true
+   },
+   {
+    "name": "regular on the axis: \\(\\partial\\theta/\\partial\\eta = 0\\) at \\(\\eta = 0\\)",
+    "ok": true
+   },
+   {
+    "name": "bulk temperature \\(\\theta_b = 2X\\): all heat put in since \\(X = 0\\) is carried by the flow",
+    "ok": true
+   },
+   {
+    "name": "\\(Nu_{fd} = 2/(\\theta_w - \\theta_b) = 48/11\\)",
+    "ok": true
+   },
+   {
+    "name": "eigenfunctions \\(R_n = e^{-z/2} M(\\tfrac12 - \\tfrac{\\lambda_n}{4}, 1, z)\\), \\(z = \\lambda_n\\eta^2\\), satisfy \\((\\eta R')' + \\lambda_n^2\\eta(1-\\eta^2)R = 0\\) (relative residual \\(< 10^{-12}\\))",
+    "ok": true
+   },
+   {
+    "name": "eigencondition \\(R_n'(1) = 0\\) holds for every \\(\\lambda_n\\) (\\(|R_n'(1)| < 10^{-15}\\,\\lambda_n\\))",
+    "ok": true
+   },
+   {
+    "name": "series converged: 60 and 80 terms give the same \\(Nu\\) to \\(1 \\times 10^{-16}\\) at \\(x/D \\ge 0.5\\)",
+    "ok": true
+   },
+   {
+    "name": "an independent finite-volume solution of the same equation (400 cells, no series) agrees to \\(4.2 \\times 10^{-6}\\) in \\(Nu\\) at \\(x/D = 0.5\\) to \\(100\\)",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "Steady, laminar, incompressible flow of a Newtonian fluid with constant properties; energy equation for the temperature; viscous heating neglected",
+   "settings": [
+    "constant/turbulenceProperties/simulationType",
+    "constant/transportProperties/transportModel",
+    "constant/transportProperties/nu",
+    "constant/transportProperties/Pr",
+    "constant/transportProperties/Prt"
+   ],
+   "why": "\\(Re = 199\\) is far below transition; the temperature rises by less than \\(1\\,\\mathrm{K}\\), so the viscosity changes by under \\(2\\,\\%\\) (see Assumptions); the Brinkman number \\(\\mu U^2/(q_w D) \\approx 3 \\times 10^{-6}\\) makes viscous heating negligible. \\(Pr = \\nu/\\alpha\\) is computed from the given \\(k\\), \\(\\rho\\), \\(c_p\\), \\(\\nu\\) to 12 digits. <code>Prt</code> multiplies a turbulent viscosity that is zero here.",
+   "affects": "Defines the equations. These are exactly the assumptions of the exact solution, except that the simulation keeps axial heat conduction and the developing velocity of the unheated section.",
+   "alternatives": "Temperature-dependent viscosity (a compressible solver such as <code>buoyantSimpleFoam</code> with a property table): would show the property effect, estimated below \\(0.2\\,\\%\\) on \\(Nu\\)."
+  },
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "Buoyancy: Boussinesq model, switched OFF (\\(g = 0\\)) in the main study; switched ON (\\(g = 9.81\\,\\mathrm{m/s^2}\\), across the axis) in a separate 3D check on one mesh",
+   "settings": [
+    "constant/g/value",
+    "constant/g/dimensions",
+    "constant/transportProperties/beta",
+    "constant/transportProperties/TRef"
+   ],
+   "why": "The exact solution has no buoyancy, and the main study verifies the simulation against it, so it must solve the same equations. Gravity across a horizontal heated tube makes warm water rise along the wall and sink in the middle (a secondary flow), which breaks axial symmetry; whether that matters here (\\(Ra \\approx 280\\), \\(Gr/Re^2 \\approx 10^{-3}\\)) is not settled by those numbers alone, so it is measured: the same 3D mesh run with and without gravity.",
+   "affects": "With \\(g = 0\\) the temperature is a passive scalar and the problem is axisymmetric. The 3D pair measures how much the real tube departs from the exact solution because of gravity.",
+   "alternatives": "Estimating the buoyancy effect from a mixed-convection correlation only: no cited correlation file was available, and the measured effect is more direct."
+  },
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "<code>buoyantBoussinesqSimpleFoam</code>: steady SIMPLE solver for incompressible flow with an energy equation and Boussinesq buoyancy",
+   "settings": [
+    "system/controlDict/application",
+    "system/fvSchemes/ddtSchemes/*"
+   ],
+   "why": "One solver serves both the main study (\\(g = 0\\)) and the buoyancy check (\\(g \\ne 0\\)), so the two differ only in gravity. It solves \\(\\nabla\\cdot(\\phi T) = \\nabla\\cdot(\\alpha\\nabla T)\\) with \\(\\alpha = \\nu/Pr\\), the energy equation of the problem. Steady: the question asks for the steady state.",
+   "affects": "How the answer is reached; not the converged answer.",
+   "alternatives": "<code>simpleFoam</code> with a <code>scalarTransport</code> function object for \\(T\\): would allow SIMPLEC (faster), but cannot do the buoyancy check. <code>buoyantSimpleFoam</code> (compressible): more inputs, same answer here."
+  },
+  {
+   "area": "Domain and mesh",
+   "kind": "physics",
+   "choice": "Axisymmetric wedge of \\(0.5^\\circ\\) (one cell around, <code>wedge</code> front and back, collapsed axis), the whole tube from the inlet \\(x = -L_0\\) to the outlet \\(x = L_h\\); two blocks along \\(x\\): unheated and heated",
+   "settings": [
+    "system/blockMeshDict/vertices",
+    "system/blockMeshDict/scale",
+    "system/blockMeshDict/mergeType",
+    "system/blockMeshDict/boundary",
+    "0/*/boundaryField/#includeEtc*",
+    "0/*/boundaryField/front/*",
+    "0/*/boundaryField/back/*",
+    "0/*/boundaryField/axis/*"
+   ],
+   "why": "Without gravity the flow and temperature do not vary around the axis, so a thin wedge represents the whole tube (OpenFOAM recommends angles below \\(5^\\circ\\)). Its flat wall face changes the perimeter-to-area ratio by \\(1/\\cos(\\theta/2) - 1\\): \\(1.5 \\times 10^{-4}\\) for the \\(2^\\circ\\) wedge first planned, about the error expected on the finest mesh, so the angle was cut to \\(0.5^\\circ\\) (\\(10^{-5}\\)) before production (Insights). The unheated section is in the domain because the problem includes it: the velocity develops there from the uniform inlet.",
+   "affects": "Reduces the problem to 2D (cells in \\(x\\) and \\(r\\) only).",
+   "alternatives": "Full 3D tube (needed only with gravity, see the buoyancy check). A domain starting at \\(x = 0\\) with a parabolic inlet: would match the exact solution more closely but would not be the stated problem."
+  },
+  {
+   "area": "Domain and mesh",
+   "kind": "accuracy",
+   "choice": "Four meshes L1 to L4 with \\(N_r = 10, 20, 40, 80\\) cells from axis to wall and \\(20, 40, 80, 160\\) (unheated) plus \\(60, 120, 240, 480\\) (heated) cells along \\(x\\): every count doubles. Graded: heated cells grow 20 times from \\(x = 0\\) to the outlet; radial cells shrink 4 times toward the wall; the last unheated cell matches the first heated one",
+   "settings": [
+    "system/blockMeshDict/blocks"
+   ],
+   "why": "Refinement ratio 2 in both directions gives the observed order and Richardson extrapolation. \\(Nu\\) changes fastest just after \\(x = 0\\) and the thermal boundary layer is thin near the wall, so cells are concentrated there. The same grading on every level keeps the meshes one geometric family.",
+   "affects": "Discretisation error; measured by the mesh study.",
+   "alternatives": "Uniform cells: 5 to 10 times more cells for the same error near \\(x = 0\\). A fifth level (205 thousand cells): too slow with SIMPLE on this machine for the gain (see pre-flight)."
+  },
+  {
+   "area": "Boundary conditions",
+   "kind": "physics",
+   "choice": "Inlet: uniform velocity \\(U\\) and temperature \\(T_{\\mathrm{in}}\\), pressure <code>fixedFluxPressure</code>. Outlet: \\(p_{rgh} = 0\\); \\(\\mathbf{u}\\) and \\(T\\) zero gradient for outflow (<code>inletOutlet</code>, which would impose \\(T_{\\mathrm{in}}\\) and zero velocity on any backflow)",
+   "settings": [
+    "0/U/boundaryField/inlet/*",
+    "0/U/boundaryField/outlet/*",
+    "0/T/boundaryField/inlet/*",
+    "0/T/boundaryField/outlet/*",
+    "0/p_rgh/boundaryField/inlet/*",
+    "0/p_rgh/boundaryField/outlet/*",
+    "0/p/boundaryField/*",
+    "0/alphat/boundaryField/*"
+   ],
+   "why": "As stated in the problem (uniform inlet, free outlet). <code>fixedFluxPressure</code> sets the pressure gradient consistent with the fixed inlet velocity. A zero axial temperature gradient at the outlet is not exactly true (the water still warms at \\(0.96\\,\\mathrm{K/m}\\)), but axial conduction is \\(1/Pe \\approx 7 \\times 10^{-4}\\) of the convective transport, so the error stays within a cell of the outlet. <code>p</code> and <code>alphat</code> are calculated fields.",
+   "affects": "Defines the inflow and lets the flow leave freely.",
+   "alternatives": "A developed (parabolic) inlet profile: not the stated problem."
+  },
+  {
+   "area": "Boundary conditions",
+   "kind": "physics",
+   "choice": "Walls: no slip; unheated wall insulated (zero temperature gradient); heated wall <code>fixedGradient</code> \\(\\partial T/\\partial n = q_w/k = 334.4\\,\\mathrm{K/m}\\); pressure <code>fixedFluxPressure</code>",
+   "settings": [
+    "0/U/boundaryField/*Wall*",
+    "0/T/boundaryField/unheatedWall/*",
+    "0/T/boundaryField/heatedWall/*",
+    "0/p_rgh/boundaryField/*Wall*"
+   ],
+   "why": "Fourier: the flux into the water is \\(k\\,\\partial T/\\partial n\\) with \\(n\\) pointing out of the fluid, so a uniform \\(q_w\\) is a uniform gradient \\(q_w/k\\). This is the problem as stated.",
+   "affects": "Defines the heating; \\(T_w\\) is then a result.",
+   "alternatives": "None for this problem."
+  },
+  {
+   "area": "Initial state and grid sequencing",
+   "kind": "solver",
+   "choice": "L1 starts from uniform \\(\\mathbf{u} = (U, 0, 0)\\), \\(T = T_{\\mathrm{in}}\\), \\(p_{rgh} = 0\\); each finer mesh starts from the converged coarser mesh (<code>mapFields</code>)",
+   "settings": [
+    "0/*/internalField"
+   ],
+   "why": "A steady problem has one answer whatever the starting guess. Starting from the coarser answer removes most of the iterations (primer, grid sequencing).",
+   "affects": "Only the number of iterations.",
+   "alternatives": "Every mesh from rest: the same answer, more iterations."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "accuracy",
+   "choice": "Second order: <code>bounded Gauss linearUpwind</code> for convection of \\(\\mathbf{u}\\) and \\(T\\); <code>Gauss linear</code> gradients and viscous stress; <code>Gauss linear corrected</code> Laplacian; linear interpolation",
+   "settings": [
+    "system/fvSchemes/gradSchemes/*",
+    "system/fvSchemes/divSchemes/*",
+    "system/fvSchemes/laplacianSchemes/*",
+    "system/fvSchemes/interpolationSchemes/*",
+    "system/fvSchemes/snGradSchemes/*"
+   ],
+   "why": "Along the tube the cell P\u00e9clet number \\(u\\,\\Delta x/\\alpha\\) reaches several hundred: central differencing of \\(T\\) would oscillate near \\(x = 0\\), where the wall flux starts abruptly. Linear upwind stays second order without those wiggles. <code>bounded</code> removes the \\(\\nabla\\cdot\\phi\\) error of unconverged iterations. The mesh is orthogonal, so <code>corrected</code> adds nothing.",
+   "affects": "Order of accuracy (expected 2) and numerical diffusion.",
+   "alternatives": "Central differencing (<code>Gauss linear</code>) for \\(T\\): less numerical diffusion, risk of oscillations; first-order upwind: too diffusive along the tube."
+  },
+  {
+   "area": "Algorithm",
+   "kind": "solver",
+   "choice": "Plain SIMPLE with momentum predictor; relaxation U 0.7 and \\(p_{rgh}\\) 0.3 (chosen by a short trial), \\(T\\) not relaxed",
+   "settings": [
+    "system/fvSolution/SIMPLE/*",
+    "system/fvSolution/relaxationFactors/*"
+   ],
+   "why": "<code>buoyantBoussinesqSimpleFoam</code> ignores <code>consistent yes</code> (no SIMPLEC, see Insights), so pressure must be relaxed. The trial ran to the live-stop rule from rest: U/p 0.7/0.3 took 346, 351 and 725 iterations on L1, L2, L3; 0.9/0.1 took 431 and 853 on L1, L2; 0.8/0.2 took 691 on L1. With \\(g = 0\\) the \\(T\\) equation is linear once the flux is known, so it needs no relaxation.",
+   "affects": "Only how fast the answer is reached.",
+   "alternatives": "SIMPLEC with simpleFoam (not possible with this solver); U 0.7/p 0.3 (textbook)."
+  },
+  {
+   "area": "Linear solvers",
+   "kind": "solver",
+   "choice": "GAMG (DIC Gauss-Seidel smoother) for \\(p_{rgh}\\), each SIMPLE iteration to \\(5\\,\\%\\) of its initial residual or the absolute floor \\(10^{-9}\\), at most 200 iterations; PBiCGStab with DILU for \\(\\mathbf{u}\\) and \\(T\\) to \\(1\\,\\%\\)",
+   "settings": [
+    "system/fvSolution/solvers/*"
+   ],
+   "why": "Partial solves are enough inside SIMPLE: the outer iterations remove what is left. On the finest mesh GAMG took 0.62 s per iteration (29 iterations per solve) against 0.74 s for PCG/DIC (619 per solve) in the pre-flight; on L3 the ranking was the other way round (Insights). The absolute floor \\(10^{-12}\\) used at first was below round-off: converged runs then spent 1000 GAMG iterations per solve (Insights).",
+   "affects": "Speed; the iteration error is controlled by the live stop.",
+   "alternatives": "Tight solves every iteration: same answer, slower."
+  },
+  {
+   "area": "Run control and stopping",
+   "kind": "accuracy",
+   "choice": "Iterations stop live once the estimated iteration error of every monitored probe is below \\(10^{-6}\\,\\mathrm{K}\\) (temperature) and \\(10^{-7}\\,\\mathrm{m/s}\\) (velocity), held for 2 checks (<code>monitor.steady_check</code>, plus: a probe unchanged in its 12 printed digits counts as settled, a work-around tested by replay, see Insights); the end time is only a cap; fields written with 12 significant digits",
+   "settings": [
+    "system/controlDict/endTime",
+    "system/controlDict/deltaT",
+    "system/controlDict/startTime",
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/writePrecision",
+    "system/controlDict/timePrecision",
+    "system/controlDict/functions/liveStop/*"
+   ],
+   "why": "The tolerances are \\(3 \\times 10^{-6}\\) of the wall-to-bulk temperature difference and \\(2 \\times 10^{-6}\\,U\\): far below the mesh error expected on the finest mesh, so iteration error does not affect the comparison. Residual targets say nothing about the error of the answer (primer pitfall 10).",
+   "affects": "Iteration error (made negligible) and output precision.",
+   "alternatives": "Residual targets (<code>residualControl</code>): no link to the answer's error."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Probes of \\(T\\) and \\(\\mathbf{u}\\) at 9 points (live stop); mean heated-wall temperature; volume flux and flux-weighted temperature through inlet and outlet (energy balance). \\(T_w(x)\\) from the wall face values, \\(T_b(x)\\) as \\(\\sum u T V / \\sum u V\\) over each column of cells",
+   "settings": [
+    "system/controlDict/functions/probes/*",
+    "system/controlDict/functions/heatedWallT/*",
+    "system/controlDict/functions/inletFlux/*",
+    "system/controlDict/functions/outletFlux/*",
+    "system/controlDict/functions/inletEnthalpy/*",
+    "system/controlDict/functions/outletEnthalpy/*"
+   ],
+   "why": "The energy balance \\(\\rho c_p (\\sum\\phi T|_{out} - \\sum\\phi T|_{in}) = q_w A_h\\) is the physical convergence check. The bulk temperature is defined in the problem as flow weighted; the column sum is the midpoint rule for that integral (second order).",
+   "affects": "How \\(Nu\\), \\(T_w\\), \\(T_b\\) are measured.",
+   "alternatives": "Sampling lines (<code>sample</code>) and interpolation: adds interpolation error; cell columns of a structured mesh are exact cross-sections."
+  },
+  {
+   "area": "Buoyancy check",
+   "kind": "accuracy",
+   "choice": "Half tube in 3D (symmetry plane through the axis containing gravity), O-grid cross-section of 512 cells, the axial cells of L2; run once with \\(g = 0\\) and once with gravity; 4 MPI ranks",
+   "settings": [],
+   "why": "The secondary flow is symmetric about the vertical plane, so half the tube suffices. Comparing the same mesh with and without gravity cancels most of the mesh error in the difference, which is what is wanted: the size of the buoyancy effect on \\(Nu\\), not \\(Nu\\) itself.",
+   "affects": "Only the buoyancy assessment (assumption check and limitations), not the main comparison.",
+   "alternatives": "A finer 3D mesh or a 3D mesh study: several times the cost; done only if the effect is near the decision threshold."
+  }
+ ],
+ "preflight": {
+  "purpose": "Short runs from rest on the coarsest and the finest mesh check that the setup runs and is stable and give the time per iteration; the finest mesh is run with both pressure solvers. The coarsest mesh is also run to convergence: its error against the exact solution, with the expected order 2, sized the acceptance tolerances before any production run.",
+  "runs": [
+   {
+    "name": "L1 (800 cells), PCG/DIC pressure solver",
+    "setup": "300 iterations from rest, \\(2^\\circ\\) wedge",
+    "outcome": "ok; 0.00333 s per iteration"
+   },
+   {
+    "name": "L4 (51200 cells), PCG/DIC pressure solver",
+    "setup": "300 iterations from rest, \\(2^\\circ\\) wedge",
+    "outcome": "ok; 0.74 s per iteration"
+   },
+   {
+    "name": "L4 (51200 cells), GAMG pressure solver",
+    "setup": "300 iterations from rest, \\(2^\\circ\\) wedge",
+    "outcome": "ok; 0.616 s per iteration"
+   },
+   {
+    "name": "L1 to convergence (PCG pressure solver)",
+    "setup": "live stop rule, from rest, \\(2^\\circ\\) wedge",
+    "outcome": "2994 iterations; error of \\(Nu\\) (RMS) 0.15 %, of \\(Nu(L_h)\\) \\(+0.15\\,\\%\\), of \\(L_{th}\\) \\(-0.0058\\,\\%\\) (outlet values from the fit as in production)"
+   }
+  ],
+  "checks": [
+   {
+    "name": "Solver finished without errors (L1, PCG)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (L1, PCG)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: T (L1, PCG)",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Ux (L1, PCG)",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Uy (L1, PCG)",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Uz (L1, PCG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.998\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p_rgh (L1, PCG)",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Continuity-error trend (L1, PCG)",
+    "status": "ok",
+    "value": "\\(\\times\\,2.45 \\times 10^{-6}\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Solver finished without errors (L4, PCG)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (L4, PCG)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: T (L4, PCG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.204\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Ux (L4, PCG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0837\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy (L4, PCG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0839\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz (L4, PCG)",
+    "status": "ok",
+    "value": "\\(\\times\\,1.88\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p_rgh (L4, PCG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0204\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend (L4, PCG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0177\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Solver finished without errors (L4, GAMG)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (L4, GAMG)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: T (L4, GAMG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.204\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Ux (L4, GAMG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0836\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy (L4, GAMG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0837\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz (L4, GAMG)",
+    "status": "ok",
+    "value": "\\(\\times\\,1.9\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p_rgh (L4, GAMG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0191\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend (L4, GAMG)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0156\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "conclusion": "After the first pre-flight failed (SIMPLEC is not available in this solver, see Insights), all checks pass. On L4 the PCG pressure solver took 0.74 s per iteration and GAMG 0.616 s, so production uses GAMG (on L3 the ranking had been reversed, Insights). The converged L1 errors (0.15 % RMS in \\(Nu\\)) set the finest-mesh tolerances at one sixteenth of them (order 2 over three refinements would give one sixty-fourth). The pre-flight used a \\(2^\\circ\\) wedge; it was cut to \\(0.5^\\circ\\) before production because its geometric bias was close to those tolerances."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Geometry",
+    "real": "Round tube, 140 diameters long",
+    "model": "\\(0.5^\\circ\\) axisymmetric wedge, one cell around, from the inlet to the outlet"
+   },
+   {
+    "aspect": "Heated wall",
+    "real": "\\(q_w = 200\\,\\mathrm{W/m^2}\\)",
+    "model": "Fixed temperature gradient \\(\\partial T/\\partial n = q_w/k = 334.45\\,\\mathrm{K/m}\\)"
+   },
+   {
+    "aspect": "Insulated wall",
+    "real": "No heat flux",
+    "model": "Zero temperature gradient"
+   },
+   {
+    "aspect": "Water",
+    "real": "20 \u00b0C",
+    "model": "\\(\\nu = 1.004 \\times 10^{-6}\\,\\mathrm{m^2/s},\\ Pr = 7.00865\\), constant"
+   },
+   {
+    "aspect": "Gravity",
+    "real": "Across the axis",
+    "model": "Off in the main study; on in the 3D buoyancy check"
+   }
+  ],
+  "meshes": {
+   "intro": "Four meshes; each doubles every cell count. Cells are concentrated where heating starts and toward the wall.",
+   "head": [
+    "Mesh",
+    "\\(N_r\\)",
+    "Cells along \\(x\\) (unheated + heated)",
+    "Cells",
+    "First heated cell \\(\\Delta x/D\\)",
+    "Last heated cell \\(\\Delta x/D\\)"
+   ],
+   "rows": [
+    [
+     "L1",
+     10,
+     "20 + 60",
+     "800",
+     "\\(0.312\\)",
+     "\\(6.24\\)"
+    ],
+    [
+     "L2",
+     20,
+     "40 + 120",
+     "3,200",
+     "\\(0.157\\)",
+     "\\(3.14\\)"
+    ],
+    [
+     "L3",
+     40,
+     "80 + 240",
+     "12,800",
+     "\\(0.0786\\)",
+     "\\(1.57\\)"
+    ],
+    [
+     "L4",
+     80,
+     "160 + 480",
+     "51,200",
+     "\\(0.0394\\)",
+     "\\(0.787\\)"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Mesh",
+    "\\(Nu(L_h)\\)",
+    "\\(Nu_{fd}\\) (tail fit)",
+    "\\(L_{th}/D\\)",
+    "\\(T_w(L_h)\\) (\u00b0C)",
+    "\\(T_b(L_h)\\) (\u00b0C)"
+   ],
+   "rows": [
+    [
+     "L1",
+     "\\(4.3924\\)",
+     "\\(4.3694\\)",
+     "\\(60.12\\)",
+     "\\(20.76451\\)",
+     "\\(20.459943\\)"
+    ],
+    [
+     "L2",
+     "\\(4.3883\\)",
+     "\\(4.3654\\)",
+     "\\(60.10\\)",
+     "\\(20.76480\\)",
+     "\\(20.459943\\)"
+    ],
+    [
+     "L3",
+     "\\(4.3872\\)",
+     "\\(4.3644\\)",
+     "\\(60.08\\)",
+     "\\(20.76487\\)",
+     "\\(20.459943\\)"
+    ],
+    [
+     "L4",
+     "\\(4.3869\\)",
+     "\\(4.3641\\)",
+     "\\(60.07\\)",
+     "\\(20.76489\\)",
+     "\\(20.459943\\)"
+    ],
+    [
+     "Exact",
+     "\\(4.3867\\)",
+     "\\(4.3636\\)",
+     "\\(60.11\\)",
+     "\\(20.76491\\)",
+     "\\(20.459938\\)"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Mesh",
+    "Iterations",
+    "Live stop",
+    "Energy balance",
+    "Mass balance",
+    "Log checks",
+    "Time (s)"
+   ],
+   "rows": [
+    [
+     "L1",
+     3736,
+     "\u2713 ok",
+     "\\(-9.3 \\times 10^{-13}\\)",
+     "\\(-4.6 \\times 10^{-13}\\)",
+     "\u2713 OK",
+     "10"
+    ],
+    [
+     "L2",
+     3690,
+     "\u2713 ok",
+     "\\(-3 \\times 10^{-10}\\)",
+     "\\(-7.2 \\times 10^{-12}\\)",
+     "\u2713 OK",
+     "35"
+    ],
+    [
+     "L3",
+     1319,
+     "\u2713 ok",
+     "\\(-1 \\times 10^{-9}\\)",
+     "\\(-2.2 \\times 10^{-11}\\)",
+     "\u2713 OK",
+     "95"
+    ],
+    [
+     "L4",
+     3291,
+     "\u2713 ok",
+     "\\(-7.6 \\times 10^{-11}\\)",
+     "\\(-2.1 \\times 10^{-12}\\)",
+     "\u2713 OK",
+     "1283"
+    ]
+   ],
+   "notes": [
+    "Each run stopped live once the estimated iteration error of all 9 temperature and velocity probes was below \\(1 \\times 10^{-6}\\,\\mathrm{K}\\) and \\(1 \\times 10^{-7}\\,\\mathrm{m/s}\\) (or a probe stayed unchanged in its 12 printed digits, Insights), held for 2 checks. Each finer mesh started from the coarser answer.",
+    "Energy balance: \\(\\rho c_p \\sum \\phi T|_{\\mathrm{out}+\\mathrm{in}} / (q_w A_h) - 1\\); mass balance: net volume flux / inflow.",
+    "The residual of \\(U_z\\) stays near \\(10^{-4}\\): the wedge's out-of-plane velocity is zero, so its normalised residual is round-off (primer pitfall 3)."
+   ]
+  }
+ },
+ "comparison": {
+  "kind": "Verification: the simulation is compared with the exact solution of the idealised problem.",
+  "definitions": [
+   {
+    "name": "RMS error of Nu(x)",
+    "latex": "\\varepsilon_{rms} = \\sqrt{\\frac{\\int (Nu_{sim}/Nu_{ex} - 1)^2\\,dx}{\\int dx}}",
+    "meaning": "Typical relative difference along the heated section, weighted by cell length, over \\(0.5\\,D \\le x \\le 100\\,D\\) (the last cells before the outlet are excluded, see Insights)."
+   },
+   {
+    "name": "Observed order",
+    "latex": "p = \\frac{\\ln(\\varepsilon_{coarse}/\\varepsilon_{fine})}{\\ln 2}",
+    "meaning": "\\(\\varepsilon \\propto h^p\\); 2 for these schemes."
+   },
+   {
+    "name": "Fully developed Nu of the simulation",
+    "latex": "T_w - T_b \\approx A + B\\,e^{-c x},\\quad Nu_{fd} = \\frac{q_w D}{k A}",
+    "meaning": "A three-parameter least-squares fit of the simulated tail, \\(60\\,D \\le x \\le 100\\,D\\); no input from the exact solution. \\(Nu(L_h)\\) is the same fit evaluated at the outlet."
+   },
+   {
+    "name": "Wall temperature error",
+    "latex": "\\max_x |T_{w,sim} - T_{w,ex}| / \\Delta T_{fd}",
+    "meaning": "Largest wall-temperature difference, as a fraction of the wall-to-bulk difference that sets \\(Nu\\)."
+   }
+  ],
+  "head": [
+   "Mesh",
+   "\\(\\varepsilon_{rms}\\)",
+   "\\(p\\)",
+   "max, \\(x \\ge 5\\,D\\)",
+   "\\(Nu(L_h)\\)",
+   "\\(Nu_{fd}\\)",
+   "\\(L_{th}\\)",
+   "\\(T_w\\)"
+  ],
+  "rows": [
+   [
+    "L1",
+    "\\(0.14\\,\\%\\)",
+    "\u2013",
+    "\\(0.17\\,\\%\\)",
+    "\\(+0.13\\,\\%\\)",
+    "\\(+0.13\\,\\%\\)",
+    "\\(+0.021\\,\\%\\)",
+    "\\(0.22\\,\\%\\)"
+   ],
+   [
+    "L2",
+    "\\(0.044\\,\\%\\)",
+    "\\(1.66\\)",
+    "\\(0.06\\,\\%\\)",
+    "\\(+0.037\\,\\%\\)",
+    "\\(+0.04\\,\\%\\)",
+    "\\(-0.019\\,\\%\\)",
+    "\\(0.07\\,\\%\\)"
+   ],
+   [
+    "L3",
+    "\\(0.013\\,\\%\\)",
+    "\\(1.73\\)",
+    "\\(0.021\\,\\%\\)",
+    "\\(+0.012\\,\\%\\)",
+    "\\(+0.017\\,\\%\\)",
+    "\\(-0.051\\,\\%\\)",
+    "\\(0.015\\,\\%\\)"
+   ],
+   [
+    "L4",
+    "\\(0.005\\,\\%\\)",
+    "\\(1.42\\)",
+    "\\(0.0094\\,\\%\\)",
+    "\\(+0.0058\\,\\%\\)",
+    "\\(+0.011\\,\\%\\)",
+    "\\(-0.067\\,\\%\\)",
+    "\\(0.0044\\,\\%\\)"
+   ]
+  ],
+  "findings": [
+   "<b>Post-processing bias.</b> \\(Nu_{fd}\\), \\(Nu(L_h)\\) and \\(L_{th}\\) are extracted by a tail fit and a threshold crossing. The same extraction applied to the exact solution, sampled at the 480 cell positions of the finest mesh, is off by \\(+0.0081\\,\\%\\), \\(+0.0026\\,\\%\\) and \\(-0.072\\,\\%\\): that part of the differences belongs to the method, not to the simulation. The simulation's own share (difference minus bias) on the finest mesh: \\(+0.003\\,\\%\\), \\(+0.0032\\,\\%\\), \\(+0.0048\\,\\%\\). The verdict uses the rules as fixed before the runs, bias included.",
+   "\\(Nu(L_h)\\): observed order \\(1.97\\), Richardson value \\(4.38681\\), finest-mesh GCI \\(0.0027\\,\\%\\); the exact value \\(4.38665\\) lies OUTSIDE the band: a difference that refinement does not remove. The exact solution passed through the same extraction gives \\(4.38677\\), \\(0.001\\,\\%\\) from the Richardson value, within the band: the remaining difference is the extraction's bias, not the simulation's.",
+   "\\(Nu_{fd}\\): observed order \\(2.05\\), Richardson value \\(4.36404\\), finest-mesh GCI \\(0.0022\\,\\%\\); the exact value \\(4.36364\\) lies OUTSIDE the band: a difference that refinement does not remove. The exact solution passed through the same extraction gives \\(4.36399\\), \\(0.001\\,\\%\\) from the Richardson value, within the band: the remaining difference is the extraction's bias, not the simulation's.",
+   "\\(L_{th}\\): observed order \\(1.05\\), Richardson value \\(0.240236\\), finest-mesh GCI \\(0.018\\,\\%\\); the exact value \\(0.240432\\) lies OUTSIDE the band: a difference that refinement does not remove. The exact solution passed through the same extraction gives \\(0.24026\\), \\(0.01\\,\\%\\) from the Richardson value, within the band: the remaining difference is the extraction's bias, not the simulation's.",
+   "\\(T_w(L_h)\\): observed order \\(1.97\\), Richardson value \\(20.7649\\), finest-mesh GCI \\(3.9 \\times 10^{-5}\\,\\%\\); the exact value \\(20.7649\\) lies within the band."
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "theory",
+   "logged": "2026-11-13 08:43",
+   "status": "resolved",
+   "problem": "The tube is not long enough to reach the fully developed state that output (b) asks for: the exact series gives \\(Nu(L_h) = 4.3867\\) at the outlet (\\(x = 120\\,D\\), \\(x^+ = 0.086\\)), still \\(0.53\\,\\%\\) above \\(Nu_{fd} = 48/11 = 4.3636\\). Reading the simulated \\(Nu\\) at the outlet as \\(Nu_{fd}\\) would build a \\(0.5\\,\\%\\) bias into the comparison, comparable to the expected mesh error.",
+   "diagnosis": "The first eigenmode decays like \\(e^{-\\lambda_1^2 X/2}\\) with \\(\\lambda_1 = 5.07\\); at \\(x^+ = 0.086\\) its weight is still \\(5 \\times 10^{-3}\\). The 5 % entrance length is \\(60\\,D\\), but 0.1 % needs about \\(165\\,D\\).",
+   "fix": "Compare like with like: simulated \\(Nu(L_h)\\) against the exact \\(Nu(L_h)\\), and estimate the simulation's own \\(Nu_{fd}\\) by fitting \\(T_w - T_b = A + B e^{-c x}\\) to its tail (no theory input), then compare \\(A\\) with \\(48/11\\).",
+   "lesson": "A requested 'fully developed' value must be checked against how developed the domain end actually is; compute that from theory at intake.",
+   "guideline": "SKILL.md stage 1: when a requested output is a limit (fully developed, far field, long time), compute how close the domain gets to that limit and compare the simulation at the same position, or extrapolate both sides the same way.",
+   "resolved": "2026-11-13 08:49"
+  },
+  {
+   "id": 2,
+   "stage": "theory",
+   "logged": "2026-11-13 08:43",
+   "status": "resolved",
+   "problem": "Series truncation self-check failed at first: 40 and 80 eigenfunctions differed by \\(6.9 \\times 10^{-4}\\) in \\(Nu\\) at \\(x = 0.1\\,D\\) (the flux jump makes \\(Nu \\to \\infty\\) at the start of heating, so the series converges slowly there).",
+   "diagnosis": "Terms decay like \\(e^{-\\lambda_n^2 X/2}\\) with \\(\\lambda_n \\approx 4n\\); at \\(X = 2.9 \\times 10^{-4}\\) term 40 is still \\(e^{-3.7}\\).",
+   "fix": "Use the series from \\(x = 0.5\\,D\\) on (60 and 80 terms then agree to round-off) and check it there against an independent finite-volume solution (agreement \\(4 \\times 10^{-6}\\)). The comparison with the simulation starts at \\(0.5\\,D\\).",
+   "lesson": "Eigenfunction series of entrance problems need a stated lower bound in x where they are converged; an independent numerical solution of the same 1D equation is a cheap, strong self-check.",
+   "guideline": "Worked-example note: for series solutions, check truncation at the smallest position used, and add an independent method-of-lines solution as a self-check."
+  },
+  {
+   "id": 3,
+   "stage": "preflight",
+   "logged": "2026-11-13 08:49",
+   "status": "resolved",
+   "problem": "Pre-flight FAILED on both L1 (800 cells) and L4 (51200 cells): floating-point exception within 30 iterations. Continuity error grew from \\(2 \\times 10^{-3}\\) to \\(98\\) in 7 iterations; outlet flux 1500 times the inlet flux at iteration 10. Settings: SIMPLEC (consistent yes), U relaxation 0.95, p_rgh not relaxed, uniform initial velocity, cells with aspect ratio up to 281.",
+   "diagnosis": "<code>buoyantBoussinesqSimpleFoam</code> does not implement SIMPLEC: its <code>pEqn.H</code> never reads <code>simple.consistent()</code> (simpleFoam's does). So <code>consistent yes</code> was silently ignored and the run was plain SIMPLE with U relaxation 0.95 and NO pressure relaxation, which is unstable. A side-by-side test on L1 confirmed it: SIMPLEC-style settings U 0.9 / p 1 diverged in 24 iterations, U 0.9 / p 0.7 ran but with continuity error \\(3 \\times 10^{20}\\), while plain SIMPLE U 0.7 / p 0.3 converged.",
+   "fix": "Plain SIMPLE (<code>consistent no</code>) with the pressure relaxed, \\(\\alpha_p \\approx 1 - \\alpha_U\\). Settings ranked by a short trial on L1 to L3 (iterations to the live-stop rule).",
+   "lesson": "A solver can silently ignore a keyword that another solver of the same family honours. The primer's SIMPLEC advice (U 0.97 to 0.99, p not relaxed) applies to simpleFoam only.",
+   "guideline": "openfoam-primer.md, pitfall list: buoyantBoussinesqSimpleFoam (and check other heat-transfer solvers) has no SIMPLEC; use SIMPLE with p relaxed. Better: a tooling check that greps the solver's source for <code>consistent</code> and warns when the case sets it but the solver ignores it.",
+   "resolved": "2026-11-13 08:52"
+  },
+  {
+   "id": 4,
+   "stage": "performance",
+   "logged": "2026-11-13 09:02",
+   "status": "resolved",
+   "problem": "GAMG for the pressure needed 46 to 88 iterations per solve on L3 (12800 cells), 0.16 s per SIMPLE iteration: about 12 microseconds per cell per iteration, several times the usual. The temperature solve (PBiCGStab) also needed 66 to 83 iterations.",
+   "diagnosis": "The graded tube mesh has cells up to 300 times longer (axially) than wide (radially at the wall), so the pressure matrix couples cells \\(10^4\\) to \\(10^5\\) times more strongly across the tube than along it. GAMG's agglomeration and smoothers are not tuned for that. A 4-way side-by-side trial (150 iterations from rest, L3): GAMG 0.156 s/it, PCG/DIC 0.108 s/it (308 iterations per solve but each far cheaper), PCG with a GAMG preconditioner 0.166, GAMG with 10 coarsest cells 0.333.",
+   "fix": "First switched to PCG/DIC on the strength of the L3 trial; the L4 pre-flight (300 iterations each, run one after the other) reversed the ranking: PCG 0.74 s per iteration with 619 iterations per solve, GAMG 0.62 s with 29. PCG's iteration count grows about 2 times per refinement, GAMG's does not. Production uses GAMG. (A first reading of 0.25 s per iteration for GAMG was wrong: my wait loop matched the banner line 'Floating point exception trapping enabled', primer pitfall 9, and read the time mid-run.)",
+   "lesson": "A solver trial on a coarser mesh can rank the solvers wrongly: Krylov iteration counts grow with the mesh, multigrid counts do not. Trials that ran 4 at a time on L3 also added noise. Rank solvers on the mesh that dominates the cost.",
+   "guideline": "SKILL.md side mission and the primer: run linear-solver trials on the finest (most expensive) mesh, alone on the machine, before choosing; a trial on a coarser mesh can reverse the ranking (case 6: PCG 1.4 times faster on L3, 3 times slower on L4).",
+   "resolved": "2026-11-13 09:07"
+  },
+  {
+   "id": 5,
+   "stage": "analysis",
+   "logged": "2026-11-13 09:14",
+   "status": "resolved",
+   "problem": "On the converged L1 run the last two cells of the heated section were off: the last cell's bulk temperature was \\(+3.9\\,\\%\\) of \\(\\Delta T_{fd}\\) above the exact value at its centre and the one before \\(-0.9\\,\\%\\) below, while everywhere else the error was below \\(0.05\\,\\%\\). A wall temperature extrapolated from the last two wall faces to the outlet was \\(0.019\\,\\mathrm{K}\\) (6 % of \\(\\Delta T_{fd}\\)) too high.",
+   "diagnosis": "The zero-gradient outlet condition makes the face value equal the last cell's value, and energy conservation then forces the last cell to carry the OUTLET bulk temperature (20.460008 \u00b0C = outlet patch value), i.e. the value half a cell further downstream; linear upwind compensates in the cell before. A first-order outlet artifact over the last two cells (\\(12\\,D\\) on L1), shrinking with the cell size. Also, OpenFOAM does not write face values for <code>fixedGradient</code>/<code>zeroGradient</code> patches, so the wall temperature had to be rebuilt as \\(T_P + (\\partial T/\\partial n)\\,d\\) from the owner cells (first attempt crashed reading a missing <code>value</code>).",
+   "fix": "Compare along the tube only up to \\(x = 100\\,D\\) (a fixed window, same on every mesh). Outlet values from the simulation without the last cells: \\(T_b(L_h)\\) from the outlet patch flux (exact energy flux), \\(T_w(L_h) - T_b(L_h)\\) and \\(Nu(L_h)\\) from the tail fit \\(A + B e^{-cx}\\) over \\(60\\) to \\(100\\,D\\). On L1 this gives \\(T_w(L_h)\\) within \\(0.0004\\,\\mathrm{K}\\).",
+   "lesson": "Values in the last cells before a zero-gradient outlet are outlet values, not cell-centre values, for any convected quantity that keeps changing along the flow. Requested 'outlet' values need either a long outlet extension or extrapolation from the interior.",
+   "guideline": "openfoam-primer.md pitfalls: a zero-gradient outlet shifts the last one or two cells of a quantity that still varies in x (heated pipes, developing flows); exclude them from comparisons or add an unheated outlet extension. And: fixedGradient/zeroGradient patches write no face values; rebuild them from the owner cells or use a <code>surfaceFieldValue</code> with <code>writeFields</code>.",
+   "resolved": "2026-11-13 09:23"
+  },
+  {
+   "id": 6,
+   "stage": "setup",
+   "logged": "2026-11-13 09:14",
+   "status": "resolved",
+   "problem": "The \\(2^\\circ\\) wedge planned at first has a flat wall face: its perimeter-to-area ratio differs from the round tube's by \\(1/\\cos 1^\\circ - 1 = 1.5 \\times 10^{-4}\\). The L1 run showed it directly (outlet bulk \\(+7 \\times 10^{-5}\\,\\mathrm{K}\\), i.e. \\(1.5 \\times 10^{-4}\\) of the rise), and the finest-mesh error expected from L1 with order 2 is about \\(2 \\times 10^{-5}\\): the geometry error would have been the floor of the mesh study.",
+   "diagnosis": "A thin wedge is exact only in the limit of zero angle; its error is a fixed geometric bias that refinement does not remove.",
+   "fix": "Half-angle \\(0.25^\\circ\\) (total \\(0.5^\\circ\\)): bias \\(10^{-5}\\), below every tolerance. Decided before production.",
+   "lesson": "Estimate every refinement-independent error (geometry, model) against the error the finest mesh is expected to reach, before production.",
+   "guideline": "openfoam-primer.md: axisymmetric wedges: the flat-face bias is \\(1/\\cos(\\theta/2) - 1\\); choose the angle so it is well below the target accuracy (\\(0.5^\\circ\\) total gives \\(10^{-5}\\))."
+  },
+  {
+   "id": 7,
+   "stage": "tooling",
+   "logged": "2026-11-13 09:23",
+   "status": "resolved",
+   "problem": "The first draft report was refused by the contract: 0/ of the mapped meshes held <code>C</code>, <code>Cx</code>, <code>Cy</code>, <code>Cz</code>, <code>V</code> (undocumented settings) and the wedge and axis patches had explicit types instead of the <code>#includeEtc</code> line of the template.",
+   "diagnosis": "<code>foam.map_fields</code> (mapFields) maps every field in the source's latest time, including the cell-centre and volume fields that <code>postProcess -func writeCellCentres/writeCellVolumes</code> wrote there for the analysis, and it rewrites each 0/ file in expanded form.",
+   "fix": "<code>collect</code> deletes C*, V from 0/ before post-processing; the decision on the domain covers <code>0/*/boundaryField/front|back|axis/*</code>.",
+   "lesson": "Post-processing fields written into a time directory travel to the next mesh through mapFields.",
+   "guideline": "cfdlib.foam.map_fields could pass <code>-fields '(U p p_rgh T ...)'</code> or delete postProcess fields after mapping; or the contract could ignore known post-processing fields (C, Cx, Cy, Cz, V) in 0/."
+  },
+  {
+   "id": 8,
+   "stage": "production",
+   "logged": "2026-11-13 09:24",
+   "status": "resolved",
+   "problem": "Production L2 took 216 s for 859 iterations on 3200 cells (\\(78\\,\\mu s\\) per cell per iteration); L3 and the 3D run were slowing the same way. The live stop did not end the runs quickly either: the velocity probes showed 'error inf' for hundreds of iterations after the residuals had reached \\(10^{-11}\\).",
+   "diagnosis": "The absolute pressure tolerance \\(10^{-12}\\) was below what GAMG can reach: once converged, the initial residual sat at \\(2\\) to \\(5 \\times 10^{-11}\\) and every pressure solve ran to the 1000-iteration limit (L2: 0.016 s per iteration before convergence, 0.33 s after). Those stagnating solves also leave round-off-level noise in the velocity, which the steady check reads as 'not settled' until its noise-floor test fires. The pre-flight (300 iterations from rest) cannot see this: it ends long before convergence.",
+   "fix": "Pressure tolerance \\(10^{-9}\\) with <code>maxIter 200</code>; production and the 3D runs restarted from the beginning with it (about 9 minutes of runs discarded).",
+   "lesson": "With a live stop, the run goes on past convergence until the check holds, so the cost of an iteration AT convergence matters. Absolute linear-solver tolerances must sit above the round-off floor of the converged state.",
+   "guideline": "SKILL.md stage 3: for steady runs, let the pre-flight on the coarsest mesh run to convergence and look at the linear-solver iteration counts at the end (a solver at its maxIter = tolerance below round-off); primer: give an absolute pressure tolerance about \\(10^{-9}\\) and a <code>maxIter</code> cap in steady SIMPLE."
+  },
+  {
+   "id": 9,
+   "stage": "tooling",
+   "logged": "2026-11-13 09:29",
+   "status": "resolved",
+   "problem": "After the pressure-tolerance fix, the live stop never ended L1 (ran to the 30000-iteration cap) and ended L2 only after 8531 iterations, although the probes had stopped changing in their 12 printed digits hundreds of iterations earlier. The verdict stayed 'U: running, error inf'.",
+   "diagnosis": "<code>cfdlib.verification.iteration_error</code> returns an infinite error whenever one of the earlier changes in its window is exactly zero (<code>if np.any(last[:-1] == 0.0): return out</code>). A value converged to output precision flickers between a zero change and one unit of the last digit, so the window almost always holds a zero and the estimate is never finite (and the noise-floor test needs non-zero, sign-flipping changes). With the old \\(10^{-12}\\) pressure tolerance the stagnating solver kept adding round-off changes, which hid this.",
+   "fix": "Case-local decider (run.py <code>live_decider</code>): a column whose last 20 sampled changes are all within 10 units of the 12th digit, and whose history has moved by more than 1000 units, counts as settled. Replayed on the recorded L1 and L2 histories before relying on it: stops at iterations 480 and 580, true remaining change \\(10^{-10}\\,\\mathrm{K}\\) and \\(5 \\times 10^{-13}\\,\\mathrm{m/s}\\). Without the 'has moved' condition the replay showed a false stop at iteration 40 (probes the solution had not reached yet).",
+   "lesson": "A convergence estimator must handle the quantised end state (zero changes) as converged, not as unknown; replaying a stop rule on recorded histories catches both false stops and never-stops cheaply.",
+   "guideline": "cfdlib.verification.iteration_error / monitor.steady_check: treat a window of changes that are all zero or within the output precision (writePrecision) as settled with error = that precision, provided the series has moved; add a test with a quantised series."
+  },
+  {
+   "id": 10,
+   "stage": "production",
+   "logged": "2026-11-13 09:35",
+   "status": "resolved",
+   "problem": "Orphaned solvers corrupted the restarted runs: the new L3 directory contained time folders 4000 and 4710 that the new run never wrote (its log has 1777 iterations), and the L3 record read its 'final' fields from folder 4710; two 3D MPI jobs (from the old and the new attempt) were writing into the same B3D_g0 case at once.",
+   "diagnosis": "My stop command was <code>wsl bash -c \"pkill -f 'cases.heated_pipe_re200.run'; ... python -m cfdlib.foam stop ...; foam ps\"</code>. <code>pkill -f</code> matches the full command line, and the bash running that command line contains the pattern itself, so pkill killed its own shell before <code>foam stop</code> ran: the empty output was the shell dying, not 'nothing running'. The Python wrappers died, their <code>finally</code> removed the PID files, and the solvers (own process groups) kept running as orphans. <code>render_case</code> then deleted and re-created the directories under the still-running solvers, which went on writing time folders into them.",
+   "fix": "Killed every orphan by PID (checked with a separate <code>ps</code>), discarded all production and 3D results of the previous attempts, restarted everything from scratch.",
+   "lesson": "Never pkill -f with a pattern that also appears in the command doing the killing; verify with a separate ps call. An empty output from a kill-and-check command is a red flag, not a confirmation.",
+   "guideline": "environment.md: stop runs with <code>python -m cfdlib.foam stop</code> BEFORE killing the Python wrapper (the wrapper's exit removes the PID file stop needs), and check with <code>foam ps</code> in a separate call. Tooling: <code>foam.render_case</code> could refuse to delete a directory in which <code>foam.running()</code> shows a live solver; <code>foam.stop</code> could also kill solvers by working directory when no PID file is left."
+  },
+  {
+   "id": 11,
+   "stage": "analysis",
+   "logged": "2026-11-13 09:40",
+   "status": "resolved",
+   "problem": "The error of the simulated entrance length GREW with refinement (\\(+2.1 \\times 10^{-4}\\), \\(-1.9 \\times 10^{-4}\\), \\(-5.1 \\times 10^{-4}\\) on L1 to L3) and the fully developed \\(Nu\\) converged more slowly (order 1.7 then 1.3) than \\(Nu(x)\\) itself.",
+   "diagnosis": "Part of both errors belongs to the post-processing, not to the simulation. Applying the same tail fit \\(A + B e^{-cx}\\) (\\(60\\) to \\(100\\,D\\)) to the EXACT solution at the same cell positions gives \\(Nu_{fd}\\) \\(8 \\times 10^{-5}\\) too high (the fit has one exponential, the solution still carries a second mode) and, through the threshold \\(1.05\\,Nu_{fd}\\), an entrance length \\(6.8 \\times 10^{-4}\\) too short. The 5 % crossing is very sensitive: \\(Nu\\) falls only \\(1.3 \\times 10^{-3}\\) per diameter there, so a relative error \\(\\epsilon\\) in the threshold moves \\(L_{th}\\) by about \\(16\\,\\epsilon\\).",
+   "fix": "Kept the acceptance rules as fixed before production (no change of estimator after seeing results). The report gives, next to each such number, the method bias (the post-processing applied to the exact solution) and the simulation's own error (difference of the two).",
+   "lesson": "Every derived quantity extracted by fitting or thresholding needs its post-processing verified on the exact solution BEFORE the tolerances are fixed; otherwise the method bias silently uses up the tolerance.",
+   "guideline": "SKILL.md stage 2 (tolerances): when a requested output is extracted by a fit, an extrapolation or a threshold crossing, run the same extraction on the exact solution or a manufactured one, and size the tolerance above that bias.",
+   "resolved": "2026-11-13 10:03"
+  },
+  {
+   "id": 12,
+   "stage": "analysis",
+   "logged": "2026-11-13 09:45",
+   "status": "resolved",
+   "problem": "Whether gravity matters could not be settled from the dimensionless numbers alone: \\(Gr/Re^2 = 10^{-3}\\) says no, but \\(Ra \\approx 280\\) (and \\(Ra_q \\approx 1200\\) on the heat flux) is in the range where mixed-convection correlations for horizontal tubes start to depart from forced convection, and no correlation was in the case's reference files.",
+   "diagnosis": "Measured instead: the same 3D half-tube mesh (81920 cells) with and without gravity. The peripheral-mean \\(Nu\\) changes by at most \\(0.15\\,\\%\\) (at the outlet, still growing along the tube), the secondary flow peaks near \\(9 \\times 10^{-4}\\,U\\), but at the outlet the top of the wall is \\(0.034\\,\\mathrm{K}\\) warmer than the bottom, \\(11\\,\\%\\) of \\(\\Delta T_{fd}\\).",
+   "fix": "The no-buoyancy assumption is reported as checked for \\(Nu\\) and the mean wall temperature, with the circumferential wall-temperature variation stated as a finding and limitation.",
+   "lesson": "A same-mesh pair (effect on/off) measures a small physical effect cheaply and precisely, because most of the discretisation error cancels in the difference. A small effect on the mean can still be a large effect on a local quantity (top vs bottom wall temperature).",
+   "guideline": "SKILL.md stage 0/1: when an assumption's dimensionless indicator is ambiguous, measure the effect with a same-mesh on/off pair and report it on the requested local quantities as well as the means.",
+   "resolved": "2026-11-13 10:01"
+  },
+  {
+   "id": 13,
+   "stage": "analysis",
+   "logged": "2026-11-13 09:45",
+   "status": "resolved",
+   "problem": "The centreline velocity where heating starts was \\(0.53\\,\\%\\) below the developed \\(2U\\) on L1, which would have meant the unheated section (\\(20\\,D\\)) is too short for the exact solution's assumption of a parabolic inflow.",
+   "diagnosis": "It shrinks with each finer mesh (\\(-0.53\\), \\(-0.25\\), \\(-0.12\\), \\(-0.08\\,\\%\\) on L1 to L4), first order at first (the singular inlet corner, uniform velocity against a no-slip wall), slower on L4. Extrapolated to zero cell size it is about \\(-0.06\\,\\%\\): almost all of the L1 value was mesh error; a small real deficit remains after 20 diameters.",
+   "fix": "Report the per-mesh values and the extrapolation in the assumption check, instead of the finest-mesh value alone, and name the remaining deficit as a candidate for the slower convergence of \\(Nu\\) near \\(x = 0\\).",
+   "lesson": "A 'model difference' seen on one mesh must be checked for convergence before it is blamed on physics; inlet singularities converge at first order.",
+   "guideline": "SKILL.md stage 5: before attributing a difference to an assumption of the reference, show that it does not shrink with refinement.",
+   "resolved": "2026-11-13 10:01"
+  },
+  {
+   "id": 14,
+   "stage": "analysis",
+   "logged": "2026-11-13 10:01",
+   "status": "resolved",
+   "problem": "Two acceptance rules gave WARN on the finest mesh: the fully developed \\(Nu\\) is \\(+0.011\\,\\%\\) from 48/11 (rule \\(0.01\\,\\%\\)) and the observed order of the \\(Nu(x)\\) error fell to 1.42 from L3 to L4 (rule 1.5 to 3). Richardson extrapolation of \\(Nu_{fd}\\), \\(Nu(L_h)\\) and \\(L_{th}\\) put the exact values outside the GCI bands.",
+   "diagnosis": "The remaining differences are almost exactly the post-processing bias found in insight 11: Richardson \\(Nu_{fd}\\) is \\(+9.2 \\times 10^{-5}\\) from 48/11, the tail fit applied to the exact solution gives \\(+8.1 \\times 10^{-5}\\); for \\(L_{th}\\) \\(-8.2 \\times 10^{-4}\\) against a bias of \\(-7.2 \\times 10^{-4}\\). The order: by region it is 1.6 downstream (\\(40\\) to \\(100\\,D\\)) but 1.2 to 1.3 near the start of heating, where refinement-independent differences (slightly undeveloped inflow, axial conduction) start to show.",
+   "fix": "Verdict kept at WARN as the rules say; the report shows the bias-corrected comparison and the per-region orders next to it.",
+   "lesson": "At the \\(10^{-4}\\) level, extraction bias and small model differences dominate over mesh error; tolerances that tight need both measured before they are fixed.",
+   "guideline": "SKILL.md stage 2: for verification against an exact solution at very small tolerances, budget separately for (1) mesh error, (2) extraction bias (measured on the exact solution), (3) differences between the simulated problem and the exact solution's idealisation.",
+   "resolved": "2026-11-13 10:03"
+  },
+  {
+   "id": 15,
+   "stage": "production",
+   "logged": "2026-11-13 10:02",
+   "status": "resolved",
+   "problem": "The live stop held the finest run (L4) for about 1100 iterations (about 9 minutes) after the answer had converged far below the tolerance: at iteration 2190 the slowest axial-velocity probe changed by \\(7 \\times 10^{-11}\\,\\mathrm{m/s}\\) per 10 iterations, shrinking steadily (ratio about 0.92), i.e. a remaining error near \\(10^{-9}\\), against a tolerance of \\(10^{-7}\\); the verdict stayed 'running' until the changes reached the output-precision rule at iteration 3289.",
+   "diagnosis": "<code>iteration_error</code> needs the last change ratios to agree within a factor (\\(1 - \\min\\) ratio \\(< 1.5\\,(1 - \\rho)\\)); with changes of a few hundred units of the 12th digit, rounding makes the ratios scatter enough to fail that test, so the estimate stays infinite although every bound on the remaining change is two orders below the tolerance.",
+   "fix": "None during the run (the answer was not affected, only the time). The 'output precision' work-around of insight 9 eventually ended it.",
+   "lesson": "A stop rule should also accept a simple, conservative bound when the changes are orders of magnitude below the tolerance (for example: the sum of the last N changes times a safety factor), not only a fitted geometric rate.",
+   "guideline": "cfdlib.monitor.steady_check: add a 'far below tolerance' branch: if the largest of the last k changes, times k and a safety factor, is below tol/10, report settled; test it on case 6's L4 probe history (results/heated_pipe_re200/runs/L4.npz, probe_Ux)."
+  },
+  {
+   "id": 16,
+   "stage": "report",
+   "logged": "2026-11-13 10:10",
+   "status": "resolved",
+   "problem": "Visual review: in 'What we want to find' the inline math of the requests is laid out as separate boxes, the spaces around it disappear ('Local Nusselt number Nu(x)along the heated section') and request (c) wraps with its math in a column of its own. Also, at the browser pane's default width six display equations (theory hand-checks, comparison definitions) were cut off, which the contract does not check.",
+   "diagnosis": "The wanted-list item in the shared report template appears to be a flex container, so each MathJax element becomes a flex item and the whitespace between text and math is dropped. The cut-off equations were simply too long: hand-checks with every unit written out, definitions with their range appended.",
+   "fix": "Equations shortened (numbers without units in the hand-checks, ranges moved into the explanation); the overflow test of SKILL.md stage 7 now returns nothing at 1280 px. The wanted-list layout is in cfdlib/templates (shared code), left as it is.",
+   "lesson": "Long display equations need the overflow test at the reader's width; the structural contract cannot see them.",
+   "guideline": "cfdlib/templates: render the wanted-list text in a normal inline block (not flex) so inline math keeps its spaces; the contract could warn on display math longer than about 70 characters of TeX."
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The tube, the two wall sections and the coordinates (not to scale)."
+  },
+  {
+   "key": "velocity",
+   "section": "simulation",
+   "caption": "Velocity profile where heating starts. The simulation develops it from a uniform inlet over 20 diameters; the exact solution assumes the parabola. Centreline difference \\(-0.08\\,\\%\\)."
+  },
+  {
+   "key": "residuals",
+   "section": "convergence",
+   "caption": "Initial residuals on the finest mesh. The run was ended by the live stop on the probe values, not on residuals."
+  },
+  {
+   "key": "nu",
+   "section": "comparison",
+   "caption": "Left: local Nusselt number, exact (line) and simulated on L2 and L4 (dots, every few cells). Right: relative difference on each mesh. Per refinement it falls by a factor \\(3.5\\), \\(3.5\\), \\(3\\) between \\(40\\) and \\(100\\,D\\) and by \\(3\\), \\(3.2\\), \\(2.4\\) near the start of heating (second order would be 4)."
+  },
+  {
+   "key": "temps",
+   "section": "comparison",
+   "caption": "Wall and bulk temperature along the tube, including the insulated section \\(x < 0\\). Dashed: exact solution. The wall-to-bulk gap settles to \\(\\Delta T_{fd} = 0.307\\,\\mathrm{K}\\)."
+  },
+  {
+   "key": "conv",
+   "section": "comparison",
+   "caption": "Error of each requested quantity against mesh size. Dashed: slope 2. The entrance-length error does not fall: on the finer meshes it is dominated by the bias of the extraction itself (\\(-0.072\\,\\%\\) when applied to the exact solution, Comparison findings)."
+  },
+  {
+   "key": "buoyancy",
+   "section": "simulation",
+   "caption": "Buoyancy check on the 3D half tube, same mesh with and without gravity. Left: change of the peripherally averaged Nusselt number (largest \\(0.15\\,\\%\\), dashed: the 1 % rule). Right: wall temperature difference between the top and the bottom of the tube."
+  }
+ ],
+ "performance": {
+  "intro": "Run cost per production run. The 2D runs (one core each) ran one after another; the 3D pair (4 MPI ranks) ran at the same time as the 2D sequence, so both shared the machine.",
+  "head": [
+   "Run",
+   "Cells",
+   "Cores",
+   "Iterations",
+   "Wall (s)",
+   "\u00b5s per cell per iteration",
+   "p iterations per solve",
+   "T iterations per solve"
+  ],
+  "rows": [
+   [
+    "L1",
+    "800",
+    1,
+    3736,
+    "10",
+    "3.42",
+    "1",
+    "4"
+   ],
+   [
+    "L2",
+    "3,200",
+    1,
+    3690,
+    "35",
+    "2.98",
+    "1",
+    "15"
+   ],
+   [
+    "L3",
+    "12,800",
+    1,
+    1319,
+    "95",
+    "5.65",
+    "16",
+    "50"
+   ],
+   [
+    "L4",
+    "51,200",
+    1,
+    3291,
+    "1283",
+    "7.61",
+    "13",
+    "138"
+   ],
+   [
+    "B3D_g0",
+    "81,920",
+    4,
+    1595,
+    "286",
+    "2.19",
+    "48",
+    "22"
+   ],
+   [
+    "B3D_g1",
+    "81,920",
+    4,
+    932,
+    "60",
+    "0.79",
+    "7",
+    "22"
+   ]
+  ],
+  "notes": [
+   "Total wall time of the production runs: 29.5 min; pre-flight runs: 7.0 min. Not counted: the relaxation and linear-solver trials and the production attempts discarded after the problems in Insights (wrong pressure tolerance, never-ending live stop, orphaned solvers).",
+   "Cells up to 300 times longer than wide slow the linear solvers: on L4 the temperature solve (PBiCGStab, about 140 iterations) costs more than the pressure solve. For the pressure, GAMG beat PCG/DIC on L4 (0.62 against 0.74 s per iteration in the pre-flight), the reverse of the L3 trial (Insights).",
+   "Next: SIMPLEC with simpleFoam plus a scalarTransport function object for the main study (the buoyant solver has no SIMPLEC); GAMG or relaxation for the temperature equation; fewer, less stretched cells near the outlet."
+  ]
+ },
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.heated_pipe_re200.theory",
+    "what": "Exact solution and its self-checks (prints the key numbers)"
+   },
+   {
+    "cmd": "python -m cases.heated_pipe_re200.run preflight",
+    "what": "Pre-flight runs (L1, L4 with two pressure solvers) and L1 to convergence"
+   },
+   {
+    "cmd": "python -m cases.heated_pipe_re200.run production",
+    "what": "L1 to L4, live stop, each from the coarser answer"
+   },
+   {
+    "cmd": "python -m cases.heated_pipe_re200.run buoyancy",
+    "what": "3D half tube with g = 0, then with gravity (4 MPI ranks)"
+   },
+   {
+    "cmd": "python -m cases.heated_pipe_re200.analyze",
+    "what": "Comparison, figures, this report"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/heated_pipe_re200/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/heated_pipe_re200/numerics.yaml",
+    "what": "Meshes, solver settings, stopping rule, acceptance rules"
+   },
+   {
+    "path": "cases/heated_pipe_re200/decisions.yaml",
+    "what": "Every choice with the settings it controls"
+   },
+   {
+    "path": "cases/heated_pipe_re200/insights.yaml",
+    "what": "Live workflow log"
+   },
+   {
+    "path": "cases/heated_pipe_re200/theory.py",
+    "what": "Exact solution (SymPy + eigenfunction series) and self-checks"
+   },
+   {
+    "path": "cases/heated_pipe_re200/run.py",
+    "what": "Meshes, runs, post-processing"
+   },
+   {
+    "path": "cases/heated_pipe_re200/metrics.py",
+    "what": "Nu, temperatures, balances per run"
+   },
+   {
+    "path": "cases/heated_pipe_re200/template/",
+    "what": "OpenFOAM case with placeholders"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/heated_pipe_re200/<L1..L4>",
+    "what": "Production runs"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/heated_pipe_re200/B3D_g0, B3D_g1",
+    "what": "3D buoyancy check"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/heated_pipe_re200/pf*",
+    "what": "Pre-flight runs"
+   },
+   {
+    "path": "results/heated_pipe_re200/",
+    "what": "runs/*.json|npz, preflight.json, results.json, report.html"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "23 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "2D runs: one core each, one after another. 3D runs: 4 MPI ranks, one after another, but at the same time as the 2D sequence (wall times are inflated by the sharing).",
+   "Relaxation and pressure-solver trials ran side by side (2 to 4 at once), which inflates their times.",
+   "Run the commands from a state with no solver running (<code>python -m cfdlib.foam ps</code>): a leftover solver writing into a re-created case directory corrupts it (Insights)."
+  ]
+ },
+ "data": {
+  "levels": [
+   "L1",
+   "L2",
+   "L3",
+   "L4"
+  ],
+  "order_rms": [
+   1.6614091251966374,
+   1.7342274927628643,
+   1.4161298161262046
+  ],
+  "seq": {
+   "nu_out": {
+    "order": 1.9730502099523246,
+    "richardson": 4.3868140361092465,
+    "monotonic": true,
+    "plausible": true,
+    "last_change": 0.0002743805488938378
+   },
+   "nu_fd": {
+    "order": 2.0548056891923627,
+    "richardson": 4.364042905425463,
+    "monotonic": true,
+    "plausible": true,
+    "last_change": 0.0002458115555681317
+   },
+   "l_th": {
+    "order": 1.04554146082922,
+    "richardson": 0.24023578369863458,
+    "monotonic": true,
+    "plausible": true,
+    "last_change": 3.759716720186379e-05
+   },
+   "Tw_out": {
+    "order": 1.972605288324286,
+    "richardson": 20.764900425518785,
+    "monotonic": true,
+    "plausible": true,
+    "last_change": 1.9072079300741507e-05
+   }
+  },
+  "gci": {
+   "nu_out": 2.6719881513974415e-05,
+   "nu_fd": 2.231686273130861e-05,
+   "l_th": 0.00018380801029657177,
+   "Tw_out": 3.9254347372767393e-07
+  },
+  "buoyancy": {
+   "max": 0.0015116287108110082,
+   "out": 0.0015116287108110082,
+   "at": 0.473727788,
+   "topbot": 0.11114945052545787,
+   "sec": 0.0009161641424124845,
+   "nu0_out": 4.406650312544786,
+   "nu1_out": 4.413311531675732,
+   "nu0_rel_2d": 0.0042437151674372675,
+   "wall0": 285.68355186200006,
+   "wall1": 60.317201286,
+   "it0": 1595,
+   "it1": 932,
+   "cells": 81920
+  },
+  "metrics": [
+   {
+    "e_rms": 0.001405870045692279,
+    "e_max": 0.007747902671143336,
+    "e_max5": 0.0016752247871121284,
+    "e_rms_entr": 0.0027140104936296994,
+    "e_rms_down": 0.0012808260070439055,
+    "nu_out": 4.392435647360945,
+    "nu_out_ex": 4.386654286910401,
+    "e_nu_out": 0.001317943031844404,
+    "e_last_Tb": 0.039003774371614244,
+    "nu_fd": 4.369422374458497,
+    "e_nu_fd": 0.0013259608134057466,
+    "pp_nu_fd": 7.804316232196129e-05,
+    "pp_nu_out": 2.4095203968066414e-05,
+    "pp_l_th": -4.9158855430553317e-05,
+    "l_th": 0.2404829881735938,
+    "l_th_exfd": 0.24324411171291152,
+    "e_l_th": 0.00021395833552251275,
+    "Tw_out": 20.764510126579236,
+    "Tw_out_ex": 20.76490715071226,
+    "Tb_out": 20.45994274084093,
+    "Tb_out_ex": 20.459938362510194,
+    "e_Tw": 0.0021862465972081807,
+    "e_Tb": 0.00043724815737325614,
+    "dT_fd": 0.306577480490524,
+    "energy": -9.328093852900565e-13,
+    "mass": -4.584238771745026e-13,
+    "u_c0": 0.09947451381844209,
+    "e_uc0": -0.005254861815579104,
+    "e_u0": 0.005773958125157713
+   },
+   {
+    "e_rms": 0.0004444380116299104,
+    "e_max": 0.002873388488578099,
+    "e_max5": 0.000604794945284981,
+    "e_rms_entr": 0.0009188272881543048,
+    "e_rms_down": 0.0003646674157852239,
+    "nu_out": 4.388259401379676,
+    "nu_out_ex": 4.386654286910401,
+    "e_nu_out": 0.00036590858642870927,
+    "e_last_Tb": 0.019618020032618217,
+    "nu_fd": 4.365387948491736,
+    "e_nu_fd": 0.0004014048626894695,
+    "pp_nu_fd": 8.53270668668138e-05,
+    "pp_nu_out": 2.7826359312088655e-05,
+    "pp_l_th": -0.0006762228412080518,
+    "l_th": 0.2403863177211855,
+    "l_th_exfd": 0.24124813150835528,
+    "e_l_th": -0.0001881122499759469,
+    "Tw_out": 20.764799979162415,
+    "Tw_out_ex": 20.76490715071226,
+    "Tb_out": 20.459942740841484,
+    "Tb_out_ex": 20.459938362510194,
+    "e_Tw": 0.0007038009020146772,
+    "e_Tb": 3.3341830624442015e-05,
+    "dT_fd": 0.306577480490524,
+    "energy": -2.9990188110673444e-10,
+    "mass": -7.219257795903145e-12,
+    "u_c0": 0.09975351308431347,
+    "e_uc0": -0.002464869156865279,
+    "e_u0": 0.00263090201722202
+   },
+   {
+    "e_rms": 0.0001335846944139958,
+    "e_max": 0.000741406633312014,
+    "e_max5": 0.00020941475580849023,
+    "e_rms_entr": 0.00028404171074691403,
+    "e_rms_down": 0.00010488678123237962,
+    "nu_out": 4.387182190783662,
+    "nu_out_ex": 4.386654286910401,
+    "e_nu_out": 0.00012034316787534749,
+    "e_last_Tb": 0.009843234689904506,
+    "nu_fd": 4.364366631769261,
+    "e_nu_fd": 0.00016735311378912598,
+    "pp_nu_fd": 7.892838587997275e-05,
+    "pp_nu_out": 2.522343358735135e-05,
+    "pp_l_th": -0.0006839134815985748,
+    "l_th": 0.24030871187025668,
+    "l_th_exfd": 0.24067476855338596,
+    "e_l_th": -0.000510889573798412,
+    "Tw_out": 20.764874832540617,
+    "Tw_out_ex": 20.76490715071226,
+    "Tb_out": 20.459942740832453,
+    "Tb_out_ex": 20.459938362510194,
+    "e_Tw": 0.00015458835380575855,
+    "e_Tb": 3.1624204516653905e-05,
+    "dT_fd": 0.306577480490524,
+    "energy": -9.975130721429082e-10,
+    "mass": -2.2231010585380328e-11,
+    "u_c0": 0.09987623666405923,
+    "e_uc0": -0.0012376333594077416,
+    "e_u0": 0.0012833323478092518
+   },
+   {
+    "e_rms": 5.005634657489922e-05,
+    "e_max": 0.00024001828021513738,
+    "e_max5": 9.35696040158529e-05,
+    "e_rms_entr": 0.00011948899265227745,
+    "e_rms_down": 3.44893391633341e-05,
+    "nu_out": 4.386907810234768,
+    "nu_out_ex": 4.386654286910401,
+    "e_nu_out": 5.7794234007202405e-05,
+    "e_last_Tb": 0.004935508563929353,
+    "nu_fd": 4.364120820213693,
+    "e_nu_fd": 0.00011102129897144764,
+    "pp_nu_fd": 8.114932563940691e-05,
+    "pp_nu_out": 2.6097372149092024e-05,
+    "pp_l_th": -0.0007151436849203163,
+    "l_th": 0.24027111470305482,
+    "l_th_exfd": 0.24051053207461645,
+    "e_l_th": -0.0006672632604145523,
+    "Tw_out": 20.764893904619917,
+    "Tw_out_ex": 20.76490715071226,
+    "Tb_out": 20.45994274083677,
+    "Tb_out_ex": 20.459938362510194,
+    "e_Tw": 4.4125964759910044e-05,
+    "e_Tb": 3.1898632674020946e-05,
+    "dT_fd": 0.306577480490524,
+    "energy": -7.566891557786448e-11,
+    "mass": -2.062729717685559e-12,
+    "u_c0": 0.0999197230757801,
+    "e_uc0": -0.0008027692421990196,
+    "e_u0": 0.000814676006446885
+   }
+  ],
+  "pf1": {
+   "e_rms": 0.0014965731664449192,
+   "e_max": 0.007793836949162136,
+   "e_max5": 0.0017294696314251734,
+   "e_rms_entr": 0.0027574032749081733,
+   "e_rms_down": 0.0013977800014791525,
+   "nu_out": 4.393033224515074,
+   "nu_out_ex": 4.386654286910401,
+   "e_nu_out": 0.0014541692113070326,
+   "e_last_Tb": 0.03921802102080865,
+   "nu_fd": 4.370045243598896,
+   "e_nu_fd": 0.0014687016580803292,
+   "pp_nu_fd": 7.804322276339093e-05,
+   "pp_nu_out": 2.4095232032061986e-05,
+   "pp_l_th": -4.9159378113228236e-05,
+   "l_th": 0.24041750059483316,
+   "l_th_exfd": 0.24350593929312922,
+   "e_l_th": -5.841681613127925e-05,
+   "Tw_out": 20.76453437995333,
+   "Tw_out_ex": 20.76490715071226,
+   "Tb_out": 20.460008424020423,
+   "Tb_out_ex": 20.459938362510194,
+   "e_Tw": 0.00219792710735282,
+   "e_Tb": 0.000292856425626721,
+   "dT_fd": 0.306577480490524,
+   "energy": 2.9998096165264223,
+   "mass": -2.8655466555943714e-13,
+   "u_c0": 0.09947459012401265,
+   "e_uc0": -0.005254098759873593,
+   "e_u0": 0.005777421911773023
+  },
+  "total_wall_s": 1769.3078654850003,
+  "preflight_wall_s": 418.09469448199997
+ }
+}

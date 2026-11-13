@@ -1,0 +1,48 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+solvers
+{
+    p_rgh
+    {
+        {{ p_solver }}
+        tolerance       {{ p_tol }};     // absolute floor: below about 1e-10 GAMG stagnates at round-off (1000 iterations)
+        relTol          {{ p_relTol }};
+        maxIter         200;
+    }
+    "(U|T)"
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       1e-14;
+        relTol          0.01;
+        maxIter         500;
+    }
+}
+
+SIMPLE
+{
+    momentumPredictor yes;
+    nNonOrthogonalCorrectors 0;
+    consistent      {{ consistent }};   // ignored by buoyantBoussinesqSimpleFoam (no SIMPLEC); kept explicit
+    pRefCell        0;
+    pRefValue       0;
+}
+
+relaxationFactors
+{
+    fields
+    {
+        p_rgh           {{ relax_p }};
+    }
+    equations
+    {
+        U               {{ relax_U }};
+        T               {{ relax_T }};
+    }
+}

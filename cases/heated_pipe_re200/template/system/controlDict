@@ -1,0 +1,79 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     buoyantBoussinesqSimpleFoam;
+startFrom       latestTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ max_iterations }};   // steady solver: "time" = iteration count; a cap only (live stop ends the run)
+deltaT          1;
+writeControl    timeStep;
+writeInterval   {{ write_every }};
+purgeWrite      2;
+writeFormat     ascii;
+writePrecision  12;
+writeCompression off;
+timeFormat      general;
+timePrecision   8;
+runTimeModifiable false;
+
+functions
+{
+    // Monitored values for the live stop (iteration error of each must fall below its tolerance)
+    probes
+    {
+        type            probes;
+        libs            (sampling);
+        fields          (T U);
+        probeLocations
+        (
+{% for p in probes %}            ({{ p[0] }} {{ p[1] }} {{ p[2] }})
+{% endfor %}        );
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Mean wall temperature of the heated section
+    heatedWallT
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            heatedWall;
+        operation       areaAverage;
+        fields          (T);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Energy balance: volume flux and flux-weighted temperature through inlet and outlet
+{% for pt in ("inlet", "outlet") %}    {{ pt }}Flux
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            {{ pt }};
+        operation       sum;
+        fields          (phi);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   {{ balance_every }};
+    }
+    {{ pt }}Enthalpy
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            {{ pt }};
+        operation       weightedSum;
+        weightField     phi;
+        fields          (T);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   {{ balance_every }};
+    }
+{% endfor %}}

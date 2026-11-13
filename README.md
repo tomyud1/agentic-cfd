@@ -28,6 +28,7 @@ the tools and the guidelines. Its lessons were then folded back into the guideli
 | 4 | Cylinder in a channel, Re = 100 (DFG 2D-2) | Transient, nonlinear, vortex shedding, benchmark (FeatFlow) | ⚠️ WARN | Drag, lift and Strouhal number all inside their uncertainty bands (St 0.3015 vs 0.3019); MPI scaling study | [view](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_re100/report.html) |
 | 5 | Cylinder in a square duct, Re = 20 (DFG 3D-1Z) | Steady, 3D, up to 2.4 million cells, benchmark (FeatFlow) | ❌ FAIL | Drag within 0.08 % of the reference; lift 1.7 % off, outside its band. A second mesh family shows the lift depends on the cell grading around the cylinder | [view](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_3d_re20/report.html) |
 | 5b | GPU vs CPU study (same case) | OpenFOAM pressure solve on an RTX 4070 (OGL plugin) vs the best CPU setup | ✅ PASS | Same answer on both sides; GPU breaks even at about 2 million cells and is 1.13 times faster at 4.75 million. Capped near 1.5 times because the pressure solve is only a third of each iteration | [view](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_3d_re20/gpu_study.html) |
+| 6 | Heated pipe, Re = 200, uniform wall heat flux | Steady, first heat transfer, exact solution (thermal entrance series) | ⚠️ WARN | Local Nusselt number within 0.005 % RMS of the exact solution; fully developed Nu 0.011 % off, just outside the agent's own 0.01 % rule; gravity tested with a 3D run | [view](https://tomyud1.github.io/agentic-cfd/results/heated_pipe_re200/report.html) |
 
 **WARN** means the answer is usable but a check the agent set for itself, before seeing the results,
 did not fully pass. **FAIL** means a requested output missed the accuracy rule fixed before the runs.
@@ -194,8 +195,7 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
 
 ## Roadmap
 
-- **More problem types:** heat transfer and turbulence (RANS) first. The ordered list, with sources:
-  [cases/BACKLOG.md](cases/BACKLOG.md).
+- **More problem types:** turbulence (RANS) next, after heat transfer (case 6): [cases/BACKLOG.md](cases/BACKLOG.md).
 - **gpucfd as a tool for the agent:** connected (`cfdlib/gpu.py`, guidance in the skill). On case 4
   it ran the whole grid study 8× faster than OpenFOAM, but its uniform grid needs about 30× more cells
   around the body for the same accuracy. Next: stretched grids.

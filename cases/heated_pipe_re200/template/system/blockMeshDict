@@ -1,0 +1,41 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// Generated from Python (run.py: mesh_spec). x along the axis, x = 0 at the start of heating.
+{% if wedge %}// Axisymmetric wedge: one cell around, axis vertices repeated (collapsed block faces).
+mergeType points;
+{% else %}// Half tube (z >= 0, symmetry plane z = 0, gravity along -y in that plane): O-grid cross-section.
+{% endif %}
+scale   1;
+
+vertices
+(
+{% for v in vertices %}    ({{ v[0] }} {{ v[1] }} {{ v[2] }})   // {{ loop.index0 }}
+{% endfor %});
+
+blocks
+(
+{% for b in blocks %}    {{ b }}
+{% endfor %});
+
+edges
+(
+{% for e in edges %}    {{ e }}
+{% endfor %});
+
+boundary
+(
+{% for name, p in patches.items() %}    {{ name }}
+    {
+        type            {{ p.type }};
+        faces
+        (
+{% for f in p.faces %}            ({{ f | join(' ') }})
+{% endfor %}        );
+    }
+{% endfor %});

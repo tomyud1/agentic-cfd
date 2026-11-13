@@ -1,0 +1,373 @@
+{
+ "name": "L2",
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/heated_pipe_re200/L2",
+ "cells": 3200,
+ "wall_time": 35.22024083699989,
+ "cores": 1,
+ "iterations": 3690,
+ "live_stop": {
+  "stopped": true,
+  "decision": {
+   "stop": true,
+   "status": "ok",
+   "reason": "T: all settled | U: all settled",
+   "t": 3687.0,
+   "quantities": {
+    "T0": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T1": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T2": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T3": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T4": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T5": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T6": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T7": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T8": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "Ux0": {
+     "state": "settled",
+     "error": 1.4000051118401302e-12,
+     "rho": 3.500104087155645,
+     "tol": 1e-07
+    },
+    "Ux1": {
+     "state": "settled",
+     "error": 1.3999912340523224e-12,
+     "rho": 3.500104087155645,
+     "tol": 1e-07
+    },
+    "Ux2": {
+     "state": "settled",
+     "error": 1.0000004296850662e-12,
+     "rho": 2.9999739793395954,
+     "tol": 1e-07
+    },
+    "Ux3": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": null,
+     "tol": 1e-07,
+     "note": "converged to output precision"
+    },
+    "Ux4": {
+     "state": "settled",
+     "error": 7.000008211965891e-13,
+     "rho": 2.0,
+     "tol": 1e-07
+    },
+    "Ux5": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-07
+    },
+    "Ux6": {
+     "state": "settled",
+     "error": 5.29999655274338e-12,
+     "rho": 1.3999833467484526,
+     "tol": 1e-07
+    },
+    "Ux7": {
+     "state": "settled",
+     "error": 6.000009517004301e-13,
+     "rho": 2.0000086736286993,
+     "tol": 1e-07
+    },
+    "Ux8": {
+     "state": "settled",
+     "error": 1.9999973899231804e-12,
+     "rho": 13.999583680266445,
+     "tol": 1e-07
+    }
+   }
+  },
+  "checks": 7,
+  "last": {
+   "stop": true,
+   "status": "ok",
+   "reason": "T: all settled | U: all settled",
+   "t": 3687.0,
+   "quantities": {
+    "T0": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T1": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T2": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T3": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T4": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T5": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T6": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T7": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "T8": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-06
+    },
+    "Ux0": {
+     "state": "settled",
+     "error": 1.4000051118401302e-12,
+     "rho": 3.500104087155645,
+     "tol": 1e-07
+    },
+    "Ux1": {
+     "state": "settled",
+     "error": 1.3999912340523224e-12,
+     "rho": 3.500104087155645,
+     "tol": 1e-07
+    },
+    "Ux2": {
+     "state": "settled",
+     "error": 1.0000004296850662e-12,
+     "rho": 2.9999739793395954,
+     "tol": 1e-07
+    },
+    "Ux3": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": null,
+     "tol": 1e-07,
+     "note": "converged to output precision"
+    },
+    "Ux4": {
+     "state": "settled",
+     "error": 7.000008211965891e-13,
+     "rho": 2.0,
+     "tol": 1e-07
+    },
+    "Ux5": {
+     "state": "settled",
+     "error": 0.0,
+     "rho": 0.0,
+     "tol": 1e-07
+    },
+    "Ux6": {
+     "state": "settled",
+     "error": 5.29999655274338e-12,
+     "rho": 1.3999833467484526,
+     "tol": 1e-07
+    },
+    "Ux7": {
+     "state": "settled",
+     "error": 6.000009517004301e-13,
+     "rho": 2.0000086736286993,
+     "tol": 1e-07
+    },
+    "Ux8": {
+     "state": "settled",
+     "error": 1.9999973899231804e-12,
+     "rho": 13.999583680266445,
+     "tol": 1e-07
+    }
+   }
+  }
+ },
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: T",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,0.88\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz",
+    "status": "ok",
+    "value": "\\(\\times\\,1\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p_rgh",
+    "status": "ok",
+    "value": "\\(\\times\\,0.909\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.942\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 3690,
+  "last_time": 3690.0,
+  "wall_time": 34.83,
+  "est_full_runtime": null,
+  "est_kind": null
+ },
+ "mesh_ok": true,
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/heated_pipe_re200/L2",
+  "solver": "buoyantBoussinesqSimpleFoam",
+  "cells": 3200,
+  "cores": 1,
+  "steps": 3690,
+  "wall_s": 35.22024083699989,
+  "cpu_s": 35.014818,
+  "solver_cpu_s": 34.83,
+  "peak_mem_mb": 99.2421875,
+  "us_per_cell_step": 2.9827439733231618,
+  "cpu_efficiency": 0.9941674777878268,
+  "write_share": 0.03464601058939931,
+  "lin_iters": {
+   "Ux": 1.0,
+   "Uy": 1.0,
+   "Uz": 1.0,
+   "T": 14.990243902439024,
+   "p_rgh": 1.21869918699187
+  },
+  "lin_solves_per_step": {
+   "Ux": 1.0,
+   "Uy": 1.0,
+   "Uz": 1.0,
+   "T": 1.0,
+   "p_rgh": 1.0
+  },
+  "lin_iters_by_solve": {
+   "Ux": {
+    "solve 1": 1.0,
+    "last": 1.0
+   },
+   "Uy": {
+    "solve 1": 1.0,
+    "last": 1.0
+   },
+   "Uz": {
+    "solve 1": 1.0,
+    "last": 1.0
+   },
+   "T": {
+    "solve 1": 14.990243902439024,
+    "last": 14.990243902439024
+   },
+   "p_rgh": {
+    "solve 1": 1.21869918699187,
+    "last": 1.21869918699187
+   }
+  }
+ },
+ "axial": {
+  "n0": 40,
+  "n1": 120,
+  "Eh": 20.0,
+  "E0": 0.13735807843233883,
+  "dx0": 0.0006272212448003077,
+  "dx_inlet": 0.00456632221387161,
+  "dx_out": 0.012544424896006153
+ },
+ "phi_in": -8.726535498366e-10,
+ "phi_out": 8.726535498303e-10,
+ "phiT_in": -1.745307099673e-08,
+ "phiT_out": 1.785444166212e-08,
+ "final_residuals": {
+  "Ux": 2.37525043251e-12,
+  "p_rgh": 6.09374152229e-10,
+  "T": 2.53260929274e-11
+ }
+}

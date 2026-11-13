@@ -1,0 +1,36 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      T;
+}
+
+dimensions      [0 0 0 1 0 0 0];
+internalField   uniform {{ T_in }};
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform {{ T_in }};
+    }
+    outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform {{ T_in }};
+        value           uniform {{ T_in }};
+    }
+    unheatedWall
+    {
+        type            zeroGradient;
+    }
+    heatedWall
+    {
+        type            fixedGradient;
+        gradient        uniform {{ wall_gradient }};   // q_w / k [K/m]: heat flux into the water
+        value           uniform {{ T_in }};
+    }
+    #includeEtc "caseDicts/setConstraintTypes"
+}

@@ -1,0 +1,14 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      transportProperties;
+}
+
+transportModel  Newtonian;
+nu              {{ nu }};       // kinematic viscosity [m2/s]
+beta            {{ beta }};     // thermal expansion coefficient [1/K] (Boussinesq buoyancy)
+TRef            {{ T_in }};     // reference temperature of the Boussinesq density [same unit as T]
+Pr              {{ Pr }};       // nu / alpha, alpha = k / (rho cp)
+Prt             0.85;           // turbulent Prandtl number: unused (laminar, nut = 0)

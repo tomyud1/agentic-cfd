@@ -1,0 +1,90 @@
+# Numerical plan (made by the agent, not given by the user). Lengths in m unless stated.
+solver: buoyantBoussinesqSimpleFoam   # steady SIMPLEC + energy equation; Boussinesq buoyancy (g = 0 for the main study)
+geometry:
+  wedge_half_angle_deg: 0.25  # axisymmetric wedge, total angle 0.5 degrees, one cell around. Was 1.0 in the
+                              # pre-flight: its flat wall face changes the perimeter-to-area ratio by 1/cos - 1 =
+                              # 1.5e-4, about the error expected on L4; at 0.25 degrees it is 1e-5.
+mesh:                         # main study: 2D axisymmetric, four levels, every cell count doubles in r and x
+  levels: [L1, L2, L3, L4]
+  Nr: [10, 20, 40, 80]        # cells from the axis to the wall
+  Nx_heated: [60, 120, 240, 480]
+  Nx_unheated: [20, 40, 80, 160]
+  heated_expansion: 20.0      # last / first cell length along the heated section (fine at x = 0, where Nu varies fastest)
+  radial_expansion: 0.25      # wall cell / axis cell (fine at the wall, where the thermal boundary layer grows)
+  # unheated section: geometric, its last cell (at x = 0) as long as the first heated cell (computed in run.py)
+schemes:
+  div_U: 'bounded Gauss linearUpwind grad(U)'
+  div_T: 'bounded Gauss linearUpwind grad(T)'
+relaxation:
+  # buoyantBoussinesqSimpleFoam has no SIMPLEC (insight 3): plain SIMPLE, pressure relaxed.
+  # Trial (iterations to the live-stop rule, from rest): L1 0.7/0.3: 346, 0.8/0.2: 691, 0.9/0.1: 431;
+  # L2 0.7/0.3: 351, 0.9/0.1: 853; L3 0.7/0.3: 725.
+  consistent: 'no'
+  U: 0.7
+  p_rgh: 0.3
+  T: 1.0                      # T equation is linear once phi is known (g = 0): no relaxation needed
+linear_solvers:
+  # L3, 150 iterations from rest, 4 trials side by side: GAMG (DICGaussSeidel) 0.156 s/it with 74-80
+  # iterations per solve (cells up to 300 times longer than wide slow it down); PCG/DIC 0.108 s/it (308
+  # iterations); PCG with GAMG preconditioner 0.166; GAMG with GaussSeidel and 10 coarsest cells 0.333.
+  # Pre-flight on L4 (300 iterations from rest, alone on the machine) REVERSED that ranking: PCG/DIC 0.74 s/it
+  # (619 iterations per solve), GAMG 0.25 s/it (29 per solve). PCG's iteration count grows with the mesh; GAMG's
+  # does not. GAMG for production.
+  p_solver: 'solver GAMG; smoother DICGaussSeidel;'
+  p_relTol: 0.05
+  # Absolute tolerance. 1e-12 (used for L1, L2 and the first L3 attempt) is below what GAMG can reach once
+  # the run has converged: residual 2e-11 to 5e-11, and every solve ran to the 1000-iteration limit (L2:
+  # 0.016 s/it before, 0.33 s/it after convergence). 1e-9: a converged run needs no pressure iterations; the
+  # live stop on the probes still decides when the answer is converged. maxIter 200 caps a stagnating solve.
+  p_tol: 1.0e-9
+convergence:
+  max_iterations: 30000       # cap only; the live stop ends each run
+  write_every: 2000
+  balance_every: 10
+  # Live stop (monitor.steady_decider rule, applied to two probe files): stop when the estimated iteration
+  # error of every probe is below its tolerance, for 2 checks in a row, sampled every 10 iterations.
+  # T tolerance 1e-6 K = 3e-6 of the fully developed wall-bulk difference (0.307 K); U tolerance
+  # 1e-7 m/s = 2e-6 U. Both are far below the mesh errors expected on the finest mesh (1e-4 or more).
+  tol_T: 1.0e-6
+  tol_U: 1.0e-7
+  every: 10
+  hold: 2
+probes:                       # (x/D, r/a): T and U are recorded at each, every iteration
+  - [-10.0, 0.05]
+  - [0.0, 0.05]
+  - [0.5, 0.95]
+  - [5.0, 0.95]
+  - [30.0, 0.95]
+  - [60.0, 0.95]
+  - [60.0, 0.05]
+  - [119.0, 0.95]
+  - [119.0, 0.05]
+preflight:
+  iterations: 300             # short test run on coarsest and finest mesh
+# Acceptance rules, fixed 2026-11-13 BEFORE the production runs, from the converged L1 pre-flight run
+# (pfL1full, 1 degree wedge): Nu RMS error 1.50e-3, Nu(L_h) 1.45e-3, Nu_fd 1.47e-3, L_th -6e-5 (errors of Nu
+# and Nu_fd cancel in it; without cancelling, a 0.15 % Nu error moves the 5 % crossing by about 2 %), max T_w
+# error 2.2e-3 of dT_fd, energy balance 1.6e-11. Order 2 over three refinements would give L1/64 on L4; the
+# pass limits are L1/16 (average order 4/3 or better), leaving room for the parts of the difference that
+# refinement does not remove (developing velocity at x = 0, axial conduction: estimated at most 1e-4).
+# Between pass and warn_factor x pass: WARN; above: FAIL.
+acceptance:
+  nu_rms: 1.0e-4              # (a) length-weighted RMS of Nu_sim/Nu_exact - 1 over 0.5 D <= x <= 100 D, finest mesh
+  nu_out: 1.0e-4              # (b) Nu(L_h) from the simulation's tail fit vs exact Nu(L_h)
+  nu_fd: 1.0e-4               # (b) simulation's own Nu_fd (tail fit 60-100 D) vs 48/11
+  l_th: 1.0e-3                # (c) relative error of the 5 % entrance length
+  t_wall: 1.5e-4              # (d) max |T_w - T_w,exact| / dT_fd over 0.5 D <= x <= 100 D
+  energy_balance: 1.0e-6      # |rho cp (net enthalpy flux) / (q_w A_h) - 1| on every mesh (else FAIL)
+  warn_factor: 3
+  order_range: [1.5, 3.0]     # observed order of the Nu RMS error, L3 -> L4; outside -> WARN
+  velocity_x0_ok: 0.01        # |centreline u(x=0) / 2U - 1| below this: the fully developed inflow assumption holds
+  buoyancy_ok: 0.01           # largest change of the peripheral-mean Nu by gravity (3D pair) below 1 %:
+                              # the no-buoyancy idealisation holds; above: WARN (the exact solution then does
+                              # not describe the real horizontal tube to within the simulation's accuracy)
+buoyancy:                     # 3D check of the no-buoyancy assumption (run.py buoyancy): same mesh, g = 0 and g = 9.81
+  core_half_width: 0.55       # O-grid core rectangle [-s, s] x [0, s], s = 0.55 a
+  Nc: 16                      # core cells along y (8 along z); wall: 32 faces over the half circle
+  Nr_outer: 12                # cells from the core to the wall
+  radial_expansion_outer: 0.25   # wall cell / inner cell of the outer blocks
+  axial_level: 1              # axial cells of L2 (40 + 120)
+  cores: 4

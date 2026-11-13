@@ -1,0 +1,123 @@
+# Every modelling and numerical choice for this case, written WHILE setting it up.
+# settings: path patterns of the OpenFOAM settings each decision controls (the contract checks coverage).
+
+- area: Physical model
+  kind: physics
+  choice: 'Steady, laminar, incompressible flow of a Newtonian fluid with constant properties; energy equation for the temperature; viscous heating neglected'
+  settings: [constant/turbulenceProperties/simulationType, constant/transportProperties/transportModel,
+             constant/transportProperties/nu, constant/transportProperties/Pr, constant/transportProperties/Prt]
+  why: '\(Re = 199\) is far below transition; the temperature rises by less than \(1\,\mathrm{K}\), so the viscosity changes by under \(2\,\%\) (see Assumptions); the Brinkman number \(\mu U^2/(q_w D) \approx 3 \times 10^{-6}\) makes viscous heating negligible. \(Pr = \nu/\alpha\) is computed from the given \(k\), \(\rho\), \(c_p\), \(\nu\) to 12 digits. <code>Prt</code> multiplies a turbulent viscosity that is zero here.'
+  affects: 'Defines the equations. These are exactly the assumptions of the exact solution, except that the simulation keeps axial heat conduction and the developing velocity of the unheated section.'
+  alternatives: 'Temperature-dependent viscosity (a compressible solver such as <code>buoyantSimpleFoam</code> with a property table): would show the property effect, estimated below \(0.2\,\%\) on \(Nu\).'
+
+- area: Physical model
+  kind: physics
+  choice: 'Buoyancy: Boussinesq model, switched OFF (\(g = 0\)) in the main study; switched ON (\(g = 9.81\,\mathrm{m/s^2}\), across the axis) in a separate 3D check on one mesh'
+  settings: [constant/g/value, constant/g/dimensions, constant/transportProperties/beta, constant/transportProperties/TRef]
+  why: 'The exact solution has no buoyancy, and the main study verifies the simulation against it, so it must solve the same equations. Gravity across a horizontal heated tube makes warm water rise along the wall and sink in the middle (a secondary flow), which breaks axial symmetry; whether that matters here (\(Ra \approx 280\), \(Gr/Re^2 \approx 10^{-3}\)) is not settled by those numbers alone, so it is measured: the same 3D mesh run with and without gravity.'
+  affects: 'With \(g = 0\) the temperature is a passive scalar and the problem is axisymmetric. The 3D pair measures how much the real tube departs from the exact solution because of gravity.'
+  alternatives: 'Estimating the buoyancy effect from a mixed-convection correlation only: no cited correlation file was available, and the measured effect is more direct.'
+
+- area: Solver
+  kind: solver
+  choice: '<code>buoyantBoussinesqSimpleFoam</code>: steady SIMPLE solver for incompressible flow with an energy equation and Boussinesq buoyancy'
+  settings: [system/controlDict/application, system/fvSchemes/ddtSchemes/*]
+  why: 'One solver serves both the main study (\(g = 0\)) and the buoyancy check (\(g \ne 0\)), so the two differ only in gravity. It solves \(\nabla\cdot(\phi T) = \nabla\cdot(\alpha\nabla T)\) with \(\alpha = \nu/Pr\), the energy equation of the problem. Steady: the question asks for the steady state.'
+  affects: 'How the answer is reached; not the converged answer.'
+  alternatives: '<code>simpleFoam</code> with a <code>scalarTransport</code> function object for \(T\): would allow SIMPLEC (faster), but cannot do the buoyancy check. <code>buoyantSimpleFoam</code> (compressible): more inputs, same answer here.'
+
+- area: Domain and mesh
+  kind: physics
+  choice: 'Axisymmetric wedge of \(0.5^\circ\) (one cell around, <code>wedge</code> front and back, collapsed axis), the whole tube from the inlet \(x = -L_0\) to the outlet \(x = L_h\); two blocks along \(x\): unheated and heated'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/mergeType, system/blockMeshDict/boundary,
+             0/*/boundaryField/#includeEtc*, 0/*/boundaryField/front/*, 0/*/boundaryField/back/*, 0/*/boundaryField/axis/*]
+  why: 'Without gravity the flow and temperature do not vary around the axis, so a thin wedge represents the whole tube (OpenFOAM recommends angles below \(5^\circ\)). Its flat wall face changes the perimeter-to-area ratio by \(1/\cos(\theta/2) - 1\): \(1.5 \times 10^{-4}\) for the \(2^\circ\) wedge first planned, about the error expected on the finest mesh, so the angle was cut to \(0.5^\circ\) (\(10^{-5}\)) before production (Insights). The unheated section is in the domain because the problem includes it: the velocity develops there from the uniform inlet.'
+  affects: 'Reduces the problem to 2D (cells in \(x\) and \(r\) only).'
+  alternatives: 'Full 3D tube (needed only with gravity, see the buoyancy check). A domain starting at \(x = 0\) with a parabolic inlet: would match the exact solution more closely but would not be the stated problem.'
+
+- area: Domain and mesh
+  kind: accuracy
+  choice: 'Four meshes L1 to L4 with \(N_r = 10, 20, 40, 80\) cells from axis to wall and \(20, 40, 80, 160\) (unheated) plus \(60, 120, 240, 480\) (heated) cells along \(x\): every count doubles. Graded: heated cells grow 20 times from \(x = 0\) to the outlet; radial cells shrink 4 times toward the wall; the last unheated cell matches the first heated one'
+  settings: [system/blockMeshDict/blocks]
+  why: 'Refinement ratio 2 in both directions gives the observed order and Richardson extrapolation. \(Nu\) changes fastest just after \(x = 0\) and the thermal boundary layer is thin near the wall, so cells are concentrated there. The same grading on every level keeps the meshes one geometric family.'
+  affects: 'Discretisation error; measured by the mesh study.'
+  alternatives: 'Uniform cells: 5 to 10 times more cells for the same error near \(x = 0\). A fifth level (205 thousand cells): too slow with SIMPLE on this machine for the gain (see pre-flight).'
+
+- area: Boundary conditions
+  kind: physics
+  choice: 'Inlet: uniform velocity \(U\) and temperature \(T_{\mathrm{in}}\), pressure <code>fixedFluxPressure</code>. Outlet: \(p_{rgh} = 0\); \(\mathbf{u}\) and \(T\) zero gradient for outflow (<code>inletOutlet</code>, which would impose \(T_{\mathrm{in}}\) and zero velocity on any backflow)'
+  settings: [0/U/boundaryField/inlet/*, 0/U/boundaryField/outlet/*, 0/T/boundaryField/inlet/*, 0/T/boundaryField/outlet/*,
+             0/p_rgh/boundaryField/inlet/*, 0/p_rgh/boundaryField/outlet/*, 0/p/boundaryField/*, 0/alphat/boundaryField/*]
+  why: 'As stated in the problem (uniform inlet, free outlet). <code>fixedFluxPressure</code> sets the pressure gradient consistent with the fixed inlet velocity. A zero axial temperature gradient at the outlet is not exactly true (the water still warms at \(0.96\,\mathrm{K/m}\)), but axial conduction is \(1/Pe \approx 7 \times 10^{-4}\) of the convective transport, so the error stays within a cell of the outlet. <code>p</code> and <code>alphat</code> are calculated fields.'
+  affects: 'Defines the inflow and lets the flow leave freely.'
+  alternatives: 'A developed (parabolic) inlet profile: not the stated problem.'
+
+- area: Boundary conditions
+  kind: physics
+  choice: 'Walls: no slip; unheated wall insulated (zero temperature gradient); heated wall <code>fixedGradient</code> \(\partial T/\partial n = q_w/k = 334.4\,\mathrm{K/m}\); pressure <code>fixedFluxPressure</code>'
+  settings: [0/U/boundaryField/*Wall*, 0/T/boundaryField/unheatedWall/*, 0/T/boundaryField/heatedWall/*,
+             0/p_rgh/boundaryField/*Wall*]
+  why: 'Fourier: the flux into the water is \(k\,\partial T/\partial n\) with \(n\) pointing out of the fluid, so a uniform \(q_w\) is a uniform gradient \(q_w/k\). This is the problem as stated.'
+  affects: 'Defines the heating; \(T_w\) is then a result.'
+  alternatives: 'None for this problem.'
+
+- area: Initial state and grid sequencing
+  kind: solver
+  choice: 'L1 starts from uniform \(\mathbf{u} = (U, 0, 0)\), \(T = T_{\mathrm{in}}\), \(p_{rgh} = 0\); each finer mesh starts from the converged coarser mesh (<code>mapFields</code>)'
+  settings: [0/*/internalField]
+  why: 'A steady problem has one answer whatever the starting guess. Starting from the coarser answer removes most of the iterations (primer, grid sequencing).'
+  affects: 'Only the number of iterations.'
+  alternatives: 'Every mesh from rest: the same answer, more iterations.'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Second order: <code>bounded Gauss linearUpwind</code> for convection of \(\mathbf{u}\) and \(T\); <code>Gauss linear</code> gradients and viscous stress; <code>Gauss linear corrected</code> Laplacian; linear interpolation'
+  settings: [system/fvSchemes/gradSchemes/*, system/fvSchemes/divSchemes/*, system/fvSchemes/laplacianSchemes/*,
+             system/fvSchemes/interpolationSchemes/*, system/fvSchemes/snGradSchemes/*]
+  why: 'Along the tube the cell Péclet number \(u\,\Delta x/\alpha\) reaches several hundred: central differencing of \(T\) would oscillate near \(x = 0\), where the wall flux starts abruptly. Linear upwind stays second order without those wiggles. <code>bounded</code> removes the \(\nabla\cdot\phi\) error of unconverged iterations. The mesh is orthogonal, so <code>corrected</code> adds nothing.'
+  affects: 'Order of accuracy (expected 2) and numerical diffusion.'
+  alternatives: 'Central differencing (<code>Gauss linear</code>) for \(T\): less numerical diffusion, risk of oscillations; first-order upwind: too diffusive along the tube.'
+
+- area: Algorithm
+  kind: solver
+  choice: 'Plain SIMPLE with momentum predictor; relaxation U 0.7 and \(p_{rgh}\) 0.3 (chosen by a short trial), \(T\) not relaxed'
+  settings: [system/fvSolution/SIMPLE/*, system/fvSolution/relaxationFactors/*]
+  why: '<code>buoyantBoussinesqSimpleFoam</code> ignores <code>consistent yes</code> (no SIMPLEC, see Insights), so pressure must be relaxed. The trial ran to the live-stop rule from rest: U/p 0.7/0.3 took 346, 351 and 725 iterations on L1, L2, L3; 0.9/0.1 took 431 and 853 on L1, L2; 0.8/0.2 took 691 on L1. With \(g = 0\) the \(T\) equation is linear once the flux is known, so it needs no relaxation.'
+  affects: 'Only how fast the answer is reached.'
+  alternatives: 'SIMPLEC with simpleFoam (not possible with this solver); U 0.7/p 0.3 (textbook).'
+
+- area: Linear solvers
+  kind: solver
+  choice: 'GAMG (DIC Gauss-Seidel smoother) for \(p_{rgh}\), each SIMPLE iteration to \(5\,\%\) of its initial residual or the absolute floor \(10^{-9}\), at most 200 iterations; PBiCGStab with DILU for \(\mathbf{u}\) and \(T\) to \(1\,\%\)'
+  settings: [system/fvSolution/solvers/*]
+  why: 'Partial solves are enough inside SIMPLE: the outer iterations remove what is left. On the finest mesh GAMG took 0.62 s per iteration (29 iterations per solve) against 0.74 s for PCG/DIC (619 per solve) in the pre-flight; on L3 the ranking was the other way round (Insights). The absolute floor \(10^{-12}\) used at first was below round-off: converged runs then spent 1000 GAMG iterations per solve (Insights).'
+  affects: 'Speed; the iteration error is controlled by the live stop.'
+  alternatives: 'Tight solves every iteration: same answer, slower.'
+
+- area: Run control and stopping
+  kind: accuracy
+  choice: 'Iterations stop live once the estimated iteration error of every monitored probe is below \(10^{-6}\,\mathrm{K}\) (temperature) and \(10^{-7}\,\mathrm{m/s}\) (velocity), held for 2 checks (<code>monitor.steady_check</code>, plus: a probe unchanged in its 12 printed digits counts as settled, a work-around tested by replay, see Insights); the end time is only a cap; fields written with 12 significant digits'
+  settings: [system/controlDict/endTime, system/controlDict/deltaT, system/controlDict/startTime,
+             system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision,
+             system/controlDict/timePrecision, system/controlDict/functions/liveStop/*]
+  why: 'The tolerances are \(3 \times 10^{-6}\) of the wall-to-bulk temperature difference and \(2 \times 10^{-6}\,U\): far below the mesh error expected on the finest mesh, so iteration error does not affect the comparison. Residual targets say nothing about the error of the answer (primer pitfall 10).'
+  affects: 'Iteration error (made negligible) and output precision.'
+  alternatives: 'Residual targets (<code>residualControl</code>): no link to the answer''s error.'
+
+- area: Outputs
+  kind: output
+  choice: 'Probes of \(T\) and \(\mathbf{u}\) at 9 points (live stop); mean heated-wall temperature; volume flux and flux-weighted temperature through inlet and outlet (energy balance). \(T_w(x)\) from the wall face values, \(T_b(x)\) as \(\sum u T V / \sum u V\) over each column of cells'
+  settings: [system/controlDict/functions/probes/*, system/controlDict/functions/heatedWallT/*,
+             system/controlDict/functions/inletFlux/*, system/controlDict/functions/outletFlux/*,
+             system/controlDict/functions/inletEnthalpy/*, system/controlDict/functions/outletEnthalpy/*]
+  why: 'The energy balance \(\rho c_p (\sum\phi T|_{out} - \sum\phi T|_{in}) = q_w A_h\) is the physical convergence check. The bulk temperature is defined in the problem as flow weighted; the column sum is the midpoint rule for that integral (second order).'
+  affects: 'How \(Nu\), \(T_w\), \(T_b\) are measured.'
+  alternatives: 'Sampling lines (<code>sample</code>) and interpolation: adds interpolation error; cell columns of a structured mesh are exact cross-sections.'
+
+- area: Buoyancy check
+  kind: accuracy
+  choice: 'Half tube in 3D (symmetry plane through the axis containing gravity), O-grid cross-section of 512 cells, the axial cells of L2; run once with \(g = 0\) and once with gravity; 4 MPI ranks'
+  settings: []
+  why: 'The secondary flow is symmetric about the vertical plane, so half the tube suffices. Comparing the same mesh with and without gravity cancels most of the mesh error in the difference, which is what is wanted: the size of the buoyancy effect on \(Nu\), not \(Nu\) itself.'
+  affects: 'Only the buoyancy assessment (assumption check and limitations), not the main comparison.'
+  alternatives: 'A finer 3D mesh or a 3D mesh study: several times the cost; done only if the effect is near the decision threshold.'

@@ -9,9 +9,9 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing uncommitted. Next, in this order:
-1. Case 6 (heated pipe, first heat transfer) for a fresh agent. Its problem statement is written
-   (below).
+Next, in this order:
+1. Fix what case 6 exposed (its insights): the steady stop's handling of converged, quantised
+   values; `foam.map_fields` field selection; primer and SKILL notes.
 2. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
    They are tied to the IMEX fix for bodies: on a stretched grid the smallest cell sets the explicit
    viscous time step everywhere.
@@ -19,7 +19,40 @@ Nothing uncommitted. Next, in this order:
 
 ## 2026-11-13
 
-### Case 6 problem statement; the contract checker reports files it cannot read, commit hash to be filled in
+### Case 6 solved by a fresh agent: heated pipe, WARN, commit hash to be filled in
+- **What:** the first heat-transfer case. A fresh agent got only the problem statement, the tools
+  and the guidelines.
+  - It derived the exact solution itself: the thermal-entrance series with 80 eigenfunctions,
+    checked against its own finite-volume solution to 4e-6.
+  - It solved the case with `buoyantBoussinesqSimpleFoam` on axisymmetric wedge meshes L1-L4
+    (up to 80 × 640 cells).
+  - It ran a 3D half-tube pair, with and without gravity, to test buoyancy.
+  - It logged 16 insights.
+- **Result:** WARN, because two of the agent's own rules, fixed before production, missed narrowly:
+  - fully developed Nu is +0.011 % from 48/11, against a 0.01 % limit (+0.008 % of that is the
+    bias of its own tail fit, measured on the exact solution);
+  - the observed order of the Nu(x) error is 1.42 from L3 to L4, against 1.5 to 3. It is 1.6
+    downstream and 1.25 near the start of heating, where the inflow profile and axial conduction
+    differ from the idealised exact solution; that was not separated by a run.
+- **Key numbers** (finest mesh):
+  - Nu(x) within 0.005 % RMS of the exact solution.
+  - Entrance length 60.07 D against 60.11 D (x⁺ = 0.0431).
+  - Outlet wall temperature within 1.3e-5 K.
+  - Energy balance better than 1e-9.
+  - Gravity changes Nu by at most 0.15 %, but makes the top of the outlet wall 0.034 K warmer than
+    the bottom (11 % of the wall-to-bulk difference).
+- **How it was checked (dev review):**
+  - The contract passes.
+  - Only the case and results folders changed.
+  - The outlet bulk and wall temperatures and x⁺ agree with an independent hand calculation.
+- **Cost:** 96 minutes of agent time.
+  - Simulations took 29.5 min.
+  - About 40 min went on runs it discarded and on the steady stop holding runs past convergence
+    (insights 8-10 and 15). Those are fixed next.
+- **Open:** in the problem design, the outlet at 120 D is still 0.53 % above the fully developed
+  Nu, so the agent had to extrapolate it (insight 1). That is a fair test, but worth knowing.
+
+### Case 6 problem statement; the contract checker reports files it cannot read (`e0fd8c0`)
 - **What:**
   - `cases/heated_pipe_re200/problem.yaml`: water at 20 °C in a 4 mm tube, Re 200 (Pr 7, so
     Pe 1400). It has a 20 D unheated section, then 120 D with a uniform wall heat flux of

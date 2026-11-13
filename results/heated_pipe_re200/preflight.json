@@ -1,0 +1,380 @@
+[
+ {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: T",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Residual trend: Uz",
+    "status": "ok",
+    "value": "\\(\\times\\,0.998\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p_rgh",
+    "status": "ok",
+    "value": "round-off level (\\(< 10^{-10}\\))",
+    "meaning": "The residual is at round-off level, so its trend carries no information."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,2.45 \\times 10^{-6}\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 300,
+  "last_time": 300.0,
+  "wall_time": 1.0,
+  "est_full_runtime": 94.68456375838926,
+  "est_kind": "fixed run length",
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/heated_pipe_re200/pfL1_preflight",
+  "end_time_short": 300,
+  "timed_out": false,
+  "level": "L1",
+  "variant": "chosen",
+  "p_solver": "solver PCG; preconditioner DIC;",
+  "cells": 800,
+  "axial": {
+   "n0": 20,
+   "n1": 60,
+   "Eh": 20.0,
+   "E0": 0.1379112245801007,
+   "dx0": 0.0012474680833227216,
+   "dx_inlet": 0.009045442726804121,
+   "dx_out": 0.024949361666454433
+  },
+  "seconds_per_iteration": 0.0033333333333333335,
+  "postProcessing_head": {
+   "postProcessing/heatedWallT/0/surfaceFieldValue.dat": [
+    "# Region type :     patch heatedWall",
+    "# Faces             : 60",
+    "# Area              : 3.350862035962e-05",
+    "299                 \t2.050232042712e+01",
+    "300                 \t2.050232042712e+01"
+   ],
+   "postProcessing/inletEnthalpy/0/surfaceFieldValue.dat": [
+    "# Region type :     patch inlet",
+    "# Faces             : 10",
+    "# Area              : 6.979899340492e-08",
+    "290                 \t-6.979899340492e-08",
+    "300                 \t-6.979899340492e-08"
+   ],
+   "postProcessing/inletFlux/0/surfaceFieldValue.dat": [
+    "# Region type :     patch inlet",
+    "# Faces             : 10",
+    "# Area              : 6.979899340492e-08",
+    "290                 \t-3.489949670246e-09",
+    "300                 \t-3.489949670246e-09"
+   ],
+   "postProcessing/outletEnthalpy/0/surfaceFieldValue.dat": [
+    "# Region type :     patch outlet",
+    "# Faces             : 10",
+    "# Area              : 6.979899340492e-08",
+    "290                 \t7.140439965271e-08",
+    "300                 \t7.140439965264e-08"
+   ],
+   "postProcessing/outletFlux/0/surfaceFieldValue.dat": [
+    "# Region type :     patch outlet",
+    "# Faces             : 10",
+    "# Area              : 6.979899340492e-08",
+    "290                 \t3.489949670249e-09",
+    "300                 \t3.489949670246e-09"
+   ],
+   "postProcessing/probes/0/T": [
+    "# Probe 0 (-0.04 0.0001 0)",
+    "# Probe 1 (0 0.0001 0)",
+    "# Probe 2 (0.002 0.0019 0)",
+    "299                 20                  20                  20.0297675808       20.128116723        20.3287294498       20.4759199791       20.075574839        20.7153047274       20.2790151502      ",
+    "300                 20                  20                  20.0297675808       20.128116723        20.3287294498       20.4759199791       20.075574839        20.7153047274       20.2790151502      "
+   ],
+   "postProcessing/probes/0/U": [
+    "# Probe 0 (-0.04 0.0001 0)",
+    "# Probe 1 (0 0.0001 0)",
+    "# Probe 2 (0.002 0.0019 0)",
+    "299                 (0.0971201409597 -1.1712338644e-05 1.16378151727e-18) (0.0979540302349 -2.98697542157e-07 4.94309293632e-18) (0.0138229356265 -1.59059556396e-08 3.55485425622e-19) (0.0138208783769 -4.02759736878e-09 2.20995938414e-20) (0.0138201783705 -1.0864286332e-12 9.9093913014e-20) (0.013820178198 -6.46116279922e-17 1.11907698995e-19) (0.0979838466581 -6.13829861334e-16 5.52700318481e-19) (0.013820178198 -1.19873753385e-17 1.04955444659e-19) (0.0979838466582 -1.84831453521e-17 1.12336422136e-18)",
+    "300                 (0.0971201409597 -1.17123386439e-05 1.32569894576e-18) (0.0979540302349 -2.98697542179e-07 5.10554882504e-18) (0.0138229356264 -1.59059556272e-08 3.60734308711e-19) (0.0138208783769 -4.0275972648e-09 1.09231716161e-20) (0.0138201783705 -1.08652750384e-12 9.50945369572e-20) (0.013820178198 -5.31134528059e-17 1.1203687801e-19) (0.0979838466581 -4.15491014165e-16 6.27704523725e-19) (0.013820178198 -3.85505310312e-18 1.04069398889e-19) (0.0979838466581 -2.36313864737e-17 1.11683066434e-18)"
+   ]
+  }
+ },
+ {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: T",
+    "status": "ok",
+    "value": "\\(\\times\\,0.204\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0837\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0839\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz",
+    "status": "ok",
+    "value": "\\(\\times\\,1.88\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p_rgh",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0204\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0177\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 300,
+  "last_time": 300.0,
+  "wall_time": 222.04,
+  "est_full_runtime": 22136.25476510067,
+  "est_kind": "fixed run length",
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/heated_pipe_re200/pfL4_preflight",
+  "end_time_short": 300,
+  "timed_out": false,
+  "level": "L4",
+  "variant": "chosen",
+  "p_solver": "solver PCG; preconditioner DIC;",
+  "cells": 51200,
+  "axial": {
+   "n0": 160,
+   "n1": 480,
+   "Eh": 20.0,
+   "E0": 0.13697752504056812,
+   "dx0": 0.00015745457171116996,
+   "dx_inlet": 0.0011494920182309977,
+   "dx_out": 0.003149091434223399
+  },
+  "seconds_per_iteration": 0.7401333333333333,
+  "postProcessing_head": {
+   "postProcessing/heatedWallT/0/surfaceFieldValue.dat": [
+    "# Region type :     patch heatedWall",
+    "# Faces             : 480",
+    "# Area              : 3.350862035962e-05",
+    "299                 \t2.048136158476e+01",
+    "300                 \t2.048147280573e+01"
+   ],
+   "postProcessing/inletEnthalpy/0/surfaceFieldValue.dat": [
+    "# Region type :     patch inlet",
+    "# Faces             : 80",
+    "# Area              : 6.979899340494e-08",
+    "290                 \t-6.979899340494e-08",
+    "300                 \t-6.979899340494e-08"
+   ],
+   "postProcessing/inletFlux/0/surfaceFieldValue.dat": [
+    "# Region type :     patch inlet",
+    "# Faces             : 80",
+    "# Area              : 6.979899340494e-08",
+    "290                 \t-3.489949670247e-09",
+    "300                 \t-3.489949670247e-09"
+   ],
+   "postProcessing/outletEnthalpy/0/surfaceFieldValue.dat": [
+    "# Region type :     patch outlet",
+    "# Faces             : 80",
+    "# Area              : 6.979899340494e-08",
+    "290                 \t7.140416911077e-08",
+    "300                 \t7.140418669714e-08"
+   ],
+   "postProcessing/outletFlux/0/surfaceFieldValue.dat": [
+    "# Region type :     patch outlet",
+    "# Faces             : 80",
+    "# Area              : 6.979899340494e-08",
+    "290                 \t3.489949674828e-09",
+    "300                 \t3.489949673365e-09"
+   ],
+   "postProcessing/probes/0/T": [
+    "# Probe 0 (-0.04 0.0001 0)",
+    "# Probe 1 (0 0.0001 0)",
+    "# Probe 2 (0.002 0.0019 0)",
+    "299                 20                  20                  20.0380599583       20.131737145        20.3206263011       20.4632052306       20.0688536079       20.7007654744       20.270891357       ",
+    "300                 20                  20                  20.038089701        20.1318010136       20.3207309653       20.4633234481       20.0688363256       20.7008934889       20.2708644921      "
+   ],
+   "postProcessing/probes/0/U": [
+    "# Probe 0 (-0.04 0.0001 0)",
+    "# Probe 1 (0 0.0001 0)",
+    "# Probe 2 (0.002 0.0019 0)",
+    "299                 (0.0870880112496 7.34640351784e-07 1.94952865961e-19) (0.0854277539604 7.8880760488e-06 -1.41146784137e-17) (0.0128831308295 9.24181074933e-07 -1.13921963654e-19) (0.0127772459696 -4.22836470714e-07 -2.39294615813e-19) (0.0125564874479 -3.30329616563e-08 6.8209492878e-20) (0.0125177453672 -9.41279696834e-09 1.23912510688e-20) (0.0874794827184 -8.1678265616e-08 -2.71105247482e-18) (0.0124964886974 -3.38824994745e-09 -2.66359916567e-20) (0.0876508411122 -2.75162364288e-08 2.37498892994e-18)",
+    "300                 (0.0871493448368 7.33018506021e-07 9.2134736857e-19) (0.0854932458119 7.8695894649e-06 -1.26407992909e-17) (0.0128671379318 9.24734899602e-07 -1.13394959979e-19) (0.0127622854225 -4.21962693885e-07 -2.38208400064e-19) (0.0125419406246 -3.29492638953e-08 6.78464624877e-20) (0.0125033006163 -9.38640382303e-09 1.22254911317e-20) (0.087539748194 -8.15450129572e-08 -2.69083172906e-18) (0.0124821048176 -3.37687989036e-09 -2.66721471826e-20) (0.0877107993772 -2.74607845123e-08 2.14072380966e-18)"
+   ]
+  }
+ },
+ {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Residual trend: T",
+    "status": "ok",
+    "value": "\\(\\times\\,0.204\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0836\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uy",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0837\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Uz",
+    "status": "ok",
+    "value": "\\(\\times\\,1.9\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p_rgh",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0191\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.0156\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   }
+  ],
+  "steps": 300,
+  "last_time": 300.0,
+  "wall_time": 184.87,
+  "est_full_runtime": 16216.89013422819,
+  "est_kind": "fixed run length",
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/heated_pipe_re200/pfL4gamg_preflight",
+  "end_time_short": 300,
+  "timed_out": false,
+  "level": "L4",
+  "variant": "gamg",
+  "p_solver": "solver GAMG; smoother DICGaussSeidel;",
+  "cells": 51200,
+  "axial": {
+   "n0": 160,
+   "n1": 480,
+   "Eh": 20.0,
+   "E0": 0.13697752504056812,
+   "dx0": 0.00015745457171116996,
+   "dx_inlet": 0.0011494920182309977,
+   "dx_out": 0.003149091434223399
+  },
+  "seconds_per_iteration": 0.6162333333333333,
+  "postProcessing_head": {
+   "postProcessing/heatedWallT/0/surfaceFieldValue.dat": [
+    "# Region type :     patch heatedWall",
+    "# Faces             : 480",
+    "# Area              : 3.350862035962e-05",
+    "299                 \t2.048136120433e+01",
+    "300                 \t2.048147275897e+01"
+   ],
+   "postProcessing/inletEnthalpy/0/surfaceFieldValue.dat": [
+    "# Region type :     patch inlet",
+    "# Faces             : 80",
+    "# Area              : 6.979899340494e-08",
+    "290                 \t-6.979899340494e-08",
+    "300                 \t-6.979899340494e-08"
+   ],
+   "postProcessing/inletFlux/0/surfaceFieldValue.dat": [
+    "# Region type :     patch inlet",
+    "# Faces             : 80",
+    "# Area              : 6.979899340494e-08",
+    "290                 \t-3.489949670247e-09",
+    "300                 \t-3.489949670247e-09"
+   ],
+   "postProcessing/outletEnthalpy/0/surfaceFieldValue.dat": [
+    "# Region type :     patch outlet",
+    "# Faces             : 80",
+    "# Area              : 6.979899340494e-08",
+    "290                 \t7.140416486525e-08",
+    "300                 \t7.140418597720e-08"
+   ],
+   "postProcessing/outletFlux/0/surfaceFieldValue.dat": [
+    "# Region type :     patch outlet",
+    "# Faces             : 80",
+    "# Area              : 6.979899340494e-08",
+    "290                 \t3.489949402650e-09",
+    "300                 \t3.489949727193e-09"
+   ],
+   "postProcessing/probes/0/T": [
+    "# Probe 0 (-0.04 0.0001 0)",
+    "# Probe 1 (0 0.0001 0)",
+    "# Probe 2 (0.002 0.0019 0)",
+    "299                 20                  20                  20.0380599583       20.131737143        20.3206263936       20.4632049021       20.0688533764       20.7007655646       20.2708910665      ",
+    "300                 20                  20                  20.0380897011       20.1318010119       20.3207308799       20.4633237747       20.068836522        20.7008928804       20.2708641002      "
+   ],
+   "postProcessing/probes/0/U": [
+    "# Probe 0 (-0.04 0.0001 0)",
+    "# Probe 1 (0 0.0001 0)",
+    "# Probe 2 (0.002 0.0019 0)",
+    "299                 (0.0870880138639 7.34648721101e-07 6.17810189417e-19) (0.0854277541594 7.88807592256e-06 -1.11785088461e-17) (0.0128831313211 9.24172158767e-07 -9.89217020982e-20) (0.0127772466436 -4.22838780003e-07 -2.33276511028e-19) (0.0125564877382 -3.30304867028e-08 7.21332504987e-20) (0.0125177446176 -9.41322705212e-09 1.01323821001e-20) (0.0874794491131 -8.16826600471e-08 -2.65932432002e-18) (0.012496488289 -3.38511136777e-09 -2.366203621e-20) (0.0876508399329 -2.75307391007e-08 2.05141970554e-18)",
+    "300                 (0.087149345736 7.3302654376e-07 1.9913072173e-19) (0.085493243563 7.86952013154e-06 -5.70380470391e-18) (0.0128671380508 9.24722006557e-07 -1.00397153695e-19) (0.0127622857608 -4.21961033646e-07 -2.34395733211e-19) (0.0125419403072 -3.29472572066e-08 7.21612013804e-20) (0.0125032994543 -9.38685450692e-09 1.10503695364e-20) (0.0875397112564 -8.15487509774e-08 -2.69940764248e-18) (0.0124821039763 -3.37486503788e-09 -2.37138781659e-20) (0.087710795074 -2.74603846569e-08 1.89394071532e-18)"
+   ]
+  }
+ }
+]
