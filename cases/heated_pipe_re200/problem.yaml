@@ -1,0 +1,37 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: heated_pipe_re200
+title: Laminar water flow in a tube heated with a uniform wall heat flux
+description: >
+  Water flows slowly through a small horizontal tube. After an unheated entrance section, the tube
+  wall is heated electrically with the same heat flux everywhere. Find how the wall and the water
+  warm up along the heated section and how the heat transfer coefficient (Nusselt number) develops,
+  and compare the simulation with the exact solution of this problem.
+setup:
+  - 'A straight horizontal tube of inner diameter \(D\). Coordinates: \(x\) along the axis, measured from the start of the heated section, \(r\) from the axis.'
+  - 'Inlet, \(x = -L_0\): water enters with a uniform velocity \(U\) over the cross-section and a uniform temperature \(T_{\mathrm{in}}\).'
+  - 'Unheated section, \(-L_0 < x < 0\): the wall is thermally insulated (no heat flux).'
+  - 'Heated section, \(0 < x < L_h\): a uniform heat flux \(q_w\) flows from the wall into the water, the same at every point of the wall.'
+  - 'Outlet, \(x = L_h\): the water leaves the tube freely.'
+  - 'The wall is no-slip (the water sticks to it). Gravity acts downward, perpendicular to the tube axis.'
+  - 'Local Nusselt number: \(Nu(x) = h(x) D / k\) with \(h(x) = q_w / (T_w(x) - T_b(x))\), where \(T_w\) is the wall temperature and \(T_b\) the bulk (flow-weighted mean) temperature at \(x\).'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  D:      {value: 0.004,    unit: m,        symbol: '\(D\)',              label: "Tube inner diameter"}
+  L0:     {value: 0.08,     unit: m,        symbol: '\(L_0\)',            label: "Length of the unheated entrance section (20 D)"}
+  Lh:     {value: 0.48,     unit: m,        symbol: '\(L_h\)',            label: "Length of the heated section (120 D)"}
+  U:      {value: 0.05,     unit: m/s,      symbol: '\(U\)',              label: "Mean velocity (uniform at the inlet)"}
+  T_in:   {value: 20.0,     unit: °C,       symbol: '\(T_{\mathrm{in}}\)', label: "Inlet water temperature"}
+  q_w:    {value: 200.0,    unit: W/m²,     symbol: '\(q_w\)',            label: "Wall heat flux into the water over the heated section"}
+  rho:    {value: 998.2,    unit: kg/m³,    symbol: '\(\rho\)',           label: "Density (water, 20 °C)"}
+  nu:     {value: 1.004e-6, unit: m²/s,     symbol: '\(\nu\)',            label: "Kinematic viscosity (water, 20 °C)"}
+  k:      {value: 0.598,    unit: W/(m K),  symbol: '\(k\)',              label: "Thermal conductivity (water, 20 °C)"}
+  cp:     {value: 4182.0,   unit: J/(kg K), symbol: '\(c_p\)',            label: "Specific heat (water, 20 °C)"}
+  beta:   {value: 2.07e-4,  unit: 1/K,      symbol: '\(\beta\)',          label: "Thermal expansion coefficient (water, 20 °C)"}
+  mu_25:  {value: 0.890e-3, unit: Pa s,     symbol: '\(\mu_{25}\)',       label: "Dynamic viscosity of water at 25 °C (for judging how much the properties change)"}
+  g:      {value: 9.81,     unit: m/s²,     symbol: '\(g\)',              label: "Gravitational acceleration"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: nu_x,      text: 'Local Nusselt number \(Nu(x)\) along the heated section, compared with the exact solution'}
+  - {key: nu_fd,     text: "Nusselt number of the fully developed region, far from the start of heating"}
+  - {key: l_th,      text: 'Thermal entrance length: the distance from the start of heating at which \(Nu(x)\) comes within 5 % of its fully developed value'}
+  - {key: t_wall,    text: 'Wall temperature \(T_w(x)\) and bulk temperature \(T_b(x)\) along the heated section, and both at the outlet'}

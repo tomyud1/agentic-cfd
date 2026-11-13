@@ -225,13 +225,16 @@ def control_chars(obj, where="results"):
 def uncovered_settings(decisions, case_dir):
     """Settings used by the OpenFOAM case that no decision documents."""
     patterns = [pat for d in decisions for pat in d.get("settings", [])]
-    missing = []
-    for key in foamdict.case_settings(case_dir):
+    missing, unparsed = [], []
+    settings = foamdict.case_settings(case_dir, unparsed)
+    errs = [f"could not parse {f}: its settings cannot be checked (simplify the file or extend cfdlib.foamdict)"
+            for f in unparsed]
+    for key in settings:
         if any(fnmatch.fnmatchcase(key, pat) for pat in INERT):
             continue
         if not any(fnmatch.fnmatchcase(key, pat) for pat in patterns):
             missing.append(key)
-    return [f"undocumented OpenFOAM setting (add it to a decision's settings): {k}" for k in missing]
+    return errs + [f"undocumented OpenFOAM setting (add it to a decision's settings): {k}" for k in missing]
 
 
 if __name__ == "__main__":

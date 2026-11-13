@@ -26,7 +26,7 @@ OpenFOAM inside the agent workflow.
 
 | # | Case | New for the agent | Candidate reference | gpucfd |
 |---|---|---|---|---|
-| 6 | **Laminar pipe with constant wall heat flux** (heated pipe) | Heat transfer (energy equation, Nusselt number) | Exact fully developed Nu = 48/11 ≈ 4.36 (textbook; confirm) plus the thermal entry length | ✘ (no energy equation yet) |
+| 6 | **Laminar pipe with constant wall heat flux** (heated pipe). Problem written: [`heated_pipe_re200/problem.yaml`](heated_pipe_re200/problem.yaml) (Re 200, Pr 7, 20 D unheated then 120 D heated) | Heat transfer (energy equation, Nusselt number), first steady case with the new steady-run tools | Exact solution (the agent derives it): fully developed Nu = 48/11 ≈ 4.36 and the thermal-entrance series for developed flow | ✘ (no energy equation yet) |
 | 7 | **Turbulent flat plate, SA model** (TMR verification case 2DZP) | First RANS case; wall-resolved grid (y+ ≈ 0.1 to 1.7) | TMR: 5 nested grids, CFL3D/FUN3D results for Cf at x = 0.97 and drag, with GCI. There is an incompressible data file (`cf_incomp_results_sa.dat`); TMR's main case is compressible at M = 0.2 | ✘ |
 | 8 | **Differentially heated square cavity** (buoyancy cavity) | Buoyancy (Boussinesq) and coupled heat and flow | de Vahl Davis (1983) benchmark (confirm) | ✘ |
 

@@ -103,8 +103,9 @@ def flatten(d, prefix=""):
     return flat
 
 
-def case_settings(case_dir):
-    """All settings in a case's 0/, constant/ and system/ dictionaries, as {'system/fvSolution/...': value}."""
+def case_settings(case_dir, unparsed=None):
+    """All settings in a case's 0/, constant/ and system/ dictionaries, as {'system/fvSolution/...': value}.
+    unparsed: a list that receives the files that could not be parsed (their settings are missing)."""
     case_dir = Path(case_dir)
     settings = {}
     for sub in ("0", "constant", "system"):
@@ -116,6 +117,8 @@ def case_settings(case_dir):
                 try:
                     flat = flatten(parse(f))
                 except (ValueError, IndexError):
+                    if unparsed is not None:
+                        unparsed.append(f"{sub}/{f.name}")
                     continue
                 for k, v in flat.items():
                     settings[f"{sub}/{f.name}/{k}"] = v

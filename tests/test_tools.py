@@ -109,3 +109,14 @@ with tempfile.TemporaryDirectory() as tmp:
     print(f"steady decider (checks every 100 rows): stop at row {first:.0f}; {r['reason']}")
     assert first is not None and first >= 521, first
 print("steady stop: ok")
+
+# 8. contract: a dictionary the parser cannot read is reported, not skipped silently
+from cfdlib import contract as _contract  # noqa: E402
+with tempfile.TemporaryDirectory() as tmp:
+    (Path(tmp) / "system").mkdir()
+    (Path(tmp) / "system/controlDict").write_text("application simpleFoam;\n")
+    (Path(tmp) / "system/broken").write_text('a "b;\n')             # unterminated string: parse fails
+    errs8 = _contract.uncovered_settings([{"settings": ["system/controlDict/*"]}], tmp)
+    print("unparsed file reported:", errs8)
+    assert len(errs8) == 1 and "could not parse system/broken" in errs8[0], errs8
+print("contract unparsed: ok")

@@ -10,16 +10,43 @@ moves to a dated entry when it is committed.
 ## In progress
 
 Nothing uncommitted. Next, in this order:
-1. Case 6 (heated pipe, first heat transfer) for a fresh agent, now that steady OpenFOAM runs are
-   faster. Its problem statement still has to be written.
+1. Case 6 (heated pipe, first heat transfer) for a fresh agent. Its problem statement is written
+   (below).
 2. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
    They are tied to the IMEX fix for bodies: on a stretched grid the smallest cell sets the explicit
    viscous time step everywhere.
 3. A 3D cylinder and more OpenFOAM problem types ([cases/BACKLOG.md](cases/BACKLOG.md)).
 
+## 2026-11-13
+
+### Case 6 problem statement; the contract checker reports files it cannot read, commit hash to be filled in
+- **What:**
+  - `cases/heated_pipe_re200/problem.yaml`: water at 20 °C in a 4 mm tube, Re 200 (Pr 7, so
+    Pe 1400). It has a 20 D unheated section, then 120 D with a uniform wall heat flux of
+    200 W/m². It asks for the local and fully developed Nusselt number, the thermal entrance
+    length, and the wall and bulk temperatures. It is a verification case: the agent derives the
+    exact solution itself.
+  - `contract.uncovered_settings` now reports an OpenFOAM dictionary it cannot parse. Before, such
+    a file was skipped silently, so its settings were never checked against the decisions.
+- **Why it matters:** case 6 is the first heat-transfer problem, and its new files (`0/T`,
+  thermophysical properties, gravity) must be covered by the checker like every other setting.
+- **How the problem was chosen:**
+  - The numbers are computed by code. The wall-to-bulk temperature difference is 0.31 K and the
+    bulk temperature rises 0.38 K, so Ri ≈ 1e-3, Ra ≈ 280 and the viscosity changes by about 1.6 %.
+    Constant properties and no buoyancy should therefore hold, but the agent has to show it.
+  - The calming section is twice the hydrodynamic entry length (about 10 D), so the flow should be
+    developed where the heating starts.
+  - The heated length is about 1.7 times the usual thermal-entry estimate (about 70 D), which
+    leaves a fully developed stretch.
+- **How it was verified:**
+  - The parser reads all 35 heat-transfer and scalar-transport tutorials of OpenFOAM v2606, every
+    file.
+  - The log parser and the steady stop do not depend on the field names.
+  - The contracts of cases 1-5 still pass. A new test checks that an unreadable file is reported.
+
 ## 2026-11-12
 
-### Steady OpenFOAM runs reach the same answer 3 to 11 times sooner, commit hash to be filled in
+### Steady OpenFOAM runs reach the same answer 3 to 11 times sooner (`26d0d82`)
 - **What:**
   - `monitor.steady_decider` is a LiveStop rule for steady runs. It stops once the estimated
     iteration error of every monitored value is below a tolerance, instead of on residual targets.
