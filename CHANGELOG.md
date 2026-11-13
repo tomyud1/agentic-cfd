@@ -19,7 +19,25 @@ Next, in this order:
 
 ## 2026-11-13
 
-### Case 6 solved by a fresh agent: heated pipe, WARN, commit hash to be filled in
+### README split into a front door and two "start here" pages, commit hash to be filled in
+- **What:**
+  - The README no longer has a table of cases. It now has a "Start here" table of links, a short
+    results paragraph, the gpucfd summary, how it works and a top-level repository map (222 to 117
+    lines).
+  - New [`cases/README.md`](cases/README.md): every solved case with its verdict, headline and
+    report, what is in every report, the case folder layout, and how to give the agent a new problem.
+  - New [`setup/README.md`](setup/README.md): install, re-create the reports, re-run a case, view a
+    report, and build gpucfd and the OGL plugin (with a note on setting the GPU architecture).
+  - CLAUDE.md's README rule: no case table and no hand-kept counts in the README, and a budget of
+    about 150 lines. AGENTS.md and BACKLOG.md point to the new pages.
+- **Why it matters:** with 50 or more cases planned, a table in the README would bury the project's
+  front page. Now a new case adds one row to `cases/README.md` and one card to the gallery, and the
+  README stays the same. `setup/README.md` is also the single file to follow when setting up the lab
+  machine.
+- **Verified:** every link target exists; the old README had already drifted ("the five solved
+  cases" and "61 entries over cases 1-5" after case 6), and those counts are gone.
+
+### Case 6 solved by a fresh agent: heated pipe, WARN (`9f11a67`)
 - **What:** the first heat-transfer case. A fresh agent got only the problem statement, the tools
   and the guidelines.
   - It derived the exact solution itself: the thermal-entrance series with 80 eigenfunctions,

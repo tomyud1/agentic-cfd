@@ -67,9 +67,12 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
   commit hash on the next change. List significant work that isn't committed yet under "In
   progress". Write it in plain language: the student uses it to report progress to the supervisor.
 - **Keep the README a front door, not a history.** It shows the current state only: what the project
-  is, current results, how to use it. When something changes, replace the affected line or bullet
-  instead of adding sentences to it. History goes in `CHANGELOG.md`, gpucfd details in
-  `gpucfd/DESIGN.md`, and plans in `cases/BACKLOG.md`. Keep it under about 220 lines: a new section must replace or shorten
+  is, what it can do, and where to go next. It has no table of cases: every solved case gets one row
+  in [`cases/README.md`](cases/README.md) and one card in the gallery ([`index.html`](index.html)).
+  When something changes, replace the affected line or bullet instead of adding sentences to it. No
+  counts that need updating by hand ("five cases", "61 insights"). Detail goes in the linked pages:
+  setup in `setup/README.md`, history in `CHANGELOG.md`, gpucfd details in `gpucfd/DESIGN.md`, plans
+  in `cases/BACKLOG.md`. Keep it under about 150 lines: a new section must replace or shorten
   something.
 - **Explain as you go.** Explain the physics and numerics behind each choice in plain terms, so the
   student can follow, check and present the work.
@@ -82,7 +85,9 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
   reports are served by GitHub Pages at
   [tomyud1.github.io/agentic-cfd](https://tomyud1.github.io/agentic-cfd/)).
 - [`CHANGELOG.md`](CHANGELOG.md): what changed and when. Read it to catch up on recent work.
-- [`README.md`](README.md): results so far (cases 1-5 and the GPU study) with links to the reports.
+- [`README.md`](README.md): the front door, with a "Start here" table of links.
+- [`cases/README.md`](cases/README.md): every solved case with its verdict, headline and report.
+- [`setup/README.md`](setup/README.md): install, re-create the reports, re-run cases, build gpucfd.
 - [`cases/BACKLOG.md`](cases/BACKLOG.md): the next problems to give the agent, in order, with
   candidate sources (NASA TMR, the Luminary V&V catalogue).
 - [`.claude/skills/agentic-cfd/SKILL.md`](.claude/skills/agentic-cfd/SKILL.md): the workflow the agent

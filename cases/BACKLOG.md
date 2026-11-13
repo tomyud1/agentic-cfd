@@ -1,7 +1,7 @@
 # Case backlog
 
 Problems to give the agent next, in order. Each one should test something the agent hasn't faced
-yet. Solved cases are listed in the [README](../README.md). When a case from here is solved, move it
+yet. Solved cases are listed in [cases/README.md](README.md). When a case from here is solved, move it
 there and note it in the [CHANGELOG](../CHANGELOG.md).
 
 **Sources.** The list draws on two catalogues:

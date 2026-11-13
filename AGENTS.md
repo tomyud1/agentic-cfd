@@ -8,6 +8,7 @@ apply to every agent (Claude Code, Codex and others), not only Claude. Read it f
   [`.claude/skills/agentic-cfd/SKILL.md`](.claude/skills/agentic-cfd/SKILL.md) and its
   `references/` folder. Agents other than Claude Code don't load it automatically, so open it by
   path.
-- Machine setup (WSL2, OpenFOAM, the Python environment):
-  [`.claude/skills/agentic-cfd/references/environment.md`](.claude/skills/agentic-cfd/references/environment.md)
-  and [`README.md`](README.md), "Reproduce it".
+- Solved cases, their reports and how to add one: [`cases/README.md`](cases/README.md).
+- Machine setup (WSL2, OpenFOAM, the Python environment, gpucfd): [`setup/README.md`](setup/README.md),
+  and the development PC's paths and pitfalls in
+  [`.claude/skills/agentic-cfd/references/environment.md`](.claude/skills/agentic-cfd/references/environment.md).
