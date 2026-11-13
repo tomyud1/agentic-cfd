@@ -90,12 +90,14 @@
      "order": 2.321211939478749,
      "richardson": 6.184886250775916,
      "monotonic": true,
+     "plausible": true,
      "last_change": 0.0080600000000004
     },
     "cl": {
      "order": 3.3748769748363285,
      "richardson": 0.009398414755732802,
      "monotonic": true,
+     "plausible": true,
      "last_change": 0.00010699999999999946
     }
    },
@@ -104,12 +106,14 @@
      "order": null,
      "richardson": null,
      "monotonic": false,
+     "plausible": null,
      "last_change": 0.004310000000000258
     },
     "cl": {
      "order": 1.8073549220576093,
      "richardson": 0.009618000000000002,
      "monotonic": true,
+     "plausible": true,
      "last_change": 0.000279999999999999
     }
    },
@@ -118,12 +122,14 @@
      "order": 2.012263419665363,
      "richardson": 6.185325643086817,
      "monotonic": true,
+     "plausible": true,
      "last_change": 0.0020500000000005514
     },
     "cl": {
      "order": null,
      "richardson": null,
      "monotonic": false,
+     "plausible": null,
      "last_change": 1.0000000000001327e-05
     }
    }

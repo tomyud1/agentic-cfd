@@ -77,18 +77,61 @@ def run(cmd, case_dir, log_name=None, timeout=None, watch=None, watch_every=10.0
     return wall
 
 
-def map_fields(case_dir, source_dir, consistent=True):
+def map_fields(case_dir, source_dir, consistent=True, keep_new=False):
     """Initial fields of case_dir = the latest time of source_dir, interpolated by mapFields (grid
     sequencing: a fine mesh starts from a coarser mesh's converged answer, so it only has to remove
     the coarse mesh's error). consistent: same geometry and patch names (meshes of one family).
+
+    mapFields maps every volume field in the source time, including post-processing output written
+    there (C, Cx, Cy, Cz, V from writeCellCentres / writeCellVolumes). Field files the target did not
+    have before are deleted afterwards unless keep_new (case 6: they became undocumented settings and
+    the contract refused the report). mapFields also rewrites the target's field files in expanded form
+    (constraint patches such as wedge or empty written out instead of an #includeEtc line), so a
+    decision must cover those patch entries. Returns (wall time, list of deleted files).
 
     OpenFOAM file names cannot contain spaces: mapFields fails on a source path or working directory
     with one (for example /mnt/d/Projects/Agentic CFD/...). Keep runs under $FOAM_RUN."""
     for p in (case_dir, source_dir):
         if " " in str(Path(p).resolve()):
             raise ValueError(f"map_fields: OpenFOAM cannot use a path with a space: {p}")
+    before = {f for d in time_dirs(case_dir) for f in d.iterdir() if f.is_file()}
     flag = " -consistent" if consistent else ""
-    return run(f"mapFields {Path(source_dir).resolve()}{flag} -sourceTime latestTime", case_dir, "mapFields")
+    wall = run(f"mapFields {Path(source_dir).resolve()}{flag} -sourceTime latestTime", case_dir, "mapFields")
+    removed = []
+    if not keep_new:
+        for d in time_dirs(case_dir):
+            for f in d.iterdir():
+                if f.is_file() and f not in before:
+                    f.unlink()
+                    removed.append(str(f.relative_to(case_dir)))
+    return wall, removed
+
+
+def ignored_settings(case_dir):
+    """Settings the case's solver silently ignores, as warnings. Today: SIMPLE/PIMPLE `consistent yes`
+    (SIMPLEC) for a solver whose source never reads it. Case 6: buoyantBoussinesqSimpleFoam has no
+    SIMPLEC, so `consistent yes` ran plain SIMPLE with an unrelaxed pressure and diverged."""
+    from . import foamdict
+    case_dir = Path(case_dir)
+    try:
+        ctrl = foamdict.parse(case_dir / "system/controlDict")
+        sol = foamdict.parse(case_dir / "system/fvSolution")
+    except (OSError, ValueError, IndexError):
+        return []
+    app = str(ctrl.get("application", "")).strip()
+    asked = [k for k in ("SIMPLE", "PIMPLE")
+             if str((sol.get(k) or {}).get("consistent", "")).strip() in ("yes", "true", "on", "1")]
+    if not app or not asked:
+        return []
+    root = Path(foam_env("FOAM_SOLVERS"))
+    src = next((d for d in root.rglob(app) if d.is_dir() and (d / f"{app}.C").exists()), None)
+    if src is None:
+        return []                                  # solver source not installed: cannot tell
+    text = "".join(f.read_text(errors="replace") for f in src.rglob("*") if f.suffix in (".C", ".H"))
+    if "consistent()" in text:
+        return []
+    return [f"{app} does not read '{k}/consistent' (no SIMPLEC in its source): the setting is ignored and "
+            f"the pressure-velocity coupling is plain {k}; relax the pressure (typical U 0.7, p 0.3)" for k in asked]
 
 
 def _killpg(pgid, sig=signal.SIGKILL):
@@ -99,7 +142,9 @@ def _killpg(pgid, sig=signal.SIGKILL):
 
 
 def stop(case_dir):
-    """Kill every OpenFOAM run started by run() in case_dir (reads its *.pid files). Returns killed ids."""
+    """Kill every OpenFOAM run started by run() in case_dir (reads its *.pid files), then any OpenFOAM
+    process still working in case_dir (an orphan whose Python wrapper died and took the PID file with
+    it, case 6). Returns the killed ids."""
     killed = []
     for pidfile in Path(case_dir).glob("*.pid"):
         try:
@@ -111,7 +156,21 @@ def stop(case_dir):
         _killpg(pgid)
         pidfile.unlink(missing_ok=True)
         killed.append(pgid)
+    for pid, _, cwd, _ in _running_in(case_dir):
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            try:
+                os.kill(pid, sig)
+            except ProcessLookupError:
+                break
+            time.sleep(0.5)
+        killed.append(pid)
     return killed
+
+
+def _running_in(case_dir):
+    """OpenFOAM processes whose working directory is case_dir or inside it."""
+    root = str(Path(case_dir).resolve())
+    return [p for p in running() if p[2] == root or p[2].startswith(root + "/")]
 
 
 def running():
@@ -134,6 +193,10 @@ def render_case(template_dir, case_dir, params):
     """Copy a case template, filling {{ placeholders }} in every file with params."""
     template_dir, case_dir = Path(template_dir), Path(case_dir)
     if case_dir.exists():
+        live = _running_in(case_dir)
+        if live:          # deleting under a running solver lets it write into the new case (case 6)
+            raise RuntimeError(f"render_case: a solver is still running in {case_dir} (pids "
+                               f"{[p[0] for p in live]}); stop it first: python -m cfdlib.foam stop {case_dir}")
         shutil.rmtree(case_dir)
     env = Environment(loader=FileSystemLoader(str(template_dir)), undefined=StrictUndefined,
                       keep_trailing_newline=True)
@@ -217,12 +280,16 @@ def residual_history(log_path, fields=("Ux", "p")):
 
 if __name__ == "__main__":
     # python -m cfdlib.foam ps            list running OpenFOAM processes and their case directories
-    # python -m cfdlib.foam stop <case>   kill the runs started by foam.run() in that case
+    # python -m cfdlib.foam stop <case>   kill the runs started by foam.run() in that case, and any
+    #                                     OpenFOAM process still working inside it (orphans)
+    # python -m cfdlib.foam check <case>  settings the case's solver silently ignores
     import sys
     if sys.argv[1:2] == ["ps"]:
         procs = running()
         print("\n".join(f"{p[0]:>7}  {p[1]:>10}  {p[2]}  {p[3]}" for p in procs) or "no OpenFOAM processes")
     elif sys.argv[1:2] == ["stop"] and len(sys.argv) == 3:
-        print("killed process groups:", stop(sys.argv[2]) or "none")
+        print("killed:", stop(sys.argv[2]) or "none")
+    elif sys.argv[1:2] == ["check"] and len(sys.argv) == 3:
+        print("\n".join(ignored_settings(sys.argv[2])) or "no ignored settings found")
     else:
-        sys.exit("usage: python -m cfdlib.foam ps | stop <case_dir>")
+        sys.exit("usage: python -m cfdlib.foam ps | stop <case_dir> | check <case_dir>")

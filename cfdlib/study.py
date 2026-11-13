@@ -26,7 +26,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from .contract import FIG_REF, _req, _strings, lint
-from .report import TEMPLATES, _svg_width_px
+from .report import TEMPLATES, _svg_width_px, keep_run_record
 
 SECTIONS = ["setup", "results", "breakdown"]
 LABELS = {"PASS": "✓ Fair comparison, same answer", "WARN": "⚠ Usable, with caveats", "FAIL": "✗ Not a valid comparison"}
@@ -79,7 +79,9 @@ def check_study(s, figures=None):
 
 def render_study(s, figures, out_path, insights=()):
     """Check the study contract, then write study.json and the HTML next to out_path.
-    insights: the case's insight entries; those with stage performance or gpu are shown."""
+    insights: the case's insight entries; those with stage performance or gpu are shown.
+    On a re-render (CFD_RERENDER=1) the date and machine record of the replaced JSON are kept."""
+    s = keep_run_record(s, Path(out_path).parent / (Path(out_path).stem + ".json"))
     errors = check_study(s, figures)
     if errors:
         raise ValueError("Study contract violated:\n  - " + "\n  - ".join(errors))

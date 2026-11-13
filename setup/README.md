@@ -38,6 +38,9 @@ rebuilt, including theory, figures and checks:
 bash setup/rerender_all.sh
 ```
 
+A re-render keeps each report's original date and machine record (`CFD_RERENDER=1`): it rebuilds
+the page, not the history of when and where the case was run.
+
 ## 3. Re-run the simulations
 
 Each report's **Reproducibility** section lists the exact commands, in order; run them from the

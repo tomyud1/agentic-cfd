@@ -32,6 +32,29 @@ Tutorials live in `$FOAM_TUTORIALS/incompressible/<solver>/...` (e.g. `icoFoam/c
   off at Courant 0.8; changes halved with the time step). Use 2 outer correctors (PIMPLE) when forces
   or frequencies must be time-accurate, and confirm the order with a 3-point time-step study.
 
+## Heat transfer (measured in case 6)
+- Choices for the energy equation:
+  - `buoyantBoussinesqSimpleFoam` (steady) or `buoyantBoussinesqPimpleFoam` (transient): constant
+    properties with Boussinesq buoyancy, fields `T`, `p_rgh`, `alphat`. Gravity can be switched off
+    with `g` = 0, which gives a same-mesh pair for testing buoyancy.
+  - For a passive temperature: `simpleFoam` / `pimpleFoam` with the `scalarTransport` function object,
+    or `scalarTransportFoam` on a frozen velocity.
+  - `buoyantSimpleFoam` and `buoyantPimpleFoam` use variable properties (thermophysicalProperties).
+- **`buoyantBoussinesqSimpleFoam` has no SIMPLEC.** It never reads `consistent`, so `consistent yes`
+  is silently ignored and the run is plain SIMPLE. With the pressure unrelaxed, that diverged in
+  case 6; U 0.7 / p 0.3 converged. `python -m cfdlib.foam check <case>` (and the pre-flight) flags
+  this. The SIMPLEC relaxation levels in "Steady runs" below apply to `simpleFoam`, not to these solvers.
+- **Wall heat flux:** `fixedGradient` on `T` with gradient = q/k. Like `zeroGradient`, it writes no
+  face values, so the wall temperature has to be rebuilt from the owner cell as T_P + (∂T/∂n) d, or
+  written by a `surfaceFieldValue` with `writeFields`.
+- **A zero-gradient outlet shifts the last one or two cells** of a quantity that still changes along
+  the flow (a heated pipe, a developing flow). Energy conservation puts the outlet value into the
+  last cell (case 6: an artifact over 12 D on L1 that shrinks with the cell size). Leave those cells
+  out of comparisons, or add an unheated outlet extension.
+- **Axisymmetric wedge:** the flat wall face of a wedge cell carries a fixed geometric bias of about
+  1/cos(θ/2) − 1 (θ the full wedge angle). That is 1.5e-4 at 2° and 1e-5 at 0.5°, and refinement does
+  not remove it. Choose θ so the bias sits well below the target accuracy.
+
 ## Non-uniform inlet profile (no compilation)
 `exprFixedValue` with `valueExpr` (v2606 keyword; `expression` is rejected) and `pos()` for the face
 centre, e.g. a parabola: `valueExpr "vector(4*Um*pos().y()*(H - pos().y())/(H*H), 0, 0)";` plus a
@@ -76,6 +99,9 @@ cells per core, communication dominates): measure; a common rule of thumb is tha
 - Pressure solver: GAMG was 4 times faster than PCG with DIC (182 iterations per solve) on 54
   thousand cells. GAMG's `smoother DICGaussSeidel` needed 5 instead of 13 iterations per solve in case 5
   (6 % faster per iteration than `GaussSeidel`). Never benchmark a GPU solver against PCG on one core.
+- The pressure-solver ranking can flip between meshes. Case 6's graded tube mesh has cells up to 300
+  times longer than wide, and there PCG/DIC beat GAMG 1.4× on L3 but lost 3× on L4. Trials on the
+  finest (most expensive) mesh, run alone on the machine, are the ones to trust.
 - Momentum balance through an inlet whose profile is not the developed one: the viscous normal stress
   at the inlet integrates to zero in the continuum but not discretely (a first-order remainder that
   shrinks only with the first cell size). Include or measure it (case 5: three quarters of the imbalance).
@@ -113,13 +139,23 @@ cells per core, communication dominates): measure; a common rule of thumb is tha
    "mass" check built on it tests post-processing, not the solver. Use face fluxes (`phi`), OpenFOAM's
    `streamFunction`, or evaluate away from singularities.
 12. **Pre-flight and production in the same directory**: `render_case` deletes the target directory
-   first, so re-running a pre-flight there wipes a production run. Use separate directories.
+   first, so re-running a pre-flight there wipes a production run. Use separate directories. (It
+   refuses when a solver is still running in the directory.)
 13. **PISO is first order in time** for nonlinear flows (see "Time accuracy" above): it cost case 4 a
    full re-run of its mesh study.
 14. **A pre-flight from rest underestimates the cost of a developed unsteady flow**: in case 4 GAMG
    needed 7-12 pressure iterations per solve in the shedding flow versus fewer at start-up, and the
    finest run took twice the projection. Start the pre-flight from a developed field
    (`mapFields` from a coarser run) or budget twice the projection.
+15. **Absolute linear-solver tolerances below round-off** (case 6). With pressure `tolerance 1e-12`,
+   GAMG could not get below 2-5e-11 once the run had converged. Every pressure solve then ran to its
+   1000-iteration limit (0.33 s per iteration instead of 0.016 s), and the stagnating solves left
+   round-off noise in the velocity. With a live stop the run continues past convergence, so the cost
+   of a converged iteration matters. Something like `tolerance 1e-9` with `maxIter 200` keeps a
+   steady SIMPLE run cheap; the stop rule on the monitored values still decides convergence.
+16. **mapFields carries post-processing fields** (C, Cx, Cy, Cz, V from writeCellCentres) into the
+   next mesh, and rewrites field files in expanded form. `foam.map_fields` deletes the new fields; the
+   expanded patch entries need a decision.
 
 ## Steady runs: getting to the answer fast (measured on case 2's cavity)
 A steady SIMPLE run is a march in pseudo-time. Under-relaxation sets the pseudo time step of each
@@ -140,12 +176,17 @@ each counted to the same answer: the probes within 1e-6 U of the residual-conver
   needed. Pick the tolerance from the physics, for example a small fraction of the mesh change
   between levels. `monitor.steady_replay` tests a tolerance on a recorded history first.
 - **Relax less: a larger pseudo step.** SIMPLEC (`consistent yes`) with U 0.97-0.99 instead of 0.9
-  cut the iterations 3-9×. It is not monotone: on 128², 0.98 was best and 0.99 took 1.8× more
-  iterations; on 256², 0.99 took the fewest and 0.995 1.8× more, in about the same wall time. Each
-  iteration also costs more at first (the linear solvers do more sweeps), so compare wall time. A short trial ranks the settings well: a few hundred iterations
-  per setting, side by side on separate cores, comparing how fast the probe changes shrink
-  (iterations per decade over iterations 200-400). The ranking matched the full runs on 256² and
-  got the best two right on 128².
+  cut the iterations 3-9×.
+  - It only applies to solvers that implement SIMPLEC: `simpleFoam` does, the buoyant Boussinesq
+    solvers do not (see Heat transfer).
+  - It is not monotone. On 128², 0.98 was best and 0.99 took 1.8× more iterations. On 256², 0.99 took
+    the fewest and 0.995 1.8× more, in about the same wall time.
+  - Each iteration also costs more at first (the linear solvers do more sweeps), so compare wall time.
+  - A short trial ranks the settings well: a few hundred iterations per setting, side by side on
+    separate cores, comparing how fast the probe changes shrink (iterations per decade over
+    iterations 200-400). The ranking matched the full runs on 256² and got the best two right on 128².
+  - Case 6 (plain SIMPLE) found the same non-monotone picture for the U/p pair: 0.7/0.3 took 346
+    iterations to its stop on L1, 0.8/0.2 took 691 and 0.9/0.1 took 431.
 - **Grid sequencing.** Start each mesh from the coarser mesh's answer (`foam.map_fields`). From rest
   the fine mesh spends most of its iterations spinning up the flow (512² from rest at U 0.99 had not
   converged after 2500 iterations; from 256² it took 1441). The gain was uneven on 256² (2.2× at

@@ -10,8 +10,8 @@ moves to a dated entry when it is committed.
 ## In progress
 
 Next, in this order:
-1. Fix what case 6 exposed (its insights): the steady stop's handling of converged, quantised
-   values; `foam.map_fields` field selection; primer and SKILL notes.
+1. Case 7 (turbulent flat plate, SA, NASA TMR): the problem statement, reference data and a tool-gap
+   check before a fresh agent gets it.
 2. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
    They are tied to the IMEX fix for bodies: on a stretched grid the smallest cell sets the explicit
    viscous time step everywhere.
@@ -19,7 +19,76 @@ Next, in this order:
 
 ## 2026-11-13
 
-### One case catalogue generates the case tables; AGENTS.md is for users' own problems, commit hash to be filled in
+### Everything case 6 exposed, fixed: steady stop, process safety, solver check, guidance, commit hash to be filled in
+- **What:** all 16 insights of case 6 were acted on.
+  - **Steady stop (insights 9, 15):** `monitor.steady_check` now handles values converged to their
+    printed digits. When the fitted geometric estimate has no answer, two conservative fallbacks are
+    tried:
+    - a block bound on summed changes, with a safety factor of 10;
+    - the output precision, for a value that stopped drifting after it had moved.
+  - **Two older weaknesses, found by trap tests while doing this:**
+    - The estimate is multiplied by 10 while the decay is still slowing down. A fast mode dying out
+      had made it 18× too small.
+    - A value that has never changed no longer decides the stop. A probe the solution has not
+      reached yet had counted as converged.
+    - `verification.iteration_error` itself is unchanged, so gpucfd's steady runs and case 4's
+      periodicity rule behave as before.
+  - **`foam.map_fields` (insight 7):** it deletes the fields mapFields adds (C, Cx, V ...), which had
+    made the contract refuse the report.
+  - **Process safety (insight 10):**
+    - `foam.stop` also kills a solver whose Python wrapper died, found by its working directory.
+    - `foam.render_case` refuses to delete a case directory with a live solver in it.
+  - **Ignored settings (insight 3):** new `foam.ignored_settings` and `python -m cfdlib.foam check`
+    look in the solver's source code for whether it reads SIMPLE/PIMPLE `consistent`. The pre-flight
+    reports it, so the silent SIMPLEC of `buoyantBoussinesqSimpleFoam` is now caught.
+  - **Report template (insight 16):** inline math in the "What we want to find" list keeps its
+    spaces.
+  - **Re-rendering:** `CFD_RERENDER=1`, set by `setup/rerender_all.sh`, keeps each report's original
+    date and machine record. Before, a re-render stamped today's date and today's WSL memory on old
+    cases. All six reports were re-rendered with the template fix. Case 4's report now includes its
+    insights 17-19, which were logged after it was first rendered.
+  - **Guidance:**
+    - The primer has a new heat-transfer section: solver choices, no SIMPLEC in the buoyant solvers,
+      wall-flux face values, the zero-gradient outlet artifact, and the wedge bias. It also has
+      pitfalls 15 (absolute tolerances below round-off) and 16 (mapFields), and the pressure-solver
+      ranking flip.
+    - SKILL.md has case 6 as a worked example, plus notes on series truncation, outputs that are
+      limits, error budgets with extraction bias, same-mesh on/off tests, refinement before
+      attribution, safe process control, a steady pre-flight to convergence, and wide equations in
+      the visual review.
+    - SKILL.md stage 0 (asked for by the docs session): a user who describes a problem in words gets
+      a `problem.yaml` written with them and confirmed before work starts. The skill's description
+      now says so.
+- **Why it matters:** about 40 of case 6's 96 minutes were lost to these problems. On case 6's own
+  recorded runs, the fixed stop would have ended:
+
+  | Run | Stop now | Rows the run actually went to |
+  |---|---|---|
+  | L1 | 91 | 3736 |
+  | L2 | 181 | 3690 |
+  | L3 | 441 | 1319 |
+  | L4 | 1611 | 3291 |
+
+  Every stop has a true remaining error below the tolerance.
+- **How it was verified:**
+  - `tests/test_tools.py`:
+    - replays case 2's four and case 6's four recorded meshes, asserting the stop row and the true
+      error;
+    - trap tests for two decay modes, a one-way drift at the last digit, flicker, and a probe
+      reached late;
+    - a fake solver process for the render guard and for `stop`;
+    - the SIMPLEC check on both solvers;
+    - `map_fields` on case 2's runs.
+  - `test_study.py` and `test_layout.py` pass. All six contracts pass after the re-render.
+  - In the browser, the space before each equation in the requested list renders (4.4 px, was 0).
+- **Open:**
+  - A slow mode hidden under a faster one can still fool any stop rule that only looks at the
+    history so far (documented in `iteration_error`). The 10× factor and `hold` reduce the risk;
+    a coarser mesh's rate (`rho_min`) removes it.
+  - The case-local workaround in `cases/heated_pipe_re200/run.py` stays, as the record of what the
+    agent did.
+
+### One case catalogue generates the case tables; AGENTS.md is for users' own problems (`84037c5`)
 - **What:**
   - New [`cases/catalogue.yaml`](cases/catalogue.yaml): one list of every case, solved, in progress
     and planned. It holds the 7 solved reports, the 10 tiered cases (7-16), 4 "later" items and 40

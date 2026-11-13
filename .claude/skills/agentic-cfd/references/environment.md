@@ -42,6 +42,7 @@ python -m cfdlib.contract results/<name>/results.json <finest case dir>        #
 python -m cfdlib.insights <name> list                                          # the live insight log
 python -m cfdlib.foam ps                                                       # running solvers + their case dirs
 python -m cfdlib.foam stop <case dir>                                          # kill a run (and its solver)
+python -m cfdlib.foam check <case dir>                                         # settings the solver ignores
 ```
 
 ## Pitfalls
@@ -57,8 +58,10 @@ python -m cfdlib.foam stop <case dir>                                          #
   per run. After any interruption (including an API pause), check those files before re-running
   anything: in case 4 a queued chain finished on its own while the agent thought it had died.
   Stopping the background Python process does NOT stop the solver (it runs in its own process group,
-  so a timeout can kill it cleanly): use `python -m cfdlib.foam stop <case dir>` and check with
-  `python -m cfdlib.foam ps` before restarting a case.
+  so a timeout can kill it cleanly): use `python -m cfdlib.foam stop <case dir>`, which also finds a
+  solver whose wrapper already died, and check with `python -m cfdlib.foam ps` in a separate call
+  before restarting a case. Do not use `pkill -f <pattern>` when the pattern is in your own command
+  line: it kills its own shell (case 6 lost every run to the orphans this left).
 - Independent runs may run concurrently (up to ~6). Parallel runs of one case (`decomposePar` +
   `mpirun -np N`) are possible for large meshes; document either as a decision.
 

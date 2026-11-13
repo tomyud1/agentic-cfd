@@ -3,6 +3,7 @@
     PYTHONPATH=. python tests/test_tools.py
 """
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -120,3 +121,78 @@ with tempfile.TemporaryDirectory() as tmp:
     print("unparsed file reported:", errs8)
     assert len(errs8) == 1 and "could not parse system/broken" in errs8[0], errs8
 print("contract unparsed: ok")
+
+# 9. Steady stop on rounded output (case 6, insights 9 and 15): its recorded probe histories (column 0 is
+#    the iteration) never stopped before the fallback; now every run must stop with the true remaining
+#    change (to the run's last row, converged to its printed digits) below the tolerance.
+for n6, (rT, rU) in {"L1": (91, 91), "L2": (161, 181), "L3": (341, 441), "L4": (1221, 1611)}.items():
+    d9 = np.load(ROOT / f"results/heated_pipe_re200/runs/{n6}.npz")
+    for key9, tol9, expect9 in (("probe_T", 1e-6, rT), ("probe_Ux", 1e-7, rU)):
+        v9 = d9[key9][:, 1:]
+        r9 = monitor.steady_replay(v9, tol9, every=10, hold=2)
+        assert r9["index"] is not None, (n6, key9)
+        true9 = float(np.max(np.abs(v9[r9["index"]] - v9[-1])))
+        print(f"case 6 {n6} {key9}: stop row {r9['index'] + 1} of {len(v9)}, true error {true9:.1e} < {tol9:.0e}")
+        assert true9 < tol9 and r9["index"] + 1 == expect9, (n6, key9, r9["index"], true9)
+# traps for the fallback: it must not stop on these
+k9 = np.arange(4000.0)
+two_mode = np.round(1e-3 * 0.97 ** k9 + 2e-5 * 0.9995 ** k9, 12)      # fast mode dies first, slow one stays
+r9 = monitor.steady_replay(two_mode, 1e-6, every=10, hold=2)
+true9 = abs(two_mode[r9["index"]] - 2e-5 * 0.9995 ** 1e9) if r9["index"] is not None else 0.0
+print(f"two modes: stop at {r9['index']}, true remaining {true9:.1e}")
+assert r9["index"] is None or true9 < 1e-6, (r9["index"], true9)
+# output-precision rule: a one-way drift of one unit of the last digit is refused; flicker is accepted
+moved = np.linspace(0.0, 1e-6, 50)                                      # the value has moved earlier
+drift = np.concatenate([moved, 1e-6 + 1e-12 * np.arange(1, 31)])
+flick = np.concatenate([moved, 1e-6 + 1e-12 * (np.arange(1, 31) % 2)])
+e_drift, e_flick = monitor._fallback_error(drift)[0], monitor._fallback_error(flick)
+print(f"output precision: one-way drift -> {e_drift}, flicker -> {e_flick[0]:.1e} ({e_flick[1]})")
+assert e_drift == math.inf and e_flick[1] == "output precision" and e_flick[0] < 2e-11, (e_drift, e_flick)
+late = np.where(k9 < 3000, 5.0, 5.0 + 1e-3 * (1 - 0.99 ** (k9 - 3000)))  # a probe the flow reaches late
+r9 = monitor.steady_replay(np.round(late, 12)[:3100], 1e-6, every=10, hold=2)
+print("probe reached late (history cut 100 rows after it starts moving): stop at", r9["index"])
+assert r9["index"] is None or r9["index"] > 3000, r9
+print("steady stop on rounded output: ok")
+
+# 10. foam safety (case 6, insights 3, 7, 10): render_case refuses to delete a case a solver still works in,
+#     stop() kills orphans by working directory, ignored_settings flags SIMPLEC for a solver without it,
+#     map_fields drops post-processing fields. Needs WSL with OpenFOAM (FOAM_SOLVERS for the source check).
+import os, shutil, subprocess, time  # noqa: E401,E402
+with tempfile.TemporaryDirectory() as tmp:
+    case10 = Path(tmp) / "c"
+    (case10 / "system").mkdir(parents=True)
+    fake = Path(tmp) / "fakeFoam"                       # an "OpenFOAM solver" by name, sleeping in the case
+    shutil.copy("/bin/sleep", fake)                     # a real binary, so ps shows it as fakeFoam
+    proc = subprocess.Popen([str(fake), "60"], cwd=case10, start_new_session=True)
+    time.sleep(0.5)
+    try:
+        foam.render_case(Path(tmp) / "c", case10, {})
+        raise AssertionError("render_case deleted a live case")
+    except RuntimeError as e:
+        print("render_case guard:", str(e)[:70], "...")
+    killed = foam.stop(case10)
+    time.sleep(0.3)
+    assert proc.poll() is not None and killed, killed
+    print("stop() killed the orphan:", killed)
+    (case10 / "system/controlDict").write_text("application buoyantBoussinesqSimpleFoam;\n")
+    (case10 / "system/fvSolution").write_text("SIMPLE { consistent yes; }\n")
+    w10 = foam.ignored_settings(case10)
+    (case10 / "system/controlDict").write_text("application simpleFoam;\n")
+    w10b = foam.ignored_settings(case10)
+    print("ignored settings: buoyantBoussinesqSimpleFoam ->", len(w10), "warning(s); simpleFoam ->", len(w10b))
+    assert len(w10) == 1 and "SIMPLE" in w10[0] and w10b == [], (w10, w10b)
+run10 = Path(os.path.expanduser("~/OpenFOAM/tomyud-v2606/run/agentic/lid_driven_cavity_re100"))
+if (run10 / "N128").exists() and (run10 / "N256").exists():
+    tgt = run10.parent / "_test_map_fields"
+    shutil.rmtree(tgt, ignore_errors=True)
+    tgt.mkdir()
+    for sub in ("system", "constant", "0"):
+        shutil.copytree(run10 / "N256" / sub, tgt / sub)
+    wall10, removed10 = foam.map_fields(tgt, run10 / "N128")
+    left = sorted(f.name for f in (tgt / "0").iterdir())
+    print(f"map_fields: kept {left}, removed {removed10}")
+    assert left == ["U", "p"], left
+    shutil.rmtree(tgt)
+else:
+    print("map_fields: case 2 runs not on this machine, skipped")
+print("foam safety: ok")

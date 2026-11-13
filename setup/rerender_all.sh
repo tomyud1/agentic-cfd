@@ -5,7 +5,8 @@
 # PY defaults to the project venv; override with  PY=/path/to/python bash setup/rerender_all.sh
 cd "$(dirname "$0")/.." || exit 1
 PY="${PY:-$HOME/venvs/cfd/bin/python}"
-for c in plane_poiseuille lid_driven_cavity_re100 stokes_first_problem dfg_cylinder_re100 dfg_cylinder_3d_re20; do
+export CFD_RERENDER=1   # keep each report's original date and machine record (cfdlib.report.render)
+for c in plane_poiseuille lid_driven_cavity_re100 stokes_first_problem dfg_cylinder_re100 dfg_cylinder_3d_re20 heated_pipe_re200; do
   echo "== $c"
   $PY -m cases.$c.analyze --report 2>&1 | grep -iE "error|Report:|Traceback|PASS|WARN|FAIL|not found" | head -6
   $PY -m cfdlib.contract results/$c/results.json | head -3

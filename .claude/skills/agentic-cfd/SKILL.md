@@ -1,6 +1,6 @@
 ---
 name: agentic-cfd
-description: Solve a fluid-flow problem end to end with OpenFOAM and produce a verified HTML report (problem, assumptions, theory, decisions, pre-flight test, simulation, comparison, insights). Use when given a CFD problem statement in cases/<name>/problem.yaml or asked to simulate a flow and report on it.
+description: Solve a fluid-flow problem end to end with OpenFOAM (or the GPU solver gpucfd) and produce a verified HTML report (problem, assumptions, theory, decisions, pre-flight test, simulation, comparison, insights). Use when given a CFD problem statement in cases/<name>/problem.yaml, or when a user describes a flow problem in their own words and wants it simulated, analysed or reported on (the problem statement is then written with them first).
 ---
 
 # Agentic CFD workflow
@@ -76,10 +76,20 @@ settings):
   (`gpu_study.py`, OGL tuning, profiling-based timing). Reports: `results/dfg_cylinder_3d_re20/report.html`
   and `gpu_study.html`. Its insights.yaml holds 14 lessons (lift needed a second mesh family; the GPU
   gain is capped by the pressure share).
+- `cases/heated_pipe_re200/`: HEAT TRANSFER (energy equation, `buoyantBoussinesqSimpleFoam`), steady,
+  axisymmetric wedge, exact series solution checked by an independent method, extraction bias measured
+  on the exact solution, buoyancy tested with a same-mesh on/off pair in 3D. Report:
+  `results/heated_pipe_re200/report.html`. Its insights.yaml holds 16 lessons (the outlet was not
+  fully developed; SIMPLEC silently ignored by the buoyant solver; an absolute pressure tolerance
+  below round-off).
 
 ## Stages
 
 ### 0. Intake
+- If the user describes the problem in words and there is no `problem.yaml` yet, write
+  `cases/<name>/problem.yaml` from the description in the worked examples' format: physical inputs
+  only, no numerics. Ask for anything essential that is missing, show the file to the user, and
+  start only after they confirm. From then on it is the given problem.
 - Read `problem.yaml` and any `reference/` files. List the requested outputs (they get letters a, b, c...).
 - Compute the governing dimensionless numbers (Re, Ma, ...) in code. Decide which physics apply.
 - If data is missing or contradictory, choose a documented assumption and flag it in the report's
@@ -95,6 +105,13 @@ settings):
   See `cases/lid_driven_cavity_re100/theory.py`.
 - Every derived quantity gets: why it matters, the meaning and value of each symbol in this
   problem, and the formula with the numbers substituted (hand-check).
+- A series solution converges slowly near where it starts (case 6: the thermal-entrance series still
+  needed more than 40 terms at 0.5 D). Check the truncation at the smallest position you use, and
+  check the series against an independent method (case 6: a method-of-lines solution, 4e-6 apart).
+- When a requested output is a limit (fully developed, far field, long time), work out how close the
+  domain gets to it. Case 6's outlet at 120 D was still 0.53 % above the fully developed Nusselt
+  number. Either compare at the same position or extrapolate the simulation and the exact solution
+  the same way.
 
 ### 2. Setup and decisions
 - **Choose the solver first, and record it as a decision (kind `solver`).** OpenFOAM is the default. Consider
@@ -132,6 +149,19 @@ settings):
 - Pass/fail tolerances must discriminate: size them from the coarse pre-flight error and the expected
   order (what the finest mesh should reach), not from round numbers. A tolerance 100x looser than what
   is achieved proves nothing (case 3). Make the observed order of accuracy a rule of its own.
+- At very small tolerances, budget for three separate errors:
+  - the mesh error;
+  - the bias of how an output is extracted (a fit, an extrapolation, a threshold crossing);
+  - the differences between the simulated problem and the exact solution's idealisation (inflow
+    profile, axial conduction).
+
+  Measure the extraction bias by applying the same extraction to the exact solution. In case 6 the
+  tail fit alone gave Nu_fd +8e-5 and the 5 % entrance length −7e-4. Both WARNs of case 6 sat at
+  that level.
+- When an assumption's dimensionless indicator is ambiguous (buoyancy at Ri 1e-3 and Ra 280), you can
+  measure its effect with a same-mesh pair, with and without the effect. Report it on the local
+  requested quantities as well as on the means: in case 6, gravity changed Nu by 0.15 % but made the
+  top of the wall 11 % of ΔT warmer than the bottom.
 
 ### 3. Pre-flight test (mandatory, before any long run)
 - `cfdlib.monitor.preflight()` on the coarsest AND finest meshes with a short run (a few % of the
@@ -147,6 +177,14 @@ settings):
   (1 outer corrector) turned out first order in case 4 and cost a full re-run.
 - A pre-flight that starts from rest underestimates the cost of a developed unsteady flow (case 4:
   twice). Start it from a developed field (`mapFields` from a coarse run) or budget twice the projection.
+- The pre-flight also lists settings the solver silently ignores (`foam.ignored_settings`, or
+  `python -m cfdlib.foam check <case>`). Today that covers SIMPLEC (`consistent yes`) for solvers that
+  have none, such as `buoyantBoussinesqSimpleFoam`.
+- Steady runs: a short pre-flight ends long before convergence, so it cannot show what a converged
+  iteration costs. Letting the coarsest mesh run to convergence once shows the linear-solver iteration
+  counts at the end. A solver sitting at its `maxIter` there means its absolute tolerance is below
+  round-off. In case 6 that made converged iterations 20× dearer and cost about 9 minutes of
+  discarded runs.
 - If it fails or warns, fix the setup and log an insight. No production runs on a failing pre-flight.
   If the projected time is excessive (> ~15 min per run here), coarsen the plan and say so.
 
@@ -178,6 +216,12 @@ settings):
     iteration error of every monitored value (probes, forces, a wall heat flux) is below `tol`,
     instead of stopping on residual targets. `monitor.steady_replay` tests a tolerance on a recorded
     history.
+    - It handles values converged to their printed digits: on case 6's recorded runs it would have
+      stopped L4 at iteration 1611 instead of 3289.
+    - It is cautious while the decay is still slowing down.
+    - A value that has never changed is listed as "constant so far" and does not decide the stop. A
+      probe far downstream of a moving front looks constant until the front arrives, so put probes
+      where the answer changes.
   - `foam.map_fields(case, coarser_case)` starts a mesh from the coarser mesh's answer (grid
     sequencing).
   - Less relaxation (SIMPLEC with U 0.97-0.99) is a larger pseudo time step. The best value
@@ -206,9 +250,15 @@ settings):
 - For the human engineer: `python -m cfdlib.monitor watch <case dir> --every 60` keeps
   `<case>/peek.html` up to date until the run ends: a figure of the whole history plus the same text,
   reloading itself in a browser. Start it in the background and give the engineer the printed path.
-- Long runs go in the background; `python -m cfdlib.foam ps` lists solver processes, and
-  `python -m cfdlib.foam stop <case dir>` kills one (stopping the Python wrapper alone leaves an
-  orphan solver). Record per run: health (`monitor.assess`), the physical check, wall time.
+- Long runs go in the background. `python -m cfdlib.foam ps` lists solver processes, and
+  `python -m cfdlib.foam stop <case dir>` kills a run, including an orphan whose Python wrapper is
+  gone. `foam.render_case` refuses to delete a case directory with a live solver in it.
+  - Do not use `pkill -f <pattern>` when the pattern also appears in your own command line: it kills
+    its own shell first. In case 6 that left orphan solvers writing into re-created case directories,
+    and every run had to be repeated.
+  - Check with `foam ps` in a separate call.
+
+  Record per run: health (`monitor.assess`), the physical check, wall time.
 - Run a sequence of long runs as ONE background script that writes a completion marker and a record
   per run. After any interruption (an API pause too), read those files before re-running anything.
 - While all hardware threads run a solver, your own work slows it: leave 1-2 threads free or budget
@@ -232,6 +282,10 @@ settings):
   terms): one mesh family's GCI can be far too optimistic. Plan a second family (different grading,
   same cell counts) on at least two levels and report the spread. In case 5 the lift's GCI band was
   0.6 %, but two families on the finest level differed by 1.9 % and bracketed the reference.
+- Before attributing a difference to an idealisation of the reference or the exact solution, show it
+  does not shrink with refinement. In case 6 the centreline velocity at the start of heating was
+  0.53 % low on L1. Most of that was mesh error (−0.53, −0.25, −0.12, −0.08 % on L1-L4); only about
+  −0.06 % was real.
 - A coarse-mesh match can be luck (error cancellation). Report differences honestly, where and why.
 - An explanation is a claim: check it against the data (sign, size, scaling) before writing it. In
   case 3 the first explanation of an error had the wrong sign and a third of the size.
@@ -265,6 +319,8 @@ built-in browser through the local server (file:// does not work):
   TeX as overflow):
   `await MathJax.startup.promise; document.querySelectorAll('details').forEach(d => d.open = true); [...document.querySelectorAll('section *')].filter(x => !x.tagName.startsWith('MJX') && x.scrollWidth > x.clientWidth + 2 && getComputedStyle(x).overflowX !== 'visible').map(x => x.closest('section').id + ': ' + x.className)`
   then screenshot the opened ⓘ panels too.
+- A wide equation scrolls sideways inside its box, so a screenshot shows it cut at the edge. Scroll
+  it, or keep hand checks short enough to fit (case 6 shortened several).
 - **After any change of plan mid-course** (scheme, rank count, run length, mesh levels), search
   decisions.yaml, analyze.py and the rendered text for the superseded names and numbers. Case 4's
   final review found a decision, reproducibility commands and a limitation still describing the old

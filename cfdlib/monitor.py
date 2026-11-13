@@ -207,6 +207,10 @@ def preflight(case_dir, solver, end_time_short, end_time_full, timeout=600, cour
         pass                                   # a crash is a finding; assess() reports it
     a = assess(pf / f"log.{solver.split()[0]}", end_time=end_time_full, courant_limit=courant_limit,
                residual_targets=residual_targets)
+    for w in foam.ignored_settings(pf):
+        a["checks"].append(dict(name="Settings the solver ignores", status="warn", value="ignored", meaning=w))
+        if a["status"] == "ok":
+            a["status"] = "warn"
     a.update(case=str(pf), end_time_short=end_time_short, timed_out=timed_out)
     return a
 
@@ -312,6 +316,39 @@ class DatTail:
 # Replayed on case 2's four recorded meshes (16 combinations of tolerance and sampling) the true
 # remaining error was always below the estimate, at 0.6 to 0.97 of the tolerance.
 
+def _fallback_error(s, m=5, safety=10.0):
+    """Remaining change of a sampled series when iteration_error has no estimate (inf). Two conservative
+    cases, else inf (case 6, insights 9 and 15: values written with 12 digits stop changing smoothly
+    near convergence, so the change ratios scatter or a change is exactly zero, and the fitted rate is
+    never accepted although the value has long converged):
+    - block bound: the total change (sum of |changes|) in each of the last three blocks of m samples
+      shrinks twice in a row; at the slower of the two block ratios r, what is left is at most
+      S * r / (1 - r) (S the last block's total). Sums, not maxima, so a drift of one or two units of the
+      last printed digit per sample still shows its decay. The result is multiplied by `safety` (10)
+      before the caller compares it with the tolerance, so a fast mode dying out cannot fake convergence.
+    - output precision: the last 2m changes are at most a few units of the smallest change the file
+      resolves (q, the quantum of the printed digits), they do not all point one way (no drift), and the
+      series has moved by more than 1000 q since the start (a probe the solution has not reached yet
+      does not count). Error = 10 q.
+    Returns (error, how)."""
+    d = np.diff(s)
+    a = np.abs(d)
+    if len(d) < 3 * m:
+        return math.inf, None
+    s1, s2, s3 = a[-3 * m:-2 * m].sum(), a[-2 * m:-m].sum(), a[-m:].sum()
+    if 0.0 < s3 < s2 < s1:
+        r = max(s3 / s2, s2 / s1)
+        return float(s3 * r / (1.0 - r)) * safety, "block bound"
+    nz = a[-6 * m:][a[-6 * m:] > 0]
+    q = float(nz.min()) if len(nz) else 0.0
+    tail = d[-2 * m:]
+    one_way = np.all(tail > 0) or np.all(tail < 0)
+    if q > 0 and a[-2 * m:].max() <= 10 * q and not one_way \
+            and float(np.max(s) - np.min(s)) > 1000 * q:
+        return 10 * q, "output precision"
+    return math.inf, None
+
+
 def steady_check(values, tol, every=10, names=None):
     """Iteration error of each monitored series of a steady run, now.
 
@@ -319,7 +356,14 @@ def steady_check(values, tol, every=10, names=None):
     column, in the units of values. every: sampling interval in rows; the changes between samples must
     shrink visibly (if the error never settles, sample more sparsely). Returns dict(ok, status, reason,
     quantities): per column state 'settled' (error < tol), 'floor' (changes stopped shrinking above
-    tol: running longer will not help, so it counts as done with a warning) or 'running'."""
+    tol: running longer will not help, so it counts as done with a warning) or 'running'.
+
+    The error is iteration_error's geometric estimate. While the decay is visibly slowing down (the
+    fitted rate three samples ago was clearly faster: a fast mode dying out and a slower one taking
+    over), that estimate is too small, so it is multiplied by 10 (a trap test with two modes stopped
+    18 times too early without this). Where there is no estimate (rounded output near convergence), a
+    conservative fallback is tried (_fallback_error: a block bound with the same factor of 10, or the
+    output precision of a value that has stopped drifting); `how` says which was used."""
     v = np.asarray(values, float)
     v = v[:, None] if v.ndim == 1 else v
     k = v.shape[1]
@@ -329,11 +373,27 @@ def steady_check(values, tol, every=10, names=None):
     q = {}
     for j in range(k):
         e = iteration_error(s[:, j])
-        state = "settled" if e["error"] < tols[j] else "floor" if e["noise"] else "running"
-        q[names[j]] = dict(state=state, error=e["error"], rho=e["rho"], tol=float(tols[j]))
+        err, how = e["error"], "noise floor" if e["noise"] else "geometric"
+        if math.isfinite(err) and not e["noise"] and e["rho"] is not None and len(s) > 8:
+            before = iteration_error(s[:-3, j])
+            if before["rho"] is not None and (1.0 - e["rho"]) < (1.0 - before["rho"]) / 1.2:
+                err, how = err * 10.0, "geometric, slowing (x10)"
+        if not math.isfinite(err):
+            err, how = _fallback_error(s[:, j])
+        state = "settled" if err < tols[j] else "floor" if e["noise"] else "running"
+        if np.ptp(v[:, j]) == 0.0:
+            # Never changed: truly constant (upstream of a heater) or not reached by the solution yet (far
+            # downstream of a moving front). The data cannot tell, so it does not decide the stop.
+            state, how = "constant", "never changed"
+        q[names[j]] = dict(state=state, error=err, rho=e["rho"], tol=float(tols[j]), how=how)
     running = [n for n, x in q.items() if x["state"] == "running"]
     floors = [n for n, x in q.items() if x["state"] == "floor"]
-    worst = max(q, key=lambda n: q[n]["error"] / q[n]["tol"] if q[n]["tol"] > 0 else math.inf)
+    const = [n for n, x in q.items() if x["state"] == "constant"]
+    if len(const) == k:
+        return dict(ok=False, status="ok", quantities=q,
+                    reason="running: no monitored value has changed yet")
+    judged = [n for n in q if n not in const]
+    worst = max(judged, key=lambda n: q[n]["error"] / q[n]["tol"] if q[n]["tol"] > 0 else math.inf)
     if running:
         reason = f"running: {len(running)} of {k} not settled (worst {worst}: error {q[worst]['error']:.2g})"
     elif floors:
@@ -341,6 +401,8 @@ def steady_check(values, tol, every=10, names=None):
             f"{n} ({q[n]['error']:.2g} > tol {q[n]['tol']:.2g})" for n in floors)
     else:
         reason = f"all settled: largest error {q[worst]['error']:.2g} ({worst}, tol {q[worst]['tol']:.2g})"
+    if const:
+        reason += f"; constant so far, not judged: {', '.join(const)}"
     return dict(ok=not running, status="warn" if floors else "ok", reason=reason, quantities=q)
 
 

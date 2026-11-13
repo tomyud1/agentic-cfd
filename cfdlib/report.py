@@ -122,13 +122,38 @@ def _svg_width_px(svg):
     return round(w * 4 / 3 if (m.group(2) or "pt") == "pt" else w)
 
 
+def keep_run_record(d, old_json):
+    """On a re-render (CFD_RERENDER=1 in the environment), keep the date and the machine record
+    (reproducibility.environment) of the JSON being replaced: they describe when and where the case
+    was run, not when the page was rebuilt. Otherwise return d unchanged."""
+    old_json = Path(old_json)
+    if os.environ.get("CFD_RERENDER") != "1" or not old_json.exists():
+        return d
+    try:
+        prev = json.loads(old_json.read_text(encoding="utf-8"))
+    except ValueError:
+        return d
+    d = dict(d)
+    if prev.get("date"):
+        d["date"] = prev["date"]
+    env = (prev.get("reproducibility") or {}).get("environment")
+    if env and isinstance(d.get("reproducibility"), dict):
+        d["reproducibility"] = {**d["reproducibility"], "environment": env}
+    return d
+
+
 def render(results, figures, out_path, case_dir=None):
     """Check the contract, then write results.json and report.html next to out_path.
 
     Text anywhere in results may refer to figures as {fig:<key>}; it is replaced by the figure number.
+    With CFD_RERENDER=1 in the environment (setup/rerender_all.sh sets it), a re-rendered report keeps
+    the record of when and where the case was run from the results.json it replaces: the date and
+    the machine (reproducibility.environment). A layout change must not make an old case look as if
+    it was solved today, or on today's machine settings.
     """
     from .contract import check, lint, FIGURE_SECTIONS, DECISION_KINDS
 
+    results = keep_run_record(results, Path(out_path).parent / "results.json")
     errors = check(results, case_dir=case_dir, figures=figures)
     if errors:
         raise ValueError("Report contract violated:\n  - " + "\n  - ".join(errors))

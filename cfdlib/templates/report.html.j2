@@ -60,7 +60,7 @@
   <p class="lead">{{ r.problem.description }}</p>
   <div class="wanted">
     <h4>What we want to find</h4>
-    <ol>{% for w in r.problem.wanted %}<li><span class="letter">{{ w.letter }}</span>{{ w.text }}</li>{% endfor %}</ol>
+    <ol>{% for w in r.problem.wanted %}<li><span class="letter">{{ w.letter }}</span><span>{{ w.text }}</span></li>{% endfor %}</ol>
   </div>
   {% if r.problem.setup is defined and r.problem.setup %}
   <h4>Setup</h4>
