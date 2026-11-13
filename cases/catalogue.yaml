@@ -109,8 +109,9 @@ cases:
     title: Turbulent flat plate, SA model (TMR 2DZP)
     status: planned
     tier: next
-    new: First RANS case; wall-resolved grid (y+ about 0.1 to 1.7)
-    reference: "TMR: 5 nested grids, CFL3D/FUN3D results for Cf at x = 0.97 and drag, with GCI. There is an incompressible data file (cf_incomp_results_sa.dat); TMR's main case is compressible at M = 0.2"
+    folder: turbulent_flat_plate_sa
+    new: First RANS case; wall-resolved grid (y+ about 0.1 to 1.7); NASA's own grids loaded point for point (cfdlib/structgrid.py)
+    reference: "TMR: 5 nested grids, CFL3D/FUN3D results for Cf at x = 0.97 and drag, with GCI. TMR's main case is compressible at M = 0.2; its incompressible Cf (cf_incomp_results_sa.dat) is 0.87 % higher on the finest grid and is the like-for-like reference. Prepared 2026-11-13: problem statement, reference data and grids are in the case folder"
     luminary: turbulent_flat_plate
     gpucfd: "no"
 

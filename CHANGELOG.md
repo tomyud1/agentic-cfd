@@ -11,7 +11,9 @@ moves to a dated entry when it is committed.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
-### Case 7 prepared: turbulent flat plate with the Spalart-Allmaras model (not committed yet)
+## 2026-11-13
+
+### Case 7 prepared: turbulent flat plate with the Spalart-Allmaras model, commit hash to be filled in
 - **What:** everything a fresh agent needs to solve the project's first turbulence case is now in the
   repository. The case is NASA's standard check of a turbulence model: air flowing along a flat
   plate, with the turbulence replaced by a model (Spalart-Allmaras). Nothing was solved; this is the
@@ -56,9 +58,7 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
   guard against too few digits when a mesh is written again is a note in the primer and a number
   the grid tool reports, not yet an automatic check.
 
-## 2026-11-13
-
-### Tools for comparing two solvers: study reports and run records, commit hash to be filled in
+### Tools for comparing two solvers: study reports and run records (`f6364c4`)
 The two agents that compared gpucfd with OpenFOAM on case 4 said where the tooling slowed them down.
 This entry answers their list. No simulation was run. Both study pages (4b and 5b) were rebuilt and
 show the same numbers and the same verdicts as before (checked number by number), and all six main

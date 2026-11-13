@@ -23,7 +23,10 @@ will mostly read the summary and must be able to check every claim. Four rules:
 
 ```
 cfdlib/                       shared tools (do NOT modify; log needed changes as insights, stage "tooling")
-  foam.py        render_case, run (timeout, PID file), stop, running; read fields and postProcessing .dat files
+  foam.py        render_case, run (timeout, PID file), stop, running; read fields (cell values, values on a
+                 boundary patch) and postProcessing .dat files
+  structgrid.py  a published structured grid (PLOT3D file) as an OpenFOAM mesh, point for point, with named
+                 patches (read_plot3d_2d, index_range, write_polymesh): for benchmarks that provide their grids
   monitor.py     parse_log, assess (health checks), preflight (short test run + run-time projection),
                  LiveStop / judge / settled (end a run live once its physical check holds),
                  peek (look into a run at any moment: progress, health, verdict, history as numbers),

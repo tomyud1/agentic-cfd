@@ -1,0 +1,59 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: turbulent_flat_plate_sa
+title: Turbulent boundary layer on a flat plate with the Spalart-Allmaras model (NASA TMR case 2DZP)
+description: >
+  Air flows at uniform speed along a thin, smooth flat plate. There is no pressure gradient. The
+  boundary layer on the plate is turbulent, and the turbulence is not resolved but modelled: the
+  time-averaged flow is computed (RANS) with the one-equation model of Spalart and Allmaras. Find
+  the friction on the plate and the velocity profile in the boundary layer, and compare them with
+  the results NASA publishes for this case, computed on the same family of grids. This is a
+  verification case: the question is whether the model, as implemented in the solver used, gives
+  the same answer as NASA's reference codes. It is not a comparison with experiment.
+setup:
+  - 'Two-dimensional. Coordinates: \(x\) along the plate from its leading edge, \(y\) normal to it. Lengths are in units of the reference length \(L\).'
+  - 'Domain: the rectangle \(x_{\mathrm{in}} \le x \le x_{\mathrm{out}}\), \(0 \le y \le H\). The plate is the lower side from \(x = 0\) to \(x = x_{\mathrm{out}}\).'
+  - 'Lower side ahead of the plate, \(x_{\mathrm{in}} \le x < 0\): symmetry (no friction, no flow through it).'
+  - 'Inflow, \(x = x_{\mathrm{in}}\): uniform free stream of speed \(U_\infty\) along \(x\), with the model''s turbulence variable \(\tilde\nu = 3\nu\).'
+  - 'Upper side, \(y = H\): the free stream (far field). The boundary layer stays below \(0.03\,L\), so this side is far away.'
+  - 'Outflow, \(x = x_{\mathrm{out}}\): the flow leaves at the pressure of the free stream.'
+  - 'Plate: smooth, no-slip wall. The boundary layer is turbulent from the leading edge on (no transition is prescribed) and is resolved down to the wall: no wall functions.'
+  - 'The Reynolds number is \(Re_L = U_\infty L / \nu = 5 \times 10^6\), so \(Re_x\) reaches \(10^7\) at the end of the plate.'
+  - 'Treat the flow as incompressible (constant density). NASA''s main results are for a compressible flow at Mach 0.2; NASA also publishes incompressible results for one quantity. The reference file gives both and says which is which.'
+  - 'Turbulence model: Spalart-Allmaras in its standard form (NASA''s name: SA). NASA states that the variant without the \(f_{t2}\) term (SA-noft2) gives essentially identical results for this case.'
+  - 'Grids: NASA provides a family of five nested grids for this case (reference/grids/, coarsest \(35 \times 25\) points, finest \(545 \times 385\)). Solve on these grids, so that the grid is not a difference between this solution and the reference.'
+  - 'Skin friction coefficient: \(C_f = \tau_w / (\tfrac12 \rho U_\infty^2)\) with the wall shear stress \(\tau_w\). Drag coefficient of the plate: \(C_D = F / (\tfrac12 \rho U_\infty^2 A)\) with the friction force \(F\) on the plate per unit depth and the reference area \(A = 2L\) per unit depth (the length of the plate).'
+  - 'Wall units: \(u^+ = u / u_\tau\), \(y^+ = y u_\tau / \nu\), with \(u_\tau = \sqrt{\tau_w / \rho}\).'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  L:      {value: 1.0,      unit: m,     symbol: '\(L\)',                    label: "Reference length"}
+  x_in:   {value: -0.33333, unit: m,     symbol: '\(x_{\mathrm{in}}\)',      label: "Inflow position (the symmetry strip ahead of the plate is L/3 long)"}
+  x_out:  {value: 2.0,      unit: m,     symbol: '\(x_{\mathrm{out}}\)',     label: "End of the plate and of the domain"}
+  H:      {value: 1.0,      unit: m,     symbol: '\(H\)',                    label: "Height of the domain"}
+  U_inf:  {value: 50.0,     unit: m/s,   symbol: '\(U_\infty\)',             label: "Free-stream speed"}
+  nu:     {value: 1.0e-5,   unit: m²/s,  symbol: '\(\nu\)',                  label: "Kinematic viscosity (chosen with the speed to give the benchmark's Reynolds number, 5 million per metre)"}
+  rho:    {value: 1.2,      unit: kg/m³, symbol: '\(\rho\)',                 label: "Density"}
+  nut_in: {value: 3.0,      unit: "-",   symbol: '\(\tilde\nu_\infty/\nu\)', label: "Turbulence variable of the model in the free stream, relative to the viscosity"}
+  x_cf:   {value: 0.970084071, unit: m,  symbol: '\(x_1\)',                  label: "Station where NASA tabulates the skin friction (a grid point of all five grids)"}
+  x_2:    {value: 1.90334,  unit: m,     symbol: '\(x_2\)',                  label: "Second station of NASA's velocity profiles"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: cf_station, text: 'Skin friction coefficient \(C_f\) at \(x_1 = 0.97008\) on each grid, and what it tends to as the grid is refined'}
+  - {key: cd,         text: 'Drag coefficient \(C_D\) of the plate on each grid'}
+  - {key: cf_x,       text: 'Skin friction coefficient \(C_f(x)\) along the plate on the finest grid'}
+  - {key: profiles,   text: 'Velocity profiles at \(x_1\) and \(x_2\) on the finest grid, as \(u/U_\infty\) against \(y\) and in wall units (\(u^+\) against \(y^+\)), with the law of the wall'}
+  - {key: nut,        text: 'Eddy viscosity relative to the viscosity, \(\nu_t/\nu\): its profile at \(x_1\) and its largest value along the plate'}
+  - {key: same_model, text: 'Does the solver''s implementation of the model give NASA''s answer? State the difference that remains on the finest grid and what it is made of (grid error, compressibility, differences in the model or the boundary conditions)'}
+
+reference:
+  file: reference/tmr_2dzp_sa.yaml
+  description: >
+    Results of NASA's Turbulence Modeling Resource for its verification case 2DZP with the
+    Spalart-Allmaras model: skin friction at the station and drag on all five grids from two
+    compressible codes (CFL3D and FUN3D, Mach 0.2) with NASA's own uncertainty estimate, and the skin
+    friction at the station from two incompressible codes. On the finest grid the incompressible value
+    is 0.87 % above the compressible one, about 30 times the uncertainty NASA gives for either, so
+    the incompressible values are the like-for-like reference for an incompressible solution; drag
+    and profiles exist for the compressible flow only. Profiles and the skin friction along the plate
+    are in reference/tmr/ as published (file list in the YAML). The grids are in reference/grids/.
+    Parsed by code: setup/fetch_tmr_flatplate.sh downloads the pages, data files and grids,
+    setup/parse_tmr_flatplate.py checks them and writes the YAML.

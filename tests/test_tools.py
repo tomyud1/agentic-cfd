@@ -197,4 +197,37 @@ if (run10 / "N128").exists() and (run10 / "N256").exists():
     shutil.rmtree(tgt)
 else:
     print("map_fields: case 2 runs not on this machine, skipped")
+with tempfile.TemporaryDirectory() as tmp:        # values on a boundary patch (wall shear stress, y+)
+    fld = Path(tmp) / "wallShearStress"
+    fld.write_text("""FoamFile { version 2.0; format ascii; class volVectorField; object wallShearStress; }
+dimensions [0 2 -2 0 0 0 0];
+internalField uniform (0 0 0);
+boundaryField
+{
+    inlet { type calculated; value uniform (0 0 0); }
+    plate
+    {
+        type            calculated;
+        value           nonuniform List<vector> 3
+(
+(-3.5 1e-12 0)
+(-2.25 0 0)
+(-1.125 -2e-13 0)
+)
+;
+    }
+    plateEnd { type calculated; value uniform (-1 0 0); }
+    outlet { type zeroGradient; }
+}
+""")
+    tw = foam.read_boundary_field(fld, "plate")
+    assert tw.shape == (3, 3) and list(tw[:, 0]) == [-3.5, -2.25, -1.125], tw
+    assert list(foam.read_boundary_field(fld, "plateEnd")) == [-1.0, 0.0, 0.0]      # not the patch whose name it starts with
+    for bad in ("outlet", "nowhere"):
+        try:
+            foam.read_boundary_field(fld, bad)
+            raise AssertionError(f"{bad}: expected a ValueError")
+        except ValueError as e:
+            assert ("stores no value" in str(e)) == (bad == "outlet"), e
+    print("read_boundary_field: list, uniform value, and a clear error for a patch without values")
 print("foam safety: ok")

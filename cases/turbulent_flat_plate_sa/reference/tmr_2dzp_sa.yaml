@@ -1,0 +1,271 @@
+# Reference data of NASA TMR case VERIF/2DZP with the Spalart-Allmaras model, parsed by code
+# (setup/parse_tmr_flatplate.py) from the files in reference/tmr/ and reference/grids/. Do not edit by hand.
+source: 'NASA Langley Turbulence Modeling Resource (run by the AIAA Turbulence Model Benchmarking Working Group),
+  case VERIF/2DZP ''2D Zero Pressure Gradient Flat Plate Verification Case'', pages https://tmbwg.github.io/turbmodels/flatplate.html,
+  https://tmbwg.github.io/turbmodels/flatplate_sa.html, https://tmbwg.github.io/turbmodels/flatplate_grids.html,
+  retrieved 2026-11-13. Model: Spalart, Allmaras, ''A One-Equation Turbulence Model for Aerodynamic Flows'', Recherche
+  Aerospatiale 1, 1994, 5-21, in the form on https://tmbwg.github.io/turbmodels/spalart.html. The data is ''provided
+  as-is''.'
+saved_files: reference/tmr/ holds the pages and data files exactly as downloaded (setup/fetch_tmr_flatplate.sh).
+conditions:
+  mach: 0.2
+  reynolds_per_unit_length: 5000000.0
+  reference_length: 1.0
+  plate:
+  - 0.0
+  - 2.0
+  reference_area_for_drag: 2.0
+  reference_temperature_rankine: 540.0
+  domain:
+    x:
+    - -0.33333
+    - 2.0
+    y:
+    - 0.0
+    - 1.0
+  boundaries_from_figure:
+    _note: read from the figure plateBCpic.jpg by a person, not parsed (the page gives the boundary conditions only
+      there)
+    inflow: total pressure Pt/Pref = 1.02828, total temperature Tt/Tref = 1.008, 1 quantity from interior
+    top: farfield Riemann BC
+    outflow: P/Pref = 1.0, other quantities from interior
+    bottom_ahead_of_plate: symmetry (from the inflow to x = 0)
+    plate: adiabatic solid wall
+  sa_inflow: 'nu_tilde = 3 nu_infinity (page: ''nu_tilde_farfield >= 3 nu_inf''; CFL3D input: tur10 3.0)'
+  intro_note: The page says variations of the inflow, top and outflow conditions may also work and give similar
+    results; moving the top from y = L to y = 0.48 L changed drag and Cf at x = 0.97 by less than 0.2 %.
+reference_codes: CFL3D (cell-centred, structured) and FUN3D (node-centred, unstructured, same hexahedral grids).
+  Both compressible, Roe flux-difference splitting with UMUSCL, full Navier-Stokes, first-order upwind for the advective
+  terms of the turbulence model. Not converged to machine zero (CFL3D density residual below 1e-13).
+station_x: 0.970084071
+station_note: 'The station is a grid point of all five grids, so a cell-centred code has no wall face centred on
+  it: the two nearest wall-face centres are listed per grid. The page does not say how CFL3D evaluated Cf there.'
+definitions:
+  cf: wall shear stress / (0.5 rho_inf U_inf^2) at the station
+  cd: drag of the plate / (0.5 rho_inf U_inf^2 times the reference area 2), friction only
+grids:
+- file: grids/flatplate_clust2_4levelsdown_35x25.p2dfmt.gz
+  points:
+  - 35
+  - 25
+  cells: 816
+  points_on_plate: 29
+  x_min: -0.33333
+  x_max: 2.0
+  y_max: 1.0
+  first_cell_height: 8.32003351792e-06
+  cell_length_at_plate_start: 0.0162472655402
+  grid_point_at_station: 0.970084048409
+  wall_face_centres_next_to_station:
+  - 0.898738003043
+  - 1.0554573373095
+- file: grids/flatplate_clust2_3levelsdown_69x49.p2dfmt.gz
+  points:
+  - 69
+  - 49
+  cells: 3264
+  points_on_plate: 57
+  x_min: -0.33333
+  x_max: 2.0
+  y_max: 1.0
+  first_cell_height: 4.03918221137e-06
+  cell_length_at_plate_start: 0.00805620520068
+  grid_point_at_station: 0.970084048409
+  wall_face_centres_next_to_station:
+  - 0.9321734639565
+  - 1.0124988686195
+- file: grids/flatplate_clust2_2levelsdown_137x97.p2dfmt.gz
+  points:
+  - 137
+  - 97
+  cells: 13056
+  points_on_plate: 113
+  x_min: -0.33333
+  x_max: 2.0
+  y_max: 1.0
+  first_cell_height: 2.00465414801e-06
+  cell_length_at_plate_start: 0.00401188759785
+  grid_point_at_station: 0.970084048409
+  wall_face_centres_next_to_station:
+  - 0.9505129957605
+  - 0.9910196342744999
+- file: grids/flatplate_clust2_1leveldown_273x193.p2dfmt.gz
+  points:
+  - 273
+  - 193
+  cells: 52224
+  points_on_plate: 225
+  x_min: -0.33333
+  x_max: 2.0
+  y_max: 1.0
+  first_cell_height: 1.00046515517e-06
+  cell_length_at_plate_start: 0.00200196836704
+  grid_point_at_station: 0.970084048409
+  wall_face_centres_next_to_station:
+  - 0.960136694221
+  - 0.980372227164
+- file: grids/flatplate_clust2.p2dfmt.gz
+  points:
+  - 545
+  - 385
+  cells: 208896
+  points_on_plate: 449
+  x_min: -0.33333
+  x_max: 2.0
+  y_max: 1.0
+  first_cell_height: 5.0000000007e-07
+  cell_length_at_plate_start: 0.001
+  grid_point_at_station: 0.970084048409
+  wall_face_centres_next_to_station:
+  - 0.9650688689955
+  - 0.9751844146905
+compressible:
+  _note: M = 0.2. The values the page presents as the expected results.
+  cf_at_station:
+    CFL3D:
+    - cells: 208896
+      h: 0.00218794
+      cf: 0.00270562153
+    - cells: 52224
+      h: 0.00437588
+      cf: 0.00270673749
+    - cells: 13056
+      h: 0.00875175
+      cf: 0.00271115173
+    - cells: 3264
+      h: 0.0175035
+      cf: 0.00272834697
+    - cells: 816
+      h: 0.035007
+      cf: 0.00279568508
+    FUN3D:
+    - cells: 208896
+      h: 0.00218794
+      cf: 0.00270540472596778
+    - cells: 52224
+      h: 0.00437588
+      cf: 0.00270448474835251
+    - cells: 13056
+      h: 0.00875175
+      cf: 0.00270215403362043
+    - cells: 3264
+      h: 0.0175035
+      cf: 0.00269497594242929
+    - cells: 816
+      h: 0.035007
+      cf: 0.0026673777377449
+  cd:
+    CFL3D:
+    - cells: 208896
+      h: 0.00218794
+      cd: 0.00285985288
+    - cells: 52224
+      h: 0.00437588
+      cd: 0.00286130951
+    - cells: 13056
+      h: 0.00875175
+      cd: 0.00286620917
+    - cells: 3264
+      h: 0.0175035
+      cd: 0.00288437885
+    - cells: 816
+      h: 0.035007
+      cd: 0.00295438152
+    FUN3D:
+    - cells: 208896
+      h: 0.00218794
+      cd: 0.002852469
+    - cells: 52224
+      h: 0.00437588
+      cd: 0.002847933
+    - cells: 13056
+      h: 0.00875175
+      cd: 0.002840045
+    - cells: 3264
+      h: 0.0175035
+      cd: 0.002822641
+    - cells: 816
+      h: 0.035007
+      cd: 0.002773859
+  uncertainty_finest_three_grids:
+    cf_at_station:
+    - code: CFL3D
+      order: 1.98
+      ea21_percent: 0.041
+      eext21_percent: 0.014
+      gci_fine_percent: 0.017
+    - code: FUN3D
+      order: 1.34
+      ea21_percent: 0.034
+      eext21_percent: 0.022
+      gci_fine_percent: 0.028
+    cd:
+    - code: CFL3D
+      order: 1.75
+      ea21_percent: 0.051
+      eext21_percent: 0.022
+      gci_fine_percent: 0.027
+    - code: FUN3D
+      order: 0.8
+      ea21_percent: 0.159
+      eext21_percent: 0.215
+      gci_fine_percent: 0.269
+  cf_between_codes_finest_grid_percent: -0.008013095320835717
+  cd_between_codes_finest_grid_percent: -0.2581909038621655
+incompressible:
+  _note: 'From cf_incomp_results_sa.dat, which the SA page offers ''to give an indication of the magnitude of the
+    difference between compressible (M=0.2) and incompressible results''. Cf at the station only: no drag, no profiles,
+    no uncertainty table.'
+  cf_at_station:
+    FUN3D incompressible SA:
+    - cells: 208896
+      h: 0.00218794
+      cf: 0.002729090163
+    - cells: 52224
+      h: 0.00437588
+      cf: 0.002728461055
+    - cells: 13056
+      h: 0.00875175
+      cf: 0.002726642415
+    - cells: 3264
+      h: 0.0175035
+      cf: 0.002720381133
+    - cells: 816
+      h: 0.035007
+      cf: 0.002695820527
+    SC/TETRA incompressible SA:
+    - cells: 208896
+      h: 0.00218794
+      cf: 0.00272937
+    - cells: 52224
+      h: 0.00437588
+      cf: 0.00271606
+    - cells: 13056
+      h: 0.00875175
+      cf: 0.0026662
+    - cells: 3264
+      h: 0.0175035
+      cf: 0.00253575
+    - cells: 816
+      h: 0.035007
+      cf: 0.00225826
+  fun3d_incompressible_over_cfl3d_compressible_finest_grid_percent: 0.8674026555369752
+  between_incompressible_codes_finest_grid_percent: 0.010253856900499514
+profiles:
+  _note: Finest grid (545 x 385), compressible. Read the files in reference/tmr/ with a Tecplot-zone reader.
+  files:
+    cf_plate.dat: Cf along the plate, CFL3D and FUN3D
+    flatplate_u.dat: u / U_inf against y at x = 0.97008 and x = 1.90334 (CFL3D)
+    flatplate_u+y+.dat: u+ against log10(y+) at the same two stations (CFL3D)
+    u+y+theory.dat: law of the wall, kappa = 0.41, B = 5.0 (White, Viscous Fluid Flow, 1974, p. 472)
+    mut_0.97.dat: eddy viscosity / freestream laminar viscosity against y at x = 0.97, CFL3D and FUN3D
+    find_peak_mut.dat: largest eddy viscosity ratio against x (CFL3D)
+notes:
+- 'The page''s main results are compressible (M = 0.2): ''if you run this case with an incompressible code, your
+  results may be close - but not quite the same - as the grid is refined''.'
+- 'Drag: ''formal order-property convergence may not be generally achievable'', because the skin friction is singular
+  at the leading edge; the two codes also differ locally at the leading and the trailing edge of the plate.'
+- 'OpenFOAM: ''As of 2014, the implementation of SA, SST, and Wilcox2006 in the standard version of OpenFOAM did
+  not match the equations given on this website'' (openfoam_issues.html; the page does not track later versions).'
+- Results of SA without the ft2 term (SA-noft2) are 'essentially identical' to SA for this case.
+- The files give more digits than the codes' convergence supports (SA page).

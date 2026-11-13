@@ -125,6 +125,10 @@ cells per core, communication dominates): measure; a common rule of thumb is tha
 5. **SIMPLEC without relaxation divides by zero** for pure diffusion (floating-point exception).
 6. **Output precision**: default `writePrecision 6` truncates coordinates and values; use 12 for
    analysis, and locate cells by index or with sampling function objects, not by exact coordinates.
+   A mesh with very small wall cells needs more: a cell \(5 \times 10^{-7}\) high in a domain of size 2
+   does not survive 6 digits, and every tool that writes the mesh again (`decomposePar`,
+   `renumberMesh`) uses `writePrecision`. `cfdlib.structgrid.write_polymesh` reports the digits a grid
+   needs (`digits_needed`); run `checkMesh` after any step that rewrites the mesh.
 7. **Sourcing the environment**: `source /usr/lib/openfoam/openfoam2606/etc/bashrc` fails under
    `set -eu`; source it before enabling strict mode (cfdlib.foam.run does this for you).
 8. **foamDictionary expands macros** (`$p`) when it edits a file: an entry defined as `{ $p; relTol 0; }`

@@ -238,6 +238,42 @@ def read_internal_field(path):
     return vals if width == 1 else vals.reshape(n, width)
 
 
+def read_boundary_field(path, patch):
+    """Values of an ASCII OpenFOAM field file on one boundary patch, one per face in the patch's face
+    order: (n,) scalars or (n, 3) vectors (for example wallShearStress or nut on a wall). A uniform value
+    comes back as a single value, shape () or (3,). Raises ValueError if the patch has no `value` entry
+    (zeroGradient and similar types do not store one: write the field with a function object, or use the
+    cell values next to the patch)."""
+    text = Path(path).read_text()
+    b = text.index("boundaryField")
+    m = re.search(r"\n\s*" + re.escape(patch) + r"\s*\{", text[b:])
+    if not m:
+        raise ValueError(f"{path}: no patch '{patch}' in boundaryField")
+    start = b + m.end()
+    depth, k = 1, start
+    while depth and k < len(text):                # the patch's block, skipping the parentheses of lists
+        ch = text[k]
+        depth += (ch == "{") - (ch == "}")
+        k += 1
+    block = text[start:k - 1]
+    m = re.search(r"(?<![A-Za-z0-9_])value\s+uniform\s+([^;]+);", block)
+    if m:
+        v = np.array(m.group(1).replace("(", " ").replace(")", " ").split(), dtype=float)
+        return v[0] if v.size == 1 else v
+    m = re.search(r"(?<![A-Za-z0-9_])value\s+nonuniform\s+List<(\w+)>\s*(\d+)\s*\(", block)
+    if not m:
+        raise ValueError(f"{path}: patch '{patch}' stores no value (type "
+                         f"{(re.search(r'type\s+(\w+)', block) or [None, '?'])[1]})")
+    kind, n = m.group(1), int(m.group(2))
+    body = block[m.end():block.index(";", m.end())].rstrip()
+    assert body.endswith(")"), f"{path}: unterminated list on patch {patch}"
+    vals = np.array(body[:-1].replace("(", " ").replace(")", " ").split(), dtype=float)
+    width = {"scalar": 1, "vector": 3, "symmTensor": 6, "tensor": 9}[kind]
+    if vals.size != n * width:
+        raise ValueError(f"{path}: patch {patch}: expected {n}x{width} values, got {vals.size}")
+    return vals if width == 1 else vals.reshape(n, width)
+
+
 def read_dat(path):
     """Rows of a postProcessing .dat file, skipping '#' comments. Vectors '(a b c)' become tuples."""
     return parse_dat(Path(path).read_text())
