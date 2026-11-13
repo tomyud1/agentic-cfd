@@ -19,10 +19,10 @@ faster tools for the agent, starting with a GPU solver ([below](#gpu-solver-gpuc
 |---|---|
 | See what the agent solved: every case, its verdict and its report | [cases/README.md](cases/README.md) (or the [report gallery](https://tomyud1.github.io/agentic-cfd/)) |
 | Install it, re-create the reports, re-run a case | [setup/README.md](setup/README.md) |
-| Work on the repository as a coding agent | [AGENTS.md](AGENTS.md) |
-| Give the agent a new problem | [cases/README.md](cases/README.md#give-the-agent-a-new-problem) |
+| Solve your own CFD problem with a coding agent | [AGENTS.md](AGENTS.md) (for the agent) and [cases/README.md](cases/README.md#give-the-agent-a-new-problem) (for you) |
+| Develop the project itself (tools, gpucfd, the workflow) | [CLAUDE.md](CLAUDE.md) |
 | See what changed recently | [CHANGELOG.md](CHANGELOG.md) |
-| See which problems come next | [cases/BACKLOG.md](cases/BACKLOG.md) |
+| See which problems come next, and every candidate | [cases/BACKLOG.md](cases/BACKLOG.md) |
 | Read how the GPU solver works and how it is verified | [gpucfd/DESIGN.md](gpucfd/DESIGN.md) |
 
 ## Results
@@ -80,15 +80,16 @@ nonlinear problem.
 ## Repository map
 
 ```
-AGENTS.md, CLAUDE.md          instructions for coding agents (start at AGENTS.md)
+AGENTS.md                     for an agent solving a user's CFD problem with this repository
+CLAUDE.md                     the project's direction and rules, for agents developing it
 .claude/skills/agentic-cfd/   the agent's workflow (SKILL.md) and references
 cfdlib/                       shared tools: run OpenFOAM and gpucfd, verification, plots, report, contract
-cases/                        one folder per problem; README.md (solved cases), BACKLOG.md (next ones)
+cases/                        one folder per problem; catalogue.yaml (every case), README.md (solved), BACKLOG.md (next)
 results/                      one report per case, with the extracted run data
 gpucfd/                       the GPU solver: CUDA source, Python wrapper, verification ladder, DESIGN.md
 setup/                        install, re-render all reports, GPU setup, benchmark data (README.md)
 tests/, dev/                  smoke tests; early exploration and independent checks of the agents' claims
-index.html                    the report gallery served by GitHub Pages
+index.html                    the report gallery served by GitHub Pages (generated from cases/catalogue.yaml)
 ```
 
 ## Roadmap

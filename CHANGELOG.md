@@ -19,7 +19,31 @@ Next, in this order:
 
 ## 2026-11-13
 
-### README split into a front door and two "start here" pages, commit hash to be filled in
+### One case catalogue generates the case tables; AGENTS.md is for users' own problems, commit hash to be filled in
+- **What:**
+  - New [`cases/catalogue.yaml`](cases/catalogue.yaml): one list of every case, solved, in progress
+    and planned. It holds the 7 solved reports, the 10 tiered cases (7-16), 4 "later" items and 40
+    more candidates from the Luminary V&V manual (most RANS ones are also NASA TMR cases), grouped
+    by physics.
+  - New [`cfdlib/catalogue.py`](cfdlib/catalogue.py) generates the solved-case table in
+    `cases/README.md`, the tables in `cases/BACKLOG.md` and the cards of the report gallery
+    (`index.html`). Verdicts are read from each report's own JSON file, never typed by hand.
+    `--check` and `tests/test_catalogue.py` fail if a table is out of date, or if a results folder
+    has a report that the catalogue does not list as solved.
+  - AGENTS.md is now for an agent that a user asks to solve their own CFD problem: set up, follow the
+    skill, use the tools, write `problem.yaml` from the user's description and have the user confirm
+    it, deliver the report. Agents developing the repository read CLAUDE.md.
+  - "Give the agent a new problem" (`cases/README.md`): describe the problem in words and list what
+    to give; the agent writes `problem.yaml` itself. The model is named: Claude Opus 5.5, high effort.
+- **Why it matters:** with 50 or more cases planned, three hand-kept lists (the case table, the
+  backlog, the gallery) would drift apart. Now a solved case is one edit to `catalogue.yaml` and one
+  command, and the test catches a forgotten one.
+- **Verified:** the generator reproduces the existing tables and cards with the verdicts read from
+  the result files (2 PASS, 3 WARN, 1 FAIL, plus the 5b study PASS); `--check` passes after a run.
+- **Open:** the workflow's intake step (SKILL.md) should also say how to write `problem.yaml` from a
+  description in words; it is in AGENTS.md for now.
+
+### README split into a front door and two "start here" pages (`f52a4f1`)
 - **What:**
   - The README no longer has a table of cases. It now has a "Start here" table of links, a short
     results paragraph, the gpucfd summary, how it works and a top-level repository map (222 to 117

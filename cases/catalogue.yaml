@@ -1,0 +1,251 @@
+# The one list of every case: solved, in progress and planned.
+#
+# Edit this file, then run (inside WSL, from the repository folder):
+#     ~/venvs/cfd/bin/python -m cfdlib.catalogue
+# It rewrites the generated tables in cases/README.md and cases/BACKLOG.md and the cards in
+# index.html (the report gallery). `--check` only reports what is out of date; tests/test_catalogue.py
+# runs it.
+#
+# When a case is solved: set `status: solved`, add `folder`, `tests`, `headline` and `reports`, and
+# run the script. Verdicts are never typed here: they are read from each report's JSON file
+# (`verdict` key). A planned case gets a number (`id`) when it enters a tier.
+#
+# Fields
+#   id        case number (solved and tiered cases)
+#   title     short name
+#   status    solved | in_progress | planned
+#   tier      planned cases: next | harder | turbulence | later | catalogue
+#   group     catalogue cases: the physics heading they are listed under
+#   new       what is new for the agent
+#   reference candidate reference; confirm it from the original source before solving
+#   luminary  slug of the matching Luminary V&V page (https://luminary.ai/verification-and-validation/<slug>/)
+#   gpucfd    yes | no | maybe: can the GPU solver run it today (laminar, incompressible, box or bodies)
+#   folder    solved cases: cases/<folder>/ and results/<folder>/
+#   tests     solved cases: what the case tests
+#   headline  solved cases: the key result in one sentence (plain text)
+#   reports   solved cases: list of {path, verdict_from}; verdict_from defaults to results.json in
+#             the report's folder
+
+cases:
+  # ---------------------------------------------------------------- solved
+  - id: "1"
+    title: Plane Poiseuille flow
+    status: solved
+    folder: plane_poiseuille
+    tests: Steady, linear, exact solution
+    headline: Velocity profile within 0.0061 % of the exact solution, 2nd-order convergence
+    reports: [{path: results/plane_poiseuille/report.html}]
+
+  - id: "2"
+    title: Lid-driven cavity, Re = 100
+    status: solved
+    folder: lid_driven_cavity_re100
+    tests: Steady, nonlinear, benchmark (Ghia et al. 1982)
+    headline: Velocity profiles within 0.009 U of the benchmark; the remaining gap is traced to the benchmark's own mesh
+    reports: [{path: results/lid_driven_cavity_re100/report.html}]
+
+  - id: "3"
+    title: Stokes' first problem
+    status: solved
+    folder: stokes_first_problem
+    tests: Transient, linear, exact solution
+    headline: Velocity within 0.002 % of U, 2nd-order convergence
+    reports: [{path: results/stokes_first_problem/report.html}]
+    luminary: stokes_first_problem
+
+  - id: "4"
+    title: Cylinder in a channel, Re = 100 (DFG 2D-2)
+    status: solved
+    folder: dfg_cylinder_re100
+    tests: Transient, nonlinear, vortex shedding, benchmark (FeatFlow)
+    headline: Drag, lift and Strouhal number all inside their uncertainty bands (St 0.3015 vs 0.3019); MPI scaling study
+    reports: [{path: results/dfg_cylinder_re100/report.html}]
+
+  - id: "5"
+    title: Cylinder in a square duct, Re = 20 (DFG 3D-1Z)
+    status: solved
+    folder: dfg_cylinder_3d_re20
+    tests: Steady, 3D, up to 2.4 million cells, benchmark (FeatFlow)
+    headline: Drag within 0.08 % of the reference; lift 1.7 % off, outside its band. A second mesh family shows the lift depends on the cell grading around the cylinder
+    reports: [{path: results/dfg_cylinder_3d_re20/report.html}]
+
+  - id: "5b"
+    title: GPU vs CPU study (same case as 5)
+    status: solved
+    folder: dfg_cylinder_3d_re20
+    tests: OpenFOAM pressure solve on an RTX 4070 (OGL plugin) vs the best CPU setup
+    headline: Same answer on both sides; the GPU breaks even at about 2 million cells and is 1.13 times faster at 4.75 million, capped near 1.5 times because the pressure solve is only a third of each iteration
+    reports: [{path: results/dfg_cylinder_3d_re20/gpu_study.html, verdict_from: results/dfg_cylinder_3d_re20/gpu_study.json}]
+
+  - id: "6"
+    title: Heated pipe, Re = 200, uniform wall heat flux
+    status: solved
+    folder: heated_pipe_re200
+    tests: Steady, first heat transfer, exact solution (thermal entrance series)
+    headline: Local Nusselt number within 0.005 % RMS of the exact solution; fully developed Nu 0.011 % off, just outside the agent's own 0.01 % rule; gravity tested with a 3D run
+    reports: [{path: results/heated_pipe_re200/report.html}]
+    luminary: heated_pipe
+
+  # ---------------------------------------------------------------- tier 1: next
+  - id: "7"
+    title: Turbulent flat plate, SA model (TMR 2DZP)
+    status: planned
+    tier: next
+    new: First RANS case; wall-resolved grid (y+ about 0.1 to 1.7)
+    reference: "TMR: 5 nested grids, CFL3D/FUN3D results for Cf at x = 0.97 and drag, with GCI. There is an incompressible data file (cf_incomp_results_sa.dat); TMR's main case is compressible at M = 0.2"
+    luminary: turbulent_flat_plate
+    gpucfd: "no"
+
+  - id: "8"
+    title: Differentially heated square cavity (buoyancy)
+    status: planned
+    tier: next
+    new: Buoyancy (Boussinesq) and coupled heat and flow
+    reference: de Vahl Davis (1983) benchmark (confirm)
+    luminary: buoyancy_cavity
+    gpucfd: "no"
+
+  # ---------------------------------------------------------------- tier 2: harder versions of what works
+  - id: "9"
+    title: Backward-facing step, laminar, Re 800
+    status: planned
+    tier: harder
+    new: Separation and reattachment; long domain; sensitivity to the outflow condition
+    reference: Gartling (1990) benchmark; Armaly et al. (1983) experiment (confirm)
+    luminary: backward_step
+    gpucfd: "yes"
+
+  - id: "10"
+    title: Lid-driven cavity, Re 1000
+    status: planned
+    tier: harder
+    new: Stronger nonlinearity than case 2, secondary vortices
+    reference: Ghia et al. (1982), Re 1000 columns. Case 2 has only the Re 100 table (ghia1982_re100.yaml), so transcribe the rest
+    luminary: lid_driven_cavity
+    gpucfd: "yes"
+
+  - id: "11"
+    title: Cylinder, Re 40 (steady, separated)
+    status: planned
+    tier: harder
+    new: Recirculation length and drag, steady wake
+    reference: Literature values cited by Luminary's case page (confirm)
+    luminary: cylinder_re40
+    gpucfd: "yes"
+
+  - id: "12"
+    title: Sphere, Re 100
+    status: planned
+    tier: harder
+    new: 3D external flow and 3D meshing (snappyHexMesh)
+    reference: Literature values cited by Luminary's case page (confirm)
+    luminary: laminar_sphere
+    gpucfd: "yes"
+
+  # ---------------------------------------------------------------- tier 3: turbulence beyond the flat plate
+  - id: "13"
+    title: Bump in a channel, SA and SST (TMR 2DB)
+    status: planned
+    tier: turbulence
+    new: Pressure gradients; comparing two turbulence models
+    reference: TMR verification
+    luminary: bump_in_channel
+    gpucfd: "no"
+
+  - id: "14"
+    title: NACA 0012, SA (TMR 2DN00)
+    status: planned
+    tier: turbulence
+    new: Airfoil, far field, lift and drag against experiment
+    reference: TMR validation; Luminary publishes CL 1.0907 and CD 0.012453 at 10 degrees, a commercial result to compare against
+    luminary: naca0012_val
+    gpucfd: "no"
+
+  - id: "15"
+    title: Backward-facing step, turbulent (TMR 2DBFS, Driver & Seegmiller)
+    status: planned
+    tier: turbulence
+    new: Turbulent separation, where RANS models are known to struggle
+    reference: TMR validation
+    luminary: backstep
+    gpucfd: "no"
+
+  - id: "16"
+    title: NASA wall-mounted hump (TMR 2DWMH)
+    status: planned
+    tier: turbulence
+    new: Separation and reattachment, a known hard case for RANS
+    reference: TMR validation
+    luminary: wall_mounted_hump
+    gpucfd: "no"
+
+  # ---------------------------------------------------------------- later: real geometry and more physics
+  - title: Geometry from an STL file, meshed with snappyHexMesh
+    status: planned
+    tier: later
+    new: Real geometry; the sphere (case 12) is the first step
+    gpucfd: "no"
+
+  - title: Conjugate heat transfer, fin in cross-flow
+    status: planned
+    tier: later
+    new: Heat conduction in a solid coupled to the flow (RANS, 3D)
+    luminary: fin_effectiveness
+    gpucfd: "no"
+
+  - title: Cylinder at Re 3900, DES/LES
+    status: planned
+    tier: later
+    new: Unsteady turbulence; expensive, so it waits for lab hardware
+    luminary: re3900_cylinder_fwh
+    gpucfd: "no"
+
+  - title: A problem with no benchmark at all, from Prof. Frankel
+    status: planned
+    tier: later
+    new: The real test of the workflow, where the agent has to judge its own answer without a reference
+    gpucfd: "no"
+
+  # ---------------------------------------------------------------- catalogue: candidates not yet ordered
+  # From the Luminary V&V manual (56 cases); the ones already above are not repeated. Most RANS
+  # cases are also NASA TMR cases, whose grids and CFL3D/FUN3D results are public.
+  - {title: Plane Couette flow, status: planned, tier: catalogue, group: Laminar, luminary: couette_flow, gpucfd: "yes"}
+  - {title: Couette-Poiseuille flow, status: planned, tier: catalogue, group: Laminar, luminary: couette_poiseuille, gpucfd: "yes"}
+  - {title: Hagen-Poiseuille pipe, Re 500 (3D), status: planned, tier: catalogue, group: Laminar, luminary: laminar_pipe, gpucfd: "maybe"}
+  - {title: Laminar flat plate (Blasius), status: planned, tier: catalogue, group: Laminar, luminary: laminar_flat_plate, gpucfd: "maybe"}
+  - {title: Decaying vortices on a periodic lattice (unsteady), status: planned, tier: catalogue, group: Laminar, luminary: ins_lattice, gpucfd: "yes"}
+  - {title: Low-Prandtl forced convection over a flat plate, status: planned, tier: catalogue, group: Laminar, luminary: forced_convection_plate, gpucfd: "no"}
+  - {title: Compressible Couette flow with viscous heating, status: planned, tier: catalogue, group: Laminar, luminary: compressible_couette, gpucfd: "no"}
+  - {title: Manufactured solution, viscous Navier-Stokes (3D), status: planned, tier: catalogue, group: Verification by manufactured solutions, luminary: mms_viscous, gpucfd: "maybe"}
+  - {title: Manufactured solution, inviscid Euler (3D), status: planned, tier: catalogue, group: Verification by manufactured solutions, luminary: mms_inviscid, gpucfd: "no"}
+  - {title: Converging-diverging nozzle, status: planned, tier: catalogue, group: Compressible inviscid, luminary: cd_nozzle, gpucfd: "no"}
+  - {title: Supersonic cone (Taylor-Maccoll), status: planned, tier: catalogue, group: Compressible inviscid, luminary: cone10, gpucfd: "no"}
+  - {title: Supersonic wedge (oblique shock), status: planned, tier: catalogue, group: Compressible inviscid, luminary: supersonic_wedge, gpucfd: "no"}
+  - {title: Prandtl-Meyer expansion fan, status: planned, tier: catalogue, group: Compressible inviscid, luminary: supersonic_expansion, gpucfd: "no"}
+  - {title: Transonic NACA 0012 (Euler), status: planned, tier: catalogue, group: Compressible inviscid, luminary: naca0012_transonic, gpucfd: "no"}
+  - {title: Isentropic vortex (unsteady), status: planned, tier: catalogue, group: Compressible inviscid, luminary: inviscid_vortex, gpucfd: "no"}
+  - {title: Turbulent flat plate, SST model, status: planned, tier: catalogue, group: RANS, luminary: turbulent_flat_plate_sst, gpucfd: "no"}
+  - {title: Bump in a channel, 3D, SA, status: planned, tier: catalogue, group: RANS, luminary: bump_in_channel_3d, gpucfd: "no"}
+  - {title: NACA 0012, SST model, status: planned, tier: catalogue, group: RANS, luminary: naca0012_val_sst, gpucfd: "no"}
+  - {title: Asymmetric plane diffuser, SST, status: planned, tier: catalogue, group: RANS, luminary: asymmetric_diffuser, gpucfd: "no"}
+  - {title: Coflowing jet, SA and SST, status: planned, tier: catalogue, group: RANS, luminary: coflowing_jet, gpucfd: "no"}
+  - {title: Airfoil near wake, SA, status: planned, tier: catalogue, group: RANS, luminary: airfoil_near_wake, gpucfd: "no"}
+  - {title: Joukowski airfoil, SA-QCR, status: planned, tier: catalogue, group: RANS, luminary: joukowski_airfoil, gpucfd: "no"}
+  - {title: Turbulent natural convection in a tall cavity, SST, status: planned, tier: catalogue, group: RANS, luminary: tall_cavity, gpucfd: "no"}
+  - {title: Hemisphere-cylinder, SA (3D), status: planned, tier: catalogue, group: RANS, luminary: hemisphere_cylinder, gpucfd: "no"}
+  - {title: RAE 2822 transonic airfoil, SA, status: planned, tier: catalogue, group: RANS, luminary: rae2822, gpucfd: "no"}
+  - {title: ONERA M6 wing, SA (3D), status: planned, tier: catalogue, group: RANS, luminary: onera_m6, gpucfd: "no"}
+  - {title: Backward-facing step, DDES (Vogel and Eaton), status: planned, tier: catalogue, group: DES and LES, luminary: bfs_ddes, gpucfd: "no"}
+  - {title: Cylinder at Re 10000, status: planned, tier: catalogue, group: DES and LES, luminary: cyl_turb_re1e4_fwh, gpucfd: "no"}
+  - {title: Tandem cylinders, status: planned, tier: catalogue, group: DES and LES, luminary: tandem_cylinder_fwh, gpucfd: "no"}
+  - {title: LAGOON landing gear, status: planned, tier: catalogue, group: DES and LES, luminary: lagoon_landing_gear_fwh, gpucfd: "no"}
+  - {title: Heated plate in a laminar unsteady flow (3D), status: planned, tier: catalogue, group: Conjugate heat transfer, luminary: heated_plate, gpucfd: "no"}
+  - {title: Laminar cylinder at Re 100, radiated sound (FW-H), status: planned, tier: catalogue, group: Acoustics, luminary: khalighi_laminar_cylinder_fwh, gpucfd: "no"}
+  - {title: Aeolian tone of a cylinder, SA, status: planned, tier: catalogue, group: Acoustics, luminary: cylinder_aeolian_fwh, gpucfd: "no"}
+  - {title: Acoustic point sources (2D), status: planned, tier: catalogue, group: Acoustics, luminary: pointsource_fwh, gpucfd: "no"}
+  - {title: Acoustic point source in a moving medium (3D), status: planned, tier: catalogue, group: Acoustics, luminary: movmed_ring_fwh, gpucfd: "no"}
+  - {title: Acoustic point sources in a cube, 1/r decay (3D), status: planned, tier: catalogue, group: Acoustics, luminary: radial_decay_fwh, gpucfd: "no"}
+  - {title: NASA CRM high-lift (HLPW5), status: planned, tier: catalogue, group: Industrial scale (needs lab hardware), luminary: hlpw5, gpucfd: "no"}
+  - {title: NASA CRM wing-body (DPW6), status: planned, tier: catalogue, group: Industrial scale (needs lab hardware), luminary: dpw6_crm, gpucfd: "no"}
+  - {title: DrivAer car, DDES (AutoCFD4), status: planned, tier: catalogue, group: Industrial scale (needs lab hardware), luminary: drivaer_autocfd4, gpucfd: "no"}
+  - {title: Generic truck, DDES, status: planned, tier: catalogue, group: Industrial scale (needs lab hardware), luminary: gtu, gpucfd: "no"}
