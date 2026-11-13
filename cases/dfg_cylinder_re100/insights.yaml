@@ -488,3 +488,26 @@
   guideline: 'cfdlib.gpu.check_fit notes it for small grids; workflow/WORKFLOW.md, choosing the solver: say which
     outputs a comparison at the same accuracy covers.'
   resolved: 2026-11-13 18:40
+- id: 25
+  stage: gpu
+  logged: 2026-11-13 19:25
+  status: resolved
+  problem: 'The target for gpucfd on this case was "drag within 0.25 % of the benchmark", meaning the finest level
+    of the FeatFlow table. gpucfd met it (0.09 and 0.16 % below, two positions of the cylinder) and the result
+    was reported as reaching OpenFOAM''s accuracy. Found by the agent that wrote the study report: that table
+    value is itself about 0.2 % low.'
+  diagnosis: 'The benchmark is a simulation that is still converging. Its three finest levels extrapolate (observed
+    order 1.08) to a mean drag 0.21 % above the finest level. Against that value OpenFOAM''s finest grid is within
+    0.04 %, gpucfd is 0.31 and 0.38 % low, and OpenFOAM''s finest grid would have failed the 0.25 % test as it
+    was written. The target was set by the dev agent without applying the workflow''s own rule for a reference
+    with several levels (compare with its finest level and with its extrapolated value). gpucfd''s own
+    uncertainty estimate from its three grids, 0.6 to 0.75 %, had been saying the same thing.'
+  fix: 'The study report, README and ROADMAP quote both numbers: 0.1 to 0.2 % below the tabulated value, 0.3 to
+    0.4 % below the converged one. The report''s verdict is WARN.'
+  lesson: 'A result that lands closer to a reference than its own uncertainty estimate allows is a warning, not
+    a success. A target is a pass rule and needs the same care: set it against the value the reference converges
+    to, and state the reference''s own uncertainty in it.'
+  guideline: 'ROADMAP.md: future targets for a tool are set against the reference''s converged value. The rule
+    was already in workflow/WORKFLOW.md (analysis, references with several levels); it now has this case as its
+    example of what happens without it.'
+  resolved: 2026-11-13 19:25

@@ -37,8 +37,9 @@ cfdlib/                       shared tools (do NOT modify; log needed changes as
   perf.py        performance numbers per run (summarize, machine) for the performance appendix
   contract.py    the report contract checker (also --decisions mode)
   study.py       a second, focused report for a performance study (render_study), e.g. GPU vs CPU
-  gpu.py         gpucfd as a solver: check_fit (does the problem fit it?), run_transient (sampled run with
-                 health checks and a live watch), write_run (runs/<name>.json + .npz like OpenFOAM runs)
+  gpu.py         gpucfd as a solver: check_fit (does the problem fit it?), pick_scheme (time scheme per
+                 level), run_transient (sampled run with health checks and a live watch), write_run
+                 (runs/<name>.json + .npz like OpenFOAM runs)
   insights.py    the live insight log (checks typesetting when you log; refuses to overwrite a filled entry)
   foamdict.py    OpenFOAM dictionary parser (used by the checker)
 cases/<name>/                 one folder per problem
@@ -97,20 +98,26 @@ case, if you want to see the full set of files once.
 - **Choose the solver first, and record it as a decision (kind `solver`).** OpenFOAM is the default. Consider
   gpucfd (`cfdlib.gpu.check_fit`, limits in `gpucfd/DESIGN.md`) when the problem is incompressible, laminar,
   in a box (bodies inside it allowed). What decides is the cost to reach the required accuracy, not speed
-  per cell. Case 4 (DFG 2D-2, `gpu_run.py`, `gpu_compare.py`) measured both: gpucfd is about 50 times faster
-  per cell and step, but its grid is rows and columns with the body immersed in it. Cells can be clustered
-  around a body (`gpucfd.grids`), which saves about 4 times in cells, not the 30 of a body-fitted grid, and
-  with a body the time step follows the smallest cell squared. Drag within 0.25 % of the benchmark took
-  OpenFOAM's O-grid 13432 cells and about 3 minutes; gpucfd needed 140 cells per diameter and about 24
-  minutes. So: OpenFOAM for bodies with thin boundary layers (Re about 100 and up on a cylinder) until
-  gpucfd has an implicit scheme with bodies; gpucfd for flows its grid resolves well (periodic boxes,
-  channels, cavities, low Reynolds numbers) and for steady flows with `gpucfd.steady` (grid sequencing).
+  per cell. Case 4 (DFG 2D-2, `gpu_run.py`, `gpu_compare.py`) measured both (study report
+  `results/dfg_cylinder_re100/gpu_study.html`): gpucfd is 25 to 45 times faster per cell and step, but its
+  grid is rows and columns with the body immersed in it. Cells can be clustered around a body
+  (`gpucfd.grids`), which saves about 4 times in cells, not the 30 of a body-fitted grid, and with a body
+  the explicit scheme's time step follows the smallest cell squared (`scheme="imex"` removes that limit at
+  about twice the cost per step). OpenFOAM's O-grid had the drag within 0.25 % of the benchmark at 13432
+  cells after about 3 minutes; gpucfd at 140 cells per diameter, after about 17 minutes (24 with the
+  explicit scheme), was still 0.3 to 0.4 % below the value the benchmark converges to. So: OpenFOAM for
+  bodies with thin boundary layers (Re about 100 and up on a cylinder), where gpucfd's implicit scheme
+  shortens its study but does not change its accuracy per cell; gpucfd for flows its grid resolves well
+  (periodic boxes, channels, cavities, low Reynolds numbers) and for steady flows with `gpucfd.steady`
+  (grid sequencing).
   When you compare tools "at the same accuracy", say which outputs that covers: on case 4 the answer
   differed between drag alone and drag with lift and frequency.
 - When gpucfd is the solver, `cfdlib/gpu.py` has the tools; what case 4 taught:
   - Grids n0 times 2^k with multigrid-friendly sizes (powers of 2 times 3 or 9); time step from
     `NavierStokes.max_dt`. Around a body, `gpucfd.grids.body_band` gives a measured default for the band
     of fine cells (the wake needs them for longer than the body does).
+  - The time scheme is a choice per level (`pick_scheme`): implicit diffusion (`scheme="imex"`) pays
+    on fine grids, and both schemes give the same answer, so the levels of one study may differ.
   - Tune `pressure_tol` with a same-answer rule on every level, the finest included
     (`tolerance_check`): with bodies the pressure noise grows as the time step shrinks (case 4:
     \(10^{-8}\) on the coarsest level, \(10^{-10}\) on the finest).

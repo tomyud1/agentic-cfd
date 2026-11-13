@@ -144,7 +144,7 @@ From the Luminary V&V manual; most RANS cases are also NASA TMR cases. A case mo
 | DrivAer car | [Luminary](https://luminary.ai/verification-and-validation/drivaer_autocfd4/) | ✘ |
 | Generic truck | [Luminary](https://luminary.ai/verification-and-validation/gtu/) | ✘ |
 
-*7 solved (listed in [README.md](README.md)), 54 planned. Counted by `cfdlib/catalogue.py`.*
+*6 cases solved and 2 separate studies on them (listed in [README.md](README.md)), 54 planned. Counted by `cfdlib/catalogue.py`.*
 
 <!-- /catalogue:backlog -->
 

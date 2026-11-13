@@ -421,6 +421,9 @@ def build_report(problem, numerics, g, ref, th, runs, have, fine, ms, ms_coarse,
         + m(tn(max(max(r["sm"]["spread"]["cl_max"], r["sm"]["spread"]["cl_min"]) for r in runs.values()), 2))
         + " (lift) between the last cycles; the time-averaged momentum balance of the channel closes to "
         + m(tn(abs(b["rel"]) * 100, 2) + r"\,\%") + " of the drag on the finest mesh.",
+        "<b>The same case on the project's GPU solver.</b> gpucfd ran this problem on grids of equal cells and of cells "
+        "clustered around the cylinder. Accuracy, cost and limits next to the OpenFOAM runs of this report: "
+        "<a href='gpu_study.html'>gpucfd study report</a> (cases/dfg_cylinder_re100/gpu_study.py).",
     ] + [f"<b>Rule failed:</b> {f}." for f in fail] + [f"<b>Caveat:</b> {w}." for w in warn]
 
     # comparison findings, computed

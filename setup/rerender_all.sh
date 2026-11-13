@@ -13,3 +13,5 @@ for c in plane_poiseuille lid_driven_cavity_re100 stokes_first_problem dfg_cylin
 done
 echo "== dfg_cylinder_3d_re20 GPU study"
 $PY -m cases.dfg_cylinder_3d_re20.gpu_study 2>&1 | grep -iE "error|Traceback|gpu_study|PASS|WARN|FAIL" | head -4
+echo "== dfg_cylinder_re100 gpucfd study (from recorded runs; needs no GPU)"
+$PY -m cases.dfg_cylinder_re100.gpu_study 2>&1 | grep -iE "error|Traceback|gpu_study|PASS|WARN|FAIL" | cut -c1-200 | head -4

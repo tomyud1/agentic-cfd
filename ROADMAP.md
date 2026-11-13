@@ -13,7 +13,7 @@ change the order.
 | Part | Works today | Missing |
 |---|---|---|
 | Workflow | Problem statement to checked report, on laminar flow (steady, unsteady, 2D, 3D) and heat transfer | Turbulence, real geometry, a problem with no reference answer |
-| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy; with bodies its time scheme is explicit. No meshing beyond `blockMesh` |
+| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
 | Agent | Claude Opus 5.5, high effort, on one PC | Never tried with another agent or on another machine |
 
 ## Now: until the meeting (development PC)
@@ -29,7 +29,7 @@ rebuilt all six reports and passed the tests without this PC's paths.
 Better tools are a main goal, and a GPU solver is the tool with the most interest behind it. Today
 gpucfd's cells all have one size, so a thin boundary layer forces a fine grid everywhere. A
 stretched grid puts small cells at the walls and the body and large ones elsewhere. Case 4 measured
-what that is worth: gpucfd is about 50× faster per cell and step, but its uniform grid needed
+what that is worth: gpucfd is 25 to 45× faster per cell and step, but its uniform grid needed
 442 thousand cells for 1.0 % in drag where OpenFOAM's body-fitted grid reached 0.25 % with
 13 thousand.
 
@@ -47,8 +47,13 @@ In stages, each one verified on the ladder before the next (plan in
    to match too. At 140 cells per diameter the drag is 0.1 to 0.2 % from the benchmark (two
    positions of the cylinder in the grid) and the three-level study takes about 1400 s. Clustering
    saves 3.85× in cells, not more: the fine bands cross the whole channel.
-3. **The IMEX scheme with bodies** (unstable today). On a stretched grid the smallest cell sets the
-   explicit viscous time step for the whole domain, so without this the speed is lost again.
+3. **The IMEX scheme (implicit diffusion) with bodies. Done (2026-11-13).** The cause of its
+   instability was found (the ghost faces of the body answer the pressure correction, and the
+   leftover was fed back into the pressure) and removed with a projection that includes the ghost
+   faces. Verified on the ladder (rung 14): same steady states as the explicit scheme, second
+   order in time. On case 4 the finest level gives the same answer 1.55 times faster and the
+   three-level study takes 1005 s instead of about 1400 s. Less than hoped: an implicit step costs
+   twice an explicit one. It does not change the accuracy.
 
 *Success, fixed in advance:* case 4's drag within 0.25 % of the benchmark in less wall time than
 OpenFOAM's whole study (about 1740 s with the live stop). Speed-only changes stay bit-identical on
@@ -56,15 +61,31 @@ uniform grids. The stop rule for stage 2 was: if, at the same drag error, the cl
 study does not take less wall time than gpucfd's own uniform-grid study after two working
 sessions, write down what was found and move to step 3 first. It was not needed.
 
-*Outcome (2026-11-13): met as defined, with limits.* Drag 0.1 to 0.2 % below the benchmark in
-about 1400 s, repeated with the cylinder moved half a cell in the grid. The limits: the three
-levels by themselves support an uncertainty of 0.6 to 0.75 %, not 0.25 %; lift is about 1 % low;
-and OpenFOAM's second grid alone has the drag at 0.24 % after 153 s. Still open: the finest
-level with the fine cells reaching further behind the cylinder (about 30 GPU-minutes), which
-should bring the lift below 1 % at a study time close to the 1740 s limit. Stage 3 is the next
-step: the finest level is 83 % of the time, held back by the explicit time step and the pressure
-tolerance it forces. Details and limits: [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), "Stretched grids,
-stage 2".
+*Outcome (2026-11-13): met as defined, but the definition was too easy.* Drag 0.1 to 0.2 % below
+the benchmark's finest tabulated value in about 1400 s, repeated with the cylinder moved half a
+cell in the grid. That tabulated value is itself about 0.2 % below the value the benchmark's own
+levels converge to. Against the converged value gpucfd is 0.3 to 0.4 % low, and OpenFOAM is
+within 0.04 %. The other limits: the three levels by themselves support an uncertainty of 0.6 to
+0.75 %; lift is about 1 % low; and OpenFOAM's second grid alone has the drag at 0.24 % after
+153 s. All of it is in the
+[study report](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_re100/gpu_study.html).
+A future target is set against the reference's converged value, with the reference's own
+uncertainty stated. Stage 3 cut the study to 1005 s with the same drag, 0.3 % below the converged
+benchmark: faster, not more accurate. One more run had the fine cells reach further behind the
+cylinder on the finest level: lift 0.7 % low in place of 0.85 %, study 1308 s. That is one position
+of the cylinder, and moving the cylinder changes the lift by 0.3 %, so it is a hint, not a result.
+Details and limits: [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), "Stretched grids, stage 2" and "IMEX
+with immersed bodies, stage 3".
+
+*Left open on purpose* (each is in `gpucfd/DESIGN.md`; none is next before the meeting, because
+case 4's gap to OpenFOAM is now accuracy per cell, not time):
+- One pressure solve per time step in place of three: the largest speed lever left with bodies.
+- The explicit scheme with bodies has a stability limit nobody knew before stage 3. Every run so far
+  is at half of it or below, and a run that crossed it would blow up visibly, not give a quiet wrong
+  answer. Giving the explicit scheme the new projection would remove the limit, but it changes every
+  explicit result with a body in about the fourth digit, so those records would have to be made
+  again. Decision for the student; recommended only if a case comes near the limit.
+- The longer-band run with the cylinder shifted (17 GPU-minutes), so its lift has a spread.
 
 ### 3. Case 7: turbulent flat plate (RANS, Spalart-Allmaras, NASA TMR)
 
@@ -83,6 +104,8 @@ The instruction to read every solved case is gone: the solved cases are now a li
 - Split it into a short core plus topic references opened when the physics calls for them (heat
   transfer, periodic flows, steady speed-up, performance study). Case stories move to their topic.
 - From case 7 on, record what each case cost (agent, minutes, tokens) in the catalogue.
+- The same diet for `gpucfd/DESIGN.md` (about 1500 lines): one file per stage, with DESIGN.md as
+  the index, status table and limits. Less urgent: no agent reads it on every case.
 
 ## Next week
 

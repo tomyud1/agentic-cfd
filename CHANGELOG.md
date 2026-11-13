@@ -11,7 +11,9 @@ moves to a dated entry when it is committed.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
-### Correction: gpucfd's drag on case 4 is 0.3 to 0.4 % from the converged benchmark (not committed yet)
+## 2026-11-13
+
+### Correction: gpucfd's drag on case 4 is 0.3 to 0.4 % from the converged benchmark, commit hash to be filled in
 - **What:** the claim "drag 0.1 to 0.2 % from the benchmark" in the two entries below it is
   true only against the benchmark's finest tabulated number. Found by the agent that wrote the
   study report (next entry), and recomputed by the dev agent.
@@ -56,7 +58,7 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
   tool tests pass, and case 4's report was rebuilt with the new insight and the link (contract
   OK, verdict unchanged).
 
-### Case 4b: a study report that puts gpucfd next to OpenFOAM (not committed yet)
+### Case 4b: a study report that puts gpucfd next to OpenFOAM, commit hash to be filled in
 - **What:** a second report for case 4 (the cylinder shedding vortices, Re 100):
   `results/dfg_cylinder_re100/gpu_study.html`, written by the new script
   `cases/dfg_cylinder_re100/gpu_study.py`. It shows OpenFOAM's four grids, gpucfd's three grids
@@ -123,9 +125,7 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
   the recorded runs; the finest OpenFOAM grid, 81 % of that time, was never run with the stop.
   The finest clustered grid with the longer band of small cells is still not run.
 
-## 2026-11-13
-
-### gpucfd: the implicit time scheme now works around bodies (stage 3), commit hash to be filled in
+### gpucfd: the implicit time scheme now works around bodies (stage 3) (`5bec14d`)
 - **What:** the GPU solver has two ways of stepping in time. The explicit one must take very small
   steps on fine grids (the step shrinks with the cell size squared, because of friction in the
   fluid). The implicit one handles friction differently and its step only has to follow the flow

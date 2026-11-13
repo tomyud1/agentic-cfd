@@ -122,9 +122,12 @@ def backlog(cases: list[dict]) -> str:
             out += [f"| {cell(c['title'])} | {source(c)} | {GPU[c.get('gpucfd', 'no')]} |"
                     for c in cat if c.get("group", "Other") == g]
             out.append("")
-    n_solved = sum(1 for c in cases if c["status"] == "solved")
+    solved = [c for c in cases if c["status"] == "solved"]
+    n_solved = sum(1 for c in solved if str(c["id"]).isdigit())   # 4b, 5b ... are studies on a solved case
+    n_studies = len(solved) - n_solved
     n_planned = sum(1 for c in cases if c["status"] != "solved")
-    out.append(f"*{n_solved} solved (listed in [README.md](README.md)), {n_planned} planned. "
+    studies = f" and {n_studies} separate studies on them" if n_studies else ""
+    out.append(f"*{n_solved} cases solved{studies} (listed in [README.md](README.md)), {n_planned} planned. "
                "Counted by `cfdlib/catalogue.py`.*")
     return "\n".join(out).rstrip()
 
@@ -172,6 +175,13 @@ def unlisted(cases: list[dict]) -> list[str]:
     return sorted(p.parent.name for p in (ROOT / "results").glob("*/results.json") if p.parent.name not in solved)
 
 
+def unlisted_studies(cases: list[dict]) -> list[str]:
+    """Study reports (results/<folder>/<name>_study.html next to its .json) that no catalogue entry lists."""
+    listed = {r["path"] for c in cases for r in c.get("reports", [])}
+    found = (p.with_suffix(".html").relative_to(ROOT).as_posix() for p in (ROOT / "results").glob("*/*_study.json"))
+    return sorted(f for f in found if f not in listed and (ROOT / f).exists())
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--check", action="store_true", help="report what is out of date; change nothing")
@@ -179,6 +189,7 @@ def main(argv=None) -> int:
     cases = load()
     problems = [f"results/{f}/ has a report but cases/catalogue.yaml does not list it as solved"
                 for f in unlisted(cases)]
+    problems += [f"{f} is a study report that cases/catalogue.yaml does not list" for f in unlisted_studies(cases)]
     for path, new in targets(cases).items():
         if path.read_text(encoding="utf-8") != new:
             if args.check:

@@ -46,6 +46,10 @@
 <section id="setup">
   <h2><span class="num">1</span> What is compared</h2>
   <p class="lead">{{ r.setup.intro }}</p>
+  {% if r.setup.terms is defined and r.setup.terms %}
+  <h4>Words used on this page</h4>
+  <ul class="points">{% for t in r.setup.terms %}<li><b>{{ t.term }}.</b> {{ t.meaning }}</li>{% endfor %}</ul>
+  {% endif %}
   {{ figures('setup') }}
   <div class="repro-grid">
     <div class="panel"><h4>Hardware</h4><table>{% for k, v in r.setup.hardware %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}</table></div>

@@ -12,7 +12,8 @@ Keys of s (all required unless marked optional):
   verdict                                    PASS (fair comparison, same answer), WARN (usable, caveats),
                                              FAIL (comparison not valid: different answers or unfair setup)
   summary: headline, answers[{label, value, note}], findings[], limitations[], recommendation (optional)
-  setup: intro, hardware[[name, value]], software[[name, value]], fairness[] (rules that make it fair)
+  setup: intro, hardware[[name, value]], software[[name, value]], fairness[] (rules that make it fair),
+         terms[{term, meaning}] (optional: the words the page uses, explained for a reader new to the field)
   method: intro, choices[{choice, why, alternatives}]
   results: intro, tables[{title, head[], rows[][], note (optional)}], notes[]
   same_answer: intro, head[], rows[][], ok (bool), verdict (text)

@@ -50,10 +50,12 @@ GPU.
 - **What it handles:** incompressible laminar flow in a box with walls, inflow and outflow, and
   bodies of any shape inside the flow, on uniform grids or with cells clustered toward walls and
   around bodies. On the DFG cylinder benchmark at Re 100 (case 4), with cells clustered around the
-  cylinder, drag is 0.1 to 0.2% from the benchmark at 140 cells per diameter (two positions of the
-  cylinder in the grid; lift is about 1% low), and the three-grid study takes 23 to 24 minutes
-  against 29 for OpenFOAM's.
-- **Not yet:** turbulence, heat transfer, an implicit time scheme with bodies. OpenFOAM's
+  cylinder, drag at 140 cells per diameter is 0.1 to 0.2% below the benchmark's finest tabulated
+  value and 0.3 to 0.4% below the value the benchmark's own levels converge to (OpenFOAM: 0.04%);
+  lift is about 1% low. The three-grid study takes 17 minutes against 29 for OpenFOAM's, with
+  implicit diffusion on the finest grid (24 with the explicit scheme;
+  [study report](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_re100/gpu_study.html)).
+- **Not yet:** turbulence, heat transfer. OpenFOAM's
   body-fitted grid is still the cheaper way to a given accuracy for bodies at Re 100 (case 4: drag
   within 0.25% at 13 thousand cells in under 3 minutes; gpucfd needs 459 thousand cells).
 
@@ -97,8 +99,7 @@ index.html                    the report gallery served by GitHub Pages (generat
 
 ## Roadmap
 
-The ordered plan is in [ROADMAP.md](ROADMAP.md). In short: an implicit time scheme for gpucfd around
-bodies (its grids can now be clustered there), so that it competes with OpenFOAM on such flows;
+The ordered plan is in [ROADMAP.md](ROADMAP.md). In short:
 turbulence (RANS) as the next problem type; a shorter workflow that offers its records to the
 agent instead of prescribing them; then a second machine and a second agent.
 

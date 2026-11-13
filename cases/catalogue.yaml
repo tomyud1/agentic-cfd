@@ -63,9 +63,17 @@ cases:
     status: solved
     folder: dfg_cylinder_re100
     tests: Transient, nonlinear, vortex shedding, benchmark (FeatFlow)
-    shows: "Vortex shedding: curved-body O-grid mesh generated in Python; a benchmark with several reference levels; a live stop rule for a periodic flow; MPI runs and a performance appendix; the same case on gpucfd, with equal cells and with cells clustered around the cylinder (gpu_run.py, gpu_compare.py, gpu_clustered.py). Key lesson: PISO was first order in time"
+    shows: "Vortex shedding: curved-body O-grid mesh generated in Python; a benchmark with several reference levels; a live stop rule for a periodic flow; MPI runs and a performance appendix; the same case on gpucfd, with equal cells and with cells clustered around the cylinder (gpu_run.py, gpu_compare.py, gpu_clustered.py), and a study report built from recorded runs that sets the two solvers side by side (gpu_study.py). Key lesson: PISO was first order in time"
     headline: Drag, lift and Strouhal number all inside their uncertainty bands (St 0.3015 vs 0.3019); MPI scaling study
     reports: [{path: results/dfg_cylinder_re100/report.html}]
+
+  - id: "4b"
+    title: gpucfd next to OpenFOAM (same case as 4)
+    status: solved
+    folder: dfg_cylinder_re100
+    tests: The project's GPU solver on grids of equal and of clustered cells against OpenFOAM's body-fitted grid study (accuracy, cost, limits)
+    headline: "gpucfd met the target (drag 0.09 to 0.16 % below the published reference, in about 1000 s with the implicit time scheme on the finest grid, 1400 s without it, against about 1740 s for OpenFOAM's study), but the reference is itself about 0.2 % low: against the value it is heading for, gpucfd is 0.3 to 0.4 % low and OpenFOAM within 0.04 %. OpenFOAM reaches the same drag accuracy in about 150 s"
+    reports: [{path: results/dfg_cylinder_re100/gpu_study.html, verdict_from: results/dfg_cylinder_re100/gpu_study.json}]
 
   - id: "5"
     title: Cylinder in a square duct, Re = 20 (DFG 3D-1Z)
