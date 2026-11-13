@@ -199,8 +199,9 @@ from about 25 minutes (case 3) to about 2 hours (case 5, including the GPU study
 - **gpucfd as a tool for the agent:** connected (`cfdlib/gpu.py`, guidance in the skill). On case 4
   it ran the whole grid study 8× faster than OpenFOAM, but its uniform grid needs about 30× more cells
   around the body for the same accuracy. Next: stretched grids.
-- **Smarter runs:** each run now stops live once its physical check holds, not at a guessed end time:
-  gpucfd steady flows 20× faster; OpenFOAM runs about a third shorter on case 4, same answer.
+- **Smarter runs:** runs stop live on their physical check, not at a guessed end time (case 4: a
+  third shorter). Steady runs reach the same answer sooner: OpenFOAM 3-11× (case 2, 128² to 512²),
+  gpucfd 20×.
 
 GPU setup instructions for OpenFOAM's OGL plugin are in [`setup/gpu/`](setup/gpu).
 

@@ -77,6 +77,20 @@ def run(cmd, case_dir, log_name=None, timeout=None, watch=None, watch_every=10.0
     return wall
 
 
+def map_fields(case_dir, source_dir, consistent=True):
+    """Initial fields of case_dir = the latest time of source_dir, interpolated by mapFields (grid
+    sequencing: a fine mesh starts from a coarser mesh's converged answer, so it only has to remove
+    the coarse mesh's error). consistent: same geometry and patch names (meshes of one family).
+
+    OpenFOAM file names cannot contain spaces: mapFields fails on a source path or working directory
+    with one (for example /mnt/d/Projects/Agentic CFD/...). Keep runs under $FOAM_RUN."""
+    for p in (case_dir, source_dir):
+        if " " in str(Path(p).resolve()):
+            raise ValueError(f"map_fields: OpenFOAM cannot use a path with a space: {p}")
+    flag = " -consistent" if consistent else ""
+    return run(f"mapFields {Path(source_dir).resolve()}{flag} -sourceTime latestTime", case_dir, "mapFields")
+
+
 def _killpg(pgid, sig=signal.SIGKILL):
     try:
         os.killpg(pgid, sig)

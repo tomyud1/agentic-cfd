@@ -302,6 +302,85 @@ class DatTail:
         return self.buf[:self.n]
 
 
+# ---------------------------------------------------------------------------------------------
+# Steady runs: stop on the iteration error, not on residuals
+# ---------------------------------------------------------------------------------------------
+# A steady SIMPLE run approaches its answer geometrically, so the error still left in a monitored
+# value is about |last change| * rho / (1 - rho) (verification.iteration_error). Stopping when that
+# estimate is below a tolerance chosen from the physics (a small fraction of the mesh error, say)
+# replaces residual targets, which say nothing about the error of the answer (primer pitfall 10).
+# Replayed on case 2's four recorded meshes (16 combinations of tolerance and sampling) the true
+# remaining error was always below the estimate, at 0.6 to 0.97 of the tolerance.
+
+def steady_check(values, tol, every=10, names=None):
+    """Iteration error of each monitored series of a steady run, now.
+
+    values: (n,) or (n, k) array, one row per iteration (or per equal step). tol: scalar or one per
+    column, in the units of values. every: sampling interval in rows; the changes between samples must
+    shrink visibly (if the error never settles, sample more sparsely). Returns dict(ok, status, reason,
+    quantities): per column state 'settled' (error < tol), 'floor' (changes stopped shrinking above
+    tol: running longer will not help, so it counts as done with a warning) or 'running'."""
+    v = np.asarray(values, float)
+    v = v[:, None] if v.ndim == 1 else v
+    k = v.shape[1]
+    tols = np.broadcast_to(np.asarray(tol, float), (k,))
+    names = list(names) if names is not None else [f"c{j}" for j in range(k)]
+    s = v[::-1][::every][::-1]                   # samples aligned on the newest row
+    q = {}
+    for j in range(k):
+        e = iteration_error(s[:, j])
+        state = "settled" if e["error"] < tols[j] else "floor" if e["noise"] else "running"
+        q[names[j]] = dict(state=state, error=e["error"], rho=e["rho"], tol=float(tols[j]))
+    running = [n for n, x in q.items() if x["state"] == "running"]
+    floors = [n for n, x in q.items() if x["state"] == "floor"]
+    worst = max(q, key=lambda n: q[n]["error"] / q[n]["tol"] if q[n]["tol"] > 0 else math.inf)
+    if running:
+        reason = f"running: {len(running)} of {k} not settled (worst {worst}: error {q[worst]['error']:.2g})"
+    elif floors:
+        reason = "floor reached (changes stopped shrinking) for " + ", ".join(
+            f"{n} ({q[n]['error']:.2g} > tol {q[n]['tol']:.2g})" for n in floors)
+    else:
+        reason = f"all settled: largest error {q[worst]['error']:.2g} ({worst}, tol {q[worst]['tol']:.2g})"
+    return dict(ok=not running, status="warn" if floors else "ok", reason=reason, quantities=q)
+
+
+def steady_decider(fo, fname, tol, columns=None, every=10, hold=2, names=None):
+    """decide(case) for LiveStop on a steady run: read postProcessing/<fo>/*/<fname> incrementally
+    (any function object: probes, forces, surfaceFieldValue of a wall heat flux ...), apply
+    steady_check, and stop once it has held for `hold` consecutive checks.
+
+    columns: indices into the flattened value columns (after the iteration column; a vector is three
+    columns); None = all. tol, every, names: as in steady_check, for the chosen columns."""
+    tails, streak = {}, {}
+
+    def decide(case):
+        key = str(case)
+        a = tails.setdefault(key, DatTail(case, fo, fname))()
+        if len(a) < 6 * every:
+            return None
+        v = a[:, 1:] if columns is None else a[:, [1 + c for c in columns]]
+        r = steady_check(v, tol, every, names)
+        streak[key] = streak.get(key, 0) + 1 if r["ok"] else 0
+        r.update(stop=streak[key] >= hold, t=float(a[-1, 0]))
+        return r
+    return decide
+
+
+def steady_replay(values, tol, every=10, hold=2):
+    """Where would the steady stop have ended a recorded run? Applies steady_check after every
+    `every` rows, as if checked live that often. Returns dict(index, check) for the first row where it
+    held `hold` times in a row, or index None. Use it on a coarse mesh's history to test a tolerance
+    and sampling interval before relying on them live."""
+    v = np.asarray(values, float)
+    held = 0
+    for i in range(every, len(v), every):
+        r = steady_check(v[:i + 1], tol, every)
+        held = held + 1 if r["ok"] else 0
+        if held >= hold:
+            return dict(index=i, check=r)
+    return dict(index=None, check=None)
+
+
 def settled(values, tol, n=4):
     """Has a quantity stopped changing? `values`: one number per cycle (periodic flow, e.g. the drag
     maximum of each shedding cycle) or per equal chunk of time or iterations (steady flow).

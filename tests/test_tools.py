@@ -77,3 +77,35 @@ with tempfile.TemporaryDirectory() as tmp:
     ref = np.array([monitor._flat(r) for r in foam.parse_dat(lines6) if isinstance(r[0], float)])
     assert got.shape == ref.shape and np.array_equal(got, ref), (got.shape, ref.shape)
 print("DatTail: ok")
+
+# 7. Steady stop on the iteration error: replay on case 2's recorded probe histories (SIMPLEC, U 0.9).
+#    The estimate must bound the true remaining error (distance to the run's final, residual-converged
+#    value); stop rows as first measured with the dev replay (2026-11-12): 171, 521, 1931, 7491 of
+#    267, 849, 2997, 10864.
+for N, expect in ((32, 171), (64, 521), (128, 1931), (256, 7491)):
+    d7 = np.load(ROOT / f"results/lid_driven_cavity_re100/runs/N{N}.npz")
+    v7 = d7["probe_vals"]                                  # U = 1, so already in units of U
+    r7 = monitor.steady_replay(v7, 1e-6, every=10, hold=2)
+    true7 = float(np.max(np.abs(v7[r7["index"]] - v7[-1])))
+    print(f"steady stop N{N}: row {r7['index'] + 1} of {len(v7)}, true error {true7:.2g} < 1e-6")
+    assert r7["index"] + 1 == expect and true7 < 1e-6, (N, r7["index"], true7)
+# live form: the decider on a probes file grown in pieces stops, and not before the replay would
+with tempfile.TemporaryDirectory() as tmp:
+    d7 = Path(tmp) / "postProcessing/probes/0"
+    d7.mkdir(parents=True)
+    v7 = np.load(ROOT / "results/lid_driven_cavity_re100/runs/N64.npz")["probe_vals"]
+    text7 = "# Probe 0 (0.5 0.5 0.005)\n# Time\n" + "".join(
+        f"{i + 1}\t" + "\t".join(f"({v7[i, 2 * j]:.12g} {v7[i, 2 * j + 1]:.12g} 0)" for j in range(4)) + "\n"
+        for i in range(len(v7)))
+    lines7 = text7.splitlines(keepends=True)
+    dec = monitor.steady_decider("probes", "U", 1e-6, columns=[0, 1, 3, 4, 6, 7, 9, 10])
+    first = None
+    for n in range(100, len(lines7), 100):
+        (d7 / "U").write_text("".join(lines7[:n]))
+        r = dec(tmp)
+        if r and r["stop"]:
+            first = r["t"]
+            break
+    print(f"steady decider (checks every 100 rows): stop at row {first:.0f}; {r['reason']}")
+    assert first is not None and first >= 521, first
+print("steady stop: ok")

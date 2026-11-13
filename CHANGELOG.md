@@ -10,14 +10,59 @@ moves to a dated entry when it is committed.
 ## In progress
 
 Nothing uncommitted. Next, in this order:
-1. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
-   Success: case 4 drag within 0.25% of the benchmark in less wall time than OpenFOAM's study.
-2. Then the IMEX fix for bodies, a 3D cylinder, and more OpenFOAM problem types
-   ([cases/BACKLOG.md](cases/BACKLOG.md)).
+1. Case 6 (heated pipe, first heat transfer) for a fresh agent, now that steady OpenFOAM runs are
+   faster. Its problem statement still has to be written.
+2. Stretched grids for gpucfd: case 4 showed they decide whether it can beat OpenFOAM on bodies.
+   They are tied to the IMEX fix for bodies: on a stretched grid the smallest cell sets the explicit
+   viscous time step everywhere.
+3. A 3D cylinder and more OpenFOAM problem types ([cases/BACKLOG.md](cases/BACKLOG.md)).
 
 ## 2026-11-12
 
-### Monitoring guidance written as options, not rules, commit hash to be filled in
+### Steady OpenFOAM runs reach the same answer 3 to 11 times sooner, commit hash to be filled in
+- **What:**
+  - `monitor.steady_decider` is a LiveStop rule for steady runs. It stops once the estimated
+    iteration error of every monitored value is below a tolerance, instead of on residual targets.
+    `monitor.steady_check` and `monitor.steady_replay` are its parts, for live use and for testing
+    on recorded runs.
+  - `foam.map_fields` starts a mesh from a coarser mesh's answer (grid sequencing). It refuses
+    paths with a space, which OpenFOAM cannot use.
+  - The primer has a new section with the measurements, and SKILL.md stage 4 offers the tools.
+- **Why it matters:** the next cases (heated pipe, buoyant cavity, the steady cylinder, the
+  backward-facing step) are steady. In case 2, iterations grew 3.6× per mesh refinement, so a
+  512² mesh would have taken about 2 hours on one core. The cause is under-relaxation: it acts as a
+  pseudo time step that shrinks like h² where viscosity dominates.
+- **How it was verified:**
+  - Replay on case 2's four recorded meshes, 16 combinations: the true remaining error was always
+    below the estimate, at 0.6 to 0.97 of the tolerance.
+  - 14 dev runs of case 2 with other relaxation factors and starting fields, plus 3 pimpleFoam runs
+    that diverged. Every converging run's answer is within 1e-6 U of the residual-converged run, or
+    of the run's own long tail on 512².
+  - A live run through the tool on 256² stopped by itself at iteration 815 (the replay predicted
+    801), with fields written there, 7e-7 U from the converged answer.
+  - `tests/test_tools.py` replays all four meshes and grows a probes file in pieces.
+- **Key numbers** (one core, wall time to 1e-6 U):
+
+  | Mesh | Case 2's settings | Best found |
+  |---|---|---|
+  | 128² | 27 s | 7.1 s |
+  | 256² | 437 s (627 s as run) | 70 s |
+  | 512² | about 1.9 h (extrapolated) | 581 s |
+
+  The three levers: the error-based stop (1.5×), SIMPLEC with velocity relaxation 0.97-0.99
+  instead of 0.9 (3-9× fewer iterations), and grid sequencing (up to 2.2×). Details:
+  [`dev/steady_speed/`](dev/steady_speed/README.md).
+- **Open:**
+  - The best relaxation depends on the mesh and is not monotone (0.98 best on 128², 0.99 on 256²).
+    A short side-by-side trial ranks the settings well, so the guidance offers that instead of a
+    fixed number.
+  - At higher relaxation each early iteration costs more (more linear-solver sweeps), so the
+    time saved is smaller than the iterations saved.
+  - pimpleFoam as a pseudo-transient march (Courant 5-50, one outer corrector) diverged and was
+    dropped.
+  - Tested on one laminar 2D flow only. The heated pipe will be the first other case.
+
+### Monitoring guidance written as options, not rules (`1acade2`)
 - **What:** SKILL.md stage 4 now offers the live stop, peek and watch as tools the agent may use as
   it judges best. It says plainly that the saved history in `<case>/peek/` is always complete and
   can be read in any part, in any way. Only the updating is incremental. How often to look, how

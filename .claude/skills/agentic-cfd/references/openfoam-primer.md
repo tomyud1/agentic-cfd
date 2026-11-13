@@ -93,7 +93,9 @@ cells per core, communication dominates): measure; a common rule of thumb is tha
    fall, so `residualControl` never triggers and plots look alarming. Use a physical check.
 4. **Under-relaxation is a pseudo time step**: on diffusion-dominated problems its cost grows like
    N² (thousands of iterations at 128 cells). Linear problems: relaxation 1. Nonlinear: needed
-   (typical SIMPLE: U 0.7, p 0.3; SIMPLEC `consistent yes`: U 0.9, p 1).
+   (typical SIMPLE: U 0.7, p 0.3; SIMPLEC `consistent yes`: U 0.9, p 1). The textbook values are
+   cautious: in case 2, SIMPLEC with U 0.97-0.99 reached the same answer 3-9× sooner. See "Steady runs:
+   getting to the answer fast".
 5. **SIMPLEC without relaxation divides by zero** for pure diffusion (floating-point exception).
 6. **Output precision**: default `writePrecision 6` truncates coordinates and values; use 12 for
    analysis, and locate cells by index or with sampling function objects, not by exact coordinates.
@@ -118,6 +120,43 @@ cells per core, communication dominates): measure; a common rule of thumb is tha
    needed 7-12 pressure iterations per solve in the shedding flow versus fewer at start-up, and the
    finest run took twice the projection. Start the pre-flight from a developed field
    (`mapFields` from a coarser run) or budget twice the projection.
+
+## Steady runs: getting to the answer fast (measured on case 2's cavity)
+A steady SIMPLE run is a march in pseudo-time. Under-relaxation sets the pseudo time step of each
+cell, about α/(1−α) divided by its matrix diagonal. Where viscosity dominates (most cells of a fine
+laminar mesh) that diagonal grows like ν/h², so the step shrinks like h² and the iteration count
+grows like N² (case 2: 3.6× per refinement). Three levers, measured on the Re 100 cavity, one core,
+each counted to the same answer: the probes within 1e-6 U of the residual-converged run.
+
+| Mesh | Case 2 as run (SIMPLEC, U 0.9, from rest) | Faster settings found | Time saved |
+|---|---|---|---|
+| 128² | 1931 it, 27 s | U 0.98: 411 it, 9.3 s; start from 64², U 0.97: 471 it, 7.1 s | 3-4× |
+| 256² | 7491 it, 437 s (residual targets: 10864 it, 627 s) | U 0.99: 801 it, 111 s; start from 128², U 0.97 or 0.99: 981-1241 it, 70-77 s | 6× (9× against the run as made) |
+| 512² | not run; about 27000 it, about 1.9 h by extrapolation | start from 256², U 0.99: 1441 it, 581 s (sharing the CPU with another run) | about 11× |
+
+- **Stop on the iteration error, not on residuals.** `monitor.steady_decider` (LiveStop) stops once
+  the estimated error left in every monitored value is below your tolerance. Residual targets say
+  nothing about the answer's error (pitfall 10); case 2 iterated 1.5× longer than its 1e-6 answer
+  needed. Pick the tolerance from the physics, for example a small fraction of the mesh change
+  between levels. `monitor.steady_replay` tests a tolerance on a recorded history first.
+- **Relax less: a larger pseudo step.** SIMPLEC (`consistent yes`) with U 0.97-0.99 instead of 0.9
+  cut the iterations 3-9×. It is not monotone: on 128², 0.98 was best and 0.99 took 1.8× more
+  iterations; on 256², 0.99 took the fewest and 0.995 1.8× more, in about the same wall time. Each
+  iteration also costs more at first (the linear solvers do more sweeps), so compare wall time. A short trial ranks the settings well: a few hundred iterations
+  per setting, side by side on separate cores, comparing how fast the probe changes shrink
+  (iterations per decade over iterations 200-400). The ranking matched the full runs on 256² and
+  got the best two right on 128².
+- **Grid sequencing.** Start each mesh from the coarser mesh's answer (`foam.map_fields`). From rest
+  the fine mesh spends most of its iterations spinning up the flow (512² from rest at U 0.99 had not
+  converged after 2500 iterations; from 256² it took 1441). The gain was uneven on 256² (2.2× at
+  U 0.97, none at 0.99), so measure. mapFields cannot use paths with a space.
+- **What did not work:** pimpleFoam as a pseudo-transient march (implicit Euler, Courant 5-50, one
+  outer corrector) diverged within ten steps. The segregated pressure-velocity coupling needs outer
+  iterations with relaxation at large time steps, which brings back the cost.
+- MPI adds its own factor on top (Parallel runs, above). None of this changes the converged answer,
+  only how fast you reach it, so a speed setting needs a check of the answer, not a re-derivation.
+
+Scripts and raw numbers: `dev/steady_speed/`.
 
 ## Stopping on a physical criterion: runTimeControl
 Function object `runTimeControl` (`libs (utilityFunctionObjects)`) ends the run when conditions hold.

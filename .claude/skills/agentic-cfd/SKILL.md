@@ -171,6 +171,19 @@ settings):
 
   For steady SIMPLE runs that stop on residual targets, check per mesh that the targets actually
   satisfy the physical check, on the coarse meshes first.
+- Steady runs can usually reach the same answer several times sooner (case 2 cavity: 3-4× on
+  128², 6× on 256², about 11× on 512²). The primer's "Steady runs: getting to the answer fast"
+  has the measurements and the trade-offs. The tools:
+  - `monitor.steady_decider(fo, file, tol, ...)` as the LiveStop rule. It stops once the estimated
+    iteration error of every monitored value (probes, forces, a wall heat flux) is below `tol`,
+    instead of stopping on residual targets. `monitor.steady_replay` tests a tolerance on a recorded
+    history.
+  - `foam.map_fields(case, coarser_case)` starts a mesh from the coarser mesh's answer (grid
+    sequencing).
+  - Less relaxation (SIMPLEC with U 0.97-0.99) is a larger pseudo time step. The best value
+    depends on the mesh, so a short side-by-side trial is a cheap way to pick it.
+
+  Whether to use these, and how, is your call. Record what you chose as a decision.
 - Independent runs (different meshes) may run at the same time, up to 6 at once (8 cores). Say so in
   the reproducibility notes, since it inflates per-run wall times.
 - You can look into a running case whenever you judge it useful, and read whatever part of its
