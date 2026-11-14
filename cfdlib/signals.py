@@ -1,6 +1,6 @@
 """Signals in time: periodic ones (cycles, refined peaks, frequency, a periodicity check) and ones that
-fluctuate about a constant level without ever repeating (turbulence: stationary(), settle_time(),
-stationary_watch(), at the end of this file).
+fluctuate about a constant level without ever repeating (turbulence: stationary(), relaxing() for a
+signal with a slow return to its level, settle_time(), stationary_watch(), at the end of this file).
 
 For any oscillating output (vortex shedding forces, probe velocities, oscillating flows). Built from
 case 4 (cases/dfg_cylinder_re100/signals.py), where these lessons were learned:
@@ -128,7 +128,20 @@ def _block_means(t, y, w, nb):
     return np.add.reduceat(ww * y, starts, axis=0) / np.add.reduceat(ww, starts, axis=0)
 
 
-def stationary(t, y, t_start=None, min_blocks=8):
+def _short_block_share(block, memory, nb):
+    """Share of the true variance of the mean that nb block means of duration `block` show, for a signal
+    that forgets exponentially with the time `memory`. The mean of such a signal over a time B has the
+    variance (2 sigma^2 memory / B) g(B / memory), g(x) = 1 - (1 - exp(-x)) / x; the scatter of nb block
+    means about their own mean then gives (nb g(x) - g(nb x)) / ((nb - 1) g(nb x)) of the true variance
+    of the overall mean. 1 for blocks much longer than the memory, 0.18 for 8 blocks of half a memory."""
+    x = block / memory
+
+    def g(v):
+        return 1.0 - (1.0 - np.exp(-v)) / v
+    return max((nb * g(x) - g(nb * x)) / ((nb - 1) * g(nb * x)), 1e-6)
+
+
+def stationary(t, y, t_start=None, min_blocks=8, memory=None):
     """Time average of a signal that fluctuates about a constant level, with its statistical error.
 
     t: sample times; y: samples, one number per time or an array per time (axis 0 = time; a profile is
@@ -138,10 +151,25 @@ def stationary(t, y, t_start=None, min_blocks=8):
     of the block means gives the standard error of the overall mean. Blocks shorter than the signal's
     memory resemble each other and give too small an error, so the error is evaluated for min_blocks,
     2 min_blocks, 4 min_blocks ... blocks (at least 4 samples each) and the largest is kept.
+
+    THE LIMIT OF THIS ESTIMATE: the longest block is the record / min_blocks. A signal whose memory is
+    longer than that block gets too small an error, and `reliable` does not notice, because the memory
+    is itself read off the same blocks. Measured on case 17: the bulk velocity of a channel settles with
+    a time of 9 units; records of 30 to 40 units gave an error three times too small and "reliable"
+    (two runs disagreed by five of those errors). So when the flow has a slow time scale that you can
+    name (a settling time, a flow-through time, a slow oscillation), compare it with the record / 8
+    and pass it as `memory`:
+    memory: a known time over which the signal forgets (it is assumed to forget exponentially). The
+    block scatter is then corrected for blocks shorter than this, and with few memories in the record
+    n_independent comes out small and reliable False: the corrected error is a sound size, but it is
+    itself uncertain by half or more. For a quantity whose rate of change is recorded too (a bulk
+    velocity: driving force minus wall shear), relaxing() gives a reliable error from a short record.
+
     Returns dict(mean, stderr (one standard error), std (of the samples), t_corr (the signal's memory,
     the integral time scale implied by stderr), n_independent (duration / (2 t_corr)), drift_sigma
     (mean of the second half minus mean of the first half, in units of that difference's own standard
-    error: beyond about +-2 the level is still moving), t0, t1, samples, reliable).
+    error: beyond about +-2 the level is still moving), t0, t1, samples, reliable), with memory also
+    stderr_batch (the uncorrected error).
     reliable is False when the record holds fewer than about 10 independent samples at any point: the
     error estimate is then itself uncertain by more than a third and the average needs a longer record.
     For an array signal mean, stderr, std, t_corr, n_independent and drift_sigma are arrays; reliable
@@ -160,6 +188,7 @@ def stationary(t, y, t_start=None, min_blocks=8):
     mean = mean_of(y, w)
     std = np.sqrt(mean_of((y - mean) ** 2, w))
     stderr, nb = None, min_blocks
+    span = t[-1] - t[0]
     while n // nb >= 4:
         try:
             e = _block_means(t, y, w, nb).std(axis=0, ddof=1) / np.sqrt(nb)
@@ -167,9 +196,13 @@ def stationary(t, y, t_start=None, min_blocks=8):
             if stderr is None:
                 raise
             break
+        if stderr is None:      # the longest blocks: the level a known memory corrects
+            e_long = e
         stderr = e if stderr is None else np.maximum(stderr, e)
         nb *= 2
-    span = t[-1] - t[0]
+    stderr_batch = stderr
+    if memory is not None:
+        stderr = np.maximum(stderr, e_long / np.sqrt(_short_block_share(span / min_blocks, memory, min_blocks)))
     with np.errstate(divide="ignore", invalid="ignore"):
         t_corr = np.where(std > 0, 0.5 * span * (stderr / np.where(std > 0, std, 1.0)) ** 2, 0.0)
         n_ind = np.where(t_corr > 0, span / (2.0 * np.where(t_corr > 0, t_corr, 1.0)), np.inf)
@@ -179,17 +212,61 @@ def stationary(t, y, t_start=None, min_blocks=8):
     e1 = _block_means(t[half], y[half], w[half], k).std(axis=0, ddof=1) / np.sqrt(k)
     e2 = _block_means(t[~half], y[~half], w[~half], k).std(axis=0, ddof=1) / np.sqrt(k)
     es = np.sqrt(e1 ** 2 + e2 ** 2)
+    if memory is not None:
+        es = es / np.sqrt(_short_block_share(0.5 * span / k, memory, k))
     drift = np.where(es > 0, (m2 - m1) / np.where(es > 0, es, 1.0), 0.0)
     scalar = y.ndim == 1
 
     def out(v):
         return float(v) if scalar else np.asarray(v)
-    return dict(mean=out(mean), stderr=out(stderr), std=out(std), t_corr=out(t_corr), n_independent=out(n_ind),
-                drift_sigma=out(drift), t0=float(t[0]), t1=float(t[-1]), samples=int(n),
-                reliable=bool(np.min(n_ind) >= 10.0))
+    res = dict(mean=out(mean), stderr=out(stderr), std=out(std), t_corr=out(t_corr), n_independent=out(n_ind),
+               drift_sigma=out(drift), t0=float(t[0]), t1=float(t[-1]), samples=int(n),
+               reliable=bool(np.min(n_ind) >= 10.0))
+    if memory is not None:
+        res["stderr_batch"] = out(stderr_batch)
+    return res
 
 
-def settle_time(t, y, block=5):
+def relaxing(t, y, rate, memory, t_start=None, min_blocks=8):
+    """Time average of a signal that is pulled back to its level slowly, when its rate of change is
+    recorded as well. Gives a sound error from a record only a few memories long.
+
+    The case it is made for: the bulk velocity of a flow driven by a constant force. Exactly,
+    dU_b/dt = force - wall shear / half height: that is `rate`, formed from recorded series. The wall
+    shear follows the bulk velocity, so the bulk velocity returns to its level with a settling time
+    (`memory`; gpucfd.turbulence.settling_time for a channel), and what is left of the rate,
+        xi = rate + (y - level) / memory,
+    is what the eddies add from moment to moment. xi forgets quickly, so batch means work on it, and
+    averaging the equation over the record gives: error of mean(y) = memory x error of mean(xi).
+    Any signal with dy/dt = rate recorded and a known return time fits (a tank level, a mean temperature).
+
+    Returns the dict of stationary(t, y) with stderr = the larger of memory x stderr(xi) and the plain
+    batch-means error (kept as stderr_batch), n_independent and reliable those of xi, drift_sigma formed
+    with the two halves' own errors of this kind, and memory.
+    Measured on case 17 (four runs of one grid, 31 to 38 time units each): the means scatter by 0.20 %;
+    this estimate gives 0.15 to 0.25 %, plain batch means 0.06 %."""
+    t, y, rate = np.asarray(t, float), np.asarray(y, float), np.asarray(rate, float)
+    if t_start is not None:
+        keep = t >= t_start
+        t, y, rate = t[keep], y[keep], rate[keep]
+
+    def one(tt, yy, rr, mb):
+        st = stationary(tt, yy, min_blocks=mb)
+        sx = stationary(tt, rr + (yy - st["mean"]) / memory, min_blocks=mb)
+        return st, sx, max(memory * sx["stderr"], st["stderr"])
+    st, sx, err = one(t, y, rate, min_blocks)
+    half = t <= 0.5 * (t[0] + t[-1])
+    try:
+        k = max(2, min_blocks // 2)
+        (s1, _, e1), (s2, _, e2) = (one(t[h], y[h], rate[h], k) for h in (half, ~half))
+        drift = (s2["mean"] - s1["mean"]) / np.hypot(e1, e2)
+    except ValueError:          # a half too short for its own blocks
+        drift = 0.0
+    return dict(st, stderr_batch=st["stderr"], stderr=float(err), n_independent=sx["n_independent"],
+                reliable=bool(sx["reliable"]), drift_sigma=float(drift), memory=float(memory))
+
+
+def settle_time(t, y, block=5, memory=None, left=2e-3, window=None):
     """Estimate where the start-up transient of a fluctuating signal ends (the MSER rule, White 1997).
 
     The samples are averaged in groups of `block`; the cut d is the one for which the remaining record
@@ -198,6 +275,14 @@ def settle_time(t, y, block=5):
     the first half only. If it lands at the end of that range the record has not settled (or is too
     short to tell): the returned dict says so. A slow steady drift is not caught here (a ramp that
     doubles the scatter over the record passes as settled); stationary()'s drift_sigma catches it.
+    This rule finds the FAST start-up only. A signal that then creeps to its level over a long time
+    hardly moves that number (case 17: the cut landed at 1.2 time units while the wall shear was still
+    10 % off, and jumped between 20 and 24 from one check to the next). When the flow's slow time is
+    known, pass it:
+    memory: the time with which the signal approaches its level. The cut then also waits until that
+    approach has shrunk to `left` times |mean|: from the largest distance to the mean seen in the first
+    `window` time units (default memory / 2), t = t[0] + memory ln(distance / (left |mean|)). The later
+    of the two cuts is returned, with both (keys fast, slow) and the distance (gap).
     Returns dict(t_start, settled, fraction_cut). An estimate to start from, not a proof: check it with
     stationary(...)["drift_sigma"] and against the flow's own balance (a channel: mean wall shear
     against the driving force)."""
@@ -211,10 +296,26 @@ def settle_time(t, y, block=5):
         v = z[d:].var() / (m - d)
         if v < best:
             best, d_best = v, d
-    return dict(t_start=float(t[d_best * block]), settled=bool(d_best < m // 2), fraction_cut=d_best / m)
+    out = dict(t_start=float(t[d_best * block]), settled=bool(d_best < m // 2), fraction_cut=d_best / m)
+    if memory is None:
+        return out
+    fast = t0 = out["t_start"]
+    early = t <= t[0] + (0.5 * memory if window is None else window)
+    w = _weights(t)
+    for _ in range(4):           # the mean depends on the cut: a few passes settle it
+        keep = t >= t0
+        if keep.sum() < 2:
+            break
+        mean = float(np.sum(w[keep] * y[keep]) / np.sum(w[keep]))
+        gap = float(np.max(np.abs(y[early] - mean)))
+        slow = t[0] + memory * np.log(gap / (left * abs(mean))) if gap > left * abs(mean) else t[0]
+        t0 = max(fast, float(slow))
+    return dict(out, t_start=float(t0), fast=fast, slow=float(slow), gap=gap,
+                fraction_cut=float((t0 - t[0]) / (t[-1] - t[0])))
 
 
-def stationary_watch(key, tol, relative=True, t_start=None, min_time=0.0, max_drift=2.0, min_blocks=8):
+def stationary_watch(key, tol, relative=True, t_start=None, min_time=0.0, max_drift=2.0, min_blocks=8, memory=None,
+                     log=None):
     """A live check for cfdlib.gpu.run_transient (its `watch`): stop averaging when the mean of the
     sampled series `key` is known well enough.
 
@@ -222,18 +323,29 @@ def stationary_watch(key, tol, relative=True, t_start=None, min_time=0.0, max_dr
     when None), the standard error of the mean is below tol (relative=True: tol times |mean|), the
     estimate is reliable (at least 10 independent samples), the two halves agree (|drift_sigma| <=
     max_drift) and the averaged record is at least min_time long. The physics goes into the choice of
-    key and tol: fix them before the run, from the accuracy the comparison needs."""
+    key and tol: fix them before the run, from the accuracy the comparison needs.
+    memory: the signal's slow time when it has one (see stationary and settle_time, which both get it).
+    The rule then holds only after about 20 memories of averaging; for a channel's bulk velocity
+    gpucfd.turbulence.channel_watch stops on a sound error much sooner.
+    log: a function that gets one line per check while the rule does not hold yet, saying where the
+    average stands and which condition is missing (a live view of a long run)."""
     def watch(t, d):
         tt, y = d["t"], d[key]
         try:
-            t0 = t_start if t_start is not None else settle_time(tt, y)["t_start"]
-            st = stationary(tt, y, t_start=t0, min_blocks=min_blocks)
-        except ValueError:
+            t0 = t_start if t_start is not None else settle_time(tt, y, memory=memory)["t_start"]
+            st = stationary(tt, y, t_start=t0, min_blocks=min_blocks, memory=memory)
+        except ValueError as e:
+            if log:
+                log(f"average of {key}: record too short ({e})")
             return None
         lim = tol * abs(st["mean"]) if relative else tol
-        if (st["reliable"] and st["stderr"] <= lim and abs(st["drift_sigma"]) <= max_drift
-                and st["t1"] - st["t0"] >= min_time):
-            return (f"average of {key} settled: {st['mean']:.6g} +- {st['stderr']:.2g} over t = {st['t0']:.4g} to "
-                    f"{st['t1']:.4g} ({st['n_independent']:.0f} independent samples, drift {st['drift_sigma']:+.1f} sigma)")
+        tests = {"error": st["stderr"] <= lim, "reliable": st["reliable"], "drift": abs(st["drift_sigma"]) <= max_drift,
+                 "length": st["t1"] - st["t0"] >= min_time}
+        text = (f"{st['mean']:.6g} +- {st['stderr']:.2g} over t = {st['t0']:.4g} to "
+                f"{st['t1']:.4g} ({st['n_independent']:.0f} independent samples, drift {st['drift_sigma']:+.1f} sigma)")
+        if all(tests.values()):
+            return f"average of {key} settled: {text}"
+        if log:
+            log(f"average of {key}: {text}; not yet: " + ", ".join(k for k, ok in tests.items() if not ok))
         return None
     return watch

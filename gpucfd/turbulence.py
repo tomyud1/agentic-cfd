@@ -24,7 +24,9 @@ What is here, for a box with walls in y and periodic x (the flow direction) and 
   mean momentum holds to round-off for every single field (tests/test_gpu_tools.py), and after
   averaging in time what is left of it measures how well the average has settled, not the arithmetic
   of the post-processing.
-- For the averages in time and their statistical error: cfdlib.signals.stationary().
+- For the averages in time and their statistical error: cfdlib.signals.stationary(). The bulk velocity
+  is the exception: it settles slowly (settling_time(), about 9 time units at friction Reynolds number
+  180), so its error comes from bulk_average(), and channel_watch() is a stop rule built on it.
 - For a finer grid started from a coarser one: gpucfd.steady.prolong(coarse, fine).
 """
 import numpy as np
@@ -81,7 +83,8 @@ class PlaneStats:
 
     y: the ny cell centres (where u and w live); y_faces: the ny + 1 faces from wall to wall (where v
     lives). sample() returns, for the field s holds now (or for q = s.get()):
-      U         mean streamwise velocity at y
+      U, W      mean streamwise and spanwise velocity at y (W is zero in the long run; its variance in
+                time is what ww lacks to be the fluctuation about the full mean)
       uu, ww    plane averages of u'^2 and w'^2 at y (' = minus the plane mean)
       vv        plane average of v^2 at y_faces (zero on both walls)
       uv        turbulent shear stress, plane average of u v at y_faces, with u and v brought to the
@@ -120,7 +123,7 @@ class PlaneStats:
         uv = np.concatenate((zero, (vx[:, 1:, :] * uy).mean(axis=(0, 2)), zero))
         vv = np.concatenate(((v ** 2).mean(axis=(0, 2)), zero))
         dUdy = np.concatenate(([U[0]], np.diff(U), [-U[-1]])) / self.dyc
-        return dict(U=U, uu=(up ** 2).mean(axis=(0, 2)), ww=((w - W[None, :, None]) ** 2).mean(axis=(0, 2)), vv=vv, uv=uv,
+        return dict(U=U, W=W, uu=(up ** 2).mean(axis=(0, 2)), ww=((w - W[None, :, None]) ** 2).mean(axis=(0, 2)), vv=vv, uv=uv,
                     dUdy=dUdy, bulk=float(np.sum(U * self.dy) / s.length[1]), tau_low=float(s.nu * dUdy[0]),
                     tau_high=float(-s.nu * dUdy[-1]), umax=float(np.sqrt(u ** 2 + v ** 2 + w ** 2).max()),
                     courant_rate=s.courant_rate(q))
@@ -137,3 +140,75 @@ class PlaneStats:
         exact = tw - f * self.y_faces
         return dict(y_faces=self.y_faces, viscous=visc, turbulent=turb, total=visc + turb, exact=exact,
                     residual=visc + turb - exact)
+
+
+# ---- the bulk velocity of a channel driven by a constant force: its slow settling, its error, a stop rule ----
+# The bulk velocity obeys dU_b/dt = force - wall shear / delta exactly, and the wall shear follows the
+# bulk velocity, roughly as U_b^n with n about 1.75 (the Blasius-type friction law). So a disturbance of
+# U_b decays with the settling time below: about 9 time units delta / u_tau at friction Reynolds number
+# 180. Two consequences, both measured on case 17: a run of tens of time units holds only a few
+# independent values of U_b (plain batch means gave an error three times too small), and a finer grid
+# started from a coarser one's field needs about two settling times to reach its own level.
+
+def settling_time(bulk, force, exponent=1.75):
+    """Time in which the bulk velocity of a force-driven channel forgets a disturbance:
+    delta U_b / (n u_tau^2) = U_b / (n force), with u_tau^2 = force x delta and the wall shear ~ U_b^n.
+    n = 1.75 is an empirical friction law, good for planning and for the error estimate, not exact."""
+    return bulk / (exponent * force)
+
+
+def bulk_average(t, bulk, tau_wall, force, delta=1.0, t_start=None, exponent=1.75):
+    """Mean bulk velocity of a force-driven channel after t_start, with a statistical error that knows
+    the slow settling (cfdlib.signals.relaxing: the error comes from the exact balance of the box).
+    bulk, tau_wall: the recorded series (tau_wall per unit density: the mean of PlaneStats' tau_low and
+    tau_high); force per unit mass, delta the half height.
+    Returns the dict of signals.relaxing (mean, stderr, stderr_batch, n_independent, reliable,
+    drift_sigma, t0, t1, ...) plus T_s (the settling time) and imbalance (mean wall shear over
+    force x delta, minus 1: how far the average is from settled)."""
+    from cfdlib import signals
+    t, bulk, tau = np.asarray(t, float), np.asarray(bulk, float), np.asarray(tau_wall, float)
+    Ts = settling_time(signals.stationary(t, bulk, t_start=t_start)["mean"], force, exponent)
+    out = signals.relaxing(t, bulk, force - tau / delta, Ts, t_start=t_start)
+    tw = signals.stationary(t, tau, t_start=t_start)["mean"]
+    return dict(out, T_s=Ts, imbalance=tw / (force * delta) - 1.0)
+
+
+def channel_watch(force, delta=1.0, tol=2.5e-3, min_time=None, max_drift=2.0, balance=3e-3, left=2e-3,
+                  exponent=1.75, log=None):
+    """A stop rule for cfdlib.gpu.run_transient (its `watch`) on a force-driven channel whose observe
+    returns PlaneStats.sample(): end the averaging when the mean bulk velocity is known well enough.
+
+    Holds when, after the start-up (cfdlib.signals.settle_time with the settling time as memory, so the
+    cut also waits for the slow approach to shrink to `left` of the bulk velocity): the error of the
+    mean bulk velocity from bulk_average is below tol times it and reliable, the two halves agree
+    within max_drift of their errors, at least min_time is averaged (default: four settling times),
+    and the mean wall shear is within `balance` of the driving force. Fix tol before the run: at
+    friction Reynolds number 180, 0.25 % took about 38 time units after the start-up, and halving it
+    needs four times as long.
+    log: a function that gets a line per check while the rule does not hold, with what is missing."""
+    from cfdlib import signals
+
+    def watch(t, d):
+        tt, bulk = d["t"], d["bulk"]
+        tau = 0.5 * (d["tau_low"] + d["tau_high"])
+        try:
+            Ts = settling_time(float(np.mean(bulk[len(bulk) // 2:])), force, exponent)
+            cut = signals.settle_time(tt, bulk, memory=Ts, left=left)
+            st = bulk_average(tt, bulk, tau, force, delta, t_start=cut["t_start"], exponent=exponent)
+        except ValueError as e:
+            if log:
+                log(f"bulk velocity: record too short ({e})")
+            return None
+        need = 4.0 * st["T_s"] if min_time is None else min_time
+        tests = {"error": st["stderr"] <= tol * abs(st["mean"]), "reliable": st["reliable"],
+                 "drift": abs(st["drift_sigma"]) <= max_drift, "length": st["t1"] - st["t0"] >= need,
+                 "balance": abs(st["imbalance"]) <= balance, "start-up found": cut["settled"]}
+        text = (f"bulk {st['mean']:.4f} +- {st['stderr']:.4f} ({st['stderr'] / abs(st['mean']):.2%}; batch means alone "
+                f"{st['stderr_batch']:.4f}) over t = {st['t0']:.1f} to {st['t1']:.1f}, {st['n_independent']:.0f} independent "
+                f"samples, drift {st['drift_sigma']:+.1f} sigma, wall shear {st['imbalance']:+.2%} from the driving force")
+        if all(tests.values()):
+            return "stop rule holds: " + text
+        if log:
+            log(text + "; not yet: " + ", ".join(k for k, ok in tests.items() if not ok))
+        return None
+    return watch

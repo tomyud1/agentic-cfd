@@ -14,7 +14,14 @@ solves the problem (the **solver agent**) never needs this file.
    7 record ◀── 6 regress ◀── 5 improve ◀── 4 review ◀── report + insights
    (catalogue,   (old reports   (tools first,   (is the report right?
     changelog)    still build)   then guidance)   what cost time?)
+       │
+   8 optimize: the same case, better and faster, against the verified solve as the baseline
 ```
+
+The order inside one case: **solve first, then optimize.** The fresh agent solves and verifies with
+the tools as they are; that is a fair test of them and gives a baseline. Making the run more
+accurate or faster, with new tools if needed, comes after, measured against that baseline.
+Insights are gathered all the way through, from every agent.
 
 ## Two roles, kept apart
 
@@ -29,8 +36,10 @@ solves the problem (the **solver agent**) never needs this file.
 ## The steps
 
 1. **Choose** the next case from [`cases/catalogue.yaml`](../cases/catalogue.yaml). It should test
-   one thing the workflow has not faced. Improve a tool first if you already know the case will be
-   slow or stuck without it: a fresh-agent run is the expensive step.
+   one thing the workflow has not faced. Before the solve, fix only what would stop it or make its
+   result wrong (a tool that refuses the problem, an output no tool can extract), and say in the
+   changelog which fixes those were: a fresh-agent run is the expensive step. Leave what would only
+   make it faster or more accurate for step 8, where it can be measured against the solve.
 2. **Prepare.**
    - Write `cases/<name>/problem.yaml`: physical inputs only, no numerical choices.
      `python -m cfdlib.contract --problem cases/<name>/problem.yaml` says whether the report will
@@ -66,8 +75,11 @@ solves the problem (the **solver agent**) never needs this file.
    - Do the reference values in the report match `reference/`?
    - Recompute two or three headline numbers yourself from the raw data in `results/<name>/runs/`.
    - Verification: is the observed order believable, and were the accuracy rules fixed before the
-     production runs? Do they discriminate (not 100× looser than what was reached, not tighter than
-     the method can show)?
+     production runs (the agent's transcript shows when its limits were written and whether they
+     were edited later)? Do they discriminate (not 100× looser than what was reached, not tighter
+     than the method can show)?
+   - Does a statistical error stand up? Where runs were repeated, compare their scatter with the
+     error claimed (case 17: the scatter was three times the tool's error).
    - Is each explanation checked against the data (sign, size, scaling)?
    - Is the verdict fair? Never soften it. If the review finds the verdict wrong, say so in the
      changelog; do not edit the report.
@@ -98,6 +110,20 @@ solves the problem (the **solver agent**) never needs this file.
    everything at once) and compares what is staged with that list. A file two sessions both changed
    is committed from a clean copy that holds only the finished change. Better still: do not start a
    session that edits shared files while a commit is waiting.
+8. **Optimize**, once the case is recorded. The verified solve is the baseline; now make the same
+   case better in accuracy and in speed, with new tools allowed.
+   - Fix in advance, in [`ROADMAP.md`](../ROADMAP.md): the target as a number (an error to reach, a
+     time to beat), the budget (GPU hours, agent sessions) and the stop rule (what ends the stage
+     if the target is not reached).
+   - Change one thing at a time and measure it against the baseline on the same problem: the same
+     answer, faster, or a better answer at a stated cost. Report before and after.
+   - What works becomes a tool or a default, with a test. What does not work is recorded with its
+     measurement, so nobody tries it again blind.
+   - The solver agent's case folder stays as it is. Optimize runs live in `dev/` or in a study
+     report of the case (`cfdlib.study`), and the improved result is shown next to the first one,
+     never in place of it.
+   - An agent that is handed the stage sends back its insights like a solver agent, and each gets
+     an answer as in step 5.
 
 ## What the loop does not do yet
 

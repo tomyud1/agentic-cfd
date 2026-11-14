@@ -11,6 +11,7 @@ c="$1"; fin="$2"
 
 echo "== 1. report contract"
 $PY -m cfdlib.contract "results/$c/results.json" $fin | head -8
+$PY -m cfdlib.contract --code "cases/$c" | head -8
 
 echo "== 2. solver processes still running (should be none)"
 $PY -m cfdlib.foam ps

@@ -36,7 +36,8 @@ cfdlib/                       shared tools (do NOT modify; log needed changes as
                  (convergence of any sequence of levels, including a reference's own)
   signals.py     periodic signals: cycles, refined peaks, periodicity check, FFT frequency; signals that
                  fluctuate about a level (turbulence): stationary (mean, statistical error, drift),
-                 settle_time (where the start-up ends), stationary_watch (a live stop on the error)
+                 relaxing (the same for a slowly settling signal), settle_time (where the start-up
+                 ends), stationary_watch (a live stop on the error)
   plots.py       figure style and sizes (figure, wide, sketch); to_svg checks for overlapping text
   report.py      m(), tex_num(), tex_fix() (fixed decimals for table columns), tex_pct(), LETTERS, load_yaml,
                  environment_info(), render(); ready table cells m_fix, m_pct, m_times, m_pow10, m_sig
@@ -146,8 +147,11 @@ case, if you want to see the full set of files once.
     average with a statistical error, which no grid refinement removes. The tools: `gpucfd.turbulence`
     (a start field that turns turbulent, plane averages formed like the solver's own fluxes),
     `run_transient(adapt_cfl=...)` (the time-step limit moves with the flow) and
-    `cfdlib.signals.stationary` (mean, standard error, drift). What was measured on a channel, with
-    costs: `gpucfd/DESIGN.md`, "Turbulence resolved without a model".
+    `cfdlib.signals.stationary` (mean, standard error, drift). A quantity that settles slowly (a bulk
+    velocity) holds few independent values in a run and needs its own error estimate: `stationary`'s
+    docstring says when, `gpucfd.turbulence.bulk_average` does it for a channel. What was measured on
+    a channel, with costs: `gpucfd/DESIGN.md`, "Turbulence resolved without a model"; case 17 is the
+    worked example.
 - Find the closest OpenFOAM tutorial (`$FOAM_TUTORIALS`) and start from it; make minimal changes.
 - Read `references/openfoam-primer.md` for what each file controls and the known pitfalls.
 - Templates may contain Jinja loops: generating a whole `blockMeshDict` from Python is fine and is
@@ -158,7 +162,9 @@ case, if you want to see the full set of files once.
 - Write `decisions.yaml` as you go: one entry per choice with `kind` (physics / accuracy / solver /
   output) and `settings` patterns covering every setting in the case files. Check coverage as soon as
   one case is rendered: `python -m cfdlib.contract --decisions cases/<name>/decisions.yaml <case dir>`.
-- Plan a mesh study: at least 3 meshes, refinement ratio 2 (needed for observed order and GCI).
+- Plan a mesh study: at least 3 meshes, refinement ratio 2 (needed for observed order and GCI). When
+  ratio 2 is out of reach (a time-resolved 3D run costs 16 times more per level), smaller and unequal
+  ratios in one grid family work too: `verification.three_grid_study(values, h=cell sizes)`.
   Transient problems also need a time-step study (or an argument, with numbers, that time error is
   negligible).
 - Define a **physical** convergence/steadiness check for your problem (a balance, a conserved
@@ -167,7 +173,10 @@ case, if you want to see the full set of files once.
   conserved quantity = boundary fluxes) is a strong check; it must use the solver's own time scheme.
 - Pass/fail tolerances must discriminate: size them from the coarse pre-flight error and the expected
   order (what the finest mesh should reach), not from round numbers. A tolerance 100x looser than what
-  is achieved proves nothing (case 3). Make the observed order of accuracy a rule of its own.
+  is achieved proves nothing (case 3). Make the observed order of accuracy a rule of its own. A limit
+  on a profile cannot be sized from its integral or its peak (case 17: both passed, every profile
+  missed); when nothing is known about a profile before the first long run, the coarsest level is the
+  place to size its limit, before the finer levels run.
 - At very small tolerances, budget for three separate errors:
   - the mesh error;
   - the bias of how an output is extracted (a fit, an extrapolation, a threshold crossing);
@@ -183,8 +192,9 @@ case, if you want to see the full set of files once.
   top of the wall 11 % of ΔT warmer than the bottom.
 
 ### 3. Pre-flight test (mandatory, before any long run)
-- `cfdlib.monitor.preflight()` on the coarsest AND finest meshes with a short run (a few % of the
-  full length). It works in a separate `<case>_preflight` copy; render pre-flight and production
+- `cfdlib.monitor.preflight()` (gpucfd: `cfdlib.gpu.preflight()`) on the coarsest AND finest meshes
+  with a short run (a few % of the full length). A run whose outputs are time averages has no fixed
+  end: project seconds per time unit times the time units its stop rule may need. It works in a separate `<case>_preflight` copy; render pre-flight and production
   cases into separate directories too, so re-running one never deletes the other. It takes the
   command as you would run it, so an MPI command works on a case that is already decomposed.
 - It reports crashes, NaN, Courant number, residual/Courant/continuity trends and projects run time.
@@ -313,6 +323,8 @@ case, if you want to see the full set of files once.
   0.53 % low on L1. Most of that was mesh error (−0.53, −0.25, −0.12, −0.08 % on L1-L4); only about
   −0.06 % was real.
 - A coarse-mesh match can be luck (error cancellation). Report differences honestly, where and why.
+  Show an integral (a bulk velocity, a drag) next to the profile it is made of: case 17's bulk
+  velocity was 0.3 % off while its profile was 2 % off, with opposite signs near the wall and in the core.
 - An explanation is a claim: check it against the data (sign, size, scaling) before writing it. In
   case 3 the first explanation of an error had the wrong sign and a third of the size. If it needs
   a sensitivity, measure that with a variant that changes one thing only (case 7: a closed top

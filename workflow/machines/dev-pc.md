@@ -16,6 +16,9 @@ holds on every machine is in [`../references/environment.md`](../references/envi
 - Independent runs at the same time: up to about 6. While all 16 threads run a solver, your own work
   slows it: leave 1-2 threads free or budget 1.5 times the projection.
 - Run-time budget: a single run projected above about 15 minutes is a reason to coarsen the plan.
+  The exception is a run whose outputs are time averages (turbulence without a model): its length is
+  set by the flow, not by the grid. Budget such a case as a whole, about 2 GPU hours, with the
+  finest run at most about one hour, and say so in the decisions (case 17 used 1.8 hours).
 
 ## Software and paths
 
@@ -49,6 +52,8 @@ MSYS_NO_PATHCONV=1 wsl -d Ubuntu-24.04 --cd "/mnt/d/Projects/Agentic CFD" -- /ho
 - Environment variables reach WSL only through `WSLENV`, e.g.
   `CFD_FIG_PNG_DIR=/mnt/c/.../png WSLENV=CFD_FIG_PNG_DIR MSYS_NO_PATHCONV=1 wsl ...`.
 - Git Bash expands `$var` inside an inline `bash -c` before WSL sees it: put loops in a `.sh` file.
+- Never call `python` from Git Bash itself, not even for one line: it is the Windows launcher, not
+  the pipeline's Python, and fed a here-document it hangs until the tool's time limit.
 - A shell heredoc that writes or patches code eats backslashes (a `\\n` in a Python string arrives as
   a real line break, a double backslash as a single one): change code with your file-editing tool.
 - Windows Python's `Path.write_text` turns every line end into CRLF: a script that patches repository

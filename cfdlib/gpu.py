@@ -13,9 +13,12 @@ When to choose gpucfd instead of OpenFOAM (measured numbers and limits: gpucfd/D
 - Turbulence without a model (measured 2026-11-14 on one flow, the plane channel at friction Reynolds
   number 180; gpucfd/DESIGN.md has the numbers): the scheme conserves kinetic energy, so a turbulent
   flow runs stably with cells far larger than the laminar rule allows, and the grid is judged in wall
-  units. gpucfd.turbulence has the start field and the plane averages, cfdlib.signals.stationary the
-  time average with its statistical error. Per step it was 2 to 9 times faster than OpenFOAM on 8
-  cores of the same PC (larger grids, larger gain), with OpenFOAM at its tutorial's settings.
+  units. gpucfd.turbulence has the start field, the plane averages, the error of the slowly settling
+  bulk velocity and a stop rule; cfdlib.signals.stationary the time average with its statistical error.
+  Per step it was 2 to 9 times faster than OpenFOAM on 8 cores of the same PC (larger grids, larger
+  gain), with OpenFOAM at its tutorial's settings. Case 17 is the worked example: its finest
+  affordable grid (12 wall units along and across the flow) gave the mean flow rate to 0.3 % but did
+  not resolve the profiles.
 - It does not fit: turbulence models (RANS/LES), heat transfer, multiphase, compressible flow, STL
   geometry, body-fitted or unstructured grids. A stretched grid is still rows and columns: the fine
   band around a body crosses the whole domain in each direction (case 4: 3.85 times fewer cells
@@ -39,7 +42,10 @@ When to choose gpucfd instead of OpenFOAM (measured numbers and limits: gpucfd/D
   CFL numbers untried with bodies).
 
 check_fit() turns this into a checklist for a given problem; its reasons go into decisions.yaml.
-time_step() gives the step of a run with both limits and the one that set it. run_transient() runs and
+time_step() gives the step of a run with both limits and the one that set it. preflight() is the short
+run before a long one (health, cost per step, projected run time); step_check() measures what the time
+step does to the answer; save_state()/load_state() are the restart files; peek() looks into a running
+case. run_transient() runs and
 records a transient case (live check, stop rule, a partial record that survives a killed run); write_run()
 saves it in the layout of the OpenFOAM runs (its perf block names each cost by its clock: perf_record).
 cfdlib.runrecord.read() returns a record of either tool in one shape. tolerance_check() and
@@ -85,13 +91,18 @@ def check_fit(cell_reynolds=None, needs_stretched_grid=False, wall_units=None, *
     if wall_units is not None:
         dx, dyw, dz = (float(wall_units[k]) for k in ("dx", "dy_wall", "dz"))
         notes.append("turbulence resolved without a model (gpucfd.turbulence; cost and limits in gpucfd/DESIGN.md): "
-                     "measured on one flow only, the plane channel at friction Reynolds number 180 with a wall cell of "
-                     "1 wall unit. With dx+ 35 and dz+ 12 the mean flow rate came out 7.5 % low; with dx+ 12 and dz+ 12 "
-                     "about 1 % low (that run had not settled). Outputs are time averages with a statistical error "
-                     "(cfdlib.signals.stationary): plan for tens of time units delta / u_tau per grid")
+                     "measured on one flow only, the plane channel at friction Reynolds number 180 (case 17: cells square "
+                     "in the wall plane, wall cell 2 to 1 wall units, all directions refined together). With dx+ = dz+ = "
+                     "24, 16 and 12 the mean flow rate came out +1.5 %, -1.6 % and -0.3 % from the reference, each known to "
+                     "about 0.2 %: no steady trend, and the good last value is partly cancellation. On that finest grid the "
+                     "mean velocity profile is still 0.31 friction velocities low at y+ 22 and the fluctuation profiles are "
+                     "off by up to 0.14, so judge the profiles, not only the bulk value. An earlier run with dx+ 35 and "
+                     "dz+ 12 was 7.5 % low. Outputs are time averages with a statistical error (cfdlib.signals.stationary; "
+                     "the bulk velocity settles slowly, about 9 time units delta / u_tau, so use "
+                     "gpucfd.turbulence.bulk_average for it): about 40 time units after the start-up gave it to 0.2 %")
         if dx > 20 or dz > 15:
-            notes.append(f"dx+ {dx:.3g}, dz+ {dz:.3g}: coarser than the grid that came within about 1 %; expect an error of "
-                         "several per cent in the mean flow and say so, or refine")
+            notes.append(f"dx+ {dx:.3g}, dz+ {dz:.3g}: coarser than the finest grid measured (12 wall units, which did not "
+                         "resolve the profiles); expect an error of several per cent in the mean flow and say so, or refine")
         if dyw > 2:
             notes.append(f"wall cell of {dyw:.3g} wall units: untested above 1; the wall shear is formed from that cell")
         cell_reynolds = None      # the cell Reynolds number of the mean flow is large by design in such a run
@@ -183,8 +194,36 @@ def _save_partial(path, ts, series):
     tmp.replace(path)
 
 
+def save_state(s, path, t=0.0):
+    """Store what a run needs to continue from this moment: the velocity, the pressure the scheme carries
+    (IMEX, or any scheme with bodies) and the time, in one .npz file, replaced in one move. gpucfd has
+    no restart files of its own. Keep such files outside git (they are large)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    q = s.get()
+    carried = s.scheme == "imex" or bool(getattr(s, "bodies", None))
+    tmp = path.with_name(path.name + ".tmp.npz")
+    np.savez(tmp, t=float(t), n=np.array(s.n), **{f"q{k}": a for k, a in enumerate(q)},
+             **(dict(p=s.pressure()) if carried else {}))
+    tmp.replace(path)
+    return path
+
+
+def load_state(s, path):
+    """Put a state stored by save_state into simulation s (same grid) and return its time. For a start on
+    a finer grid, load it into a simulation of the stored grid and use gpucfd.steady.prolong."""
+    d = np.load(path)
+    if tuple(d["n"]) != tuple(s.n):
+        raise ValueError(f"{path} holds a grid of {tuple(d['n'])} cells, the simulation has {tuple(s.n)}")
+    s.set([d[f"q{k}"] for k in range(s.ncomp)])
+    if "p" in d.files:
+        s.set_pressure(d["p"])
+    return float(d["t"])
+
+
 def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag="", log_every=1.0, ptol=1e-10,
-                  cfl_limit=1.0, watch=None, stop_on_watch=False, watch_every=None, partial=None, adapt_cfl=None):
+                  cfl_limit=1.0, watch=None, stop_on_watch=False, watch_every=None, partial=None, adapt_cfl=None,
+                  sample_steps=None, cfl_steps=None, checkpoint=None, checkpoint_every=None):
     """Advance gpucfd simulation s from time t0 to t_end and sample it about every sample_dt.
 
     dt is the largest time step to use; it is reduced slightly so that t_end - t0 is a whole number of
@@ -211,14 +250,31 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
     courant_rate, never above dt. Samples are then every m steps with m fixed from dt, so unevenly spaced
     in time: average them by time (cfdlib.signals.stationary does). The steps of a run with adapt_cfl
     depend on the samples, so it does not repeat a run without it step for step.
+    With adapt_cfl the natural settings are steps, not times:
+      sample_steps: sample every this many steps (sample_dt is then ignored, and dt may be None: no cap).
+      cfl_steps: look at the Courant rate and re-choose the step every this many steps, between the
+        samples too (s.courant_rate(): it reads the field back, about the cost of half a step on a
+        million cells, far less than a sample of plane averages).
+    The Courant number OVERSHOOTS the target by however much the rate grows between two looks, and the
+    rate is an extreme of the field (one cell somewhere). Measured in a turbulent channel (case 17):
+    up to 35 % within 10 steps over 40 time units, and a short pre-flight sees less than a long run
+    (20 % in 4 time units). A look every 5 steps with a target of 0.75 stayed below 0.9.
+    checkpoint: path of a file that receives the state (save_state) every checkpoint_every time units and
+    at the end of the run: a killed run can continue (load_state), and the next grid level can start from
+    this one's last field.
     Returns dict(t, series, perf, health, dt, watch_first), with adapt_cfl also dt_min and dt_max (dt is
-    then the mean step).
+    then the mean step), with checkpoint also state (the file).
 
     A blow-up (non-finite values) or Ctrl-C ends the run early instead of raising (health status 'fail' or
     'warn'), so what was recorded up to then is returned and can be saved."""
-    n_total = max(1, math.ceil((t_end - t0) / dt - 1e-9))
-    dt = (t_end - t0) / n_total
-    nsub = max(1, int(math.floor(sample_dt / dt + 1e-9)))
+    if adapt_cfl is not None and dt is None:
+        if sample_steps is None:
+            raise ValueError("run_transient: without a largest step dt, give sample_steps")
+        dt, n_total = math.inf, 0
+    else:
+        n_total = max(1, math.ceil((t_end - t0) / dt - 1e-9))
+        dt = (t_end - t0) / n_total
+    nsub = int(sample_steps) if sample_steps else max(1, int(math.floor(sample_dt / dt + 1e-9)))
     # the cell size of the Courant and divergence checks: on a stretched grid the smallest cell (strict)
     h = s._hmin() if getattr(s, "stretched", False) else min(s.length[d] / s.n[d] for d in range(3) if s.n[d] > 1)
     cells = int(np.prod(s.n))
@@ -258,33 +314,54 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
         raise ValueError("adapt_cfl needs 'courant_rate' from observe (s.courant_rate())")
     t, dt_now, dt_lo, dt_hi = t0, dt, math.inf, 0.0
     t_tol = 1e-9 * max(1.0, abs(t_end - t0))
+    next_ckpt = t0 + checkpoint_every if (checkpoint and checkpoint_every) else math.inf
+
+    def advance(dt_c, c):
+        nonlocal gpu_ms, its, steps, max_div, dt_lo, dt_hi
+        st = s.run(dt_c, c, ptol)
+        gpu_ms += st["ms"]
+        its += st["poisson_its"] * c
+        steps += c
+        max_div = max(max_div, st["max_div"])
+        dt_lo, dt_hi = min(dt_lo, dt_c), max(dt_hi, dt_c)
+
     while (t < t_end - t_tol) if adaptive else (steps < n_total):
-        if adaptive:
-            rate = float(series["courant_rate"][-1])
-            dt_now = min(dt, adapt_cfl / rate) if rate > 0 else dt
-            m = nsub
-            if t + m * dt_now >= t_end - t_tol:  # the last stretch: whole steps that end at t_end
-                m = min(nsub, max(1, math.ceil((t_end - t) / dt_now - 1e-9)))
-                dt_now = (t_end - t) / m
-        else:
-            m = min(nsub, n_total - steps)
         try:
-            st = s.run(dt_now, m, ptol)
+            if adaptive:       # nsub steps to the next sample, the step re-chosen every `look` of them
+                look = min(int(cfl_steps), nsub) if cfl_steps else nsub
+                rate, done = float(series["courant_rate"][-1]), 0
+                while done < nsub:
+                    if done:   # a look between two samples
+                        rate = float(s.courant_rate())
+                        cfl = max(cfl, rate * dt_now)        # what the steps just taken reached
+                    if not (rate > 0 or math.isfinite(dt)):
+                        raise ValueError("run_transient: a fluid at rest and no largest step dt")
+                    dt_now = min(dt, adapt_cfl / rate) if rate > 0 else dt
+                    c = min(look, nsub - done)
+                    ends = t + c * dt_now >= t_end - t_tol
+                    if ends:   # the last stretch: whole steps that end at t_end
+                        c = min(c, max(1, math.ceil((t_end - t) / dt_now - 1e-9)))
+                        dt_now = (t_end - t) / c
+                    advance(dt_now, c)
+                    t, done = (t_end if ends else t + c * dt_now), done + c
+                    if ends:
+                        break
+            else:
+                advance(dt, min(nsub, n_total - steps))
+                t = t0 + steps * dt
         except FloatingPointError as e:
             error = str(e)
-            log(f"{tag}t {t + m * dt_now:.4f}: {e}")
+            log(f"{tag}after t {t:.4f}: {e}")
             break
         except KeyboardInterrupt:
             interrupted = f"interrupted at t = {t:.4f} (of {t_end:g})"
             log(f"{tag}{interrupted}")
             break
-        gpu_ms += st["ms"]
-        its += st["poisson_its"] * m
-        steps += m
-        max_div = max(max_div, st["max_div"])
-        t = t + m * dt_now if adaptive else t0 + steps * dt
-        dt_lo, dt_hi = min(dt_lo, dt_now), max(dt_hi, dt_now)
         sample(t, dt_now)
+        if t >= next_ckpt - 1e-9:
+            save_state(s, checkpoint, t)
+            while next_ckpt <= t + 1e-9:
+                next_ckpt += checkpoint_every
         last_step = (t >= t_end - t_tol) if adaptive else steps == n_total
         due_log = t >= next_log - 1e-9 or last_step
         msg = None
@@ -308,6 +385,8 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
             break
     wall = time.time() - wall0
     nan = any(not np.all(np.isfinite(np.asarray(v))) for v in series.values())
+    if checkpoint and error is None and interrupted is None and not nan:
+        save_state(s, checkpoint, ts[-1])                    # the field at the record's end
     checks = []
 
     def add(name, ok, value, meaning, warn=False):
@@ -333,7 +412,8 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
                 perf=perf_record(gpu_ms / 1000, wall, obs_s, steps, cells, its / max(steps, 1), nsub),
                 health=dict(status=status, checks=checks, steps=steps, last_time=ts[-1], umax=umax_seen or None,
                             t_umax=t_umax if umax_seen else None),
-                watch_first=first, **(dict(dt=(ts[-1] - t0) / max(steps, 1), dt_min=dt_lo, dt_max=dt_hi) if adaptive else dict(dt=dt)))
+                watch_first=first, **(dict(state=str(checkpoint)) if checkpoint else {}),
+                **(dict(dt=(ts[-1] - t0) / max(steps, 1), dt_min=dt_lo, dt_max=dt_hi) if adaptive else dict(dt=dt)))
 
 
 def perf_record(gpu_s, wall_s, observe_s, steps, cells, poisson_its, sample_steps):
@@ -350,23 +430,53 @@ def perf_record(gpu_s, wall_s, observe_s, steps, cells, poisson_its, sample_step
                 ms_per_step_wall=1e3 * wall_s / n, us_per_cell_step_wall=1e6 * wall_s / nc)
 
 
-def write_run(runs_dir, name, result, meta):
+def thin(result, keep):
+    """A run_transient result with every keep-th sample of each series (and the last one), for a run
+    that was sampled often for its step control or stop rule: the stored profiles need not be closer in
+    time than the averages use. The scalar series are also kept in full, as <name>_all with their times
+    t_all, so the Courant and wall-shear history of the whole run stays checkable."""
+    if keep <= 1:
+        return result
+    n = len(result["t"])
+    idx = np.unique(np.append(np.arange(0, n, keep), n - 1))
+    series = {k: v[idx] for k, v in result["series"].items()}
+    series["t_all"] = result["t"]
+    series.update({f"{k}_all": v for k, v in result["series"].items() if np.ndim(v) == 1})
+    return dict(result, t=result["t"][idx], series=series)
+
+
+def solver_settings(s):
+    """The arguments a gpucfd simulation was made with, for a run record: every setting of the solver
+    that is not a number of the run loop. A report's decisions can be checked against this list."""
+    return dict(cells=[int(v) for v in s.n], box=[float(v) for v in s.length], viscosity=float(s.nu), scheme=s.scheme,
+                force=[float(v) for v in getattr(s, "g", ())], side_kinds=[int(v) for v in getattr(s, "kinds", ())],
+                stretched=bool(getattr(s, "stretched", False)), bodies=len(getattr(s, "bodies", None) or ()))
+
+
+def write_run(runs_dir, name, result, meta, store_every=1, solver=None):
     """Save a run_transient result as runs_dir/<name>.npz (t + every series) and <name>.json (meta, perf,
     health, environment). Returns the json record.
 
     meta: what the case knows about the run. Give at least level, cells, h (smallest cell size), source
     (the run whose last field it started from, or None), pressure_tol, scheme, and time_step (the dict
     from time_step(): both limits and which one set the step). cfdlib.runrecord.read returns this record
-    and an OpenFOAM one in the same shape."""
+    and an OpenFOAM one in the same shape.
+    store_every: keep every so many samples of the array series (thin()); the record says so.
+    solver: the simulation; its settings (solver_settings) go into the record as `solver`."""
     from gpucfd import gcfd
     runs_dir = Path(runs_dir)
     runs_dir.mkdir(parents=True, exist_ok=True)
+    result = thin(result, store_every)
     np.savez_compressed(runs_dir / f"{name}.npz", t=result["t"], **result["series"])
     rec = dict(name=name, tool="gpucfd", **meta, dt=result["dt"], start_time=float(result["t"][0]),
                end_time=float(result["t"][-1]), health=result["health"], perf=result["perf"],
                watch_first=result["watch_first"], gpu=gcfd.device()["name"], python=platform.python_version(),
                wall_time=result["perf"]["wall_s"])
-    rec.update({k: result[k] for k in ("dt_min", "dt_max") if k in result})   # a run with adapt_cfl: dt is its mean step
+    rec.update({k: result[k] for k in ("dt_min", "dt_max", "state") if k in result})   # adapt_cfl: dt is the mean step
+    if store_every > 1:
+        rec["store_every"] = int(store_every)
+    if solver is not None:
+        rec["solver"] = solver_settings(solver)
     (runs_dir / f"{name}.json").write_text(json.dumps(rec, indent=1, default=float))
     (runs_dir / f"{name}.partial.npz").unlink(missing_ok=True)  # the full record replaces run_transient's partial one
     return rec
@@ -388,6 +498,13 @@ def tolerance_check(make, dt, t0, length, sample_dt, observe, u_ref, tols=(1e-10
     keys: the series to compare (default: every scalar series except 'umax'). The differences are
     absolute, max over the samples of |value - strictest value|: compare coefficients, or scale the
     outputs in observe. rule: the largest difference accepted.
+    What to compare when there is no body: the pressure cannot change an integral of the flow (a bulk
+    velocity; the pressure gradient has no mean), and without a body no force is taken from the
+    pressure. Case 17 (a channel) compared the bulk velocity and the wall shear and every tolerance from
+    1e-10 to 1e-6 passed eight orders below its rule: that says the choice is safe over a short stretch,
+    not which tolerance is needed. There the tolerance is a cost setting (1e-6 against 1e-8: 9 to 20 %
+    per step), and the number to watch is the divergence left after the projection, in each run's health
+    record. Over a long run two turbulent flows part ways whatever the tolerance.
     Returns dict(rule, keys, runs=[dict(tol, diff{key}, worst, passes, ms_per_step, poisson_its, wall_s, steps,
     divergence)], chosen), chosen = the loosest tolerance that passes together with every stricter one.
     Save it as JSON; read_tolerance_check() reads it back (and the older layout of case 4's first checks)."""
@@ -471,3 +588,112 @@ def position_spread(by_position):
         lo, hi = min(vals.values()), max(vals.values())
         out[q] = dict(values=vals, middle=0.5 * (lo + hi), half_range=0.5 * (hi - lo))
     return out
+
+
+def _gpu_memory_mib():
+    """Memory in use on the GPU in MiB (nvidia-smi), or None when it cannot be read."""
+    import subprocess
+    try:
+        out = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"],
+                             capture_output=True, text=True, timeout=20).stdout
+        return float(out.strip().splitlines()[0])
+    except Exception:  # noqa: BLE001 - a missing tool must not end a run
+        return None
+
+
+def preflight(s, dt, t0, length, sample_dt, observe, u_ref, time_units=None, **run_args):
+    """A short run before a long one (the gpucfd counterpart of cfdlib.monitor.preflight): is the run
+    healthy, what does a step cost, and what will the long run cost?
+
+    Runs simulation s (holding its start field) for `length` flow time with run_transient (same
+    arguments; adapt_cfl, sample_steps, cfl_steps go through run_args) and returns dict(health,
+    ms_per_step_wall, ms_per_step_gpu, poisson_its, observe_share (of the wall time, for the sampling),
+    steps, dt_mean, steps_per_unit, wall_per_unit_s, gpu_memory_mib, result (the run_transient result)),
+    and with time_units also projected_wall_s = wall_per_unit_s x time_units.
+    The steps per time unit come from the second half of the short run (past the start field's own
+    noise). For a run whose outputs are time averages the cost is seconds per time unit times the time
+    units the stop rule will need, and the second factor is only known as a range before the run: project
+    both ends. A short run also sees smaller extremes than a long one (see run_transient on the Courant
+    overshoot), so leave a margin on what it shows."""
+    res = run_transient(s, dt, t0, t0 + length, sample_dt, observe, u_ref, **run_args)
+    t, p = res["t"], res["perf"]
+    late = t >= t0 + 0.5 * length
+    if "dt_min" in res and "courant_rate" in res["series"] and late.sum() > 1:
+        steps_per_unit = float(np.mean(res["series"]["courant_rate"][late])) / run_args["adapt_cfl"]
+    else:
+        steps_per_unit = 1.0 / res["dt"]
+    wall_per_unit = steps_per_unit * p["ms_per_step_wall"] / 1000.0
+    out = dict(health=res["health"], ms_per_step_wall=p["ms_per_step_wall"], ms_per_step_gpu=p["ms_per_step_gpu"],
+               poisson_its=p["poisson_its"], observe_share=p["observe_s"] / max(p["wall_s"], 1e-12), steps=p["steps"],
+               dt_mean=res["dt"], steps_per_unit=steps_per_unit, wall_per_unit_s=wall_per_unit,
+               gpu_memory_mib=_gpu_memory_mib(), result=res)
+    if time_units is not None:
+        out["projected_wall_s"] = wall_per_unit * time_units
+    return out
+
+
+def step_check(make, dt, t0, length, sample_dt, observe, u_ref, keys=None, log=print, **run_args):
+    """What does the time step do to the answer? Runs the same stretch of flow from the same field with
+    the step dt and with dt / 2 (fixed steps) and compares the sampled outputs time by time.
+
+    For a chaotic flow this is the only cheap time-step check: two time AVERAGES each carry their
+    statistical error, so comparing them needs runs as long as the averages themselves (case 17: half
+    the step changed the mean bulk velocity by -0.11 % +- 0.26 %, which says nothing below a quarter of
+    a per cent). Two runs from the same field stay together for a while before they part ways; over that
+    stretch their difference is the time-step error. Keep `length` short (a fraction of a time unit of
+    the flow) and read `growth`: a difference that grows many times over the stretch means the runs
+    have started to part, and only the early samples measure the step.
+    make, observe, sample_dt, u_ref, run_args as in tolerance_check (sample_dt a whole multiple of dt).
+    keys: the series to compare (default: every scalar series except umax and courant_rate).
+    Returns dict(dt, keys, diff{key: largest |value(dt) - value(dt/2)|}, first{key: the same at the
+    first sample}, growth{key: diff / first}, t (the sample times), by_time{key: array})."""
+    runs = []
+    for step in (dt, 0.5 * dt):
+        s = make()
+        try:
+            runs.append(run_transient(s, step, t0, t0 + length, sample_dt, observe, u_ref, log=lambda m: None, **run_args))
+        finally:
+            s.close()
+    a, b = runs
+    if len(a["t"]) != len(b["t"]) or not np.allclose(a["t"], b["t"]):
+        raise ValueError("step_check: the two runs sampled at different times; make sample_dt a whole multiple of dt")
+    if keys is None:
+        keys = [k for k, v in a["series"].items() if k not in ("umax", "courant_rate") and np.ndim(v) == 1]
+    by = {k: np.abs(a["series"][k] - b["series"][k])[1:] for k in keys}
+    diff = {k: float(v.max()) for k, v in by.items()}
+    first = {k: float(v[0]) for k, v in by.items()}
+    growth = {k: (diff[k] / first[k] if first[k] > 0 else math.inf) for k in keys}
+    for k in keys:
+        log(f"time step {dt:.3g} against half of it, {k}: largest difference {diff[k]:.2e} (first sample {first[k]:.2e})")
+    return dict(dt=dt, keys=list(keys), diff=diff, first=first, growth=growth, t=a["t"][1:], by_time=by,
+                health=[r["health"]["status"] for r in runs])
+
+
+def peek(path, windows=6):
+    """A look into a gpucfd run while it runs (or after): reads the partial record that run_transient
+    writes at every log line (partial=...), or a finished runs/<name>.npz, and returns text: the time
+    reached and, per scalar series, its mean over the last `windows` equal stretches of the record, so a
+    level that is still moving shows as a trend.   python -m cfdlib.gpu peek <file.npz>"""
+    d = np.load(path)
+    t = d["t_all"] if "t_all" in d.files else d["t"]
+    lines = [f"{path}: {len(t)} samples, t = {t[0]:.4g} to {t[-1]:.4g}"]
+    edges = np.linspace(t[0], t[-1], windows + 1)
+    lines.append("  mean over " + "  ".join(f"{a:.4g}-{b:.4g}" for a, b in zip(edges[:-1], edges[1:])))
+    for k in d.files:
+        v = d[k + "_all"] if k + "_all" in d.files else d[k]
+        if k.endswith("_all") or k in ("t", "t_all") or np.ndim(v) != 1 or len(v) != len(t):
+            continue
+        cells = []
+        for a, b in zip(edges[:-1], edges[1:]):
+            m = (t >= a) & (t <= b)
+            cells.append(f"{v[m].mean():.6g}" if m.any() else "-")
+        lines.append(f"  {k:14s} " + "  ".join(cells) + f"   last {v[-1]:.6g}")
+    return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) == 3 and sys.argv[1] == "peek":
+        print(peek(sys.argv[2]))
+    else:
+        sys.exit("usage: python -m cfdlib.gpu peek <runs/name.partial.npz or runs/name.npz>")

@@ -1366,6 +1366,32 @@ the verification.
 1987 paper; against the transcribed reference the two runs are 7.5 % and 0.8 % low, not 7.1 % and
 0.4 %.
 
+**Case 17, the verified run (2026-11-14): verdict FAIL.** A fresh agent ran three grids of one
+family: cells square in the wall plane, all three directions refined together, IMEX, pressure
+tolerance 1e-6, the step re-chosen every 5 steps at a Courant number of 0.75. Each was averaged
+over about 37 time units after its start-up. Report: `results/turbulent_channel_re180/`.
+
+| Grid (dx+ = dz+, wall cell) | Bulk velocity | Against 15.70 | Largest gap of the mean velocity | Largest gap of u rms | Wall time per time unit |
+|---|---|---|---|---|---|
+| 96 x 32 x 32 (24, 2.0) | 15.94 +- 0.03 | +1.5 % | +0.58, in the core | +0.30 at y+ 6 | 5.3 s |
+| 144 x 48 x 48 (16, 1.3) | 15.44 +- 0.04 | -1.6 % | -0.64 at y+ 26 | +0.26 at y+ 6 | 24.8 s |
+| 192 x 64 x 64 (12, 1.0) | 15.65 +- 0.02 | -0.34 % | -0.31 at y+ 22 | +0.14 at y+ 4 | 62 s |
+
+Gaps are in friction velocities, against the spectral reference. What this says:
+- The bulk velocity does not approach the reference from one side, so the three grids give no
+  order of accuracy and no extrapolated value. Its good value on the finest grid is partly
+  cancellation: the profile is 0.31 low in the buffer layer and 0.03 high at the centre.
+- The profiles do improve from grid to grid (the last two rows), but on the finest grid they are
+  still outside the limits the agent set before its runs (0.30 for the mean velocity, 0.08 for
+  u rms). The fluctuation along the flow is too strong near the wall and the two across it too
+  weak: the usual sign of cells too large for the streaks at the wall. Which direction limits the
+  accuracy was not separated.
+- The reference used cells two to four times smaller in each direction. The next level of this
+  family (288 x 96 x 96, 2.7 million cells) needs about four hours for the same averaging on this
+  PC and was not run.
+- Requested single numbers on the finest grid: centre velocity +0.17 %, friction coefficient
+  +0.68 %, peak of u rms -0.6 %, total shear stress within 0.004 of its exact straight line.
+
 **Speed against OpenFOAM**, same grid, same time step, start from gpucfd's developed field.
 OpenFOAM v2606, `pimpleFoam` without a model, the settings of its channel tutorial (backward
 differencing, linear interpolation, two pressure corrections, GAMG), best of 8 and 4 cores:
@@ -1389,15 +1415,37 @@ tuned, and its two-correction PISO is first order in time (case 4's lesson).
   dx = dz.
 - The time-step limit moves with the flow: over 6 time units the largest local Courant rate was
   between 340 and 440 at the logged times, and a fixed step set at 0.64 of the limit of the start field reached a Courant
-  number of 1.23. `run_transient(adapt_cfl=0.8)` re-chooses the step at every sample (largest
-  Courant number then 0.98).
+  number of 1.23. `run_transient(adapt_cfl=...)` re-chooses the step as the run goes. It overshoots
+  its target by however much the rate grows between two looks, and the rate is an extreme of the
+  field: in case 17 it rose by up to 35 % within 10 steps over 40 time units (20 % in a 4-unit
+  pre-flight), so a target of 0.8 with a look every 10 steps reached 1.08. A look every 5 steps
+  with a target of 0.75 stayed at 0.89 or below in runs of up to 62 time units. `cfl_steps` sets the interval
+  of the looks independently of the sampling.
 - The largest velocity over the smallest cell overstates the Courant number about 7 times on
   the 64 x 64 x 64 grid (the wall cells carry the smallest velocities). `NavierStokes.courant_rate()` uses each
   cell's own size; `run_transient` takes it from `observe`.
-- The bulk velocity remembers about one time unit, so 10 independent samples need 20 time units,
-  and it adjusts slowly: its rate of change is the driving force minus the mean wall shear, so a
-  1 % imbalance moves it by 0.01 per time unit. A run started from a coarser grid's field needs
-  tens of time units before averaging can start.
+- The bulk velocity settles slowly, with a time of about 9 time units. Its rate of change is the
+  driving force minus the mean wall shear, and the wall shear follows the bulk velocity roughly as
+  its power 1.75, so a disturbance decays with the time U_b / (1.75 u_tau^2 / delta). *Corrected
+  after case 17:* this section first said "remembers about one time unit". That number came from
+  batch means on records of 15 to 20 time units, whose blocks are shorter than the true memory and
+  so cannot see it. Two consequences, both measured in case 17:
+  - a run of 30 to 40 time units holds only about two independent values of the bulk velocity.
+    Plain batch means gave an error three times too small (two runs of one grid: 15.978 and
+    15.904, each "+- 0.010"). The error from the exact balance of the box
+    (`gpucfd.turbulence.bulk_average`) gives 0.15 to 0.25 %, and four runs of one grid scatter by
+    0.20 %. So about 40 time units of averaging fix the bulk velocity to 0.2 %; 0.1 % would need
+    about 300.
+  - a run started from a coarser grid's field needs about two settling times (20 time units)
+    before averaging can start, because the levels differ by 1.3 to 3 % in bulk velocity. A third
+    of every such run in case 17 was start-up.
+- Without a body the pressure tolerance is a cost setting: over 0.3 time units the bulk velocity
+  and the wall shear with 1e-6 differ from those with 1e-10 by 1e-10 or less, the divergence left
+  is four orders below the health limit, and a step is 9 % (finest grid) to 20 % (coarsest)
+  cheaper than with 1e-8. Over a long run two turbulent flows part ways whatever the tolerance.
+- A time-step study by averages costs as much as the averages: half the step on the coarsest grid
+  changed the bulk velocity by -0.11 % +- 0.26 %. `cfdlib.gpu.step_check` compares a short stretch
+  from the same field with the step and half of it, before the two runs part.
 
 **Tools that came out of it** (tests in `tests/test_gpu_tools.py`, part 8, and `tests/test_tools.py`,
 part 12):
@@ -1411,7 +1459,14 @@ part 12):
 - `cfdlib.signals.stationary`, `settle_time`, `stationary_watch`: the time average with its
   statistical error from batch means, the end of the start-up, a live stop. On signals whose true
   error is known the estimate is 12 to 17 % high on average (it keeps the largest of several
-  block sizes), never below 0.85 of the truth in 36 trials.
+  block sizes), never below 0.85 of the truth in 36 trials. That holds for signals whose memory is
+  short against the record / 8. For a slowly settling signal it gives 0.4 of the true error; with
+  the slow time passed as `memory` 0.9, and `signals.relaxing` (the error from the signal's own
+  recorded rate of change) 1.2 and reliable (`tests/test_tools.py`, part 13).
+- Added after case 17: `gpucfd.turbulence.bulk_average` and `channel_watch` (the error of the bulk
+  velocity and a stop rule built on it; replayed on case 17's finest run it stops at the same
+  time, 58.0), and in `cfdlib.gpu`: `preflight`, `step_check`, `save_state` / `load_state` with
+  checkpoints in `run_transient`, `sample_steps` and `cfl_steps`, thinned records, `peek`.
 
 **The other route, a model as in case 7 (RANS), predicted to lose.** On case 7's finest grid
 (208,896 cells, aspect ratio 21,479) the thin cells allow a convective time step of 1.7e-6 s,
@@ -1422,10 +1477,20 @@ in space, a pressure solver for aspect ratios of 10^4 (tested to 64) and implici
 built.
 
 **Open.**
-- One flow, one Reynolds number, no verified result yet (case 17).
-- Speed levers known and not measured: cells with dx = dz, one pressure solve per step in place of
-  three, a looser pressure tolerance (1e-6: 37.5 ms per step in place of 46.2 on 64 x 64 x 64;
-  effect on the answer unchecked), the stretched code path.
+- One flow, one Reynolds number, and no grid yet that resolves its profiles (case 17: FAIL).
+- Used in case 17 and so no longer open: cells with dx = dz, and the pressure tolerance of 1e-6.
+- To try next, for accuracy per cost (the optimize stage of case 17):
+  - which direction limits the accuracy: refine along the flow, across it and toward the wall one
+    at a time, on short runs judged by the profiles;
+  - cells twice as long as wide (the usual choice for this flow), which puts more cells across
+    the streaks for the same count but costs more pressure work;
+  - a finer grid's start field with its bulk velocity moved toward the level expected, to cut the
+    start-up that is a third of each run;
+  - several shorter runs from decorrelated fields in place of one long one: the same statistics,
+    and the error straight from their scatter;
+  - the Courant rate computed on the GPU, so the step can be re-chosen every step at no cost
+    (today the field is read back for it);
+  - one pressure solve per step in place of three, and the stretched code path.
 - What a model adds. At this Reynolds number none is needed. At friction Reynolds number 590 the
   same resolution in wall units needs about 17 million cells (an estimate by scaling, not a
   measurement), the limit of this card's memory; there a model for the smallest eddies on a
@@ -1458,7 +1523,8 @@ built.
   reflect more than with one).
 - Physics: incompressible, single phase, constant density and viscosity; laminar, or turbulent
   with every eddy resolved on the grid (measured on one flow, the channel at friction Reynolds
-  number 180, section above). No turbulence model, RANS or LES, no heat transfer or transported scalars,
+  number 180, section above; the largest grid this PC affords gave the mean flow rate to 0.3 %
+  but not the profiles). No turbulence model, RANS or LES, no heat transfer or transported scalars,
   no buoyancy, no free surface, no compressibility. Body force constant in space and time.
 - Numerics: central differences without upwinding or limiters, so the grid must resolve the flow
   (cell Reynolds number U h / nu around 2 or below for clean results); at higher Reynolds numbers it
@@ -1549,10 +1615,11 @@ built.
    of three; cheaper diffusion solves; and, as a question of method, the consistent projection for
    the explicit scheme too (it would remove that scheme's stability limit mu < 0.683).
 9. 3D cylinder (DFG 3D, case 5) once stretched grids work.
-10. Turbulence. First the channel as a verified case (case 17, prepared 2026-11-14): a fresh agent,
-    a grid study, averages with their statistical error, against Vreman and Kuerten (2014). Then,
-    with a target at a higher Reynolds number fixed in advance, a viscosity that varies in space
-    and a model for the smallest eddies.
+10. Turbulence. The channel was run as a verified case (case 17, 2026-11-14, verdict FAIL: mean
+    flow rate within 0.3 %, profiles not resolved on 192 x 64 x 64). Next an optimize stage on the
+    same case, target fixed in advance: the profiles inside the limits at an affordable cost (the
+    list under "Open" in the channel section). Then, with a target at a higher Reynolds number, a
+    viscosity that varies in space and a model for the smallest eddies.
 
 ## Comparison with OpenFOAM (2026-11-12)
 

@@ -9,15 +9,63 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-- **Answers to case 17's 19 insights (not started).** First the statistics tool, whose error for
-  slow signals is too small (see the entry below), then the time-step control, then the rest.
-  After that an optimize stage for the channel, with its target fixed in advance.
+Nothing is waiting to be committed.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-14
 
-### Case 17 solved: turbulent channel without a model, verdict FAIL, commit hash to be filled in
+### What case 17 taught the tools and the workflow, commit hash to be filled in
+The agent's 19 insights each got an answer, tools first.
+- *The statistical error of a slowly settling quantity (insights 10, 17).* The flaw: the tool
+  cuts the record into blocks, and a quantity whose memory is longer than a block looks more
+  certain than it is. Now `cfdlib.signals.stationary` takes the slow time as `memory` and
+  corrects for it, and says "not reliable" when the record holds few memories.
+  `signals.relaxing` gives a reliable error from a short record when the quantity's rate of
+  change is recorded too; `gpucfd.turbulence.bulk_average` applies it to a channel's mean speed,
+  and `channel_watch` is a ready stop rule built on it. `settle_time` can wait for the slow
+  approach as well. *Checked:* on 120 test signals with a known error the old estimate gives
+  0.40 of the truth, the corrected one 0.89, the new one 1.16. On case 17's recorded runs the
+  new tools give the agent's own numbers (15.6457 ± 0.0244), and the stop rule replayed on the
+  finest run stops at the same time, 58.0.
+- *The time step that follows the flow (3, 5, 9).* `run_transient` now takes steps as settings
+  (`sample_steps`, no largest step needed) and re-chooses the step at its own interval
+  (`cfl_steps`), separate from the sampling. Its text states how far the target is overshot.
+  On the test box a look every 2 steps reached 0.92 where a look every 5 reached 0.97.
+- *Long runs (4, 7, 16, 18).* Restart files (`save_state`, `load_state`, checkpoints inside
+  `run_transient`; a continued run matches the original to 2e-14), a pre-flight for gpucfd
+  (`cfdlib.gpu.preflight`: health, cost per step, seconds per time unit, projected time), a
+  short time-step check from one field (`step_check`), a look into a running case
+  (`python -m cfdlib.gpu peek`), and stop rules that say at each check what is still missing.
+  Records can keep profiles at a coarser interval than the scalars (`write_run(store_every=)`).
+- *Grid study with unequal steps (2).* `verification.three_grid_study(h=...)` takes the cell
+  sizes of the three grids; it recovers a known order with ratios 1.5 and 4/3 and equals the
+  old result for equal ratios.
+- *Reports (11, 12, 19).* Sections 6 and 7 can carry further tables (`tables`). The environment
+  table can show the GPU, and a run record the solver's settings. `cfdlib.contract --code`
+  finds Python files that only compile with a warning (a LaTeX backslash in a normal string);
+  the review script and the tests run it on every case.
+- *Guidance, each in the most specific file (1, 6, 8, 13, 14).* A time budget for averaged runs
+  and "never call python from Git Bash" in the machine file. In the workflow, four short
+  additions: unequal grid ratios are fine, size a profile's limit on the coarsest grid, show an
+  integral next to its profile, project an averaged run as seconds per time unit. What to
+  compare in a pressure-tolerance check without a body is in that tool's text.
+- *Records corrected (10, 13, 15).* `gpucfd/DESIGN.md` now has case 17's three grids, the
+  settling time of 9 time units in place of "about one", the measured overshoot of the time
+  step, and the list of things to try next. The fit check's note carries the three grids.
+- *Not built:* a contract check of a gpucfd case's decisions against its recorded settings
+  (11), and gpucfd records in `cfdlib.monitor`'s own live view (16; `peek` is a separate
+  command). Both are in `ROADMAP.md`.
+- *The loop itself* (`dev/LOOP.md`): a new step 8, **optimize**: after a case is recorded, make
+  it more accurate and faster against the verified solve, with target, budget and stop rule
+  fixed first. Before a solve, fix only what would stop it or make it wrong. The review now
+  checks when the limits were written and whether repeat runs support the error claimed.
+- *Old work still holds:* all tests pass (GPU tool tests included, 9 new checks), and all eight
+  reports and both study pages rebuild. No old report changes. Case 17's page changes in the
+  sixth decimal of its figure coordinates only; its numbers file is identical.
+- *Proposed, not started:* the optimize stage for case 17, in `ROADMAP.md` 3b.
+
+### Case 17 solved: turbulent channel without a model, verdict FAIL (`b431e6d`)
 A fresh agent (Claude Fable 5.2, high effort) solved the channel on gpucfd in 2 h 15 min with no
 human help. Report: `results/turbulent_channel_re180/report.html`.
 - *The result:* on the finest grid (192 x 64 x 64 cells) the mean speed through the channel is
@@ -62,8 +110,8 @@ human help. Report: `results/turbulent_channel_re180/report.html`.
 - *Cost:* 2 h 15 min in all, 110 minutes of it on the GPU (60 on the finest grid). About a
   third of every run is start-up that is cut from the averages. The agent logged 19 insights,
   each with a proposed change.
-- **Open:** the 19 insights are not answered yet. No grid here resolves the profiles, and
-  OpenFOAM's accuracy on this flow is still not measured.
+- **Open:** no grid here resolves the profiles, and OpenFOAM's accuracy on this flow is still not
+  measured. (The 19 insights were answered afterwards: the entry above.)
 
 ### Case 17 prepared: turbulent channel computed without a model (`9f060f3`)
 The next verified case, and the first turbulent flow for gpucfd. A fresh agent gets it next.

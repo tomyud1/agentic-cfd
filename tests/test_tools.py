@@ -405,3 +405,102 @@ c12 = gpu12.check_fit(wall_units=dict(dx=35.3, dy_wall=1.0, dz=11.8))
 assert f12["ok"] and len(f12["notes"]) == 1 and len(c12["notes"]) == 2 and "several per cent" in c12["notes"][1]
 assert not gpu12.check_fit(cell_reynolds=212.0)["ok"] and not gpu12.check_fit(turbulence_model=True)["ok"]
 print("fluctuating signals, wall grid, fit check for resolved turbulence: ok")
+
+# 13. What case 17 (the turbulent channel) taught the tools: a slowly settling signal, the error of a
+#     channel's bulk velocity from its recorded runs, a grid study with unequal ratios, extra tables in
+#     the report, Python files that compile with a warning.
+from gpucfd import turbulence as turb13  # noqa: E402
+
+
+def relaxing13(seed, T=9.0, dt=0.025, span=40.0, level=15.7):
+    """y is pulled back to `level` with the time T and pushed by a noise of short memory (0.3)."""
+    rng = np.random.default_rng(seed)
+    n, a = int(span / dt), np.exp(-dt / 0.3)
+    y, rate, x, yy = np.empty(n), np.empty(n), 0.05 * rng.standard_normal(), level + 0.03 * rng.standard_normal()
+    for k in range(n):
+        x = a * x + np.sqrt(1 - a * a) * 0.05 * rng.standard_normal()
+        rate[k] = -(yy - level) / T + x
+        y[k] = yy
+        yy += dt * rate[k]
+    return np.arange(n) * dt, y, rate
+
+
+sig13 = [relaxing13(seed) for seed in range(120)]
+plain13 = [signals.stationary(t_, y_) for t_, y_, _ in sig13]
+mem13 = [signals.stationary(t_, y_, memory=9.0) for t_, y_, _ in sig13]
+bal13 = [signals.relaxing(t_, y_, r_, 9.0) for t_, y_, r_ in sig13]
+true13 = np.std([s["mean"] for s in plain13])
+ratio13 = {k: np.mean([s["stderr"] for s in v]) / true13 for k, v in (("plain", plain13), ("memory", mem13), ("balance", bal13))}
+print("slowly settling signal (record of 4.4 memories), error estimate / true error:",
+      {k: round(v, 2) for k, v in ratio13.items()}, "| plain batch means call themselves reliable in",
+      f"{np.mean([s['reliable'] for s in plain13]):.0%} of the records")
+assert ratio13["plain"] < 0.6, ratio13                     # the flaw: blocks shorter than the memory
+assert 0.8 < ratio13["memory"] < 1.3 and not any(s["reliable"] for s in mem13), ratio13
+assert 0.9 < ratio13["balance"] < 1.5 and np.mean([s["reliable"] for s in bal13]) > 0.9, ratio13
+assert all(s["stderr_batch"] <= s["stderr"] for s in mem13 + bal13)
+w13 = np.random.default_rng(5).standard_normal(8000)
+assert abs(signals.stationary(np.arange(8000) * 0.01, w13, memory=0.02)["stderr"] /
+           signals.stationary(np.arange(8000) * 0.01, w13)["stderr"] - 1.0) < 0.05      # a memory far below the blocks changes nothing
+tt13 = np.arange(4000) * 0.02
+slow13 = 15.7 - 0.5 * np.exp(-tt13 / 9.0) + 0.01 * ar1(4000, 0.5, 2)                 # a slow approach under small fluctuations
+cut13 = signals.settle_time(tt13, slow13, memory=9.0)       # an approach far above the fluctuations: the fast rule sees it too
+assert cut13["t_start"] == max(cut13["fast"], cut13["slow"]) and 20 < cut13["slow"] < 35
+said13 = []
+assert signals.stationary_watch("q", 1e-6, log=said13.append)(tt13[-1], dict(t=tt13, q=slow13)) is None and "not yet: error" in said13[0]
+RUNS13 = ROOT / "results/turbulent_channel_re180/runs"
+got13 = {}
+for name13 in ("first_G1", "second_G1", "G1", "G1h", "G3"):
+    rec13 = json.loads((RUNS13 / f"{name13}.json").read_text())
+    d13 = np.load(RUNS13 / f"{name13}.npz")
+    s13 = {k[:-4]: d13[k] for k in d13.files if k.endswith("_all")} if "t_all" in d13.files else {k: d13[k] for k in d13.files}
+    t0_13 = float(rec13["watch_first"]["text"].split("over t = ")[1].split(" to ")[0])
+    got13[name13] = turb13.bulk_average(s13["t"], s13["bulk"], 0.5 * (s13["tau_low"] + s13["tau_high"]), 1.0, 1.0, t_start=t0_13)
+    if name13 == "first_G1":     # a real start-up: the fast rule cuts at 4 time units, the slow approach lasts to about 24
+        cut13 = signals.settle_time(s13["t"], s13["bulk"], memory=got13[name13]["T_s"])
+        print(f"settle_time on a recorded channel run: fast cut {cut13['fast']:.1f}, with the settling time {cut13['slow']:.1f}")
+        assert cut13["fast"] < 6 and 20 < cut13["slow"] < 27 and cut13["t_start"] == cut13["slow"]
+g1_13 = [got13[k] for k in ("first_G1", "second_G1", "G1", "G1h")]
+scatter13 = np.std([s["mean"] for s in g1_13], ddof=1)
+print(f"case 17, four runs of the coarsest grid: means scatter by {scatter13:.4f}; error from the balance "
+      f"{np.mean([s['stderr'] for s in g1_13]):.4f}, from batch means alone {np.mean([s['stderr_batch'] for s in g1_13]):.4f}")
+assert 0.5 < np.mean([s["stderr"] for s in g1_13]) / scatter13 < 2.0 and np.mean([s["stderr_batch"] for s in g1_13]) / scatter13 < 0.4
+assert abs(got13["G3"]["mean"] - 15.6457) < 1e-3 and abs(got13["G3"]["stderr"] - 0.0244) < 5e-4 and got13["G3"]["reliable"]   # the report's numbers
+assert 8.5 < got13["G3"]["T_s"] < 9.5 and abs(got13["G3"]["imbalance"]) < 1e-3
+d13 = np.load(RUNS13 / "G3.npz")
+s13 = {k[:-4]: d13[k] for k in d13.files if k.endswith("_all")}
+rule13, held13, log13 = turb13.channel_watch(1.0, 1.0, tol=2.5e-3, min_time=36.0), None, []
+for te13 in np.arange(10.0, 60.1, 2.0):
+    m13 = s13["t"] <= te13
+    if rule13(te13, {k: v[m13] for k, v in s13.items()}):
+        held13 = te13
+        break
+turb13.channel_watch(1.0, 1.0, log=log13.append)(30.0, {k: v[s13["t"] <= 30.0] for k, v in s13.items()})
+print(f"channel_watch replayed on the finest run: holds at t = {held13} (the run ended on the agent's rule at 58.0) | at 30: {log13[0][-40:]}")
+assert held13 == 58.0 and "not yet" in log13[0]
+F13, C13, p13, h13 = 15.7, -3.0, 1.7, [1 / 96, 1 / 144, 1 / 192]
+u13 = verification.three_grid_study([F13 + C13 * x ** p13 for x in h13], h=h13)
+e13, r13 = verification.three_grid_study([1.0, 1.3, 1.375], h=[4.0, 2.0, 1.0]), verification.three_grid_study([1.0, 1.3, 1.375], r=2.0)
+n13 = verification.three_grid_study([15.938, 15.441, 15.646], h=h13)                 # case 17's bulk velocity: no trend
+assert abs(u13["p"] - p13) < 1e-8 and abs(u13["extrap"] - F13) < 1e-9 and u13["gci_reliable"]
+assert all(abs(e13[k] - r13[k]) < 1e-10 for k in ("p", "extrap", "gci_abs")) and not n13["monotonic"] and not n13["gci_reliable"]
+assert math.isnan(verification.order_unequal([1.0, 1.3, 1.65], [4.0, 2.0, 1.0]))    # the changes grow: no order
+res13 = json.loads((ROOT / "results/plane_poiseuille/results.json").read_text())
+res13["comparison"]["tables"] = [dict(title="Repeat runs", head=["run", "value"], rows=[["a", "1"], ["b", "2"]], note="two runs")]
+assert not [x for x in contract.check(res13) if "tables" in x]
+from cfdlib import report as report13  # noqa: E402
+with tempfile.TemporaryDirectory() as tmp13:
+    svg13 = {f["key"]: '<svg xmlns="http://www.w3.org/2000/svg" width="100pt" height="50pt"></svg>' for f in res13["figures"]}
+    html13 = report13.render(json.loads(json.dumps(res13)), svg13, Path(tmp13) / "report.html").read_text(encoding="utf-8")
+assert "<h4>Repeat runs</h4>" in html13 and "<li>two runs</li>" in html13 and html13.count("<h4>Repeat runs</h4>") == 1
+res13["comparison"]["tables"][0]["rows"].append(["c"])
+assert any("as many cells as the head" in x for x in contract.check(res13))
+with tempfile.TemporaryDirectory() as tmp13:
+    (Path(tmp13) / "good.py").write_text('x = r"\\(u\\)"\n')
+    assert contract.check_code(tmp13) == []
+    (Path(tmp13) / "bad.py").write_text('x = "\\(u\\)"\n')
+    bad13 = contract.check_code(tmp13)
+assert len(bad13) == 1 and "bad.py" in bad13[0] and "escape" in bad13[0], bad13
+for case13 in sorted(p.parent for p in (ROOT / "cases").glob("*/problem.yaml")):
+    assert contract.check_code(case13) == [], (case13.name, contract.check_code(case13))
+assert report13.environment_info(gpu="RTX")[-2] == ["GPU", "RTX"] and len(report13.environment_info()) == 5
+print("slow signals, channel bulk velocity, unequal grid ratios, extra tables, code check: ok")

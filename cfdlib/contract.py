@@ -148,6 +148,11 @@ def check(results, case_dir=None, figures=None):
 
     _req(r["simulation"], ["model", "meshes", "results", "health"], "simulation", e)
     _req(r["comparison"], ["kind", "definitions", "head", "rows", "findings"], "comparison", e)
+    for sec in ("simulation", "comparison"):   # optional further tables of a section: [{title, head, rows, note?}]
+        for i, x in enumerate(r[sec].get("tables", []) if isinstance(r[sec], dict) else []):
+            _req(x, ["title", "head", "rows"], f"{sec}.tables[{i}]", e)
+            if any(len(row) != len(x.get("head", [])) for row in x.get("rows", [])):
+                e.append(f"{sec}.tables[{i}]: every row needs as many cells as the head")
 
     if not r["insights"]:
         e.append("insights: record at least one problem met and how it was solved (or what worked first time and why)")
@@ -269,6 +274,24 @@ def control_chars(obj, where="results"):
     return []
 
 
+def check_code(folder):
+    """Python files of a case folder that do not compile cleanly: a list of messages, empty when fine.
+    The usual find is an invalid escape sequence: a LaTeX backslash in a normal string, as in "\\(u\\)"
+    written without the r prefix or the doubled backslash. Python only warns about it and the report
+    still builds, so it goes unnoticed until a letter after the backslash happens to be a real escape
+    (case 17).   python -m cfdlib.contract --code cases/<case>"""
+    import warnings
+    errs = []
+    for p in sorted(Path(folder).glob("*.py")):
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            try:
+                compile(p.read_text(encoding="utf-8"), str(p), "exec")
+            except (SyntaxError, Warning) as x:
+                errs.append(f"{p.name}: {x}")
+    return errs
+
+
 def uncovered_settings(decisions, case_dir):
     """Settings used by the OpenFOAM case that no decision documents."""
     patterns = [pat for d in decisions for pat in d.get("settings", [])]
@@ -293,6 +316,12 @@ if __name__ == "__main__":
         dec = yaml.safe_load(Path(args[1]).read_text(encoding="utf-8"))
         errs = check_decisions(dec) + uncovered_settings(dec, args[2]) + control_chars(dec, "decisions")
         print("\n".join(errs) if errs else f"Decisions OK: {len(dec)} decisions cover every setting in {args[2]}")
+        sys.exit(1 if errs else 0)
+    if args[:1] == ["--code"]:
+        if len(args) != 2:
+            sys.exit("usage: python -m cfdlib.contract --code cases/<case>")
+        errs = check_code(args[1])
+        print("\n".join(errs) if errs else f"Code OK: every Python file in {args[1]} compiles without warnings")
         sys.exit(1 if errs else 0)
     if args[:1] == ["--problem"]:
         if len(args) != 2:

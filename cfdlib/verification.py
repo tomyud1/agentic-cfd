@@ -53,9 +53,41 @@ def level_sequence(values, r=2.0, p_min=0.5):
                 plausible=ok if mono else None, last_change=abs(d2))
 
 
-def three_grid_study(values, r=2.0, p_assumed=2.0, safety=1.25, p_min=0.5):
+def order_unequal(f, h):
+    """Observed order p from three solutions f (coarse to fine) on grids of cell sizes h with ANY two
+    refinement ratios. Model f_k = F + C h_k^p, so (f3 - f2) / (f2 - f1) = (h2^p - h3^p) / (h1^p - h2^p),
+    solved for p by bisection. The left side must lie between 0 and ln(h2 / h3) / ln(h1 / h2) (its value
+    for p -> 0; 1 for equal ratios): otherwise the three values do not approach a limit from one side
+    with a positive order, and nan is returned. For equal ratios this is order_three_grids."""
+    f1, f2, f3 = (float(v) for v in f)
+    h1, h2, h3 = (float(v) for v in h)
+    if not (h1 > h2 > h3 > 0):
+        raise ValueError("order_unequal: cell sizes must go coarse to fine")
+    if f1 == f2:
+        return float("nan")
+    R = (f3 - f2) / (f2 - f1)
+    if not 0.0 < R < math.log(h2 / h3) / math.log(h1 / h2):
+        return float("nan")
+
+    def g(q):
+        return (h2 ** q - h3 ** q) / (h1 ** q - h2 ** q) - R
+    lo, hi = 1e-9, 60.0
+    if g(hi) > 0:                      # the changes shrink faster than any order up to 60
+        return hi
+    for _ in range(200):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (mid, hi) if g(mid) > 0 else (lo, mid)
+    return 0.5 * (lo + hi)
+
+
+def three_grid_study(values, r=2.0, p_assumed=2.0, safety=1.25, p_min=0.5, h=None):
     """Observed order, Richardson value and fine-grid convergence index (GCI) from the last three of
     `values` (coarse to fine, refinement ratio r), with a flag that says whether the index is an estimate.
+
+    h: the cell sizes of the levels (same length as values), for levels whose two refinement ratios
+    differ; r is then ignored. A constant ratio of 2 is a convenience of the formula, not a requirement
+    of the method: in a time-resolved 3D run each level of ratio 2 costs 16 times the one below, and
+    levels of one grid family with ratios such as 1.5 and 4/3 are a sound study (case 17).
 
     The GCI is an error estimate only when the three values approach a limit from one side and the
     observed order p is believable. Otherwise this function still returns a number, so that a table
@@ -71,8 +103,14 @@ def three_grid_study(values, r=2.0, p_assumed=2.0, safety=1.25, p_min=0.5):
     to |f3|; delta = |f3 - f2|."""
     f1, f2, f3 = (float(v) for v in values[-3:])
     R = (f2 - f3) / (f1 - f2) if f1 != f2 else float("nan")
-    monotonic = bool(0 < R < 1)
-    p = order_three_grids(f1, f2, f3, r) if monotonic else float("nan")
+    if h is None:
+        monotonic = bool(0 < R < 1)
+        p = order_three_grids(f1, f2, f3, r) if monotonic else float("nan")
+    else:
+        h3 = [float(v) for v in h[-3:]]
+        p = order_unequal((f1, f2, f3), h3)
+        monotonic = bool(p == p)
+        r = h3[1] / h3[2]                  # the ratio of the last refinement: what Richardson and the index use
     p_use = p if monotonic else p_assumed
     ext = richardson(f2, f3, p_use, r)
     gci_abs = safety * abs(f3 - f2) / (r ** p_use - 1)

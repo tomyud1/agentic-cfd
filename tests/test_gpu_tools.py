@@ -263,6 +263,62 @@ check("a series of profiles from run_transient averages point by point", av["mea
 reca = gpu.write_run(OUT / "runs", "chan", ad, dict(level="test", cells=32 ** 3, h=float(ps.dy.min()), source=None, pressure_tol=1e-8,
                                                     scheme="imex", time_step=dict(dt=cap, set_by="adapt_cfl 0.8")))
 check("write_run: a run with adapt_cfl records its mean, smallest and largest step", reca["dt_min"] == ad["dt_min"] and reca["dt"] == ad["dt"])
+
+# 9. what case 17 asked of the run loop: steps as settings, a step control of its own, restart files,
+#    thinned records, a pre-flight, a time-step check, a look into a record
+sc.set(state)
+sc.project()
+ck = OUT / "state" / "chan.npz"
+kw9 = {k: v for k, v in kw.items() if k != "sample_dt"}
+st9 = gpu.run_transient(sc, None, sample_dt=None, adapt_cfl=0.8, sample_steps=10, cfl_steps=2, checkpoint=ck, checkpoint_every=0.2, **kw9)
+cf9 = next(c for c in st9["health"]["checks"] if c["name"] == "Max Courant number")
+check("run_transient: sample_steps and cfl_steps (no largest step given) hold the Courant number and end at t_end",
+      cf9["status"] == "ok" and float(cf9["value"]) <= float(cf_ad["value"]) + 0.02 and abs(st9["t"][-1] - 0.6) < 1e-9
+      and st9["perf"]["sample_steps"] == 10 and st9["health"]["steps"] >= 10 * (len(st9["t"]) - 2),
+      f"Courant {cf9['value']} with a look every 2 steps (every 5: {cf_ad['value']}), {st9['health']['steps']} steps, {len(st9['t'])} samples")
+end9 = sc.get()
+p9 = sc.pressure()
+sc2 = channel("imex")
+t9 = gpu.load_state(sc2, st9["state"])
+check("save_state / load_state: the checkpoint at the end of a run holds its velocity, pressure and time",
+      abs(t9 - 0.6) < 1e-9 and all(np.array_equal(a, b) for a, b in zip(end9, sc2.get())) and np.array_equal(p9, sc2.pressure()))
+a9, b9 = sc.run(1e-4, 5, 1e-10), sc2.run(1e-4, 5, 1e-10)
+check("a run continued from a loaded state goes on like the original",
+      max(np.abs(a - b).max() for a, b in zip(sc.get(), sc2.get())) < 1e-9, f"{max(np.abs(a - b).max() for a, b in zip(sc.get(), sc2.get())):.1e}")
+sc2.close()
+rec9 = gpu.write_run(OUT / "runs", "chan9", st9, dict(level="test", cells=32 ** 3, h=float(ps.dy.min()), source=None, pressure_tol=1e-8,
+                                                     scheme="imex", time_step=dict(set_by="adapt_cfl 0.8")), store_every=3, solver=sc)
+z9 = np.load(OUT / "runs" / "chan9.npz")
+check("write_run(store_every, solver): profiles thinned, scalar series kept in full, solver settings in the record",
+      len(z9["t"]) < len(z9["t_all"]) == len(st9["t"]) and z9["U"].shape[0] == len(z9["t"]) and np.array_equal(z9["bulk_all"], st9["series"]["bulk"])
+      and z9["t"][-1] == st9["t"][-1] and rec9["store_every"] == 3 and rec9["solver"]["cells"] == [32, 32, 32]
+      and rec9["solver"]["scheme"] == "imex" and rec9["state"] == str(ck))
+txt9 = gpu.peek(OUT / "runs" / "chan9.npz", windows=3)
+check("peek: a record read back as text, one line per scalar series", "bulk" in txt9 and "tau_low" in txt9 and "U " not in txt9, txt9.splitlines()[0])
+sc.set(state)
+sc.project()
+pf9 = gpu.preflight(sc, None, 0.0, 0.3, None, lambda s: ps.sample(), 18.0, time_units=40.0, adapt_cfl=0.8, sample_steps=5,
+                    log=lambda m: None, ptol=1e-8)
+check("preflight: health, cost per step, steps and seconds per time unit, projected run time",
+      pf9["health"]["status"] == "ok" and pf9["steps_per_unit"] > 100 and abs(pf9["projected_wall_s"] - 40 * pf9["wall_per_unit_s"]) < 1e-9
+      and 0 < pf9["observe_share"] < 1 and abs(pf9["steps_per_unit"] * pf9["dt_mean"] - 1.0) < 0.3,
+      f"{pf9['ms_per_step_wall']:.1f} ms per step, {pf9['steps_per_unit']:.0f} steps and {pf9['wall_per_unit_s']:.1f} s per time unit")
+
+
+def developed9():
+    s_ = channel("imex")
+    s_.set(state)
+    s_.project()
+    return s_
+
+
+dt9 = 0.5 * cap * 0.4
+sk9 = gpu.step_check(developed9, dt9, 0.0, 20 * dt9, 2 * dt9, lambda s: turbulence.PlaneStats(s).sample(), 18.0, ptol=1e-9,
+                     keys=["bulk", "tau_low"], log=lambda m: None)
+check("step_check: the same stretch with the step and half of it, compared sample by sample",
+      set(sk9["diff"]) == {"bulk", "tau_low"} and 0 < sk9["first"]["tau_low"] <= sk9["diff"]["tau_low"] < 1e-2
+      and len(sk9["t"]) == 10 and sk9["health"] == ["ok", "ok"],
+      f"wall shear differs by {sk9['diff']['tau_low']:.1e} (first sample {sk9['first']['tau_low']:.1e}), bulk velocity by {sk9['diff']['bulk']:.1e}")
 sc.close()
 
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")

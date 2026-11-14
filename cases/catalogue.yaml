@@ -119,6 +119,7 @@ cases:
     status: solved
     folder: turbulent_channel_re180
     tests: Turbulence computed directly in time on gpucfd, outputs are time averages with a statistical error, benchmark (Vreman & Kuerten 2014, two independent codes)
+    shows: "Turbulence without a model on gpucfd, from start field to report: time averages with a statistical error; why a slowly settling quantity (the bulk velocity) needs its error from the flow's own balance, shown by repeat runs that disagreed (now gpucfd.turbulence.bulk_average and channel_watch); a start-up cut by the flow's settling time; a stop rule that says at each check what is missing; a grid family with unequal refinement ratios; pass/fail limits on whole profiles next to the single numbers, and an honest FAIL where the bulk velocity agrees by cancellation; an error budget (grid, averaging time, reference) in the comparison"
     headline: "On the finest grid (192 x 64 x 64) the bulk velocity is 0.34 % below the reference, but all five profile limits set before the runs are missed (mean velocity up to 0.31 friction velocities off) and the three grids give no order of accuracy"
     reports: [{path: results/turbulent_channel_re180/report.html}]
 

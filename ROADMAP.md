@@ -117,9 +117,25 @@ high and 1.6 % low, so there is no trend, and the velocity and fluctuation profi
 limits the agent set before its runs. The grid that fits this PC does not resolve the flow at
 the wall.
 
-*Next for this case:* answer the agent's 19 insights (first the statistics tool, whose error for
-slowly settling signals was about three times too small), then an optimize stage with its own
-target, budget and stop rule fixed in advance.
+*The agent's 19 insights are answered* (2026-11-14, [`CHANGELOG.md`](CHANGELOG.md)). Left open
+from them: a contract check of a gpucfd case's decisions against its recorded solver settings, and
+gpucfd records in `cfdlib.monitor`'s own live view (`cfdlib.gpu.peek` is a separate command).
+
+*Optimize stage (step 8 of the loop), proposed 2026-11-14, not started.* The question: what is the
+cheapest grid on this PC that resolves the profiles?
+- Target: one grid on which all five profile limits of case 17 hold (mean velocity within 0.30
+  friction velocities, fluctuations within 0.08, 0.05 and 0.06, shear stress within 0.03) and the
+  mean speed is within 1 % with a statistical error of at most 0.25 %, in a final run of at most
+  2 GPU hours. Refining everything (288 x 96 x 96) is projected at 4 hours, so this is "the same
+  accuracy at half the cost".
+- How: first three short runs from the finest grid's field, each refining one direction alone
+  (along the flow, across it, toward the wall), judged by the profile gaps, which at 0.14 to 0.31
+  stand far above the statistical error of a 15-unit average. Then one full run on the grid they
+  point to, started with its bulk velocity moved to the expected level to shorten the start-up.
+- Budget: 5 GPU hours and one agent session. Baseline: case 17's finest run.
+- Stop rule: if the three directional runs show that no grid of at most 3 million cells can meet
+  the limits within the 2 hours, stop there and report which direction limits the accuracy and
+  what a resolving run would cost. That is then the answer, and a job for the bigger machine.
 
 *After it,* with a target at a higher Reynolds number fixed in advance: a viscosity that varies
 from cell to cell (the first brick of any model), then a model for the smallest eddies (large-eddy

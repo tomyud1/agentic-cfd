@@ -125,8 +125,10 @@ def load_yaml(path):
     return yaml.safe_load(Path(path).read_text(encoding="utf-8"))
 
 
-def environment_info():
-    """Software and hardware of this run, read from the machine (for reproducibility.environment)."""
+def environment_info(gpu=None):
+    """Software and hardware of this run, read from the machine (for reproducibility.environment).
+    gpu: for a case solved with gpucfd, the GPU's name as the run record has it (record["gpu"]); adds
+    the GPU and the solver to the table."""
     from . import foam
     cpu = platform.processor()
     try:
@@ -144,9 +146,12 @@ def environment_info():
         of = "OpenFOAM " + foam.foam_env("WM_PROJECT_VERSION")
     except Exception:                          # noqa: BLE001 - outside WSL
         of = "OpenFOAM (not found)"
-    return [["OpenFOAM", of], ["Python", platform.python_version()],
+    rows = [["OpenFOAM", of], ["Python", platform.python_version()],
             ["Operating system", f"{platform.system()} {platform.release()}"],
             ["CPU", f"{cpu}, {os.cpu_count()} logical cores"], ["Memory", mem]]
+    if gpu:
+        rows += [["GPU", str(gpu)], ["Flow solver on the GPU", "gpucfd (this repository, folder gpucfd/)"]]
+    return rows
 
 
 def fig_numbers(results):

@@ -15,6 +15,13 @@
     {% endfor %}
   </table></div>
 {%- endmacro %}
+{% macro extra_tables(section) -%}
+  {% for x in section.get('tables', []) %}
+  <h4>{{ x.title }}</h4>
+  {{ table(x) }}
+  {% if x.get('note') %}<ul class="notes"><li>{{ x.note }}</li></ul>{% endif %}
+  {% endfor %}
+{%- endmacro -%}
 {% macro checks_table(rows) -%}
   <div class="table-wrap"><table class="full">
     <tr><th>Check</th><th>Result</th><th>Status</th><th>What it means</th></tr>
@@ -193,7 +200,7 @@
   {{ table(r.simulation.meshes) }}
   <h3><span class="num">6.3</span>Results</h3>
   {{ figures('simulation') }}
-  {{ table(r.simulation.results) }}
+  {{ table(r.simulation.results) }}{{ extra_tables(r.simulation) }}
   <h3><span class="num">6.4</span>Run health</h3>
   {{ figures('convergence') }}
   {{ table(r.simulation.health) }}
@@ -211,7 +218,7 @@
     {% endfor %}
   </div>
   {{ figures('comparison') }}
-  {{ table(r.comparison) }}
+  {{ table(r.comparison) }}{{ extra_tables(r.comparison) }}
   {% for f in r.comparison.findings %}<div class="callout info">{{ f }}</div>{% endfor %}
 </section>
 
