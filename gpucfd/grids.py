@@ -58,6 +58,24 @@ def tanh(n, length, ratio, side="both"):
     return x
 
 
+def tanh_wall(n, length, h_wall, side="both"):
+    """tanh() with the smallest cell given instead of the ratio: n + 1 face positions whose cell at the
+    clustered end(s) is h_wall high. For a wall layer that needs a known first cell (a turbulent wall:
+    h_wall = (wall units wanted) x nu / u_tau). h_wall at or above length / n gives a uniform grid."""
+    n, length = int(n), float(length)
+    if h_wall >= length / n:
+        return uniform(n, length)
+    lo, hi = 1.0, 2.0
+    while np.diff(tanh(n, length, hi, side)).min() > h_wall:
+        lo, hi = hi, 2.0 * hi
+        if hi > 1e6:
+            raise ValueError(f"a smallest cell of {h_wall:g} cannot be reached with {n} cells on {length:g}")
+    for _ in range(60):
+        mid = np.sqrt(lo * hi)
+        lo, hi = (mid, hi) if np.diff(tanh(n, length, mid, side)).min() > h_wall else (lo, mid)
+    return tanh(n, length, np.sqrt(lo * hi), side)
+
+
 def body_band(centre, size, ahead=1.0, behind=4.0, length=None):
     """(lo, hi) for clustered(): the band of fine cells around a body, along one direction.
 

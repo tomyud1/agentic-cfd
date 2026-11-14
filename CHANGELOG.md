@@ -9,11 +9,83 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
+Nothing is waiting to be committed.
+
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
+
+## 2026-11-14
+
+### Case 17 prepared: turbulent channel computed without a model, commit hash to be filled in
+The next verified case, and the first turbulent flow for gpucfd. A fresh agent gets it next.
+- *The problem* (`cases/turbulent_channel_re180/problem.yaml`): flow between two plates driven
+  by a constant force, friction Reynolds number 180, in a box that repeats along and across the
+  flow. No turbulence model: the eddies are computed in time and the answers are time averages.
+  Asked for: mean speed through the channel, friction coefficient, velocity profile, strength of
+  the fluctuations, the shear stress against its exact straight line, and how well the average
+  has settled.
+- *The reference:* Vreman and Kuerten (2014) computed exactly this set-up with two independent
+  codes, each averaged over 200 time units. Their files were downloaded from the author's site
+  and parsed by code (`setup/fetch_vk2014_channel.sh`, `setup/parse_vk2014_channel.py`). The two
+  codes give a mean speed of 15.696 and 15.701 (0.03 % apart); the paper puts the error of
+  either below 0.2 % for the mean velocity and below 1 % for the fluctuations. The reference
+  file holds these uncertainties as numbers. One check of the parsing: the centre-plane velocity
+  computed from the files is 18.28 for both codes, the value printed in the paper's table.
+- *Tools a fresh agent would have been stuck without, found by a dry run on the GPU:*
+  - the fit check called gpucfd "laminar only" and would have refused this grid outright (its
+    rule for laminar flows does not apply here). It now takes the cell sizes in wall units and
+    answers with what was measured;
+  - no tool gave the average of a signal that never settles, with its statistical error.
+    `cfdlib.signals.stationary` does (also where the start-up ends, and a live stop);
+  - `gpucfd.turbulence`: a start field that turns turbulent, and the plane averages (profile,
+    fluctuations, shear stress, wall shear) formed exactly like the solver's own fluxes;
+  - the run loop's Courant check used the largest velocity over the smallest cell, which
+    overstates it about 7 times on a wall grid, and a fixed time step overshot the real limit
+    (1.23). The loop can now follow the limit (`adapt_cfl`).
+- *How it was checked:* the plane averages reproduce the solver's own balance of mean momentum
+  to round-off (4e-12 against terms of order 10); the bulk velocity changes by driving force
+  minus wall shear as it must; the statistical error is 12 to 17 % on the safe side on test
+  signals whose true error is known; a 6-time-unit run on 64 x 64 x 64 went through the whole
+  chain with a clean health record. All tool tests pass.
+- *Correction to the prediction in the next entry:* it compared with a mean speed of 15.63 quoted from
+  memory. Against the transcribed reference (15.70) the two exploration runs are 7.5 % and 0.8 %
+  low, not 7.1 % and 0.4 %. The new statistics tool also confirms that the finer run had not
+  settled (its second half lies 2.9 standard errors above its first).
+- *Fixed in advance for the case* (also in `ROADMAP.md`): success for gpucfd is a mean speed
+  within 1 % of the reference with a statistical error of at most 0.3 %, shown on more than one
+  grid, in under about 5 GPU hours on this PC. If no settled average exists on a grid at least
+  as fine as 192 x 64 x 64 after that time, the run is stopped and reviewed.
+- *Old work still holds:* all tests pass (the GPU tool tests and gpucfd's wall and
+  stretched-grid tests included), and all seven reports and both study pages rebuild from saved
+  data with no file changed. The rebuild exposed one old flaw: rebuilt on a later day, case 6's
+  results file took that day's date, because its script writes the file itself after the
+  renderer. The renderer now hands the kept date back to the script.
+- *Open:* OpenFOAM's accuracy on this flow is not measured. The agent's run will take hours of
+  GPU time, the longest case so far.
+
+### Which way for turbulence in gpucfd: a measured prediction (same commit as the entry above)
+Before
+building any turbulence model, two routes were compared by measurement. Scripts and numbers:
+`dev/exploration/les_channel/` (`predict.py`, `openfoam_time.py`, `results.json`); the write-up
+is in [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), "Turbulence resolved without a model".
+- *Route 1, a turbulence model as in case 7 (RANS):* predicted to lose. On case 7's finest grid
+  the thin wall cells allow a time step of 1.7 millionths of a second (measured on OpenFOAM's
+  solution), so gpucfd, which marches in time, would need an estimated 1.5 to 3 hours where
+  OpenFOAM's steady solver took 10 minutes. Not built.
+- *Route 2, resolving the turbulent eddies in time (the plane channel at friction Reynolds number
+  180):* gpucfd runs this flow today, with no model and no new solver code. On 0.79 million
+  cells the mean speed through the channel is 0.8 % below the reference after 34 minutes on the
+  GPU, and was still rising when the run ended. On a grid three times coarser along the flow it
+  is 7.5 % low (19 minutes).
+- *Speed against OpenFOAM, same grid and time step, per step:* 2.3 times faster at 0.26 million
+  cells, 5.5 to 9.1 times at 0.8 to 4.2 million (OpenFOAM on 8 cores with its tutorial's
+  settings, not tuned). Far less than the 47 to 235 times of the periodic box: with walls and a
+  stretched grid a step costs about four times more per cell.
+- *Open:* OpenFOAM's accuracy on these grids was not measured; the finer run's average had not
+  settled; what a model adds at higher Reynolds numbers is not measured at all.
 
 ## 2026-11-13
 
-### What case 7 taught the tools and the workflow, commit hash to be filled in
+### What case 7 taught the tools and the workflow (`9085126`)
 The agent that solved case 7 logged 16 problems and surprises. Each one gets an answer here: a tool
 fix where code can prevent it next time, a line of guidance where it cannot, or a stated reason for
 doing nothing. No simulation was run for this entry.

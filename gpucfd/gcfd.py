@@ -471,7 +471,17 @@ class NavierStokes:
         (|u| / dx + |v| / dy + |w| / dz), each velocity the larger of the cell's two faces. On a stretched
         grid this is far less strict than max_dt (small cells at a no-slip wall carry small velocities).
         Infinite for a fluid at rest. Scheme "rk3" also needs dt < 0.15 h_min^2 / nu (included)."""
-        q = self.get()
+        r = self.courant_rate()
+        dt = np.inf if r == 0.0 else cfl / r
+        return dt if self.scheme == "imex" else min(dt, VISCOUS_DT * self._hmin() ** 2 / self.nu)
+
+    def courant_rate(self, q=None):
+        """Largest over the cells of |u| / dx + |v| / dy + |w| / dz (each velocity the larger of the cell's
+        two faces), from the current velocity or from q = get(). Times a time step it is the Courant number
+        of that step, with each cell's own size: on a grid stretched toward a wall this is the number that
+        matters, where the largest velocity over the smallest cell overstates it many times. An observe
+        function can return it as 'courant_rate' for cfdlib.gpu.run_transient's Courant check."""
+        q = self.get() if q is None else q
         rate = np.zeros(self.shape)
         for d in range(self.ncomp):
             a = np.abs(q[d])
@@ -483,9 +493,7 @@ class NavierStokes:
             shp = [1, 1, 1]
             shp[ax] = -1
             rate += np.maximum(a, hi) / self.widths(d).reshape(shp)
-        r = float(rate.max())
-        dt = np.inf if r == 0.0 else cfl / r
-        return dt if self.scheme == "imex" else min(dt, VISCOUS_DT * self._hmin() ** 2 / self.nu)
+        return float(rate.max())
 
     # ----------------------------------------------------------------- pressure, forces (post-processing)
     def pressure(self):

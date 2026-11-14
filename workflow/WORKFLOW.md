@@ -34,7 +34,9 @@ cfdlib/                       shared tools (do NOT modify; log needed changes as
                  watch (a self-refreshing page with the history figure, for the human engineer)
   verification.py error norms, observed order, Richardson extrapolation, GCI, level_sequence
                  (convergence of any sequence of levels, including a reference's own)
-  signals.py     periodic signals: cycles, refined peaks, periodicity check, FFT frequency
+  signals.py     periodic signals: cycles, refined peaks, periodicity check, FFT frequency; signals that
+                 fluctuate about a level (turbulence): stationary (mean, statistical error, drift),
+                 settle_time (where the start-up ends), stationary_watch (a live stop on the error)
   plots.py       figure style and sizes (figure, wide, sketch); to_svg checks for overlapping text
   report.py      m(), tex_num(), tex_fix() (fixed decimals for table columns), tex_pct(), LETTERS, load_yaml,
                  environment_info(), render(); ready table cells m_fix, m_pct, m_times, m_pow10, m_sig
@@ -106,8 +108,9 @@ case, if you want to see the full set of files once.
 
 ### 2. Setup and decisions
 - **Choose the solver first, and record it as a decision (kind `solver`).** OpenFOAM is the default. Consider
-  gpucfd (`cfdlib.gpu.check_fit`, limits in `gpucfd/DESIGN.md`) when the problem is incompressible, laminar,
-  in a box (bodies inside it allowed). What decides is the cost to reach the required accuracy, not speed
+  gpucfd (`cfdlib.gpu.check_fit`, limits in `gpucfd/DESIGN.md`) when the problem is incompressible, in a box
+  (bodies inside it allowed), and laminar or turbulent with the eddies resolved on the grid (gpucfd has no
+  turbulence model). What decides is the cost to reach the required accuracy, not speed
   per cell. Case 4 (DFG 2D-2, `gpu_run.py`, `gpu_compare.py`) measured both (study report
   `results/dfg_cylinder_re100/gpu_study.html`): gpucfd is 25 to 45 times faster per cell and step, but its
   grid is rows and columns with the body immersed in it. Cells can be clustered around a body
@@ -139,6 +142,12 @@ case, if you want to see the full set of files once.
     coarse gpucfd level can be far from the fine answer (case 4: G1 drag 16 % low), and the next level
     then takes several flow-through times to settle. Give it `partial`, so that a run you have to kill
     keeps its record.
+  - A turbulent flow computed without a model never becomes steady or periodic: every output is a time
+    average with a statistical error, which no grid refinement removes. The tools: `gpucfd.turbulence`
+    (a start field that turns turbulent, plane averages formed like the solver's own fluxes),
+    `run_transient(adapt_cfl=...)` (the time-step limit moves with the flow) and
+    `cfdlib.signals.stationary` (mean, standard error, drift). What was measured on a channel, with
+    costs: `gpucfd/DESIGN.md`, "Turbulence resolved without a model".
 - Find the closest OpenFOAM tutorial (`$FOAM_TUTORIALS`) and start from it; make minimal changes.
 - Read `references/openfoam-primer.md` for what each file controls and the known pitfalls.
 - Templates may contain Jinja loops: generating a whole `blockMeshDict` from Python is fine and is

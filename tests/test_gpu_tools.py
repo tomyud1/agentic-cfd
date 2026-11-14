@@ -14,6 +14,9 @@ A small lid-driven cavity (64 x 64, Re 100) is enough: the tests are about the r
 7. The record: time_step gives the step and the limit that set it, the perf block names each cost by its
    clock, cfdlib.runrecord.read returns the record in the common shape, add_timing gives a spread, and a
    stored tolerance check reads back in one layout (the older layout too).
+8. Turbulence resolved in a channel (gpucfd.turbulence): the plane averages give the solver's own balance
+   of mean momentum to round-off, the bulk velocity changes by force minus wall shear, and run_transient
+   with adapt_cfl holds the Courant number of each cell where a fixed step overshoots.
 """
 import sys
 from pathlib import Path
@@ -198,6 +201,69 @@ check("read_tolerance_check: a stored check reads back, and the older layout com
       tn["chosen"] == tc["chosen"] and tn["runs"][0]["wall_s"] > 0 and to["chosen"] == 1e-8
       and [x["passes"] for x in to["runs"]] == [True, True, False] and abs(to["runs"][1]["worst"] - 4e-5) < 1e-18
       and set(to["runs"][0]) == set(tn["runs"][0]))
+
+
+# 8. turbulence resolved in a channel: a small box at friction Reynolds number 180 (far too coarse for the
+#    physics; the tests are about the arithmetic)
+from cfdlib import signals  # noqa: E402
+from gpucfd import grids, turbulence  # noqa: E402
+
+
+def channel(scheme):
+    y = grids.tanh_wall(32, 2.0, 1.0 / 180.0)
+    return gcfd.NavierStokes((32, 32, 32), (4 * np.pi, 2.0, 4 * np.pi / 3), 1.0 / 180.0, walls=(False, True, False),
+                             force=(1.0, 0.0, 0.0), scheme=scheme, grid=(None, y, None))
+
+
+for scheme in ("rk3", "imex"):
+    sc = channel(scheme)
+    turbulence.channel_start(sc, 1.0)
+    dtc = 0.5 * sc.dt_cfl(0.8)
+    sc.run(dtc, 40, 1e-9)
+    ps = turbulence.PlaneStats(sc)
+    o = ps.sample()
+    solver = sc.rhs(0).mean(axis=(0, 2))                               # the solver's own right-hand side, plane averaged
+    mine = 1.0 - np.diff(o["uv"]) / ps.dy + sc.nu * np.diff(o["dUdy"]) / ps.dy
+    check(f"PlaneStats ({scheme}): turbulent and viscous stress give the solver's mean-momentum balance to round-off",
+          np.abs(solver - mine).max() < 1e-9 * np.abs(solver).max() and np.abs(o["uv"]).max() > 0.01,
+          f"largest difference {np.abs(solver - mine).max():.1e}, terms up to {np.abs(solver).max():.2g}")
+    tiny, nst = 0.02 * dtc, 4
+    sc.run(tiny, nst, 1e-11)
+    o2 = ps.sample()
+    rate = (o2["bulk"] - o["bulk"]) / (nst * tiny)
+    pred = 1.0 - 0.25 * (o["tau_low"] + o2["tau_low"] + o["tau_high"] + o2["tau_high"])
+    check(f"PlaneStats ({scheme}): the bulk velocity changes by force minus mean wall shear", abs(rate - pred) < 1e-4 * max(abs(pred), 1e-3),
+          f"{rate:.6f} against {pred:.6f}")
+    sc.close()
+sc = channel("imex")
+turbulence.channel_start(sc, 1.0)
+sc.run(0.5 * sc.dt_cfl(0.8), 200, 1e-8)
+ps = turbulence.PlaneStats(sc)
+state = sc.get()
+cap = 2.0 * sc.dt_cfl(0.8)
+kw = dict(t0=0.0, t_end=0.6, sample_dt=5 * cap, observe=lambda s: ps.sample(), u_ref=18.0, log=lambda m: None, ptol=1e-8)
+fixed = gpu.run_transient(sc, cap, **kw)                               # a fixed step of twice the limit: must be reported
+sc.set(state)
+sc.project()
+ad = gpu.run_transient(sc, cap, adapt_cfl=0.8, **kw)
+cf_fixed = next(c for c in fixed["health"]["checks"] if c["name"] == "Max Courant number")
+cf_ad = next(c for c in ad["health"]["checks"] if c["name"] == "Max Courant number")
+check("run_transient: the Courant check uses each cell's own size when observe gives courant_rate",
+      cf_fixed["status"] == "warn" and 1.0 < float(cf_fixed["value"]) < 3.0
+      and float(fixed["series"]["umax"].max()) * cap / ps.dy.min() > 5.0,
+      f"fixed step: {cf_fixed['value']} (largest velocity over smallest cell would give "
+      f"{float(fixed['series']['umax'].max()) * cap / ps.dy.min():.1f})")
+check("run_transient: adapt_cfl holds the Courant number, ends at t_end and records the range of its steps",
+      cf_ad["status"] == "ok" and float(cf_ad["value"]) <= 1.0 and abs(ad["t"][-1] - 0.6) < 1e-9
+      and ad["dt_min"] <= ad["dt"] <= ad["dt_max"] <= cap and ad["health"]["steps"] > fixed["health"]["steps"]
+      and np.all(np.diff(ad["t"]) > 0) and "dt_min" not in fixed,
+      f"Courant {cf_ad['value']}, {ad['health']['steps']} steps of {ad['dt_min']:.2e} to {ad['dt_max']:.2e}")
+av = signals.stationary(ad["t"], ad["series"]["U"], min_blocks=2)
+check("a series of profiles from run_transient averages point by point", av["mean"].shape == (32,) and av["stderr"].shape == (32,))
+reca = gpu.write_run(OUT / "runs", "chan", ad, dict(level="test", cells=32 ** 3, h=float(ps.dy.min()), source=None, pressure_tol=1e-8,
+                                                    scheme="imex", time_step=dict(dt=cap, set_by="adapt_cfl 0.8")))
+check("write_run: a run with adapt_cfl records its mean, smallest and largest step", reca["dt_min"] == ad["dt_min"] and reca["dt"] == ad["dt"])
+sc.close()
 
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")
 sys.exit(1 if FAILS else 0)

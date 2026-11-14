@@ -83,4 +83,6 @@ Needs an NVIDIA GPU and the CUDA 12 toolkit at `/usr/local/cuda`.
 
 - `fetch_featflow.sh`, `fetch_featflow_3d.sh`, `parse_featflow*.py`: download and parse the FeatFlow
   benchmark data for cases 4 and 5.
+- `fetch_vk2014_channel.sh`, `parse_vk2014_channel.py`: download and parse the channel statistics of
+  Vreman and Kuerten (2014) for case 17.
 - `probe_env.sh`: lists the Python packages and tools that are available.

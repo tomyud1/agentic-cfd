@@ -3,11 +3,19 @@ the same kind of files as the OpenFOAM runs (runs/<name>.json + .npz), so a case
 both and compare them.
 
 When to choose gpucfd instead of OpenFOAM (measured numbers and limits: gpucfd/DESIGN.md):
-- It fits: incompressible, laminar, constant density and viscosity, single phase, no heat transfer;
+- It fits: incompressible, constant density and viscosity, single phase, no heat transfer; laminar,
+  or turbulent with the eddies resolved in time on the grid (no model: see below);
   a rectangular box (periodic, wall, inflow or outflow sides) with solid bodies inside it given as
-  shapes (cylinder, sphere, box, or any signed-distance function); a grid fine enough for central
-  differences (cell Reynolds number U h / nu about 2 or below), uniform or stretched per direction
-  (gpucfd.grids: cells clustered toward walls, or a band of fine cells around a body).
+  shapes (cylinder, sphere, box, or any signed-distance function); for a laminar flow a grid fine
+  enough for central differences (cell Reynolds number U h / nu about 2 or below), uniform or
+  stretched per direction (gpucfd.grids: cells clustered toward walls, or a band of fine cells around
+  a body).
+- Turbulence without a model (measured 2026-11-14 on one flow, the plane channel at friction Reynolds
+  number 180; gpucfd/DESIGN.md has the numbers): the scheme conserves kinetic energy, so a turbulent
+  flow runs stably with cells far larger than the laminar rule allows, and the grid is judged in wall
+  units. gpucfd.turbulence has the start field and the plane averages, cfdlib.signals.stationary the
+  time average with its statistical error. Per step it was 2 to 9 times faster than OpenFOAM on 8
+  cores of the same PC (larger grids, larger gain), with OpenFOAM at its tutorial's settings.
 - It does not fit: turbulence models (RANS/LES), heat transfer, multiphase, compressible flow, STL
   geometry, body-fitted or unstructured grids. A stretched grid is still rows and columns: the fine
   band around a body crosses the whole domain in each direction (case 4: 3.85 times fewer cells
@@ -46,7 +54,8 @@ from pathlib import Path
 import numpy as np
 
 BLOCKERS = {
-    "turbulence_model": "needs a turbulence model (gpucfd resolves laminar flow only)",
+    "turbulence_model": "needs a turbulence model, RANS or LES (gpucfd has none; it can compute a turbulent flow "
+                        "directly on a grid fine enough to resolve it: check_fit(wall_units=...))",
     "heat_transfer": "needs heat transfer or a transported scalar",
     "multiphase": "needs several phases or a free surface",
     "compressible": "needs compressible flow",
@@ -58,17 +67,34 @@ BLOCKERS = {
 }
 
 
-def check_fit(cell_reynolds=None, needs_stretched_grid=False, **needs):
+def check_fit(cell_reynolds=None, needs_stretched_grid=False, wall_units=None, **needs):
     """Whether gpucfd can solve a problem. needs: flags named as in BLOCKERS (True = the problem needs it).
     cell_reynolds: U h / nu on the finest grid you can afford (above about 2 central differences
-    oscillate). needs_stretched_grid: thin layers that a uniform grid cannot resolve at an affordable size;
+    oscillate). For a laminar flow; not the measure for turbulence resolved in time (use wall_units).
+    needs_stretched_grid: thin layers that a uniform grid cannot resolve at an affordable size;
     since 2026-11-13 a note, not a blocker (stretched grids with bodies: gpucfd/DESIGN.md, rungs 12 and 13).
+    wall_units: for a turbulent flow along walls computed without a model, dict(dx, dy_wall, dz): the cell
+    sizes of the grid you can afford in wall units (length x u_tau / nu; dx along the flow, dz across it,
+    dy_wall the height of the wall cell). Gives notes from the one flow measured, not blockers.
     Returns dict(ok, blockers[], notes[])."""
     unknown = set(needs) - set(BLOCKERS)
     if unknown:
         raise ValueError(f"unknown flags {sorted(unknown)}; known: {sorted(BLOCKERS)}")
     blockers = [BLOCKERS[k] for k, v in needs.items() if v]
     notes = []
+    if wall_units is not None:
+        dx, dyw, dz = (float(wall_units[k]) for k in ("dx", "dy_wall", "dz"))
+        notes.append("turbulence resolved without a model (gpucfd.turbulence; cost and limits in gpucfd/DESIGN.md): "
+                     "measured on one flow only, the plane channel at friction Reynolds number 180 with a wall cell of "
+                     "1 wall unit. With dx+ 35 and dz+ 12 the mean flow rate came out 7.5 % low; with dx+ 12 and dz+ 12 "
+                     "about 1 % low (that run had not settled). Outputs are time averages with a statistical error "
+                     "(cfdlib.signals.stationary): plan for tens of time units delta / u_tau per grid")
+        if dx > 20 or dz > 15:
+            notes.append(f"dx+ {dx:.3g}, dz+ {dz:.3g}: coarser than the grid that came within about 1 %; expect an error of "
+                         "several per cent in the mean flow and say so, or refine")
+        if dyw > 2:
+            notes.append(f"wall cell of {dyw:.3g} wall units: untested above 1; the wall shear is formed from that cell")
+        cell_reynolds = None      # the cell Reynolds number of the mean flow is large by design in such a run
     if needs_stretched_grid:
         notes.append("thin layers: use a grid stretched per direction (gpucfd.grids.tanh toward walls, "
                      "gpucfd.grids.clustered around a body). The fine bands cross the whole domain, and the "
@@ -158,14 +184,17 @@ def _save_partial(path, ts, series):
 
 
 def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag="", log_every=1.0, ptol=1e-10,
-                  cfl_limit=1.0, watch=None, stop_on_watch=False, watch_every=None, partial=None):
+                  cfl_limit=1.0, watch=None, stop_on_watch=False, watch_every=None, partial=None, adapt_cfl=None):
     """Advance gpucfd simulation s from time t0 to t_end and sample it about every sample_dt.
 
     dt is the largest time step to use; it is reduced slightly so that t_end - t0 is a whole number of
     steps. Samples are taken every m steps, m = the largest whole number with m dt <= sample_dt (at least 1),
     so sampling never shortens the time step (the last interval may be shorter).
     observe(s) -> dict of name -> number or array, called at every sample (and at t0). If it returns
-    'umax' (largest velocity magnitude), the Courant number is checked against cfl_limit.
+    'umax' (largest velocity magnitude), the Courant number is checked against cfl_limit, as umax dt over
+    the smallest cell. On a grid stretched toward a wall that overstates it many times (the smallest
+    cells carry the smallest velocities): return 'courant_rate' = s.courant_rate() as well, and the check
+    uses each cell's own size and velocity.
     u_ref: velocity scale for the divergence check (max |div u| h / u_ref).
     watch(t, series) -> optional text, called every watch_every time units (default: log_every): the run's
     live check (a periodicity or steadiness test); its text is logged and its first non-empty answer is
@@ -176,7 +205,14 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
     as the file write_run saves). A run that is killed from outside then keeps its record up to the last
     log line, so a stop rule can be applied to a run without losing it. write_run removes
     <runs_dir>/<name>.partial.npz once the full record is saved.
-    Returns dict(t, series, perf, health, dt, watch_first).
+    adapt_cfl: a Courant number to hold, for a flow whose time-step limit moves while it runs (in a
+    turbulent channel it moved by half within a few time units, so a fixed step either breaks the limit
+    or wastes steps). observe must return 'courant_rate'; after every sample the step becomes adapt_cfl /
+    courant_rate, never above dt. Samples are then every m steps with m fixed from dt, so unevenly spaced
+    in time: average them by time (cfdlib.signals.stationary does). The steps of a run with adapt_cfl
+    depend on the samples, so it does not repeat a run without it step for step.
+    Returns dict(t, series, perf, health, dt, watch_first), with adapt_cfl also dt_min and dt_max (dt is
+    then the mean step).
 
     A blow-up (non-finite values) or Ctrl-C ends the run early instead of raising (health status 'fail' or
     'warn'), so what was recorded up to then is returned and can be saved."""
@@ -200,7 +236,7 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
     next_watch = t0 + watch_every
     wall0 = time.time()
 
-    def sample(t):
+    def sample(t, dt):
         nonlocal obs_s, cfl, umax_seen, t_umax
         a = time.time()
         o = observe(s)
@@ -208,31 +244,48 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
         ts.append(t)
         for k, v in o.items():
             series.setdefault(k, []).append(np.asarray(v, float))
-        if "umax" in o and len(ts) > 1:  # not the start field (a projected start from rest can be far off)
-            cfl = max(cfl, float(o["umax"]) * dt / h)
-            if float(o["umax"]) > umax_seen:
+        if len(ts) > 1:  # not the start field (a projected start from rest can be far off)
+            if "courant_rate" in o:
+                cfl = max(cfl, float(o["courant_rate"]) * dt)
+            elif "umax" in o:
+                cfl = max(cfl, float(o["umax"]) * dt / h)
+            if "umax" in o and float(o["umax"]) > umax_seen:
                 umax_seen, t_umax = float(o["umax"]), t
 
-    sample(t0)
-    while steps < n_total:
-        m = min(nsub, n_total - steps)
+    sample(t0, dt)
+    adaptive = adapt_cfl is not None
+    if adaptive and "courant_rate" not in series:
+        raise ValueError("adapt_cfl needs 'courant_rate' from observe (s.courant_rate())")
+    t, dt_now, dt_lo, dt_hi = t0, dt, math.inf, 0.0
+    t_tol = 1e-9 * max(1.0, abs(t_end - t0))
+    while (t < t_end - t_tol) if adaptive else (steps < n_total):
+        if adaptive:
+            rate = float(series["courant_rate"][-1])
+            dt_now = min(dt, adapt_cfl / rate) if rate > 0 else dt
+            m = nsub
+            if t + m * dt_now >= t_end - t_tol:  # the last stretch: whole steps that end at t_end
+                m = min(nsub, max(1, math.ceil((t_end - t) / dt_now - 1e-9)))
+                dt_now = (t_end - t) / m
+        else:
+            m = min(nsub, n_total - steps)
         try:
-            st = s.run(dt, m, ptol)
+            st = s.run(dt_now, m, ptol)
         except FloatingPointError as e:
             error = str(e)
-            log(f"{tag}t {t0 + (steps + m) * dt:.4f}: {e}")
+            log(f"{tag}t {t + m * dt_now:.4f}: {e}")
             break
         except KeyboardInterrupt:
-            interrupted = f"interrupted at t = {t0 + steps * dt:.4f} (of {t_end:g})"
+            interrupted = f"interrupted at t = {t:.4f} (of {t_end:g})"
             log(f"{tag}{interrupted}")
             break
         gpu_ms += st["ms"]
         its += st["poisson_its"] * m
         steps += m
         max_div = max(max_div, st["max_div"])
-        t = t0 + steps * dt
-        sample(t)
-        last_step = steps == n_total
+        t = t + m * dt_now if adaptive else t0 + steps * dt
+        dt_lo, dt_hi = min(dt_lo, dt_now), max(dt_hi, dt_now)
+        sample(t, dt_now)
+        last_step = (t >= t_end - t_tol) if adaptive else steps == n_total
         due_log = t >= next_log - 1e-9 or last_step
         msg = None
         if watch and (t >= next_watch - 1e-9 or last_step):
@@ -280,7 +333,7 @@ def run_transient(s, dt, t0, t_end, sample_dt, observe, u_ref, log=print, tag=""
                 perf=perf_record(gpu_ms / 1000, wall, obs_s, steps, cells, its / max(steps, 1), nsub),
                 health=dict(status=status, checks=checks, steps=steps, last_time=ts[-1], umax=umax_seen or None,
                             t_umax=t_umax if umax_seen else None),
-                dt=dt, watch_first=first)
+                watch_first=first, **(dict(dt=(ts[-1] - t0) / max(steps, 1), dt_min=dt_lo, dt_max=dt_hi) if adaptive else dict(dt=dt)))
 
 
 def perf_record(gpu_s, wall_s, observe_s, steps, cells, poisson_its, sample_steps):
@@ -313,6 +366,7 @@ def write_run(runs_dir, name, result, meta):
                end_time=float(result["t"][-1]), health=result["health"], perf=result["perf"],
                watch_first=result["watch_first"], gpu=gcfd.device()["name"], python=platform.python_version(),
                wall_time=result["perf"]["wall_s"])
+    rec.update({k: result[k] for k in ("dt_min", "dt_max") if k in result})   # a run with adapt_cfl: dt is its mean step
     (runs_dir / f"{name}.json").write_text(json.dumps(rec, indent=1, default=float))
     (runs_dir / f"{name}.partial.npz").unlink(missing_ok=True)  # the full record replaces run_transient's partial one
     return rec

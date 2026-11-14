@@ -13,7 +13,7 @@ change the order.
 | Part | Works today | Missing |
 |---|---|---|
 | Workflow | Problem statement to checked report, on laminar flow (steady, unsteady, 2D, 3D), heat transfer, and one turbulent flow with a turbulence model (flat plate) | Turbulent flows with pressure gradients and separation, real geometry, a problem with no reference answer |
-| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
+| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box; runs a turbulent channel without a model, 2-9× faster per step than OpenFOAM on 8 cores (exploration, not yet a verified case) | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
 | Agent | Claude at high effort (case 7: Fable 5.2), on one PC | Never tried with another agent or on another machine |
 
 ## Now: until the meeting (development PC)
@@ -94,17 +94,32 @@ case 4's gap to OpenFOAM is now accuracy per cell, not time):
 (0.024 %). The project keeps solving known cases until the capabilities are there; case 8
 (buoyancy cavity) follows.
 
-*Open after case 7, a decision for the student:* whether to make this kind of flow faster with
-our own tools. The baseline is now measured: the finest grid (209 thousand cells) took 10 minutes
-on 8 cores. What costs is the number of outer iterations (11,062) more than the price of one.
-Two routes, cheapest first:
-- *Tune OpenFOAM* (`dev/steady_speed/`): relax the turbulence variable by 0.5 only until the wall
-  layer has formed, then by 0.7 to 0.8; or solve velocity and turbulence together. A day of trials
-  on recorded grids, no new solver.
-- *A turbulence model in gpucfd.* Weeks, not days: the model's equation, wall distance, cells of
-  aspect ratio 10^4 at the wall (the pressure solver's hardest case so far), and a steady solver
-  (gpucfd marches in time). The target has to be fixed first, against the incompressible reference
-  with its uncertainty, with a stop rule, as stage 2 taught.
+*Decided after case 7 (2026-11-14):* the next step for turbulence is gpucfd, not tuning OpenFOAM
+(a tuned setting would be specific to one case). Two routes were measured before building
+anything ([`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), "Turbulence resolved without a model"):
+- *A turbulence model as in case 7 (RANS) in gpucfd:* predicted to lose, 1.5 to 3 hours against
+  OpenFOAM's 10 minutes on case 7's finest grid, because gpucfd marches in time and the thin wall
+  cells force a tiny time step. Not built.
+- *Resolving the eddies in time:* works today with no model. On a channel at friction Reynolds
+  number 180 the mean speed was 0.8 % below the reference after 34 minutes (not yet settled), at
+  2 to 9 times OpenFOAM's speed per step.
+
+### 3b. Case 17: turbulent channel without a model (gpucfd's first turbulent flow)
+
+**Prepared (2026-11-14), not launched.** The problem, the reference (Vreman and Kuerten 2014, two
+independent codes within 0.03 % on the mean speed) and the tools a fresh agent needs are in place:
+averages with a statistical error, a start field, plane averages, a time step that follows the flow.
+
+*Fixed in advance.* Success for gpucfd: mean speed through the channel within 1 % of the reference,
+with a statistical error of at most 0.3 % and more than one grid to show the trend, in under about
+5 GPU hours on this PC. Stop rule: if after that time no settled average exists on a grid at least
+as fine as 192 x 64 x 64, stop the agent and review what blocked it. Expected from the exploration:
+the coarse grid about 7 % low, the 192 x 64 x 64 grid within 1 %; whether a finer grid closes the
+rest is not known.
+
+*After it,* with a target at a higher Reynolds number fixed in advance: a viscosity that varies
+from cell to cell (the first brick of any model), then a model for the smallest eddies (large-eddy
+simulation). Whether that is the right direction is question 1 for Prof. Frankel.
 
 ### 4. Workflow: offer, do not force
 

@@ -1,0 +1,56 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: turbulent_channel_re180
+title: Turbulent flow between two parallel plates at friction Reynolds number 180, computed without a turbulence model
+description: >
+  A fluid flows between two parallel smooth plates, driven by a constant force along the plates. The
+  flow is turbulent. No turbulence model is used: the eddies are to be computed directly in time, and
+  the answers are averages over time. Find the mean velocity profile, the mean speed through the
+  channel, the friction coefficient and the strength of the velocity fluctuations, each with its
+  statistical uncertainty, and compare them with a published simulation of the same flow in the same
+  box.
+setup:
+  - 'Three-dimensional. Coordinates: \(x\) along the flow, \(y\) normal to the plates, \(z\) across the flow. The plates are at \(y = 0\) and \(y = 2\delta\); \(\delta\) is half the distance between them.'
+  - 'Domain: the box \(L_x \times 2\delta \times L_z\) with \(L_x = 4\pi\delta\) and \(L_z = \tfrac{4}{3}\pi\delta\). The flow repeats in \(x\) and in \(z\) (periodic), which stands for a channel that is very long and very wide. The reference uses the same box.'
+  - 'Plates: smooth, at rest, no slip.'
+  - 'Driving: a uniform, constant force per unit mass \(f\) along \(x\) (the same as a constant mean pressure gradient \(-\mathrm{d}P/\mathrm{d}x = \rho f\)). The flow rate is not prescribed: it is a result.'
+  - 'In a statistically steady state the two plates carry the driving force, so the mean wall shear stress is known in advance: \(\tau_w = \rho f \delta\). The friction velocity is therefore \(u_\tau = \sqrt{\tau_w/\rho} = \sqrt{f\delta}\).'
+  - 'Friction Reynolds number: \(Re_\tau = u_\tau \delta / \nu = 180\).'
+  - 'Incompressible fluid of constant density and viscosity.'
+  - 'The flow must be turbulent. The same equations also have a laminar solution (a parabolic profile with the centre speed \(\tfrac12 Re_\tau u_\tau = 90\,u_\tau\)); it is not the answer wanted. The initial state is free to choose.'
+  - 'No turbulence model and no wall model: all eddies are resolved by the grid and the time step (direct numerical simulation).'
+  - 'Averages \(\langle\cdot\rangle\): over \(x\), \(z\), time, and the two halves of the channel, taken after the start-up transient. Fluctuations: \(u'' = u - \langle u\rangle\), likewise for \(v\) (along \(y\)) and \(w\) (along \(z\)).'
+  - 'Wall units: \(u^+ = u/u_\tau\), \(y^+ = y\,u_\tau/\nu\) with \(y\) the distance from the nearer plate.'
+  - 'Bulk velocity: \(U_b = \frac{1}{2\delta}\int_0^{2\delta} \langle u\rangle\,\mathrm{d}y\). Friction coefficient: \(C_f = \tau_w / (\tfrac12 \rho U_b^2)\). Bulk Reynolds number: \(Re_b = 2\delta\,U_b/\nu\).'
+  - 'Total shear stress: \(\tau(y) = \rho\nu\,\mathrm{d}\langle u\rangle/\mathrm{d}y - \rho\langle u''v''\rangle\). In a statistically steady state the mean momentum balance gives exactly \(\tau(y) = \tau_w\,(1 - y/\delta)\).'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  delta: {value: 1.0,            unit: m,     symbol: '\(\delta\)', label: "Half the distance between the plates"}
+  f:     {value: 1.0,            unit: m/s²,  symbol: '\(f\)',      label: "Driving force per unit mass (gives a friction velocity of 1 m/s)"}
+  nu:    {value: 0.005555555556, unit: m²/s,  symbol: '\(\nu\)',    label: "Kinematic viscosity (1/180, which gives the friction Reynolds number 180)"}
+  rho:   {value: 1.0,            unit: kg/m³, symbol: '\(\rho\)',   label: "Density"}
+  Lx:    {value: 12.566370614,   unit: m,     symbol: '\(L_x\)',    label: "Length of the periodic box along the flow (4 pi delta)"}
+  Lz:    {value: 4.188790205,    unit: m,     symbol: '\(L_z\)',    label: "Width of the periodic box across the flow (4 pi delta / 3)"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: bulk,     text: 'Bulk velocity \(U_b/u_\tau\) and bulk Reynolds number \(Re_b\), with the statistical uncertainty of the time average'}
+  - {key: cf,       text: 'Friction coefficient \(C_f\)'}
+  - {key: centre,   text: 'Mean velocity on the centre plane, \(U_c/u_\tau\)'}
+  - {key: profile,  text: 'Mean velocity profile in wall units, \(u^+\) against \(y^+\), with the law of the wall'}
+  - {key: rms,      text: 'Root-mean-square velocity fluctuations \(u''_{rms}\), \(v''_{rms}\), \(w''_{rms}\) in wall units against \(y^+\); the peak of \(u''_{rms}\) and where it is'}
+  - {key: shear,    text: 'Turbulent shear stress \(-\langle u''v''\rangle/u_\tau^2\) and the total shear stress across the channel, against the exact straight line'}
+  - {key: balance,  text: 'Mean wall shear stress against the driving force: how well the time average has settled'}
+  - {key: resolved, text: 'Is the turbulence resolved? State the difference that remains to the reference and what it is made of (grid, averaging time, the reference''s own uncertainty)'}
+
+reference:
+  file: reference/vk2014_chan180.yaml
+  description: >
+    Direct numerical simulations of this flow in this box by Vreman and Kuerten (Physics of Fluids
+    26, 015102, 2014): the same set-up (half height 1, viscosity 1/180, driving force 1) computed with
+    two independent codes, a spectral one and a finite-difference one, each averaged over 200 time
+    units \(\delta/u_\tau\). The file gives the profiles of both (mean velocity, the three
+    fluctuation intensities, the turbulent shear stress), the bulk and centre-plane velocities and
+    the friction coefficient computed from them, and the reference's own uncertainty as numbers: the
+    difference between the two codes, and how far each code's mean wall shear is from the driving
+    force. The files as published are in reference/vk2014/. Parsed by code:
+    setup/fetch_vk2014_channel.sh downloads them, setup/parse_vk2014_channel.py checks them and
+    writes the YAML.

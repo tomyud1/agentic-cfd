@@ -206,7 +206,12 @@ def render(results, figures, out_path, case_dir=None):
     """
     from .contract import check, lint, FIGURE_SECTIONS, DECISION_KINDS
 
-    results = keep_run_record(results, Path(out_path).parent / "results.json")
+    kept = keep_run_record(results, Path(out_path).parent / "results.json")
+    if kept is not results:      # a re-render: the caller's dict gets the kept record too, so that a case which
+        results["date"] = kept["date"]                       # writes results.json itself afterwards (case 6) keeps it
+        if "reproducibility" in kept:
+            results["reproducibility"] = kept["reproducibility"]
+    results = kept
     errors = check(results, case_dir=case_dir, figures=figures)
     if errors:
         raise ValueError("Report contract violated:\n  - " + "\n  - ".join(errors))

@@ -115,6 +115,15 @@ cases:
     luminary: turbulent_flat_plate
 
   # ---------------------------------------------------------------- tier 1: next
+  - id: "17"
+    title: Turbulent channel, friction Reynolds number 180, no turbulence model (DNS)
+    status: in_progress
+    tier: next
+    folder: turbulent_channel_re180
+    new: "Turbulence computed directly in time: outputs are time averages with a statistical error, the grid is judged in wall units, and an exact balance (mean wall shear = driving force) says whether the average has settled. The first turbulent flow gpucfd can run"
+    reference: "Vreman & Kuerten (2014): the same box and forcing, two independent codes that agree within 0.1 % on the mean velocity; parsed into the case's reference file"
+    gpucfd: "yes"
+
   - id: "8"
     title: Differentially heated square cavity (buoyancy)
     status: planned

@@ -343,3 +343,65 @@ w11 = contract.lint({"summary": {"answers": [{"diff": "\\(0.03\\,\\%\\)"}, {"dif
 print("report warnings:", [w[:58] for w in w11])
 assert len(w11) == 2 and "bare number" in w11[0] and "answers[2].diff" in w11[1], w11
 print("report-stage checks: ok")
+
+# 12. Averages of a signal that fluctuates about a level (turbulence; prepared for the channel case):
+#     the statistical error against a signal whose true error is known, the start-up cut, the live check,
+#     and the two recorded channel runs of dev/exploration/les_channel (the finer one had not settled).
+from cfdlib import gpu as gpu12  # noqa: E402
+from gpucfd import grids as grids12  # noqa: E402
+
+
+def ar1(n, phi, seed):
+    e = np.random.default_rng(seed).standard_normal(n)
+    y = np.empty(n)
+    y[0] = e[0] / np.sqrt(1 - phi ** 2)
+    for k in range(1, n):
+        y[k] = phi * y[k - 1] + e[k]
+    return y
+
+
+t12 = np.arange(20000) * 0.01
+for phi in (0.0, 0.9, 0.98):
+    true = np.sqrt(1.0 / (1 - phi ** 2) * (1 + phi) / (1 - phi) / len(t12))   # exact error of the mean of this process
+    st12 = [signals.stationary(t12, 5.0 + ar1(len(t12), phi, seed)) for seed in range(12)]
+    ratio = np.array([s["stderr"] for s in st12]) / true
+    miss = np.array([abs(s["mean"] - 5.0) for s in st12]) / np.array([s["stderr"] for s in st12])
+    print(f"stationary, memory {phi}: error estimate / true error = {ratio.mean():.2f} ({ratio.min():.2f} to {ratio.max():.2f}); "
+          f"largest miss {miss.max():.1f} standard errors")
+    assert 0.9 < ratio.mean() < 1.4 and ratio.min() > 0.7 and ratio.max() < 2.0 and miss.max() < 3.5, (phi, ratio)
+    assert all(s["reliable"] and abs(s["drift_sigma"]) < 4 for s in st12)
+y12 = 5.0 + ar1(len(t12), 0.9, 3)
+prof12 = signals.stationary(t12, np.stack([y12, 2.0 * y12 + 1.0], axis=1))          # an array per time: point by point
+one12 = signals.stationary(t12, y12)
+assert np.allclose(prof12["mean"], [one12["mean"], 2 * one12["mean"] + 1]) and np.allclose(prof12["stderr"], [one12["stderr"], 2 * one12["stderr"]])
+tu12 = np.sort(np.random.default_rng(0).uniform(0, 200, 20000))                      # uneven sampling: weighted by time
+assert abs(signals.stationary(tu12, np.where(tu12 < 100, 1.0, 3.0))["mean"] - 2.0) < 1e-3
+start12 = y12 + 30.0 * np.exp(-t12 / 4.0)                                            # a start-up transient, down to the size of the fluctuations by t of about 10
+cut12 = signals.settle_time(t12, start12)
+st_cut = signals.stationary(t12, start12, t_start=cut12["t_start"])
+print(f"settle_time: cut at t = {cut12['t_start']:.1f} (settled {cut12['settled']}); mean after it {st_cut['mean']:.3f} +- {st_cut['stderr']:.3f}; "
+      f"without the cut {signals.stationary(t12, start12)['mean']:.3f}")
+assert cut12["settled"] and 5 <= cut12["t_start"] < 60 and abs(st_cut["mean"] - 5.0) < 4 * st_cut["stderr"]
+ramp12 = signals.stationary(t12, y12 + 0.02 * t12)
+assert abs(ramp12["drift_sigma"]) > 3 and signals.settle_time(t12, y12 + 0.02 * t12)["settled"]      # a slow ramp: only the drift test sees it
+assert not signals.settle_time(t12, y12 + 0.2 * t12)["settled"]                                          # a strong one: both do
+w12 = signals.stationary_watch("q", 0.03, min_time=50.0)
+said = [w12(t12[k - 1], dict(t=t12[:k], q=start12[:k])) for k in (2000, 6000, 12000, 20000)]
+print("stationary_watch on the transient signal at t = 20, 60, 120, 200:", [bool(v) for v in said], "|", said[-1])
+assert not said[0] and said[-1] and "+-" in said[-1]
+assert signals.stationary_watch("q", 1e-5, min_time=50.0)(t12[-1], dict(t=t12, q=start12)) is None    # a tolerance out of reach
+rec12 = json.loads((ROOT / "dev/exploration/les_channel/results.json").read_text())
+for key12, drifting in (("run_64x64x64_imex", False), ("run_192x64x64_imex", True)):
+    a12 = np.array(rec12[key12]["series"]["rows"])
+    s12 = signals.stationary(a12[:, 0], a12[:, 2], t_start=rec12[key12]["window"][0])
+    print(f"recorded channel run {key12[4:]}: bulk velocity {s12['mean']:.3f} +- {s12['stderr']:.3f}, drift {s12['drift_sigma']:+.1f} sigma, "
+          f"{s12['n_independent']:.0f} independent samples, reliable {s12['reliable']}")
+    assert (abs(s12["drift_sigma"]) > 2) == drifting and not s12["reliable"]
+yw12 = grids12.tanh_wall(64, 2.0, 1.0 / 180.0)
+assert abs(np.diff(yw12).min() * 180.0 - 1.0) < 1e-9 and np.allclose(np.diff(yw12), np.diff(yw12)[::-1]) and len(yw12) == 65
+assert np.allclose(grids12.tanh_wall(8, 2.0, 0.3), grids12.uniform(8, 2.0))
+f12 = gpu12.check_fit(cell_reynolds=212.0, wall_units=dict(dx=11.8, dy_wall=1.0, dz=11.8))
+c12 = gpu12.check_fit(wall_units=dict(dx=35.3, dy_wall=1.0, dz=11.8))
+assert f12["ok"] and len(f12["notes"]) == 1 and len(c12["notes"]) == 2 and "several per cent" in c12["notes"][1]
+assert not gpu12.check_fit(cell_reynolds=212.0)["ok"] and not gpu12.check_fit(turbulence_model=True)["ok"]
+print("fluctuating signals, wall grid, fit check for resolved turbulence: ok")
