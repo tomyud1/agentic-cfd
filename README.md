@@ -55,8 +55,9 @@ GPU.
   lift is about 1% low. The three-grid study takes 17 minutes against 29 for OpenFOAM's, with
   implicit diffusion on the finest grid (24 with the explicit scheme;
   [study report](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_re100/gpu_study.html)).
-- **Not yet:** turbulence models, heat transfer. A turbulent flow computed without a model has run
-  (a channel, 2 to 9 times OpenFOAM's speed per step) and is being verified as case 17. OpenFOAM's
+- **Not yet:** turbulence models, heat transfer. A turbulent flow computed without a model runs
+  (a channel, 2 to 9 times OpenFOAM's speed per step), but the grid that fits this PC does not
+  resolve its profiles (case 17, verdict FAIL; mean speed 0.34 % off). OpenFOAM's
   body-fitted grid is still the cheaper way to a given accuracy for bodies at Re 100 (case 4: drag
   within 0.25% at 13 thousand cells in under 3 minutes; gpucfd needs 459 thousand cells).
 

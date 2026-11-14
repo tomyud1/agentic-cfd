@@ -9,13 +9,63 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing is waiting to be committed.
+- **Answers to case 17's 19 insights (not started).** First the statistics tool, whose error for
+  slow signals is too small (see the entry below), then the time-step control, then the rest.
+  After that an optimize stage for the channel, with its target fixed in advance.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-14
 
-### Case 17 prepared: turbulent channel computed without a model, commit hash to be filled in
+### Case 17 solved: turbulent channel without a model, verdict FAIL, commit hash to be filled in
+A fresh agent (Claude Fable 5.2, high effort) solved the channel on gpucfd in 2 h 15 min with no
+human help. Report: `results/turbulent_channel_re180/report.html`.
+- *The result:* on the finest grid (192 x 64 x 64 cells) the mean speed through the channel is
+  15.65 ± 0.02 against 15.70 in the reference, 0.34 % low. The centre speed is 0.17 % high, the
+  friction coefficient 0.68 % high, the peak of the fluctuation along the flow 0.6 % low. These
+  four are inside the limits the agent set before the runs.
+- *Why FAIL:* before the runs the agent also set limits on the whole profiles, and all five are
+  missed. The mean velocity is up to 0.31 friction velocities low, 22 wall units from the plate
+  (limit 0.30). The fluctuations along the flow are too strong near the wall (0.14 against 0.08),
+  those across it too weak (0.07 and 0.08 against 0.05 and 0.06), and the shear stress is 0.034
+  off against 0.03. Two of the five lie within two statistical errors of their limit.
+- *What it means:* the good mean speed is partly luck. The profile is too low near the wall and
+  slightly too high in the middle, and the two cancel in the average. On the three grids the mean
+  speed is 15.94, 15.44 and 15.65, so it does not approach the answer from one side and the grid
+  study gives no order of accuracy. The cells on the finest grid (12 wall units along and across
+  the flow) are too large for the smallest eddies at the wall; the reference used cells two to
+  four times smaller. gpucfd computes this flow, but this grid does not resolve it. The next
+  finer grid (288 x 96 x 96) needs about four hours for the same averaging and was not run.
+- *A flaw in a tool prepared for this case, found by the agent:* `cfdlib.signals.stationary` gave
+  a statistical error for the mean speed that was about three times too small, and called it
+  reliable. Two runs of the coarsest grid from the same start gave 15.978 and 15.904, each
+  claimed to ± 0.010. The reason: wall friction pulls the mean speed back to its level slowly,
+  in about 9 time units, and a run of 30 to 40 time units is too short for the tool to see so
+  long a memory. The statement in `gpucfd/DESIGN.md` that the memory is about one time unit is
+  wrong for the same reason. The agent wrote a corrected estimate in its case folder (from the
+  exact balance of the box) and changed its stop rule to use it.
+- *Also found:* the time step that follows the flow overshoots its target (Courant number 1.08
+  with a target of 0.8 and a look every 10 steps). The agent ended at a look every 5 steps and a
+  target of 0.75. The two findings forced two restarts, about 12 minutes of GPU time.
+- *How the review checked it:* the scripted check is clean (report contract, problem and
+  reference unchanged, no shared file touched). The agent's transcript shows the pass and fail
+  limits written ten minutes before the first production run and never edited. Recomputed from
+  the raw run records with separate code: the mean speed (15.6457), the five largest profile
+  differences (0.313, 0.136, 0.072, 0.083, 0.034) and the total shear stress (within 0.004 of
+  the exact line) all match the report. Four runs of the coarsest grid scatter by 0.20 %, which
+  fits the agent's corrected error (0.15 to 0.25 %) and not the tool's (0.06 %). The verdict is
+  fair and stands.
+- *Against what was fixed in advance for gpucfd* (entry below): a mean speed within 1 % with a
+  statistical error of at most 0.3 % is met on the finest grid only. The two coarser grids are
+  1.5 % high and 1.6 % low, so "shown on more than one grid" is not met. GPU time was 1.8 of the
+  5 hours allowed.
+- *Cost:* 2 h 15 min in all, 110 minutes of it on the GPU (60 on the finest grid). About a
+  third of every run is start-up that is cut from the averages. The agent logged 19 insights,
+  each with a proposed change.
+- **Open:** the 19 insights are not answered yet. No grid here resolves the profiles, and
+  OpenFOAM's accuracy on this flow is still not measured.
+
+### Case 17 prepared: turbulent channel computed without a model (`9f060f3`)
 The next verified case, and the first turbulent flow for gpucfd. A fresh agent gets it next.
 - *The problem* (`cases/turbulent_channel_re180/problem.yaml`): flow between two plates driven
   by a constant force, friction Reynolds number 180, in a box that repeats along and across the
@@ -62,7 +112,7 @@ The next verified case, and the first turbulent flow for gpucfd. A fresh agent g
 - *Open:* OpenFOAM's accuracy on this flow is not measured. The agent's run will take hours of
   GPU time, the longest case so far.
 
-### Which way for turbulence in gpucfd: a measured prediction (same commit as the entry above)
+### Which way for turbulence in gpucfd: a measured prediction (`9f060f3`)
 Before
 building any turbulence model, two routes were compared by measurement. Scripts and numbers:
 `dev/exploration/les_channel/` (`predict.py`, `openfoam_time.py`, `results.json`); the write-up

@@ -1,0 +1,109 @@
+# Every modelling and numerical choice for this case. Written WHILE setting up the case.
+# The solver is gpucfd, so there are no OpenFOAM dictionaries: `settings` names where each choice lives
+# (a key of numerics.yaml, or an argument of the gpucfd call in run.py).
+# [[name]] is a number that analyze.py fills in from numerics.yaml or from a recorded check, so that no
+# measured value is typed here.
+
+- area: Physical model
+  kind: physics
+  choice: 'Incompressible flow of a fluid with constant density and viscosity, solved in three dimensions and in time, with no turbulence model and no wall model (direct numerical simulation)'
+  settings: ['run.py make(): gcfd.NavierStokes(nu=...)', 'problem.yaml given.nu, given.rho']
+  why: 'The problem asks for exactly this. At \(Re_\tau = 180\) the smallest eddies are only a few hundred times smaller than the channel, so a grid can carry all of them and nothing has to be modelled.'
+  affects: 'Defines the equations. Every eddy that the grid cannot carry is an error of the grid, not of a model; the grid study measures it.'
+  alternatives: 'A turbulence model (RANS, as in case 7) gives the mean flow in minutes but models the quantities asked for here (the fluctuations). A large-eddy simulation models only the smallest eddies; gpucfd has no such model.'
+
+- area: Solver
+  kind: solver
+  choice: 'gpucfd, the project''s GPU flow solver (staggered grid, second-order central differences in the energy-conserving form, pressure by multigrid), instead of OpenFOAM'
+  settings: ['numerics.yaml solver', 'run.py make()']
+  why: 'The problem fits what gpucfd covers (<code>cfdlib.gpu.check_fit</code>: [[fit]]). The cost is steps times time per step, tens of thousands of steps per run: gpucfd was measured 2 to 9 times faster per step than OpenFOAM on this flow (gpucfd/DESIGN.md, OpenFOAM at its tutorial settings on 8 cores), and its scheme adds no numerical damping, which matters when the eddies themselves are the answer. OpenFOAM''s tutorial set-up for this flow (two pressure corrections per step) was first order in time on case 4.'
+  affects: 'How the answer is reached, and through the scheme also its accuracy per cell: central differences without damping keep the energy of the eddies but need every level of the grid study to carry them.'
+  alternatives: 'OpenFOAM <code>pimpleFoam</code> without a model: the same equations, several times slower per step here, and its accuracy on such grids was not measured.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'The box \(4\pi\delta \times 2\delta \times \tfrac{4}{3}\pi\delta\) of the problem and of the reference; periodic along \(x\) and \(z\); no slip on both plates; a constant force \(f\) per unit mass along \(x\)'
+  settings: ['run.py make(): length, walls=(False, True, False), force=(f, 0, 0)', 'problem.yaml given.Lx, given.Lz, given.delta, given.f']
+  why: 'As given. The periodic sides stand for a channel that is very long and wide; the reference uses the same box, so any effect of its size is the same on both sides of the comparison. A constant force (not a prescribed flow rate) fixes the wall shear stress, and the flow rate is a result.'
+  affects: 'Defines the problem. Eddies longer than the box are cut off, on both sides of the comparison alike.'
+  alternatives: 'A prescribed flow rate with the force adjusted every step: settles faster, but it is a different problem (the friction velocity becomes a result) and gpucfd has no such control.'
+
+- area: Grid
+  kind: accuracy
+  choice: 'One family of three grids, [[grid_list]] cells (\(x \times y \times z\)): equal cells along \(x\) and \(z\), cells clustered toward both plates by a tanh law with a wall cell of [[wall_cells]] wall units'
+  settings: ['numerics.yaml levels', 'run.py y_faces(): gpucfd.grids.tanh_wall']
+  why: 'Turbulence at a wall lives in thin streaks about 100 wall units apart and needs cells of a few wall units in \(y\) at the wall, so the grid is judged in wall units (the table in the Simulation section). Three times as many cells along \(x\) as along \(z\) makes the cells square in the wall plane, which halves the work of the pressure solver (gpucfd/DESIGN.md). All three directions are refined together, with the same stretching, so the three levels are one family and their differences measure the grid error. The finest level is the one gpucfd''s exploration found within about 1 % in the mean flow.'
+  affects: 'The main numerical error of the result. The reference used cells two to four times smaller in every direction.'
+  alternatives: 'Three levels with ratio 2 (the workflow''s default) would end at \(384 \times 128 \times 128\), 6.3 million cells and many hours; here the ratios are 1.5 and 4/3. Cells twice as long as wide (the usual choice for this flow) would resolve the streaks better per cell but double the pressure work; not tested.'
+
+- area: Time integration
+  kind: accuracy
+  choice: 'Implicit diffusion (Crank-Nicolson) with explicit three-stage convection (<code>scheme="imex"</code>); the time step is re-chosen every [[steps_per_sample]] steps to hold a Courant number of [[cfl]]'
+  settings: ['numerics.yaml scheme, time.cfl, time.dt_cap, time.steps_per_sample, time.store_every', 'run.py run_one(): gpu.run_transient(adapt_cfl=...)']
+  why: 'With cells of 1 wall unit at the plates the explicit scheme''s viscous limit would set the step; the implicit treatment removes that limit, so only the flow speed limits the step. That limit moves as the eddies come and go, so the step follows it. The first complete run (target 0.8, a look every 10 steps) passed a Courant number of 1 at a few moments, because the largest local value can rise by a third within 10 steps; hence a look every [[steps_per_sample]] steps and the target [[cfl]]. The step is far below the time scales of the eddies; the time-step check (the coarsest grid again with half the step) measures what is left.'
+  affects: 'The error in time, and the cost: the number of steps is the Courant number''s inverse.'
+  alternatives: 'A fixed step sized for the worst moment wastes about a third of the steps; the explicit scheme needs a several times smaller step on these grids.'
+
+- area: Pressure solve
+  kind: accuracy
+  choice: 'Pressure tolerance [[ptol]] (relative residual of each projection), mixed precision multigrid'
+  settings: ['numerics.yaml time.pressure_tol', 'run.py run_one(): gpu.run_transient(ptol=...)']
+  why: 'Chosen by the same-answer check on the coarsest and the finest grid (<code>cfdlib.gpu.tolerance_check</code>, Pre-flight section): the same stretch of flow computed with five tolerances. With this one, bulk velocity and wall shear differ from the strictest run by [[tol_diff_G3]] on the finest grid (rule: [[tol_rule]]), and the divergence left in the velocity is [[tol_div_G3]] of the check''s scale. A step is [[tol_gain_G3]] cheaper than with the tolerance first planned.'
+  affects: 'How exactly the velocity is free of divergence after each step. The check covers a short stretch; over a long run two turbulent flows part ways whatever the tolerance, so only the divergence check of each run speaks for the long term.'
+  alternatives: 'A stricter tolerance: same answer over the stretch tested, up to a third more time per step.'
+
+- area: Start fields
+  kind: solver
+  choice: 'Coarsest grid: a turbulent-looking start field (<code>gpucfd.turbulence.channel_start</code>: an empirical mean profile with streaks, vortices and noise). Finer grids: the last field of the grid below, interpolated. The start-up of every run is cut from the averages'
+  settings: ['numerics.yaml runs.*.source', 'run.py start()']
+  why: 'The problem leaves the initial state free. From rest or from the laminar solution the flow can stay laminar for a very long time; the start field is built to turn turbulent within a few time units (the pre-flight shows it). Starting a finer grid from a developed flow saves the transition, but not the slow settling of the bulk velocity (Theory: about 9 time units for a factor \(e\)).'
+  affects: 'Nothing in a settled average, provided the start-up is cut. Where the cut is placed is a choice of its own (next decision).'
+  alternatives: 'Every grid from the same artificial start field: independent runs, but each pays the transition again.'
+
+- area: Averaging and stopping
+  kind: accuracy
+  choice: 'Plane averages are sampled every [[steps_per_sample]] steps. The start-up is cut at the later of the point <code>cfdlib.signals.settle_time</code> finds and the time at which the bulk velocity''s slow approach has decayed to [[stop_gap]] of its value. A run ends when, over the rest: the standard error of the mean bulk velocity, taken from the balance of the box, is below [[stop_stderr]]; at least [[stop_min_time]] time units are averaged; the two halves of the record agree within [[stop_drift]] standard errors; and the mean wall shear is within [[stop_balance]] of the driving force'
+  settings: ['numerics.yaml stop', 'run.py start_up_end(), bulk_average(), stop_state(), make_watch()']
+  why: 'A turbulent flow never becomes steady, so a run cannot stop on residuals or on a value that stops changing. What can settle is the average and its error. The conditions are the error wanted, an averaging time of about four settling times, no remaining trend, and the flow''s own balance (wall shear against driving force), which is the physical check. This is the second version of the rule. The first, fixed before the runs, took the error from block means of the bulk velocity and asked for 0.1 %; two complete runs of the coarsest grid then disagreed by five times that error, because the bulk velocity remembers for about nine time units (Theory). The error is now formed from a short-memory signal and the settling time, and the limit is what tens of time units can deliver.'
+  affects: 'The statistical error of every output, and the run time: halving the error needs four times the averaging time (0.1 % would need about 300 time units).'
+  alternatives: 'A fixed run length chosen in advance (the usual practice): simpler, but it does not say whether the average has settled. Several independent shorter runs: the same statistics and a direct error estimate from their scatter, at the price of one start-up each.'
+
+- area: Outputs
+  kind: output
+  choice: 'Mean profile, fluctuation intensities, turbulent shear stress and wall shear from <code>gpucfd.turbulence.PlaneStats</code> (formed on the solver''s own staggered positions), averaged in time by <code>cfdlib.signals.stationary</code> and over the two halves of the channel. Fluctuations are taken about the full mean (plane and time). Peak of \(u''_{rms}\) from a cubic spline through the seven points around the largest value, as in the reference file'
+  settings: ['run.py observer()', 'analyze.py averages(), peak()']
+  why: 'Averages formed like the solver''s own fluxes satisfy the mean momentum balance to round-off for every single field, so what is left of the balance after averaging measures the averaging, not the post-processing. Using the reference''s own extraction for the peak removes one difference between the two sides. Statistical errors: for the bulk velocity from the balance of the box (previous decision); the mean velocity everywhere moves with the bulk velocity, so the centre velocity and the profile carry the same relative error on top of their block estimate; the fluctuations and the shear stress use block means.'
+  affects: 'What is measured. The fluctuation about the plane mean of each field alone would be slightly smaller than the one the reference reports; the difference (the variance in time of the plane mean) is added.'
+  alternatives: 'Sampling points or lines: far noisier than plane averages for the same run.'
+
+- area: Outputs
+  kind: output
+  choice: 'Reference value: the mean of the two codes of Vreman and Kuerten (2014). Its uncertainty: the authors'' bound on the largest relative error, [[ref_unc_mean]] for the mean velocity and [[ref_unc_rms]] for the fluctuations. Friction coefficient from the exact wall shear, \(C_f = 2u_\tau^2/U_b^2\), as in the reference file'
+  settings: ['numerics.yaml reference_uncertainty_pct', 'analyze.py reference()']
+  why: 'The two codes are independent (spectral and finite differences) and agree far better than this simulation can; their mean with the authors'' own error bound is the fairest single target. The bound is larger than the difference between the two codes and covers their statistical error too.'
+  affects: 'The size of the band inside which a difference cannot be told from the reference''s own error.'
+  alternatives: 'One of the two codes alone (the difference is [[ref_between_bulk]] in the bulk velocity).'
+
+- area: Outputs
+  kind: output
+  choice: 'Grid convergence from three levels with two different refinement ratios: order and extrapolated value solved from the three-level relations in <code>analyze.py</code>, with the statistical error of each level carried through by resampling'
+  settings: ['analyze.py three_levels()']
+  why: 'The repository''s tool takes one refinement ratio; the levels here have 1.5 and 4/3. The model is the same (error proportional to the cell size to a power), and the code is checked against the tool for equal ratios. Because each level carries a statistical error, the order and the extrapolated value are computed for many resampled sets of the three values; the spread says how much of the grid study is noise.'
+  affects: 'The grid part of the error budget.'
+  alternatives: 'Assuming the scheme''s formal order 2 and extrapolating from the two finest levels (reported next to the observed order).'
+
+- area: Acceptance
+  kind: output
+  choice: 'Pass and fail limits fixed before the runs (numerics.yaml, acceptance): requested numbers on the finest grid within [[acc_bulk]] (bulk and centre velocity), [[acc_cf]] (friction coefficient), [[acc_urms]] (peak of \(u''_{rms}\)); profiles within fixed distances of the reference; and checks of the evidence itself (stop rule held, total stress on the exact line, the two plates alike, order of convergence, extrapolated value inside the uncertainty band, half the time step changes nothing)'
+  settings: ['numerics.yaml acceptance']
+  why: 'Sized from what was known before the runs: gpucfd''s exploration on the finest grid was 0.4 to 0.8 % low in the bulk velocity and 1.1 % low in the peak of \(u''_{rms}\), and the reference''s own coarser run was 0.8 % off in the mean velocity. A miss of a requested number is a FAIL; a miss of a check of the evidence is a WARN.'
+  affects: 'The verdict.'
+  alternatives: 'Judging only against the uncertainty band (grid index plus statistical error plus the reference''s): kept as one of the checks, because a wide band would let any result pass.'
+
+- area: Run budget
+  kind: solver
+  choice: 'Runs of up to [[tmax_G3]] time units on the finest grid (about an hour), above the machine''s usual limit of 15 minutes per run; one run at a time on the GPU'
+  settings: ['numerics.yaml stop.t_max']
+  why: 'The length of these runs is set by the flow, not by the grid: the bulk velocity needs tens of time units to settle and to average (Theory), and the finest grid costs about a minute per time unit (Pre-flight). A coarser finest grid would give up the accuracy the problem asks about.'
+  affects: 'Wall-clock time only.'
+  alternatives: 'A shorter average with a larger statistical error; a coarser grid with a larger grid error.'

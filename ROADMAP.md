@@ -13,7 +13,7 @@ change the order.
 | Part | Works today | Missing |
 |---|---|---|
 | Workflow | Problem statement to checked report, on laminar flow (steady, unsteady, 2D, 3D), heat transfer, and one turbulent flow with a turbulence model (flat plate) | Turbulent flows with pressure gradients and separation, real geometry, a problem with no reference answer |
-| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box; runs a turbulent channel without a model, 2-9× faster per step than OpenFOAM on 8 cores (exploration, not yet a verified case) | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
+| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box; runs a turbulent channel without a model, 2-9× faster per step than OpenFOAM on 8 cores (case 17, verdict FAIL: mean speed 0.34 % off on the finest grid, but the profiles are not resolved there) | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
 | Agent | Claude at high effort (case 7: Fable 5.2), on one PC | Never tried with another agent or on another machine |
 
 ## Now: until the meeting (development PC)
@@ -106,16 +106,20 @@ anything ([`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), "Turbulence resolved without a
 
 ### 3b. Case 17: turbulent channel without a model (gpucfd's first turbulent flow)
 
-**Prepared (2026-11-14), not launched.** The problem, the reference (Vreman and Kuerten 2014, two
-independent codes within 0.03 % on the mean speed) and the tools a fresh agent needs are in place:
-averages with a statistical error, a start field, plane averages, a time step that follows the flow.
+**Solved by a fresh agent (2026-11-14), verdict FAIL.** Reference: Vreman and Kuerten 2014, two
+independent codes within 0.03 % on the mean speed.
 
-*Fixed in advance.* Success for gpucfd: mean speed through the channel within 1 % of the reference,
-with a statistical error of at most 0.3 % and more than one grid to show the trend, in under about
-5 GPU hours on this PC. Stop rule: if after that time no settled average exists on a grid at least
-as fine as 192 x 64 x 64, stop the agent and review what blocked it. Expected from the exploration:
-the coarse grid about 7 % low, the 192 x 64 x 64 grid within 1 %; whether a finer grid closes the
-rest is not known.
+*Fixed in advance, and what came out.* Success for gpucfd was: mean speed through the channel
+within 1 % of the reference, with a statistical error of at most 0.3 % and more than one grid to
+show the trend, in under about 5 GPU hours on this PC. Outcome: met on the finest grid only
+(192 x 64 x 64: 0.34 % low, error 0.16 %, 1.8 GPU hours in all). The two coarser grids are 1.5 %
+high and 1.6 % low, so there is no trend, and the velocity and fluctuation profiles miss the
+limits the agent set before its runs. The grid that fits this PC does not resolve the flow at
+the wall.
+
+*Next for this case:* answer the agent's 19 insights (first the statistics tool, whose error for
+slowly settling signals was about three times too small), then an optimize stage with its own
+target, budget and stop rule fixed in advance.
 
 *After it,* with a target at a higher Reynolds number fixed in advance: a viscosity that varies
 from cell to cell (the first brick of any model), then a model for the smallest eddies (large-eddy

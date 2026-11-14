@@ -1,0 +1,12 @@
+[08:28:52] pre_G1: start field channel_start, max |div u| 6.9e-09
+[08:28:56] pre_G1: t 1.006 bulk 15.7961 tau_low 0.643682 tau_high 0.664335 umax 30.0735 courant_rate 371.112 | CFL 0.91 div 3.1e-12 | GPU 3.8 s wall 4.0 s
+[08:29:03] pre_G1: t 2.010 bulk 15.934 tau_low 1.01873 tau_high 1.00565 umax 26.8791 courant_rate 358.105 | CFL 0.93 div 3.6e-12 | GPU 9.8 s wall 10.4 s
+[08:29:08] pre_G1: t 3.016 bulk 15.9195 tau_low 0.993467 tau_high 0.992447 umax 25.6178 courant_rate 313.794 | CFL 0.93 div 3.6e-12 | GPU 15.1 s wall 16.0 s
+[08:29:14] pre_G1: t 4.000 bulk 15.9431 tau_low 0.974001 tau_high 0.950004 umax 24.6509 courant_rate 360.439 | CFL 0.96 div 3.6e-12 | GPU 20.8 s wall 21.9 s
+[08:29:14] pre_G1: done at t = 4.00, health ok, 1601 steps, wall 22 s, 13.7 ms per step (wall), 9.3 pressure iterations per solve; ended by: t_max reached
+[08:29:14] pre_G1: 13.7 ms per step, 428 steps per time unit, 5.9 s per time unit, at most 9.8 min for t_max = 100
+[08:29:15] pre_G3: start field interpolated from the last field of pre_G1, max |div u| 1.6e-09
+[08:30:07] pre_G3: t 1.000 bulk 16.0083 tau_low 0.971389 tau_high 0.924898 umax 25.4611 courant_rate 986.231 | CFL 1.04 div 4.3e-12 | GPU 51.9 s wall 52.5 s
+[08:30:07] pre_G3: done at t = 1.00, health warn, 738 steps, wall 53 s, 71.1 ms per step (wall), 9.4 pressure iterations per solve; ended by: t_max reached
+[08:30:07] pre_G3: 71.1 ms per step, 881 steps per time unit, 62.7 s per time unit, at most 78.3 min for t_max = 75
+[08:30:07] PREFLIGHT DONE

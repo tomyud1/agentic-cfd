@@ -1,0 +1,2186 @@
+{
+ "title": "Turbulent flow between two parallel plates at friction Reynolds number 180, computed without a turbulence model",
+ "date": "2026-11-14",
+ "verdict": "FAIL",
+ "comparison_type": "benchmark",
+ "summary": {
+  "headline": "<b>FAIL.</b> Computed without a turbulence model on 786,432 cells, the bulk velocity is \\(U_b/u_\\tau = 15.65 \\pm 0.02\\), \\(-0.3\\,\\%\\) from the reference (\\(15.70\\)); 5 of the 10 limits set before the runs on the requested outputs are missed: profile of mean velocity, profile of \\(u'_{rms}\\), profile of \\(v'_{rms}\\), profile of \\(w'_{rms}\\), profile of turbulent shear stress.",
+  "answer_columns": [
+   "Requested",
+   "Reference (Vreman and Kuerten (2014), mean of two codes)",
+   "This simulation (finest grid, G3)",
+   "Difference"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Bulk velocity and bulk Reynolds number",
+    "theory": "\\(U_b/u_\\tau = 15.699\\), \\(Re_b = 5651\\) (own uncertainty \\(0.2\\,\\%\\))",
+    "sim": "\\(U_b/u_\\tau = 15.646 \\pm 0.024\\), \\(Re_b = 5632 \\pm 9\\) (one statistical standard error, \\(0.16\\,\\%\\))",
+    "diff": "\\(-0.34\\,\\%\\)"
+   },
+   {
+    "letter": "b",
+    "label": "Friction coefficient",
+    "theory": "\\(0.008115\\)",
+    "sim": "\\(0.00817 \\pm 2.5 \\times 10^{-5}\\)",
+    "diff": "\\(+0.68\\,\\%\\)"
+   },
+   {
+    "letter": "c",
+    "label": "Centre-plane velocity",
+    "theory": "\\(U_c/u_\\tau = 18.281\\)",
+    "sim": "\\(U_c/u_\\tau = 18.313 \\pm 0.032\\)",
+    "diff": "\\(+0.17\\,\\%\\)"
+   },
+   {
+    "letter": "d",
+    "label": "Mean velocity profile",
+    "theory": "Profiles of both codes; at the wall the exact limit \\(u^+ = y^+ - (y^+)^2/(2Re_\\tau)\\)",
+    "sim": "Figure 4. Largest difference from the reference \\(-0.313\\) at \\(y^+ = 22\\); wall cell \\(+0.18\\,\\%\\) from the exact wall limit",
+    "diff": "\\(-0.313\\)<br>(in \\(u_\\tau\\))"
+   },
+   {
+    "letter": "e",
+    "label": "Velocity fluctuations",
+    "theory": "peak \\(u'_{rms} = 2.671\\) at \\(y^+ = 14.4\\)",
+    "sim": "Figure 5. Peak \\(u'_{rms} = 2.655 \\pm 0.008\\) at \\(y^+ = 13.2\\). Largest differences along the profiles: \\(u'\\) \\(0.138\\), \\(v'\\) \\(-0.072\\), \\(w'\\) \\(-0.081\\)",
+    "diff": "\\(-0.61\\,\\%\\)<br>(peak)"
+   },
+   {
+    "letter": "f",
+    "label": "Shear stress",
+    "theory": "peak \\(-\\langle u'v'\\rangle/u_\\tau^2 = 0.7232\\) at \\(y^+ = 31.6\\); total stress: the exact line",
+    "sim": "Figure 6. Peak \\(0.7170\\) at \\(y^+ = 31.1\\); total stress within \\(0.0041\\) of the exact line across the channel",
+    "diff": "\\(-0.85\\,\\%\\)<br>(peak)"
+   },
+   {
+    "letter": "g",
+    "label": "Wall shear against driving force",
+    "theory": "\\(\\tau_w = \\rho f\\delta\\) exactly, for a settled average",
+    "sim": "mean wall shear \\(1.0004\\) of \\(\\rho f\\delta\\) over \\(38\\) time units (lower plate \\(+0.40\\,\\%\\), upper \\(-0.31\\,\\%\\)); by the balance of the box this allows the bulk velocity to be up to \\(0.03\\,\\%\\) from settled",
+    "diff": "\\(+0.04\\,\\%\\)"
+   },
+   {
+    "letter": "h",
+    "label": "Is the turbulence resolved?",
+    "theory": "–",
+    "sim": "<b>No, not within the limits set before the runs.</b> Mean flow: bulk velocity \\(-0.34\\,\\%\\), centre velocity \\(+0.17\\,\\%\\), profile within \\(0.31\\) \\(u_\\tau\\) of the reference. Fluctuations: peak of \\(u'_{rms}\\) \\(-0.6\\,\\%\\) and \\(1.2\\) wall units from its place; profiles of \\(u'\\), \\(v'\\), \\(w'\\) off by up to \\(0.14\\), \\(0.07\\), \\(0.08\\) \\(u_\\tau\\). The cells are too large for the smallest eddies at the wall. The difference of the bulk velocity is made of: grid: no error estimate, the last refinement changed the value by \\(1.30\\,\\%\\); averaging time \\(\\pm\\)\\(0.16\\,\\%\\) (one standard error) and up to \\(0.03\\,\\%\\) for not being fully settled; reference \\(\\pm\\)\\(0.2\\,\\%\\).",
+    "diff": "\\(-0.34\\,\\%\\)<br>(bulk)"
+   }
+  ],
+  "findings": [
+   "On the finest grid (\\(192\\) by \\(64\\) by \\(64\\) cells, \\(11.8\\) wall units along and across the flow) the bulk velocity is \\(0.34\\,\\%\\) below the reference, with a statistical error of \\(0.16\\,\\%\\) from \\(38\\) time units of averaging and a reference uncertainty of \\(0.2\\,\\%\\).",
+   "Fluctuations on the finest grid: the peak of \\(u'_{rms}\\) is \\(-0.6\\,\\%\\) from the reference and sits at \\(y^+ = 13.2\\) against \\(14.4\\); along the profiles \\(u'_{rms}\\) differs by up to \\(0.138\\) (at \\(y^+ = 4\\)), \\(v'_{rms}\\) by \\(-0.072\\) and \\(w'_{rms}\\) by \\(-0.081\\) (in \\(u_\\tau\\)). Too much energy along the flow close to the wall and too little across it is what cells too large for the streaks at the wall would give; that reading was not tested by refining one direction alone.",
+   "The close agreement of the bulk velocity hides a larger error of the profile: the mean velocity on G3 is \\(0.31\\) \\(u_\\tau\\) below the reference at \\(y^+ = 22\\) (many statistical errors) and \\(0.03\\) from it at the centre, while the bulk velocity, the average of the profile over the channel, is only \\(0.05\\) off. Differences of opposite tendency in the wall layer and in the core partly cancel in it, and on the three grids the bulk velocity does not move toward the reference from one side.",
+   "Grid study: the bulk velocity on the three grids is \\(15.938\\), \\(15.441\\), \\(15.646\\). The three values do not approach a limit from one side, so no order of accuracy and no extrapolated value can be given; the last change, \\(0.204\\), stands for the grid uncertainty. With the statistical error of each level, \\(0\\,\\%\\) of resampled sets of the three values give a usable order.",
+   "Statistical error: 4 independent runs of the coarsest grid give bulk velocities between \\(15.890\\) and \\(15.959\\). Plain block means claim errors of \\(0.003\\) to \\(0.013\\), which the scatter contradicts; the estimate from the balance of the box gives \\(0.025\\) to \\(0.039\\) and is consistent with it. The bulk velocity remembers for about \\(9\\) time units, so tens of time units fix it to a few tenths of a per cent, not better.",
+   "Time step: with half the step on the coarsest grid the bulk velocity changes by \\(-0.018\\) \\(\\pm\\) \\(0.041\\) and the peak of \\(u'_{rms}\\) by \\(-0.023\\) \\(\\pm\\) \\(0.014\\): no effect of the time step can be seen above the statistical error.",
+   "Checks of the averages themselves on G3: mean wall shear \\(+0.04\\,\\%\\) from the driving force, total shear stress within \\(0.0041\\) of the exact line, the two plates alike within \\(1.0\\) standard errors.",
+   "<b>Limits missed (set before the runs):</b> Profile of mean velocity on G3: largest difference \\(-0.313\\) at \\(y^+ = 22\\) (limit \\(0.30\\)). Profile of \\(u'_{rms}\\) on G3: largest difference \\(0.138\\) at \\(y^+ = 4\\) (limit \\(0.08\\)). Profile of \\(v'_{rms}\\) on G3: largest difference \\(-0.072\\) at \\(y^+ = 36\\) (limit \\(0.05\\)). Profile of \\(w'_{rms}\\) on G3: largest difference \\(-0.081\\) at \\(y^+ = 38\\) (limit \\(0.06\\)). Profile of turbulent shear stress on G3: largest difference \\(0.034\\) at \\(y^+ = 8\\) (limit \\(0.03\\)).",
+   "<b>Checks of the evidence that did not pass:</b> Profile of mean velocity: the largest difference is within two statistical errors of its limit, so a longer average could change this rule's outcome (\\(-0.313\\) against \\(0.30\\), error \\(0.026\\)). Profile of turbulent shear stress: the largest difference is within two statistical errors of its limit, so a longer average could change this rule's outcome (\\(0.034\\) against \\(0.03\\), error \\(0.002\\)). Bulk velocity over the three grids: the three values do not approach a limit from one side, so no order can be read. With the statistical error of each level, \\(0\\,\\%\\) of resampled sets give a usable order."
+  ],
+  "limitations": [
+   "One finest grid of 786,432 cells: the reference used cells two to four times smaller in each direction. A finer level (ratio 1.5: 2.7 million cells) would cost about four hours for the same averaging time on this computer and was not run.",
+   "Averaging times of \\(37\\) to \\(38\\) time units against the reference's 200: the statistical error of the bulk velocity is \\(0.16\\,\\%\\), and the error estimate itself rests on a handful of independent samples and on a settling time from an empirical friction law.",
+   "The time-step check and the repeat runs are on the coarsest grid only; the finer grids use smaller steps.",
+   "The grid family refines all three directions together. Which direction limits the accuracy (cells along the flow, across it, or normal to the wall) was not separated.",
+   "Start-up cut, statistical error model and stop rule were revised during the work, after the first two runs of the coarsest grid (Section 5 and the insights); the pass and fail limits on the outputs were not changed.",
+   "The logarithmic law drawn in the profile figure uses textbook constants quoted from memory; it is for orientation and enters no number."
+  ]
+ },
+ "problem": {
+  "description": "A fluid flows between two parallel smooth plates, driven by a constant force along the plates. The flow is turbulent. No turbulence model is used: the eddies are to be computed directly in time, and the answers are averages over time. Find the mean velocity profile, the mean speed through the channel, the friction coefficient and the strength of the velocity fluctuations, each with its statistical uncertainty, and compare them with a published simulation of the same flow in the same box.",
+  "setup": [
+   "Three-dimensional. Coordinates: \\(x\\) along the flow, \\(y\\) normal to the plates, \\(z\\) across the flow. The plates are at \\(y = 0\\) and \\(y = 2\\delta\\); \\(\\delta\\) is half the distance between them.",
+   "Domain: the box \\(L_x \\times 2\\delta \\times L_z\\) with \\(L_x = 4\\pi\\delta\\) and \\(L_z = \\tfrac{4}{3}\\pi\\delta\\). The flow repeats in \\(x\\) and in \\(z\\) (periodic), which stands for a channel that is very long and very wide. The reference uses the same box.",
+   "Plates: smooth, at rest, no slip.",
+   "Driving: a uniform, constant force per unit mass \\(f\\) along \\(x\\) (the same as a constant mean pressure gradient \\(-\\mathrm{d}P/\\mathrm{d}x = \\rho f\\)). The flow rate is not prescribed: it is a result.",
+   "In a statistically steady state the two plates carry the driving force, so the mean wall shear stress is known in advance: \\(\\tau_w = \\rho f \\delta\\). The friction velocity is therefore \\(u_\\tau = \\sqrt{\\tau_w/\\rho} = \\sqrt{f\\delta}\\).",
+   "Friction Reynolds number: \\(Re_\\tau = u_\\tau \\delta / \\nu = 180\\).",
+   "Incompressible fluid of constant density and viscosity.",
+   "The flow must be turbulent. The same equations also have a laminar solution (a parabolic profile with the centre speed \\(\\tfrac12 Re_\\tau u_\\tau = 90\\,u_\\tau\\)); it is not the answer wanted. The initial state is free to choose.",
+   "No turbulence model and no wall model: all eddies are resolved by the grid and the time step (direct numerical simulation).",
+   "Averages \\(\\langle\\cdot\\rangle\\): over \\(x\\), \\(z\\), time, and the two halves of the channel, taken after the start-up transient. Fluctuations: \\(u' = u - \\langle u\\rangle\\), likewise for \\(v\\) (along \\(y\\)) and \\(w\\) (along \\(z\\)).",
+   "Wall units: \\(u^+ = u/u_\\tau\\), \\(y^+ = y\\,u_\\tau/\\nu\\) with \\(y\\) the distance from the nearer plate.",
+   "Bulk velocity: \\(U_b = \\frac{1}{2\\delta}\\int_0^{2\\delta} \\langle u\\rangle\\,\\mathrm{d}y\\). Friction coefficient: \\(C_f = \\tau_w / (\\tfrac12 \\rho U_b^2)\\). Bulk Reynolds number: \\(Re_b = 2\\delta\\,U_b/\\nu\\).",
+   "Total shear stress: \\(\\tau(y) = \\rho\\nu\\,\\mathrm{d}\\langle u\\rangle/\\mathrm{d}y - \\rho\\langle u'v'\\rangle\\). In a statistically steady state the mean momentum balance gives exactly \\(\\tau(y) = \\tau_w\\,(1 - y/\\delta)\\)."
+  ],
+  "given": [
+   {
+    "label": "Half the distance between the plates",
+    "symbol": "\\(\\delta\\)",
+    "value": "\\(1\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Driving force per unit mass (gives a friction velocity of 1 m/s)",
+    "symbol": "\\(f\\)",
+    "value": "\\(1\\)",
+    "unit": "m/s²"
+   },
+   {
+    "label": "Kinematic viscosity (1/180, which gives the friction Reynolds number 180)",
+    "symbol": "\\(\\nu\\)",
+    "value": "\\(0.005555555556\\)",
+    "unit": "m²/s"
+   },
+   {
+    "label": "Density",
+    "symbol": "\\(\\rho\\)",
+    "value": "\\(1\\)",
+    "unit": "kg/m³"
+   },
+   {
+    "label": "Length of the periodic box along the flow (4 pi delta)",
+    "symbol": "\\(L_x\\)",
+    "value": "\\(12.56637061\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Width of the periodic box across the flow (4 pi delta / 3)",
+    "symbol": "\\(L_z\\)",
+    "value": "\\(4.188790205\\)",
+    "unit": "m"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "bulk",
+    "text": "Bulk velocity \\(U_b/u_\\tau\\) and bulk Reynolds number \\(Re_b\\), with the statistical uncertainty of the time average"
+   },
+   {
+    "letter": "b",
+    "key": "cf",
+    "text": "Friction coefficient \\(C_f\\)"
+   },
+   {
+    "letter": "c",
+    "key": "centre",
+    "text": "Mean velocity on the centre plane, \\(U_c/u_\\tau\\)"
+   },
+   {
+    "letter": "d",
+    "key": "profile",
+    "text": "Mean velocity profile in wall units, \\(u^+\\) against \\(y^+\\), with the law of the wall"
+   },
+   {
+    "letter": "e",
+    "key": "rms",
+    "text": "Root-mean-square velocity fluctuations \\(u'_{rms}\\), \\(v'_{rms}\\), \\(w'_{rms}\\) in wall units against \\(y^+\\); the peak of \\(u'_{rms}\\) and where it is"
+   },
+   {
+    "letter": "f",
+    "key": "shear",
+    "text": "Turbulent shear stress \\(-\\langle u'v'\\rangle/u_\\tau^2\\) and the total shear stress across the channel, against the exact straight line"
+   },
+   {
+    "letter": "g",
+    "key": "balance",
+    "text": "Mean wall shear stress against the driving force: how well the time average has settled"
+   },
+   {
+    "letter": "h",
+    "key": "resolved",
+    "text": "Is the turbulence resolved? State the difference that remains to the reference and what it is made of (grid, averaging time, the reference's own uncertainty)"
+   }
+  ],
+  "reference": "Direct numerical simulations of this flow in this box by Vreman and Kuerten (Physics of Fluids 26, 015102, 2014): the same set-up (half height 1, viscosity 1/180, driving force 1) computed with two independent codes, a spectral one and a finite-difference one, each averaged over 200 time units \\(\\delta/u_\\tau\\). The file gives the profiles of both (mean velocity, the three fluctuation intensities, the turbulent shear stress), the bulk and centre-plane velocities and the friction coefficient computed from them, and the reference's own uncertainty as numbers: the difference between the two codes, and how far each code's mean wall shear is from the driving force. The files as published are in reference/vk2014/. Parsed by code: setup/fetch_vk2014_channel.sh downloads them, setup/parse_vk2014_channel.py checks them and writes the YAML."
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "Incompressible flow, constant density and viscosity",
+    "check": "Given in the problem; the reference solves the same equations.",
+    "status": "imposed"
+   },
+   {
+    "name": "The periodic box stands for a very long and wide channel",
+    "status": "standard",
+    "check": "Box and periodicity as given and as in the reference, so any effect of the box size is the same on both sides of the comparison. The mean flow crosses the box once in \\(0.80\\) time units."
+   },
+   {
+    "name": "The flow is turbulent, not the laminar solution",
+    "status": "ok",
+    "check": "Bulk velocity \\(15.65\\) against the laminar \\(60\\); fluctuations of the size of the reference's (peak \\(u'_{rms}\\) \\(2.66\\))."
+   },
+   {
+    "name": "The averages are those of a settled flow",
+    "status": "ok",
+    "check": "On G3: mean wall shear \\(+0.04\\,\\%\\) from the driving force (limit \\(0.3\\,\\%\\)); second half of the record against the first: \\(0.0\\) standard errors; start-up of \\(20.1\\) time units cut."
+   },
+   {
+    "name": "The two halves of the channel are statistically alike",
+    "status": "ok",
+    "check": "Mean wall shear of the two plates on G3: \\(+0.40\\,\\%\\) and \\(-0.31\\,\\%\\) from the driving force, \\(1.0\\) standard errors apart. The profiles are averaged over both halves."
+   },
+   {
+    "name": "All eddies are resolved by the grid (no model)",
+    "status": "violated",
+    "check": "Tested by the grid study and against the reference. Cells of \\(11.8\\) wall units in the wall plane on G3 carry the bulk velocity to \\(0.3\\,\\%\\); the mean flow misses its limits and the fluctuations miss theirs (Summary, request h)."
+   },
+   {
+    "name": "The time step is small enough",
+    "status": "ok",
+    "check": "Half the step on the coarsest grid changes the bulk velocity by \\(0.4\\) combined standard errors. Mean step on G3: \\(0.19\\) viscous time units \\(\\nu/u_\\tau^2\\)."
+   }
+  ]
+ },
+ "theory": {
+  "intro": "A turbulent flow has no exact solution: it is chaotic, and only its averages are reproducible. Theory still fixes several things exactly, and they are what the simulation is checked against apart from the reference: the wall shear stress is set by the driving force, the total shear stress is a straight line, the profile at the wall is known, and the balance of the whole box says how slowly the bulk velocity settles and how large the statistical error of its average is. SymPy derives and checks each of them.",
+  "steps": [
+   {
+    "label": "Governing equations: incompressible flow driven by a constant force",
+    "latex": "\\nabla\\cdot\\mathbf{u} = 0,\\qquad \\frac{\\partial \\mathbf{u}}{\\partial t} + (\\mathbf{u}\\cdot\\nabla)\\,\\mathbf{u} = -\\frac{1}{\\rho}\\nabla p + \\nu\\,\\nabla^2\\mathbf{u} + f\\,\\mathbf{e}_x",
+    "note": "Solved as they stand, in three dimensions and in time, with no model added. The turbulent flow is chaotic: no formula gives it, and two runs never agree instant by instant. Only its averages are reproducible, so every requested output is an average."
+   },
+   {
+    "label": "Average over x, z and time: the mean momentum balance",
+    "latex": "0 = f + \\frac{\\mathrm{d}}{\\mathrm{d}y}\\left(\\nu\\,\\frac{\\mathrm{d}\\langle u\\rangle}{\\mathrm{d}y} - \\langle u'v'\\rangle\\right)\\quad\\Rightarrow\\quad \\frac{\\tau(y)}{\\rho} = \\nu\\,\\frac{\\mathrm{d}\\langle u\\rangle}{\\mathrm{d}y} - \\langle u'v'\\rangle = f\\,(\\delta - y)",
+    "note": "Exact for a settled flow. The total shear stress (viscous part plus the part carried by the eddies) is a straight line from the wall to zero on the centre plane, and its wall value is \\(\\tau_w = \\rho f\\delta\\). Theory does not say how the total splits into its two parts; that is the turbulence, and the simulation has to find it."
+   },
+   {
+    "label": "The laminar solution of the same equations (not the answer wanted)",
+    "latex": "U_{lam}(y) = \\frac{f}{2\\nu}\\,y\\,(2\\delta - y),\\qquad U_{c,lam} = \\tfrac12 Re_\\tau\\,u_\\tau,\\qquad U_{b,lam} = \\tfrac13 Re_\\tau\\,u_\\tau",
+    "note": "Without eddies the whole stress is viscous and the profile is a parabola. The start field must push the flow away from this solution, which is stable to small disturbances."
+   },
+   {
+    "label": "Right at the wall the eddies die out and the profile is known",
+    "latex": "u^+ = y^+ - \\frac{(y^+)^2}{2\\,Re_\\tau} + O\\!\\left((y^+)^4\\right),\\qquad u^+ = \\frac{\\langle u\\rangle}{u_\\tau},\\quad y^+ = \\frac{y\\,u_\\tau}{\\nu}",
+    "note": "No slip and continuity make the turbulent stress vanish like \\(y^3\\) at the wall, so the viscous stress carries everything there. Further out (roughly \\(y^+ > 30\\)) experiments and simulations follow the logarithmic law \\(u^+ = \\tfrac{1}{\\kappa}\\ln y^+ + B\\); the constants are empirical (\\(\\kappa \\approx 0.41\\), \\(B \\approx 5.2\\), textbook values quoted from memory of Pope, Turbulent Flows, 2000, so approximate), and at this low Reynolds number the logarithmic region is short. The law is drawn for orientation, not used as a check."
+   },
+   {
+    "label": "The whole box: why the bulk velocity settles slowly",
+    "latex": "\\frac{\\mathrm{d}U_b}{\\mathrm{d}t} = f - \\frac{\\tau_{w,low} + \\tau_{w,high}}{2\\,\\rho\\,\\delta}\\quad\\Rightarrow\\quad T_s = \\frac{\\delta\\,U_b}{n\\,u_\\tau^2}\\ \\text{ for } \\tau_w \\propto U_b^{\\,n}",
+    "note": "Exact at every instant (the periodic sides cancel). Averaged over a window it says: mean wall shear minus driving force equals minus the change of the bulk velocity over the window, divided by its length. So the averaged wall shear against the driving force measures how well the average has settled (request g). The exponent \\(n\\) comes from an empirical friction law and is used only to plan run lengths."
+   },
+   {
+    "label": "An average over a finite time has a statistical error",
+    "latex": "\\sigma_{\\overline{q}} \\approx \\sigma_q\\,\\sqrt{\\frac{2\\,T_{corr}}{T_{avg}}}",
+    "note": "Successive samples of a turbulent signal resemble each other for about its memory \\(T_{corr}\\), so an average over \\(T_{avg}\\) holds only about \\(T_{avg}/(2T_{corr})\\) independent samples. No grid refinement removes this error; only a longer average does, with the square root of the time. Every result below is quoted with it, estimated from the scatter of block averages (cfdlib.signals.stationary). That estimate needs blocks several memories long."
+   },
+   {
+    "label": "The bulk velocity has a long memory: its error from the balance of the box",
+    "latex": "\\frac{\\mathrm{d}U_b}{\\mathrm{d}t} = -\\frac{U_b - U_{eq}}{T_s} + \\xi(t)\\quad\\Rightarrow\\quad \\overline{U_b} - U_{eq} = T_s\\left(\\overline{\\xi} - \\frac{\\Delta U_b}{T_{avg}}\\right),\\qquad \\sigma_{\\overline{U_b}} = T_s\\,\\sigma_{\\overline{\\xi}}",
+    "note": "Near its settled value the bulk velocity is pulled back with the settling time \\(T_s\\) and pushed by \\(\\xi\\), what the eddies add to the wall shear from moment to moment. So the memory of the bulk velocity is \\(T_s\\), about nine time units: a run of 40 time units holds about two independent samples of it, and blocks cannot be made long enough. The push \\(\\xi = f - \\tau_w/(\\rho\\delta) + (U_b - \\overline{U_b})/T_s\\) is computed from the recorded wall shear and bulk velocity; it has a short memory, so its mean has a sound block estimate, and \\(T_s\\) times that is the error of the mean bulk velocity. This was added after two runs of the coarsest grid disagreed by five times the plain block estimate (Section 5)."
+   }
+  ],
+  "derived": [
+   {
+    "key": "tau_w",
+    "label": "Mean wall shear stress",
+    "symbol": "\\tau_w",
+    "value": 1.0,
+    "value_tex": "1",
+    "unit_tex": "\\mathrm{Pa}",
+    "formula": "\\tau_w = \\delta f \\rho",
+    "check": "\\tau_w = \\left(1\\,\\mathrm{m}\\right) \\left(1\\,\\mathrm{m/s^2}\\right) \\left(1\\,\\mathrm{kg/m^3}\\right) = 1\\ \\mathrm{Pa}",
+    "why": "Known before any run: in a settled flow the two plates carry exactly the driving force. The simulation does not prescribe it; its time-averaged wall shear must come out at this value (request g).",
+    "params": [
+     {
+      "tex": "f",
+      "meaning": "driving force per unit mass",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s^2}"
+     },
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\rho",
+      "meaning": "density",
+      "value": 1.0,
+      "unit": "\\mathrm{kg/m^3}"
+     }
+    ]
+   },
+   {
+    "key": "u_tau",
+    "label": "Friction velocity",
+    "symbol": "u_\\tau",
+    "value": 1.0,
+    "value_tex": "1",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "u_\\tau = \\sqrt{\\delta} \\sqrt{f}",
+    "check": "u_\\tau = \\sqrt{\\left(1\\,\\mathrm{m}\\right)} \\sqrt{\\left(1\\,\\mathrm{m/s^2}\\right)} = 1\\ \\mathrm{m/s}",
+    "why": "The velocity scale of the turbulence near the wall, \\(\\sqrt{\\tau_w/\\rho}\\). Every result is reported in units of it (wall units).",
+    "params": [
+     {
+      "tex": "f",
+      "meaning": "driving force per unit mass",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s^2}"
+     },
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   },
+   {
+    "key": "re_tau",
+    "label": "Friction Reynolds number",
+    "symbol": "Re_\\tau",
+    "value": 179.9999999856,
+    "value_tex": "180",
+    "unit_tex": "",
+    "formula": "Re_\\tau = \\frac{\\delta^{\\frac{3}{2}} \\sqrt{f}}{\\nu}",
+    "check": "Re_\\tau = \\frac{\\left(1\\,\\mathrm{m}\\right)^{\\frac{3}{2}} \\sqrt{\\left(1\\,\\mathrm{m/s^2}\\right)}}{\\left(0.005555555556\\,\\mathrm{m^2/s}\\right)} = 180\\ ",
+    "why": "Half the plate distance measured in viscous lengths \\(\\nu/u_\\tau\\): the ratio of the largest to the smallest eddies. At 180 the flow is turbulent but the range of eddy sizes is small enough to resolve all of them on a grid.",
+    "params": [
+     {
+      "tex": "f",
+      "meaning": "driving force per unit mass",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s^2}"
+     },
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.005555555556,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ]
+   },
+   {
+    "key": "l_visc",
+    "label": "Viscous length (one wall unit)",
+    "symbol": "\\ell_\\nu",
+    "value": 0.005555555556,
+    "value_tex": "0.005556",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "\\ell_\\nu = \\frac{\\nu}{\\sqrt{\\delta} \\sqrt{f}}",
+    "check": "\\ell_\\nu = \\frac{\\left(0.005555555556\\,\\mathrm{m^2/s}\\right)}{\\sqrt{\\left(1\\,\\mathrm{m}\\right)} \\sqrt{\\left(1\\,\\mathrm{m/s^2}\\right)}} = 0.005556\\ \\mathrm{m}",
+    "why": "The size of the smallest eddies near the wall scales with it. Cell sizes are judged in this unit: \\(y^+ = y/\\ell_\\nu\\).",
+    "params": [
+     {
+      "tex": "f",
+      "meaning": "driving force per unit mass",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s^2}"
+     },
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.005555555556,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ]
+   },
+   {
+    "key": "t_unit",
+    "label": "Time unit (eddy turnover time)",
+    "symbol": "T",
+    "value": 1.0,
+    "value_tex": "1",
+    "unit_tex": "\\mathrm{s}",
+    "formula": "T = \\frac{\\sqrt{\\delta}}{\\sqrt{f}}",
+    "check": "T = \\frac{\\sqrt{\\left(1\\,\\mathrm{m}\\right)}}{\\sqrt{\\left(1\\,\\mathrm{m/s^2}\\right)}} = 1\\ \\mathrm{s}",
+    "why": "Time for the largest eddies to turn over once. Run lengths and averaging times are counted in it.",
+    "params": [
+     {
+      "tex": "f",
+      "meaning": "driving force per unit mass",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s^2}"
+     },
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   },
+   {
+    "key": "lam_centre",
+    "label": "Laminar centre speed (not the answer)",
+    "symbol": "U_{c,lam}",
+    "value": 89.9999999928,
+    "value_tex": "90",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "U_{c,lam} = \\frac{\\delta^{2} f}{2 \\nu}",
+    "check": "U_{c,lam} = \\frac{\\left(1\\,\\mathrm{m}\\right)^{2} \\left(1\\,\\mathrm{m/s^2}\\right)}{2 \\left(0.005555555556\\,\\mathrm{m^2/s}\\right)} = 90\\ \\mathrm{m/s}",
+    "why": "The same equations have this laminar solution. Turbulence carries momentum to the walls far better than viscosity alone, so the turbulent flow is several times slower; a run that drifts toward this value has lost its turbulence.",
+    "params": [
+     {
+      "tex": "f",
+      "meaning": "driving force per unit mass",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s^2}"
+     },
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.005555555556,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ]
+   },
+   {
+    "key": "lam_bulk",
+    "label": "Laminar bulk speed (upper bound)",
+    "symbol": "U_{b,lam}",
+    "value": 59.9999999952,
+    "value_tex": "60",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "U_{b,lam} = \\frac{\\delta^{2} f}{3 \\nu}",
+    "check": "U_{b,lam} = \\frac{\\left(1\\,\\mathrm{m}\\right)^{2} \\left(1\\,\\mathrm{m/s^2}\\right)}{3 \\left(0.005555555556\\,\\mathrm{m^2/s}\\right)} = 60\\ \\mathrm{m/s}",
+    "why": "An upper bound for the bulk velocity of the turbulent flow at the same driving force.",
+    "params": [
+     {
+      "tex": "f",
+      "meaning": "driving force per unit mass",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s^2}"
+     },
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.005555555556,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ]
+   },
+   {
+    "key": "u_wall",
+    "label": "Mean velocity at the centre of a wall cell of height 1 wall unit",
+    "symbol": "u^+(0.5)",
+    "value": 0.4993055555555,
+    "value_tex": "0.4993",
+    "unit_tex": "",
+    "formula": "u^+(0.5) = \\frac{1}{2} - \\frac{\\nu}{8 \\delta^{\\frac{3}{2}} \\sqrt{f}}",
+    "check": "u^+(0.5) = \\frac{1}{2} - \\frac{\\left(0.005555555556\\,\\mathrm{m^2/s}\\right)}{8 \\left(1\\,\\mathrm{m}\\right)^{\\frac{3}{2}} \\sqrt{\\left(1\\,\\mathrm{m/s^2}\\right)}} = 0.4993\\ ",
+    "why": "Exact limit at the wall: \\(u^+ = y^+ - (y^+)^2/(2Re_\\tau)\\). The profile of any correct simulation must start on this line, whatever the turbulence does further out.",
+    "params": [
+     {
+      "tex": "f",
+      "meaning": "driving force per unit mass",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s^2}"
+     },
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "\\nu",
+      "meaning": "kinematic viscosity",
+      "value": 0.005555555556,
+      "unit": "\\mathrm{m^2/s}"
+     }
+    ]
+   },
+   {
+    "key": "t_settle",
+    "label": "Settling time of the bulk velocity",
+    "symbol": "T_s",
+    "value": 8.970624285714285,
+    "value_tex": "8.971",
+    "unit_tex": "\\mathrm{s}",
+    "formula": "T_s = \\frac{U_{b} \\delta}{n u_{\\tau}^{2}}",
+    "check": "T_s = \\frac{\\left(15.7\\,\\mathrm{m/s}\\right) \\left(1\\,\\mathrm{m}\\right)}{1.75 \\left(1\\,\\mathrm{m/s}\\right)^{2}} = 8.971\\ \\mathrm{s}",
+    "why": "The bulk velocity is driven by the difference between the driving force and the wall shear, and forgets a disturbance only this slowly: about nine time units for a factor \\(e\\). It sets how much of each run is start-up and has to be cut from the averages.",
+    "params": [
+     {
+      "tex": "\\delta",
+      "meaning": "half the distance between the plates",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "U_b",
+      "meaning": "bulk velocity; here the reference's value, for planning only",
+      "value": 15.6985925,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "n",
+      "meaning": "exponent of the friction law \\(\\tau_w \\propto U_b^{\\,n}\\); 7/4 for a Blasius-type law (an approximation, used for planning only)",
+      "value": 1.75,
+      "unit": ""
+     },
+     {
+      "tex": "u_\\tau",
+      "meaning": "friction velocity (derived above)",
+      "value": 1.0,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "gap",
+    "label": "Unsettled bulk velocity that the balance limit allows",
+    "symbol": "g/U_b",
+    "value": 0.0017142857142857142,
+    "value_tex": "0.001714",
+    "unit_tex": "",
+    "formula": "g/U_b = \\frac{\\epsilon}{n}",
+    "check": "g/U_b = \\frac{0.003}{1.75} = 0.001714\\ ",
+    "why": "If the averaged wall shear differs from the driving force by \\(\\epsilon\\), the bulk velocity can still be this far (as a fraction) from its settled value. The stop rule's limit on the imbalance was chosen from this.",
+    "params": [
+     {
+      "tex": "\\epsilon",
+      "meaning": "limit on the wall-shear imbalance in the stop rule",
+      "value": 0.003,
+      "unit": ""
+     },
+     {
+      "tex": "n",
+      "meaning": "exponent of the friction law \\(\\tau_w \\propto U_b^{\\,n}\\); 7/4 for a Blasius-type law (an approximation, used for planning only)",
+      "value": 1.75,
+      "unit": ""
+     }
+    ]
+   },
+   {
+    "key": "t_flow",
+    "label": "Flow-through time of the box",
+    "symbol": "T_x",
+    "value": 0.800477534148364,
+    "value_tex": "0.8005",
+    "unit_tex": "\\mathrm{s}",
+    "formula": "T_x = \\frac{L_{x}}{U_{b}}",
+    "check": "T_x = \\frac{\\left(12.57\\,\\mathrm{m}\\right)}{\\left(15.7\\,\\mathrm{m/s}\\right)} = 0.8005\\ \\mathrm{s}",
+    "why": "Time for the mean flow to cross the periodic box once. Much shorter than the settling time: the flow passes through the box many times before the averages settle.",
+    "params": [
+     {
+      "tex": "L_x",
+      "meaning": "length of the periodic box",
+      "value": 12.566370614,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "U_b",
+      "meaning": "bulk velocity; here the reference's value, for planning only",
+      "value": 15.6985925,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "total stress \\(\\tau/\\rho = f(\\delta - y)\\) satisfies \\(\\mathrm{d}(\\tau/\\rho)/\\mathrm{d}y = -f\\) and vanishes on the centre plane",
+    "ok": true
+   },
+   {
+    "name": "wall value \\(\\tau_w/\\rho = f\\delta\\), so \\(u_\\tau = \\sqrt{f\\delta}\\) and \\(\\tau = \\tau_w(1 - y/\\delta)\\)",
+    "ok": true
+   },
+   {
+    "name": "laminar profile \\(U = f\\,y(2\\delta - y)/(2\\nu)\\) satisfies \\(\\nu U'' = -f\\) and no slip on both plates",
+    "ok": true
+   },
+   {
+    "name": "laminar centre speed \\(= \\tfrac12 Re_\\tau u_\\tau\\) and laminar bulk speed \\(= \\tfrac13 Re_\\tau u_\\tau\\)",
+    "ok": true
+   },
+   {
+    "name": "near the wall \\(u^+ = y^+ - (y^+)^2/(2Re_\\tau)\\) (up to terms of order \\((y^+)^4\\))",
+    "ok": true
+   },
+   {
+    "name": "a small gap of the bulk velocity decays at the rate \\(n u_\\tau^2/(\\delta U_b)\\) when \\(\\tau_w \\propto U_b^{\\,n}\\)",
+    "ok": true
+   },
+   {
+    "name": "a relative gap \\(g/U_b\\) of the bulk velocity shows as a wall-shear imbalance of \\(n\\,g/U_b\\)",
+    "ok": true
+   },
+   {
+    "name": "window mean: \\(\\overline{U_b} - U_{eq} = T_s\\,(\\overline{\\xi} - \\Delta U_b/T)\\), so its statistical error is \\(T_s\\) times that of \\(\\overline{\\xi}\\)",
+    "ok": true
+   },
+   {
+    "name": "three-level study equals cfdlib.verification.three_grid_study for equal ratios",
+    "ok": true
+   },
+   {
+    "name": "three-level study recovers a known order and limit for the ratios 1.5 and 4/3",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "Incompressible flow of a fluid with constant density and viscosity, solved in three dimensions and in time, with no turbulence model and no wall model (direct numerical simulation)",
+   "settings": [
+    "run.py make(): gcfd.NavierStokes(nu=...)",
+    "problem.yaml given.nu, given.rho"
+   ],
+   "why": "The problem asks for exactly this. At \\(Re_\\tau = 180\\) the smallest eddies are only a few hundred times smaller than the channel, so a grid can carry all of them and nothing has to be modelled.",
+   "affects": "Defines the equations. Every eddy that the grid cannot carry is an error of the grid, not of a model; the grid study measures it.",
+   "alternatives": "A turbulence model (RANS, as in case 7) gives the mean flow in minutes but models the quantities asked for here (the fluctuations). A large-eddy simulation models only the smallest eddies; gpucfd has no such model."
+  },
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "gpucfd, the project's GPU flow solver (staggered grid, second-order central differences in the energy-conserving form, pressure by multigrid), instead of OpenFOAM",
+   "settings": [
+    "numerics.yaml solver",
+    "run.py make()"
+   ],
+   "why": "The problem fits what gpucfd covers (<code>cfdlib.gpu.check_fit</code>: fits, no blockers). The cost is steps times time per step, tens of thousands of steps per run: gpucfd was measured 2 to 9 times faster per step than OpenFOAM on this flow (gpucfd/DESIGN.md, OpenFOAM at its tutorial settings on 8 cores), and its scheme adds no numerical damping, which matters when the eddies themselves are the answer. OpenFOAM's tutorial set-up for this flow (two pressure corrections per step) was first order in time on case 4.",
+   "affects": "How the answer is reached, and through the scheme also its accuracy per cell: central differences without damping keep the energy of the eddies but need every level of the grid study to carry them.",
+   "alternatives": "OpenFOAM <code>pimpleFoam</code> without a model: the same equations, several times slower per step here, and its accuracy on such grids was not measured."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "The box \\(4\\pi\\delta \\times 2\\delta \\times \\tfrac{4}{3}\\pi\\delta\\) of the problem and of the reference; periodic along \\(x\\) and \\(z\\); no slip on both plates; a constant force \\(f\\) per unit mass along \\(x\\)",
+   "settings": [
+    "run.py make(): length, walls=(False, True, False), force=(f, 0, 0)",
+    "problem.yaml given.Lx, given.Lz, given.delta, given.f"
+   ],
+   "why": "As given. The periodic sides stand for a channel that is very long and wide; the reference uses the same box, so any effect of its size is the same on both sides of the comparison. A constant force (not a prescribed flow rate) fixes the wall shear stress, and the flow rate is a result.",
+   "affects": "Defines the problem. Eddies longer than the box are cut off, on both sides of the comparison alike.",
+   "alternatives": "A prescribed flow rate with the force adjusted every step: settles faster, but it is a different problem (the friction velocity becomes a result) and gpucfd has no such control."
+  },
+  {
+   "area": "Grid",
+   "kind": "accuracy",
+   "choice": "One family of three grids, \\(96 \\times 32 \\times 32\\), \\(144 \\times 48 \\times 48\\), \\(192 \\times 64 \\times 64\\) cells (\\(x \\times y \\times z\\)): equal cells along \\(x\\) and \\(z\\), cells clustered toward both plates by a tanh law with a wall cell of \\(2.00\\), \\(1.33\\), \\(1.00\\) wall units",
+   "settings": [
+    "numerics.yaml levels",
+    "run.py y_faces(): gpucfd.grids.tanh_wall"
+   ],
+   "why": "Turbulence at a wall lives in thin streaks about 100 wall units apart and needs cells of a few wall units in \\(y\\) at the wall, so the grid is judged in wall units (the table in the Simulation section). Three times as many cells along \\(x\\) as along \\(z\\) makes the cells square in the wall plane, which halves the work of the pressure solver (gpucfd/DESIGN.md). All three directions are refined together, with the same stretching, so the three levels are one family and their differences measure the grid error. The finest level is the one gpucfd's exploration found within about 1 % in the mean flow.",
+   "affects": "The main numerical error of the result. The reference used cells two to four times smaller in every direction.",
+   "alternatives": "Three levels with ratio 2 (the workflow's default) would end at \\(384 \\times 128 \\times 128\\), 6.3 million cells and many hours; here the ratios are 1.5 and 4/3. Cells twice as long as wide (the usual choice for this flow) would resolve the streaks better per cell but double the pressure work; not tested."
+  },
+  {
+   "area": "Time integration",
+   "kind": "accuracy",
+   "choice": "Implicit diffusion (Crank-Nicolson) with explicit three-stage convection (<code>scheme=\"imex\"</code>); the time step is re-chosen every \\(5\\) steps to hold a Courant number of \\(0.75\\)",
+   "settings": [
+    "numerics.yaml scheme, time.cfl, time.dt_cap, time.steps_per_sample, time.store_every",
+    "run.py run_one(): gpu.run_transient(adapt_cfl=...)"
+   ],
+   "why": "With cells of 1 wall unit at the plates the explicit scheme's viscous limit would set the step; the implicit treatment removes that limit, so only the flow speed limits the step. That limit moves as the eddies come and go, so the step follows it. The first complete run (target 0.8, a look every 10 steps) passed a Courant number of 1 at a few moments, because the largest local value can rise by a third within 10 steps; hence a look every \\(5\\) steps and the target \\(0.75\\). The step is far below the time scales of the eddies; the time-step check (the coarsest grid again with half the step) measures what is left.",
+   "affects": "The error in time, and the cost: the number of steps is the Courant number's inverse.",
+   "alternatives": "A fixed step sized for the worst moment wastes about a third of the steps; the explicit scheme needs a several times smaller step on these grids."
+  },
+  {
+   "area": "Pressure solve",
+   "kind": "accuracy",
+   "choice": "Pressure tolerance \\(10^{-6}\\) (relative residual of each projection), mixed precision multigrid",
+   "settings": [
+    "numerics.yaml time.pressure_tol",
+    "run.py run_one(): gpu.run_transient(ptol=...)"
+   ],
+   "why": "Chosen by the same-answer check on the coarsest and the finest grid (<code>cfdlib.gpu.tolerance_check</code>, Pre-flight section): the same stretch of flow computed with five tolerances. With this one, bulk velocity and wall shear differ from the strictest run by \\(1.7 \\times 10^{-12}\\) on the finest grid (rule: \\(1 \\times 10^{-4}\\)), and the divergence left in the velocity is \\(1.2 \\times 10^{-10}\\) of the check's scale. A step is \\(9\\,\\%\\) cheaper than with the tolerance first planned.",
+   "affects": "How exactly the velocity is free of divergence after each step. The check covers a short stretch; over a long run two turbulent flows part ways whatever the tolerance, so only the divergence check of each run speaks for the long term.",
+   "alternatives": "A stricter tolerance: same answer over the stretch tested, up to a third more time per step."
+  },
+  {
+   "area": "Start fields",
+   "kind": "solver",
+   "choice": "Coarsest grid: a turbulent-looking start field (<code>gpucfd.turbulence.channel_start</code>: an empirical mean profile with streaks, vortices and noise). Finer grids: the last field of the grid below, interpolated. The start-up of every run is cut from the averages",
+   "settings": [
+    "numerics.yaml runs.*.source",
+    "run.py start()"
+   ],
+   "why": "The problem leaves the initial state free. From rest or from the laminar solution the flow can stay laminar for a very long time; the start field is built to turn turbulent within a few time units (the pre-flight shows it). Starting a finer grid from a developed flow saves the transition, but not the slow settling of the bulk velocity (Theory: about 9 time units for a factor \\(e\\)).",
+   "affects": "Nothing in a settled average, provided the start-up is cut. Where the cut is placed is a choice of its own (next decision).",
+   "alternatives": "Every grid from the same artificial start field: independent runs, but each pays the transition again."
+  },
+  {
+   "area": "Averaging and stopping",
+   "kind": "accuracy",
+   "choice": "Plane averages are sampled every \\(5\\) steps. The start-up is cut at the later of the point <code>cfdlib.signals.settle_time</code> finds and the time at which the bulk velocity's slow approach has decayed to \\(0.2\\,\\%\\) of its value. A run ends when, over the rest: the standard error of the mean bulk velocity, taken from the balance of the box, is below \\(0.25\\,\\%\\); at least \\(36\\) time units are averaged; the two halves of the record agree within \\(2\\) standard errors; and the mean wall shear is within \\(0.3\\,\\%\\) of the driving force",
+   "settings": [
+    "numerics.yaml stop",
+    "run.py start_up_end(), bulk_average(), stop_state(), make_watch()"
+   ],
+   "why": "A turbulent flow never becomes steady, so a run cannot stop on residuals or on a value that stops changing. What can settle is the average and its error. The conditions are the error wanted, an averaging time of about four settling times, no remaining trend, and the flow's own balance (wall shear against driving force), which is the physical check. This is the second version of the rule. The first, fixed before the runs, took the error from block means of the bulk velocity and asked for 0.1 %; two complete runs of the coarsest grid then disagreed by five times that error, because the bulk velocity remembers for about nine time units (Theory). The error is now formed from a short-memory signal and the settling time, and the limit is what tens of time units can deliver.",
+   "affects": "The statistical error of every output, and the run time: halving the error needs four times the averaging time (0.1 % would need about 300 time units).",
+   "alternatives": "A fixed run length chosen in advance (the usual practice): simpler, but it does not say whether the average has settled. Several independent shorter runs: the same statistics and a direct error estimate from their scatter, at the price of one start-up each."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Mean profile, fluctuation intensities, turbulent shear stress and wall shear from <code>gpucfd.turbulence.PlaneStats</code> (formed on the solver's own staggered positions), averaged in time by <code>cfdlib.signals.stationary</code> and over the two halves of the channel. Fluctuations are taken about the full mean (plane and time). Peak of \\(u'_{rms}\\) from a cubic spline through the seven points around the largest value, as in the reference file",
+   "settings": [
+    "run.py observer()",
+    "analyze.py averages(), peak()"
+   ],
+   "why": "Averages formed like the solver's own fluxes satisfy the mean momentum balance to round-off for every single field, so what is left of the balance after averaging measures the averaging, not the post-processing. Using the reference's own extraction for the peak removes one difference between the two sides. Statistical errors: for the bulk velocity from the balance of the box (previous decision); the mean velocity everywhere moves with the bulk velocity, so the centre velocity and the profile carry the same relative error on top of their block estimate; the fluctuations and the shear stress use block means.",
+   "affects": "What is measured. The fluctuation about the plane mean of each field alone would be slightly smaller than the one the reference reports; the difference (the variance in time of the plane mean) is added.",
+   "alternatives": "Sampling points or lines: far noisier than plane averages for the same run."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Reference value: the mean of the two codes of Vreman and Kuerten (2014). Its uncertainty: the authors' bound on the largest relative error, \\(0.2\\,\\%\\) for the mean velocity and \\(1.0\\,\\%\\) for the fluctuations. Friction coefficient from the exact wall shear, \\(C_f = 2u_\\tau^2/U_b^2\\), as in the reference file",
+   "settings": [
+    "numerics.yaml reference_uncertainty_pct",
+    "analyze.py reference()"
+   ],
+   "why": "The two codes are independent (spectral and finite differences) and agree far better than this simulation can; their mean with the authors' own error bound is the fairest single target. The bound is larger than the difference between the two codes and covers their statistical error too.",
+   "affects": "The size of the band inside which a difference cannot be told from the reference's own error.",
+   "alternatives": "One of the two codes alone (the difference is \\(0.03\\,\\%\\) in the bulk velocity)."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Grid convergence from three levels with two different refinement ratios: order and extrapolated value solved from the three-level relations in <code>analyze.py</code>, with the statistical error of each level carried through by resampling",
+   "settings": [
+    "analyze.py three_levels()"
+   ],
+   "why": "The repository's tool takes one refinement ratio; the levels here have 1.5 and 4/3. The model is the same (error proportional to the cell size to a power), and the code is checked against the tool for equal ratios. Because each level carries a statistical error, the order and the extrapolated value are computed for many resampled sets of the three values; the spread says how much of the grid study is noise.",
+   "affects": "The grid part of the error budget.",
+   "alternatives": "Assuming the scheme's formal order 2 and extrapolating from the two finest levels (reported next to the observed order)."
+  },
+  {
+   "area": "Acceptance",
+   "kind": "output",
+   "choice": "Pass and fail limits fixed before the runs (numerics.yaml, acceptance): requested numbers on the finest grid within \\(1\\,\\%\\) (bulk and centre velocity), \\(2\\,\\%\\) (friction coefficient), \\(2\\,\\%\\) (peak of \\(u'_{rms}\\)); profiles within fixed distances of the reference; and checks of the evidence itself (stop rule held, total stress on the exact line, the two plates alike, order of convergence, extrapolated value inside the uncertainty band, half the time step changes nothing)",
+   "settings": [
+    "numerics.yaml acceptance"
+   ],
+   "why": "Sized from what was known before the runs: gpucfd's exploration on the finest grid was 0.4 to 0.8 % low in the bulk velocity and 1.1 % low in the peak of \\(u'_{rms}\\), and the reference's own coarser run was 0.8 % off in the mean velocity. A miss of a requested number is a FAIL; a miss of a check of the evidence is a WARN.",
+   "affects": "The verdict.",
+   "alternatives": "Judging only against the uncertainty band (grid index plus statistical error plus the reference's): kept as one of the checks, because a wide band would let any result pass."
+  },
+  {
+   "area": "Run budget",
+   "kind": "solver",
+   "choice": "Runs of up to \\(66\\) time units on the finest grid (about an hour), above the machine's usual limit of 15 minutes per run; one run at a time on the GPU",
+   "settings": [
+    "numerics.yaml stop.t_max"
+   ],
+   "why": "The length of these runs is set by the flow, not by the grid: the bulk velocity needs tens of time units to settle and to average (Theory), and the finest grid costs about a minute per time unit (Pre-flight). A coarser finest grid would give up the accuracy the problem asks about.",
+   "affects": "Wall-clock time only.",
+   "alternatives": "A shorter average with a larger statistical error; a coarser grid with a larger grid error."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before the long runs: a short run on the coarsest grid from the artificial start field (does it turn turbulent, is it healthy, what does a step cost) and one on the finest grid from the coarse field (cost per time unit), then the check of the pressure tolerance. Two complete runs of the coarsest grid followed before the settings were final; each exposed a problem, and both are kept here as part of the test.",
+  "runs": [
+   {
+    "name": "pre_G1",
+    "setup": "G1, 98,304 cells, \\(4\\) time units from the artificial start field (first plan: Courant target 0.8, pressure tolerance \\(10^{-8}\\))",
+    "outcome": "health ok; \\(13.7\\) ms per step, \\(428\\) steps and \\(5.9\\) s per time unit; wall shear \\(0.96\\) of the driving force at the end"
+   },
+   {
+    "name": "pre_G3",
+    "setup": "G3, 786,432 cells, \\(1\\) time units from the coarse run's last field, interpolated (first plan: Courant target 0.8, pressure tolerance \\(10^{-8}\\))",
+    "outcome": "health warn; \\(71.1\\) ms per step, \\(881\\) steps and \\(62.7\\) s per time unit; wall shear \\(0.95\\) of the driving force at the end"
+   },
+   {
+    "name": "tolerance check G1",
+    "setup": "The same \\(0.3\\) time units of flow with pressure tolerances \\(10^{-10}\\), \\(10^{-9}\\), \\(10^{-8}\\), \\(10^{-7}\\), \\(10^{-6}\\) (fixed time step)",
+    "outcome": "largest change of bulk velocity and wall shear with \\(10^{-6}\\): \\(1.1 \\times 10^{-10}\\) (rule \\(1 \\times 10^{-4}\\)); \\(10.2\\) ms per step against \\(12.8\\) with \\(10^{-8}\\)"
+   },
+   {
+    "name": "tolerance check G3",
+    "setup": "The same \\(0.3\\) time units of flow with pressure tolerances \\(10^{-10}\\), \\(10^{-9}\\), \\(10^{-8}\\), \\(10^{-7}\\), \\(10^{-6}\\) (fixed time step)",
+    "outcome": "largest change of bulk velocity and wall shear with \\(10^{-6}\\): \\(1.7 \\times 10^{-12}\\) (rule \\(1 \\times 10^{-4}\\)); \\(61.0\\) ms per step against \\(67.0\\) with \\(10^{-8}\\)"
+   },
+   {
+    "name": "first_G1 (first complete run of G1)",
+    "setup": "Courant target 0.8, step re-chosen every 10 steps, first stop rule",
+    "outcome": "health warn (largest Courant number 1.08); ended on the first stop rule at \\(t = 40.0\\); bulk velocity over the window it used then: \\(15.978\\) with a block estimate of \\(0.010\\)"
+   },
+   {
+    "name": "second_G1 (second complete run of G1)",
+    "setup": "Courant target 0.75, step re-chosen every 5 steps, first stop rule",
+    "outcome": "health ok (largest Courant number 0.88); ended on the first stop rule at \\(t = 32.0\\); bulk velocity over the window it used then: \\(15.904\\) with a block estimate of \\(0.009\\)"
+   }
+  ],
+  "checks": [
+   {
+    "name": "pre_G1: Solver finished without errors",
+    "value": "no errors",
+    "status": "ok",
+    "meaning": "A blow-up means the time step is too large for the flow speed or the viscous limit."
+   },
+   {
+    "name": "pre_G1: No NaN values",
+    "value": "none",
+    "status": "ok",
+    "meaning": "NaN (not a number) means invalid values."
+   },
+   {
+    "name": "pre_G1: Max Courant number",
+    "value": "0.96",
+    "status": "ok",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1)."
+   },
+   {
+    "name": "pre_G1: Divergence after projection",
+    "value": "\\(3.6 \\times 10^{-12}\\)",
+    "status": "ok",
+    "meaning": "max |div u| h / U after each step: the velocity must stay divergence-free (mass conservation)."
+   },
+   {
+    "name": "pre_G3: Solver finished without errors",
+    "value": "no errors",
+    "status": "ok",
+    "meaning": "A blow-up means the time step is too large for the flow speed or the viscous limit."
+   },
+   {
+    "name": "pre_G3: No NaN values",
+    "value": "none",
+    "status": "ok",
+    "meaning": "NaN (not a number) means invalid values."
+   },
+   {
+    "name": "pre_G3: Max Courant number",
+    "value": "1.04",
+    "status": "warn",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1). The largest velocity sampled was 26.3, at t = 0.6702. Just after a start from rest that is the start transient: a smaller step for the first stretch removes it. Later in the run it is the flow itself: take the time step from a velocity scale at least that large (cfdlib.gpu.time_step)."
+   },
+   {
+    "name": "pre_G3: Divergence after projection",
+    "value": "\\(4.3 \\times 10^{-12}\\)",
+    "status": "ok",
+    "meaning": "max |div u| h / U after each step: the velocity must stay divergence-free (mass conservation)."
+   },
+   {
+    "name": "G1: same answer with pressure tolerance \\(10^{-6}\\)",
+    "value": "\\(1.1 \\times 10^{-10}\\)",
+    "status": "ok",
+    "meaning": "Largest difference of bulk velocity and wall shear from the run with the strictest tolerance. All five tolerances pass by many orders: for a flow without bodies these outputs barely feel the pressure tolerance, so the check supports the choice but does not discriminate (insight)."
+   },
+   {
+    "name": "G3: same answer with pressure tolerance \\(10^{-6}\\)",
+    "value": "\\(1.7 \\times 10^{-12}\\)",
+    "status": "ok",
+    "meaning": "Largest difference of bulk velocity and wall shear from the run with the strictest tolerance. All five tolerances pass by many orders: for a flow without bodies these outputs barely feel the pressure tolerance, so the check supports the choice but does not discriminate (insight)."
+   },
+   {
+    "name": "Repeat runs of G1 agree within their statistical errors",
+    "value": "spread \\(0.069\\); \\(\\chi^2 = 2.2\\) for 3 degrees of freedom with the error used; \\(48\\) with plain block means",
+    "status": "ok",
+    "meaning": "The runs of the coarsest grid (the two early ones, the final one and the one with half the time step) are independent samples of the same flow. Their scatter tests the error estimate directly: plain block means of the bulk velocity are far too small, the estimate that knows the slow mode (Section 3) is consistent."
+   },
+   {
+    "name": "Projected time of the finest run",
+    "value": "\\(63\\) s per time unit",
+    "status": "warn",
+    "meaning": "About an hour for the 60 time units the stop rule needs: above the machine's usual 15 minutes per run. Accepted, because the length is set by the flow (Decisions, run budget)."
+   }
+  ],
+  "conclusion": "The solver is healthy and the start field turns turbulent within two time units. Three things were changed before the runs of the report: the time step is re-chosen every 5 steps with a Courant target of 0.75 (the first complete run passed a Courant number of 1 at a few moments), the pressure tolerance was relaxed to the value the same-answer check supports, and the statistical error of the bulk velocity is taken from the balance of the box (two complete runs disagreed by five times the plain block estimate). The pass and fail limits on the outputs stayed as set."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Fluid",
+    "real": "Constant density and viscosity",
+    "model": "The same; \\(\\nu = 1/180\\) in units of \\(u_\\tau\\delta\\)"
+   },
+   {
+    "aspect": "Channel",
+    "real": "Very long and wide, two smooth plates",
+    "model": "Periodic box \\(4\\pi\\delta \\times 2\\delta \\times \\tfrac{4}{3}\\pi\\delta\\), no slip on the plates"
+   },
+   {
+    "aspect": "Driving",
+    "real": "Constant mean pressure gradient",
+    "model": "Constant force per unit mass along \\(x\\); the flow rate is free"
+   },
+   {
+    "aspect": "Turbulence",
+    "real": "Eddies from the channel size down to a few wall units",
+    "model": "Computed on the grid, no model; eddies smaller than the cells are lost"
+   },
+   {
+    "aspect": "Time",
+    "real": "Statistically steady",
+    "model": "Run in time from a start field; start-up cut; averages over tens of time units with their statistical error"
+   }
+  ],
+  "meshes": {
+   "intro": "One family of grids, refined together in all three directions; cell sizes in wall units \\(\\nu/u_\\tau\\). Along \\(y\\) the cells grow smoothly from the plate to the centre plane (tanh law). The reference's grids are listed for scale.",
+   "head": [
+    "Grid",
+    "Cells",
+    "Total",
+    "\\(\\Delta x^+\\)",
+    "\\(\\Delta z^+\\)",
+    "Wall cell \\(\\Delta y^+\\)",
+    "Largest \\(\\Delta y^+\\)",
+    "Largest ratio of neighbours",
+    "Cell size / finest"
+   ],
+   "rows": [
+    [
+     "G1",
+     "\\(96 \\times 32 \\times 32\\)",
+     "98,304",
+     "\\(23.6\\)",
+     "\\(23.6\\)",
+     "\\(2.00\\)",
+     "\\(22.7\\)",
+     "\\(1.26\\)",
+     "\\(2.00\\)"
+    ],
+    [
+     "G2",
+     "\\(144 \\times 48 \\times 48\\)",
+     "331,776",
+     "\\(15.7\\)",
+     "\\(15.7\\)",
+     "\\(1.33\\)",
+     "\\(15.0\\)",
+     "\\(1.16\\)",
+     "\\(1.33\\)"
+    ],
+    [
+     "G3",
+     "\\(192 \\times 64 \\times 64\\)",
+     "786,432",
+     "\\(11.8\\)",
+     "\\(11.8\\)",
+     "\\(1.00\\)",
+     "\\(11.2\\)",
+     "\\(1.12\\)",
+     "\\(1.00\\)"
+    ],
+    [
+     "Reference, finite differences",
+     "\\(512 \\times 256 \\times 256\\)",
+     "",
+     "\\(4.4\\)",
+     "\\(2.9\\)",
+     "",
+     "\\(2.2\\)",
+     "",
+     ""
+    ],
+    [
+     "Reference, spectral",
+     "\\(384 \\times 193 \\times 192\\)",
+     "",
+     "\\(5.9\\)",
+     "\\(3.9\\)",
+     "",
+     "\\(2.9\\)",
+     "",
+     ""
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Run",
+    "Averaged over \\(t\\)",
+    "\\(U_b/u_\\tau\\)",
+    "\\(U_c/u_\\tau\\)",
+    "\\(C_f\\)",
+    "\\(Re_b\\)",
+    "Peak \\(u'_{rms}/u_\\tau\\)",
+    "at \\(y^+\\)",
+    "Peak \\(-\\langle u'v'\\rangle/u_\\tau^2\\)"
+   ],
+   "rows": [
+    [
+     "G1",
+     "\\(23.4 \\ldots 60.0\\)",
+     "\\(15.938 \\pm 0.032\\)",
+     "\\(18.868 \\pm 0.046\\)",
+     "\\(0.007874\\)",
+     "\\(5738\\)",
+     "\\(2.852 \\pm 0.012\\)",
+     "\\(12.3\\)",
+     "\\(0.715\\)"
+    ],
+    [
+     "G2",
+     "\\(25.4 \\ldots 62.0\\)",
+     "\\(15.441 \\pm 0.035\\)",
+     "\\(18.174 \\pm 0.047\\)",
+     "\\(0.008388\\)",
+     "\\(5559\\)",
+     "\\(2.694 \\pm 0.010\\)",
+     "\\(12.2\\)",
+     "\\(0.721\\)"
+    ],
+    [
+     "G3",
+     "\\(20.1 \\ldots 58.0\\)",
+     "\\(15.646 \\pm 0.024\\)",
+     "\\(18.313 \\pm 0.032\\)",
+     "\\(0.008170\\)",
+     "\\(5632\\)",
+     "\\(2.655 \\pm 0.008\\)",
+     "\\(13.2\\)",
+     "\\(0.717\\)"
+    ],
+    [
+     "G1h",
+     "\\(6.5 \\ldots 44.0\\)",
+     "\\(15.920 \\pm 0.025\\)",
+     "\\(18.890 \\pm 0.032\\)",
+     "\\(0.007891\\)",
+     "\\(5731\\)",
+     "\\(2.828 \\pm 0.006\\)",
+     "\\(12.2\\)",
+     "\\(0.720\\)"
+    ],
+    [
+     "first_G1",
+     "\\(23.9 \\ldots 40.0\\)",
+     "\\(15.959 \\pm 0.039\\)",
+     "\\(18.950 \\pm 0.058\\)",
+     "\\(0.007852\\)",
+     "\\(5745\\)",
+     "\\(2.835 \\pm 0.012\\)",
+     "\\(12.1\\)",
+     "\\(0.726\\)"
+    ],
+    [
+     "second_G1",
+     "\\(22.3 \\ldots 32.0\\)",
+     "\\(15.890 \\pm 0.032\\)",
+     "\\(18.780 \\pm 0.041\\)",
+     "\\(0.007921\\)",
+     "\\(5720\\)",
+     "\\(2.858 \\pm 0.011\\)",
+     "\\(12.2\\)",
+     "\\(0.719\\)"
+    ],
+    [
+     "Reference",
+     "200 time units",
+     "\\(15.699\\)",
+     "\\(18.281\\)",
+     "\\(0.008115\\)",
+     "\\(5651\\)",
+     "\\(2.671\\)",
+     "\\(14.4\\)",
+     "\\(0.723\\)"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Run",
+    "Health",
+    "Steps",
+    "Mean step \\(\\Delta t^+\\)",
+    "Largest Courant number",
+    "Divergence left",
+    "Ended by",
+    "Independent samples",
+    "Drift (std. errors)",
+    "Wall shear minus driving force",
+    "Plates apart (std. errors)",
+    "Total stress off the line"
+   ],
+   "rows": [
+    [
+     "G1",
+     "ok",
+     "26,205",
+     "\\(0.41\\)",
+     "0.89",
+     "\\(2.4 \\times 10^{-10}\\)",
+     "stop rule",
+     "\\(22\\)",
+     "\\(1.2\\)",
+     "\\(-0.21\\,\\%\\)",
+     "\\(0.7\\)",
+     "\\(0.0040\\)"
+    ],
+    [
+     "G2",
+     "ok",
+     "46,410",
+     "\\(0.24\\)",
+     "0.86",
+     "\\(2.5 \\times 10^{-10}\\)",
+     "stop rule",
+     "\\(28\\)",
+     "\\(-0.1\\)",
+     "\\(+0.26\\,\\%\\)",
+     "\\(0.8\\)",
+     "\\(0.0060\\)"
+    ],
+    [
+     "G3",
+     "ok",
+     "55,690",
+     "\\(0.19\\)",
+     "0.85",
+     "\\(2.9 \\times 10^{-10}\\)",
+     "stop rule",
+     "\\(43\\)",
+     "\\(0.0\\)",
+     "\\(+0.04\\,\\%\\)",
+     "\\(1.0\\)",
+     "\\(0.0041\\)"
+    ],
+    [
+     "G1h",
+     "ok",
+     "38,580",
+     "\\(0.21\\)",
+     "0.46",
+     "\\(4.6 \\times 10^{-11}\\)",
+     "stop rule",
+     "\\(37\\)",
+     "\\(0.3\\)",
+     "\\(+0.08\\,\\%\\)",
+     "\\(0.7\\)",
+     "\\(0.0032\\)"
+    ],
+    [
+     "first_G1",
+     "warn",
+     "16,380",
+     "\\(0.44\\)",
+     "1.08",
+     "\\(2.8 \\times 10^{-10}\\)",
+     "stop rule",
+     "\\(19\\)",
+     "\\(-0.6\\)",
+     "\\(+0.53\\,\\%\\)",
+     "\\(1.5\\)",
+     "\\(0.0121\\)"
+    ],
+    [
+     "second_G1",
+     "ok",
+     "13,915",
+     "\\(0.41\\)",
+     "0.88",
+     "\\(2.4 \\times 10^{-10}\\)",
+     "stop rule",
+     "\\(14\\)",
+     "\\(-0.0\\)",
+     "\\(+0.06\\,\\%\\)",
+     "\\(1.1\\)",
+     "\\(0.0066\\)"
+    ]
+   ],
+   "notes": [
+    "Each run ended itself when the stop rule held: start-up cut, at least \\(36\\) time units averaged, statistical error of the bulk velocity below \\(0.25\\,\\%\\), second half of the record within \\(2\\) standard errors of the first, mean wall shear within \\(0.3\\,\\%\\) of the driving force (Figure 2).",
+    "Independent samples: of the short-memory signal from which the error of the bulk velocity is formed (Section 3). Drift: second half minus first half of the averaged record, in its own standard errors. Total stress off the line: largest distance of the averaged total shear stress from the exact straight line, in \\(u_\\tau^2\\), anywhere in the channel.",
+    "G1h is the coarsest grid continued with half the time step. first_G1 and second_G1 are the two complete runs made before the settings were final (Section 5); they are shown with the final start-up cut and error estimate and enter the report only as repeat runs.",
+    "Runs G2 and G3 started from the last field of the grid below; the start-up cut waits until the bulk velocity's slow approach has decayed to \\(0.2\\,\\%\\)."
+   ]
+  }
+ },
+ "comparison": {
+  "kind": "Benchmark: comparison with the direct numerical simulations of Vreman and Kuerten (2014) of the same flow in the same box, two independent codes on far finer grids, averaged over 200 time units. Every difference is judged against limits fixed before the runs and is shown with the statistical error of this simulation's average.",
+  "definitions": [
+   {
+    "name": "Difference",
+    "latex": "\\Delta q = \\frac{q_{sim} - q_{ref}}{q_{ref}},\\quad q_{ref} = \\frac{q_{S} + q_{FD}}{2}",
+    "meaning": "Relative difference of a number from the mean of the reference's two codes (S: spectral, FD: finite differences). For profiles: the largest absolute difference along the profile, in wall units."
+   },
+   {
+    "name": "Statistical error",
+    "latex": "\\sigma_{\\overline{U_b}} = T_s\\,\\sigma_{\\overline{\\xi}},\\quad \\sigma_{\\overline{q}} = \\frac{\\sigma_{blocks}}{\\sqrt{N_{blocks}}}",
+    "meaning": "One standard error of a time average. For the bulk velocity (and with it the mean velocity everywhere) from the balance of the box; for the other outputs from the scatter of block means."
+   },
+   {
+    "name": "Grid study",
+    "latex": "q_k = q_0 + C\\,h_k^{\\,p}\\ \\ (k = 1, 2, 3)\\quad\\Rightarrow\\quad p,\\ q_0",
+    "meaning": "Three grids with cell sizes \\(h_k\\) give the observed order \\(p\\) and the value \\(q_0\\) extrapolated to zero cell size, when the three values approach a limit from one side."
+   },
+   {
+    "name": "Fluctuation",
+    "latex": "u'_{rms} = \\sqrt{\\langle (u - \\langle u\\rangle)^2\\rangle},\\qquad \\langle\\cdot\\rangle:\\ x,\\ z,\\ t,\\ \\text{both halves}",
+    "meaning": "About the full mean, as in the reference. The same for \\(v\\) and \\(w\\)."
+   }
+  ],
+  "head": [
+   "Output (finest grid)",
+   "Reference",
+   "Simulation",
+   "Difference",
+   "Limit",
+   ""
+  ],
+  "rows": [
+   [
+    "Bulk velocity \\(U_b/u_\\tau\\)",
+    "\\(15.699\\)",
+    "\\(15.646 \\pm 0.024\\)",
+    "\\(-0.34\\,\\%\\)",
+    "\\(1.0\\,\\%\\)",
+    "pass"
+   ],
+   [
+    "Centre-plane velocity \\(U_c/u_\\tau\\)",
+    "\\(18.281\\)",
+    "\\(18.313 \\pm 0.032\\)",
+    "\\(+0.17\\,\\%\\)",
+    "\\(1.0\\,\\%\\)",
+    "pass"
+   ],
+   [
+    "Friction coefficient \\(C_f\\)",
+    "\\(0.008115\\)",
+    "\\(0.00817 \\pm 2.5 \\times 10^{-5}\\)",
+    "\\(+0.68\\,\\%\\)",
+    "\\(2.0\\,\\%\\)",
+    "pass"
+   ],
+   [
+    "Peak of \\(u'_{rms}/u_\\tau\\)",
+    "\\(2.671\\)",
+    "\\(2.655 \\pm 0.008\\)",
+    "\\(-0.61\\,\\%\\)",
+    "\\(2.0\\,\\%\\)",
+    "pass"
+   ],
+   [
+    "Its position \\(y^+\\)",
+    "\\(14.4\\)",
+    "\\(13.2\\)",
+    "\\(-1.2\\)",
+    "\\(1.5\\)",
+    "pass"
+   ],
+   [
+    "Peak of \\(-\\langle u'v'\\rangle/u_\\tau^2\\)",
+    "\\(0.7232\\)",
+    "\\(0.7170 \\pm 0.0041\\)",
+    "\\(-0.85\\,\\%\\)",
+    "–",
+    "pass"
+   ],
+   [
+    "Mean velocity profile, largest difference",
+    "profile",
+    "at \\(y^+ = 22\\)",
+    "\\(-0.313\\)",
+    "\\(0.30\\)",
+    "MISS"
+   ],
+   [
+    "\\(u'_{rms}\\) profile, largest difference",
+    "profile",
+    "at \\(y^+ = 4\\)",
+    "\\(0.138\\)",
+    "\\(0.08\\)",
+    "MISS"
+   ],
+   [
+    "\\(v'_{rms}\\) profile, largest difference",
+    "profile",
+    "at \\(y^+ = 36\\)",
+    "\\(-0.072\\)",
+    "\\(0.05\\)",
+    "MISS"
+   ],
+   [
+    "\\(w'_{rms}\\) profile, largest difference",
+    "profile",
+    "at \\(y^+ = 38\\)",
+    "\\(-0.081\\)",
+    "\\(0.06\\)",
+    "MISS"
+   ],
+   [
+    "Turbulent shear stress profile, largest difference",
+    "profile",
+    "at \\(y^+ = 8\\)",
+    "\\(0.034\\)",
+    "\\(0.03\\)",
+    "MISS"
+   ]
+  ],
+  "findings": [
+   "<b>Grid study.</b> The three levels, each with one statistical standard error, and their differences from the reference. Where three values approach a limit from one side, the observed order and the value extrapolated to zero cell size are given (Figure 3).<div class=\"table-wrap\"><table class=\"full\"><tr><th class=\"\">Grid</th><th class=\"num\">Cell size</th><th class=\"num\">\\(U_b/u_\\tau\\)</th><th class=\"num\">from ref.</th><th class=\"num\">\\(U_c/u_\\tau\\)</th><th class=\"num\">from ref.</th><th class=\"num\">peak \\(u'_{rms}/u_\\tau\\)</th><th class=\"num\">from ref.</th></tr><tr><td class=\"\">G1</td><td class=\"num\">\\(2.00\\)</td><td class=\"num\">\\(15.938 \\pm 0.032\\)</td><td class=\"num\">\\(+1.52\\,\\%\\)</td><td class=\"num\">\\(18.868 \\pm 0.046\\)</td><td class=\"num\">\\(+3.21\\,\\%\\)</td><td class=\"num\">\\(2.852 \\pm 0.012\\)</td><td class=\"num\">\\(+6.75\\,\\%\\)</td></tr><tr><td class=\"\">G2</td><td class=\"num\">\\(1.33\\)</td><td class=\"num\">\\(15.441 \\pm 0.035\\)</td><td class=\"num\">\\(-1.64\\,\\%\\)</td><td class=\"num\">\\(18.174 \\pm 0.047\\)</td><td class=\"num\">\\(-0.59\\,\\%\\)</td><td class=\"num\">\\(2.694 \\pm 0.010\\)</td><td class=\"num\">\\(+0.85\\,\\%\\)</td></tr><tr><td class=\"\">G3</td><td class=\"num\">\\(1.00\\)</td><td class=\"num\">\\(15.646 \\pm 0.024\\)</td><td class=\"num\">\\(-0.34\\,\\%\\)</td><td class=\"num\">\\(18.313 \\pm 0.032\\)</td><td class=\"num\">\\(+0.17\\,\\%\\)</td><td class=\"num\">\\(2.655 \\pm 0.008\\)</td><td class=\"num\">\\(-0.61\\,\\%\\)</td></tr><tr><td class=\"\">Extrapolated</td><td class=\"num\">0</td><td class=\"num\">–</td><td class=\"num\">–</td><td class=\"num\">–</td><td class=\"num\">–</td><td class=\"num\">\\(2.626\\)</td><td class=\"num\">\\(-1.71\\,\\%\\)</td></tr><tr><td class=\"\">Observed order</td><td class=\"num\"></td><td class=\"num\">not one-sided</td><td class=\"num\"></td><td class=\"num\">not one-sided</td><td class=\"num\"></td><td class=\"num\">\\(2.95\\)</td><td class=\"num\"></td></tr></table></div>Largest difference from the reference along each profile, in wall units, with the \\(y^+\\) where it occurs:<div class=\"table-wrap\"><table class=\"full\"><tr><th class=\"\">Grid</th><th class=\"num\">\\(U\\)</th><th class=\"num\">\\(u'_{rms}\\)</th><th class=\"num\">\\(v'_{rms}\\)</th><th class=\"num\">\\(w'_{rms}\\)</th><th class=\"num\">\\(-\\langle u'v'\\rangle\\)</th></tr><tr><td class=\"\">G1</td><td class=\"num\">\\(0.582\\) at \\(169\\)</td><td class=\"num\">\\(0.304\\) at \\(6\\)</td><td class=\"num\">\\(-0.142\\) at \\(180\\)</td><td class=\"num\">\\(-0.149\\) at \\(169\\)</td><td class=\"num\">\\(0.029\\) at \\(8\\)</td></tr><tr><td class=\"\">G2</td><td class=\"num\">\\(-0.641\\) at \\(26\\)</td><td class=\"num\">\\(0.260\\) at \\(6\\)</td><td class=\"num\">\\(-0.091\\) at \\(180\\)</td><td class=\"num\">\\(-0.091\\) at \\(60\\)</td><td class=\"num\">\\(0.062\\) at \\(9\\)</td></tr><tr><td class=\"\">G3</td><td class=\"num\">\\(-0.313\\) at \\(22\\)</td><td class=\"num\">\\(0.138\\) at \\(4\\)</td><td class=\"num\">\\(-0.072\\) at \\(36\\)</td><td class=\"num\">\\(-0.081\\) at \\(38\\)</td><td class=\"num\">\\(0.034\\) at \\(8\\)</td></tr><tr><td class=\"\">Limit</td><td class=\"num\">\\(0.30\\)</td><td class=\"num\">\\(0.08\\)</td><td class=\"num\">\\(0.05\\)</td><td class=\"num\">\\(0.06\\)</td><td class=\"num\">\\(0.03\\)</td></tr></table></div>No convergence index is given for the bulk velocity (order 2 assumed: the three values do not approach a limit from one side). The peak of \\(u'_{rms}\\) does fall from one side, but its extrapolated value is further from the reference than the value on G3: three levels this coarse are not in the range where an extrapolation can be trusted. Resampling the three bulk velocities with their statistical errors, \\(0\\,\\%\\) of the sets give a usable order.",
+   "<b>What the remaining difference of the bulk velocity is made of.</b><div class=\"table-wrap\"><table class=\"full\"><tr><th class=\"\">Part</th><th class=\"num\">Size</th><th class=\"num\">From</th></tr><tr><td class=\"\">Difference from the reference on G3</td><td class=\"num\">\\(-0.34\\,\\%\\)</td><td class=\"num\">measured</td></tr><tr><td class=\"\">Grid: change from the second finest to the finest grid</td><td class=\"num\">\\(\\pm\\)\\(1.30\\,\\%\\)</td><td class=\"num\">no one-sided convergence, so no error estimate</td></tr><tr><td class=\"\">Statistical error of the average (one standard error)</td><td class=\"num\">\\(\\pm\\)\\(0.16\\,\\%\\)</td><td class=\"num\">from the balance of the box, \\(38\\) time units</td></tr><tr><td class=\"\">Not fully settled (allowed by the wall-shear imbalance)</td><td class=\"num\">\\(\\pm\\)\\(0.03\\,\\%\\)</td><td class=\"num\">imbalance over the friction-law exponent</td></tr><tr><td class=\"\">Reference: authors' bound on its error</td><td class=\"num\">\\(\\pm\\)\\(0.2\\,\\%\\)</td><td class=\"num\">its two codes differ by \\(0.03\\,\\%\\)</td></tr><tr><td class=\"\">Time step (half the step, coarsest grid)</td><td class=\"num\">\\(-0.11\\,\\%\\) \\(\\pm\\) \\(0.26\\,\\%\\)</td><td class=\"num\">not distinguishable from zero</td></tr></table></div>The difference is no larger than two statistical errors plus the reference's uncertainty: on this evidence the mean flow rate cannot be told apart from the reference.",
+   "<b>Repeat runs of the coarsest grid: a direct test of the statistical error.</b> Independent runs of the same grid, each averaged after its own start-up.<div class=\"table-wrap\"><table class=\"full\"><tr><th class=\"\">Run</th><th class=\"num\">\\(U_b\\) with the error used</th><th class=\"num\">Plain block-means error</th><th class=\"num\">Time units averaged</th><th class=\"num\">Courant target</th></tr><tr><td class=\"\">G1</td><td class=\"num\">\\(15.938 \\pm 0.032\\)</td><td class=\"num\">\\(0.013\\)</td><td class=\"num\">\\(37\\)</td><td class=\"num\">\\(0.750\\)</td></tr><tr><td class=\"\">G1h</td><td class=\"num\">\\(15.920 \\pm 0.025\\)</td><td class=\"num\">\\(0.007\\)</td><td class=\"num\">\\(38\\)</td><td class=\"num\">\\(0.375\\)</td></tr><tr><td class=\"\">first_G1</td><td class=\"num\">\\(15.959 \\pm 0.039\\)</td><td class=\"num\">\\(0.012\\)</td><td class=\"num\">\\(16\\)</td><td class=\"num\">\\(0.800\\)</td></tr><tr><td class=\"\">second_G1</td><td class=\"num\">\\(15.890 \\pm 0.032\\)</td><td class=\"num\">\\(0.003\\)</td><td class=\"num\">\\(10\\)</td><td class=\"num\">\\(0.750\\)</td></tr></table></div>The values spread over \\(0.069\\). Against the error used, \\(\\chi^2 = 2.2\\) for 3 degrees of freedom (consistent when about equal); against plain block means it is \\(48\\).",
+   "<b>Rules that passed.</b> Bulk velocity on G3: \\(-0.34\\,\\%\\) from the reference (limit \\(1.0\\,\\%\\), statistical error \\(0.16\\,\\%\\)). Centre-plane velocity on G3: \\(+0.17\\,\\%\\) from the reference (limit \\(1.0\\,\\%\\), statistical error \\(0.18\\,\\%\\)). Friction coefficient on G3: \\(+0.68\\,\\%\\) from the reference (limit \\(2.0\\,\\%\\), statistical error \\(0.31\\,\\%\\)). Peak of \\(u'_{rms}\\) on G3: \\(-0.61\\,\\%\\) from the reference (limit \\(2.0\\,\\%\\), statistical error \\(0.29\\,\\%\\)). Position of the peak of \\(u'_{rms}\\) on G3: \\(13.2\\) against \\(14.4\\) wall units (limit \\(1.5\\)). Run G1: health ok. Run G1 ended on the stop rule at \\(t = 60.0\\). Run G1: total shear stress within \\(0.0040\\) of the exact line (limit \\(0.01\\)). Run G1: the two plates' mean wall shear agree within \\(0.7\\) standard errors. Run G2: health ok. Run G2 ended on the stop rule at \\(t = 62.0\\). Run G2: total shear stress within \\(0.0060\\) of the exact line (limit \\(0.01\\)). Run G2: the two plates' mean wall shear agree within \\(0.8\\) standard errors. Run G3: health ok. Run G3 ended on the stop rule at \\(t = 58.0\\). Run G3: total shear stress within \\(0.0041\\) of the exact line (limit \\(0.01\\)). Run G3: the two plates' mean wall shear agree within \\(1.0\\) standard errors. Run G1h: health ok. Run G1h ended on the stop rule at \\(t = 44.0\\). Run G1h: total shear stress within \\(0.0032\\) of the exact line (limit \\(0.01\\)). Run G1h: the two plates' mean wall shear agree within \\(0.7\\) standard errors. Finest-grid bulk velocity \\(15.646\\) against the reference \\(15.699\\): difference \\(-0.053\\), band \\(0.284\\) (grid part, two statistical errors, reference uncertainty). Half the time step on G1: bulk velocity changes by \\(-0.018\\), \\(0.4\\) combined standard errors (limit \\(2\\)).",
+   "<b>Rules that did not pass.</b> Profile of mean velocity on G3: largest difference \\(-0.313\\) at \\(y^+ = 22\\) (limit \\(0.30\\)). Profile of \\(u'_{rms}\\) on G3: largest difference \\(0.138\\) at \\(y^+ = 4\\) (limit \\(0.08\\)). Profile of \\(v'_{rms}\\) on G3: largest difference \\(-0.072\\) at \\(y^+ = 36\\) (limit \\(0.05\\)). Profile of \\(w'_{rms}\\) on G3: largest difference \\(-0.081\\) at \\(y^+ = 38\\) (limit \\(0.06\\)). Profile of turbulent shear stress on G3: largest difference \\(0.034\\) at \\(y^+ = 8\\) (limit \\(0.03\\)). Profile of mean velocity: the largest difference is within two statistical errors of its limit, so a longer average could change this rule's outcome (\\(-0.313\\) against \\(0.30\\), error \\(0.026\\)). Profile of turbulent shear stress: the largest difference is within two statistical errors of its limit, so a longer average could change this rule's outcome (\\(0.034\\) against \\(0.03\\), error \\(0.002\\)). Bulk velocity over the three grids: the three values do not approach a limit from one side, so no order can be read. With the statistical error of each level, \\(0\\,\\%\\) of resampled sets give a usable order."
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "setup",
+   "logged": "2026-11-14 08:28",
+   "status": "resolved",
+   "problem": "The machine file says a single run projected above about 15 minutes is a reason to coarsen the plan. A turbulent flow computed without a model cannot meet that. Its outputs are time averages, the bulk velocity needs tens of time units to settle and to average, and the finest grid that the exploration in gpucfd/DESIGN.md found usable (192 by 64 by 64 cells) costs about one minute per time unit.",
+   "diagnosis": "The 15 minute rule was written for runs that end when they converge. Here the length of a run is set by the physics (the bulk velocity forgets a disturbance in about 9 time units, theory.py) and by the statistical error wanted, not by the grid alone. Coarsening below 192 by 64 by 64 would give up the accuracy the problem asks about.",
+   "fix": "Kept the finest level at 192 by 64 by 64 and planned about one hour for it; kept the two coarser levels cheap (ratio 1.5 and 4/3 instead of 2). Said so in the decisions and in the limitations. Every run still ends on a stop rule fixed in advance, with a longest time per level.",
+   "lesson": "For averaged turbulence the budget is time units times cost per time unit. Plan it from the settling time and the statistical error, then choose the grid that fits.",
+   "guideline": "Add to the machine file, next to the 15 minute rule, a budget for runs whose outputs are time averages (for example a total per case), and say in WORKFLOW.md stage 3 that the pre-flight of such a run should project seconds per time unit and the time units needed, not only the time to a fixed end."
+  },
+  {
+   "id": 2,
+   "stage": "tooling",
+   "logged": "2026-11-14 08:28",
+   "status": "resolved",
+   "problem": "The workflow asks for three meshes with refinement ratio 2, and cfdlib.verification.three_grid_study takes one ratio r. For this box the grids that suit the pressure solver (cell counts 3 or 9 times a power of 2, with three times as many cells along the flow as across it) give ratio 2 only as 96, 192, 384 cells along the flow, and the last has 6.3 million cells.",
+   "diagnosis": "A grid study with a constant ratio of 2 costs a factor 16 per level in a time-resolved 3D run. With ratios 1.5 and 4/3 (96, 144, 192 cells) the three levels fit the budget, but the tool cannot evaluate them.",
+   "fix": "analyze.py solves the three-level relations for the order and the extrapolated value with two different ratios (the same model as three_grid_study, error proportional to the cell size to a power), and reduces to the tool's result for equal ratios (checked in code).",
+   "lesson": "A constant refinement ratio is a convenience of the formula, not a requirement of the method.",
+   "guideline": "Let cfdlib.verification.three_grid_study and level_sequence take the cell sizes of the three levels (or two ratios), and say in WORKFLOW.md stage 2 that a ratio below 2 is acceptable for 3D time-resolved runs when it is the same family of grids."
+  },
+  {
+   "id": 3,
+   "stage": "tooling",
+   "logged": "2026-11-14 08:28",
+   "status": "resolved",
+   "problem": "With run_transient(adapt_cfl=...) the arguments dt and sample_dt no longer mean what their names say. dt is a cap the step never reaches, and samples come every m steps with m taken from sample_dt over dt, so the time between samples follows the step. To sample every 10 steps I had to pass a cap and 10 times the cap.",
+   "diagnosis": "The adaptive step was added to an interface built for a fixed step. A cap chosen too large makes m small (a sample every step or two, which costs more than the solver); a cap chosen from the start field makes the developed flow run below the Courant number asked for.",
+   "fix": "numerics.yaml holds a cap of 0.004 time units and the steps per sample of each level (10, 15, 20, about 0.025 time units between samples on every level); run.py passes sample_dt as steps per sample times the cap.",
+   "lesson": "With an adaptive step, the natural settings are the Courant number and the number of steps between samples.",
+   "guideline": "Give cfdlib.gpu.run_transient a sample_steps argument for runs with adapt_cfl, and make dt optional there (no cap unless given)."
+  },
+  {
+   "id": 4,
+   "stage": "tooling",
+   "logged": "2026-11-14 08:28",
+   "status": "resolved",
+   "problem": "gpucfd has no restart files, and a run on the finest level takes about an hour. A level also starts from the last field of the level below, which run_transient does not keep.",
+   "diagnosis": "cfdlib.gpu keeps the record of a killed run (partial) but not its field. Continuing an IMEX run needs the velocity and the pressure the scheme carries (set and set_pressure).",
+   "fix": "run.py has save_field and load_field (velocity, pressure, time in one file under the home folder) and saves the field from inside the live check every 10 time units and at the end of each run.",
+   "lesson": "The live check is the only hook inside run_transient, so a checkpoint has to ride on it.",
+   "guideline": "Add save_state and load_state to cfdlib.gpu (velocity, carried pressure, time) and a checkpoint option to run_transient; write_run could store the path of the last field in the record."
+  },
+  {
+   "id": 5,
+   "stage": "preflight",
+   "logged": "2026-11-14 08:31",
+   "status": "resolved",
+   "problem": "The pre-flight on the finest grid ended with a health warning. The Courant number reached 1.04 although the adaptive step was asked to hold 0.8.",
+   "diagnosis": "run_transient re-chooses the step only at a sample, and I had set 20 steps between samples on the finest grid to keep the record small. The largest local Courant rate (one cell somewhere in the box) rose by 30 percent within those 20 steps. On the coarsest grid, with 10 steps between samples, the largest rise was 20 percent.",
+   "fix": "10 steps between samples on every level, recorded under changes in numerics.yaml. The record of the finest run is larger for it (88 samples per time unit).",
+   "lesson": "The adaptive step is only as good as the interval at which it looks. The extreme of a turbulent field can change by a quarter within 20 steps.",
+   "guideline": "In cfdlib.gpu.run_transient, separate the interval of the step control from the sampling interval (look at the Courant rate every few steps, which costs one reduction on the GPU, and sample the outputs less often). State in its docstring that the Courant number overshoots by the growth of the rate between two looks."
+  },
+  {
+   "id": 6,
+   "stage": "preflight",
+   "logged": "2026-11-14 08:36",
+   "status": "resolved",
+   "problem": "The pressure-tolerance check (cfdlib.gpu.tolerance_check) passed every tolerance from the strictest to the loosest tried, eight orders of magnitude below my same-answer rule, on both grids. A rule that everything passes by that much does not discriminate.",
+   "diagnosis": "The outputs compared were the bulk velocity and the two wall shear stresses over 0.3 time units. The bulk velocity is an integral that the pressure cannot change (the pressure gradient has no mean), and without an immersed body there is no force that is taken from the pressure. The check says the choice is safe over a short stretch; it cannot say anything about averages over tens of time units, because two turbulent runs part ways whatever the tolerance.",
+   "fix": "Took the loosest tolerance tried, which the check supports (difference 1.7 times ten to the minus 12 on the finest grid, divergence left four orders below the health limit, 9 percent cheaper per step there, 20 percent on the coarsest grid). The choice and the numbers are a decision in the report.",
+   "lesson": "For a flow without bodies the pressure tolerance is a cost setting more than an accuracy setting, and the divergence left after the projection is the number to watch.",
+   "guideline": "Say in cfdlib/gpu.py (tolerance_check) what to compare for a flow without bodies (a local velocity or the divergence, not integrals), and give the measured starting value for a turbulent channel in gpucfd/DESIGN.md. Its open item on a looser tolerance can be closed with these numbers for the short stretch."
+  },
+  {
+   "id": 7,
+   "stage": "tooling",
+   "logged": "2026-11-14 08:36",
+   "status": "resolved",
+   "problem": "The mandatory pre-flight tool, cfdlib.monitor.preflight, works on an OpenFOAM case. With gpucfd as the solver there is no pre-flight tool, and nothing projects the run time of a run that ends on a statistical rule.",
+   "diagnosis": "Stage 3 of the workflow is written for OpenFOAM. A gpucfd pre-flight needs the health of a short run (run_transient gives it), the cost per step, the steps per time unit of the developed flow (from the Courant rate) and from these the seconds per time unit.",
+   "fix": "run.py has its own pre-flight (do_preflight), a short run on the coarsest grid from the start field and one on the finest grid from the coarse field, with that projection. It also showed that the start field turns turbulent within two time units.",
+   "lesson": "The projection of an averaged run is seconds per time unit times the time units the stop rule will need; the second factor is only known as a range before the run.",
+   "guideline": "Add a pre-flight helper to cfdlib.gpu (short run, health, cost per step, steps and seconds per time unit, memory) and name it in WORKFLOW.md stage 3 next to monitor.preflight."
+  },
+  {
+   "id": 8,
+   "stage": "tooling",
+   "logged": "2026-11-14 08:31",
+   "status": "resolved",
+   "problem": "A command in Git Bash that called plain python with a here-document hung until the tool's two minute limit. Nothing was lost but the time.",
+   "diagnosis": "On this machine python in Git Bash is the Windows launcher, not the pipeline's Python in WSL, and it waits on the console when it is fed a here-document.",
+   "fix": "Small analysis scripts are written as files in the scratch folder and run with the WSL Python, as the machine file says for everything else.",
+   "lesson": "Every Python call on this machine goes through WSL, also the one-line ones.",
+   "guideline": "Add one line to workflow/machines/dev-pc.md, never call python from Git Bash directly, it is not the pipeline's Python and can hang."
+  },
+  {
+   "id": 9,
+   "stage": "production",
+   "logged": "2026-11-14 08:41",
+   "status": "resolved",
+   "problem": "The first production run of the coarsest grid ended on its stop rule after 40 time units, but with a health warning. The Courant number passed 1 at 4 of 1638 checks (largest 1.08), with a target of 0.8 and the step re-chosen every 10 steps. The fix made after the pre-flight (10 steps instead of 20) was not enough.",
+   "diagnosis": "The largest local Courant rate of a turbulent field is an extreme value, and it rose by up to 35 percent within 10 steps. The pre-flight was 4 time units long and saw at most 20 percent. A longer run samples rarer events, so a margin read off a short pre-flight is too small.",
+   "fix": "Stopped the sequence (the half-step run had started), kept the first run under the name first_G1 as a record, and restarted all runs with the step re-chosen every 5 steps and a target of 0.75. Twice the samples would double the stored record, so run.py stores every 2nd to 4th profile and all scalar series in full. Cost of the retry, about 5 minutes of GPU time.",
+   "lesson": "For a turbulent run the Courant margin has to cover the rarest jump of the whole run, not the largest one of the pre-flight. Size it from the growth per look, times a factor for the longer run.",
+   "guideline": "Give cfdlib.gpu.run_transient a step control that looks at the Courant rate every few steps independently of the sampling, and a storage interval for the profiles. In gpucfd/DESIGN.md, replace the sentence that an adaptive target of 0.8 gave a largest Courant number of 0.98 by the growth per look that was measured here (up to 35 percent in 10 steps on a grid of 96 by 32 by 32 cells over 40 time units)."
+  },
+  {
+   "id": 10,
+   "stage": "production",
+   "logged": "2026-11-14 08:45",
+   "status": "resolved",
+   "resolved": "2026-11-14 08:53",
+   "problem": "Two complete runs of the coarsest grid from the same start field (they differ only in the step control) gave mean bulk velocities of 15.978 and 15.904, each with a reported standard error of 0.010 and the stop rule holding. The two averages are 0.46 percent apart, five times their combined error. The statistical error from cfdlib.signals.stationary is far too small for the bulk velocity.",
+   "diagnosis": "The bulk velocity changes at the rate driving force minus wall shear, and the wall shear follows it, so it returns to its level only with the settling time, about 9 time units (theory.py had this number before the runs; I used it for the start-up and did not see that it is also the memory of the signal). Batch means need blocks several memories long. In a run of 30 to 40 time units the longest block the tool forms is an eighth of the record, about 4.5 time units, so the block means wander together and their scatter is small. The tool reported 10 independent samples and reliable where there were about two. The statement in gpucfd/DESIGN.md that the bulk velocity remembers about one time unit comes from the same estimate.",
+   "fix": "run.py, bulk_average. Averaging the exact balance of the box over the window gives the error of the mean bulk velocity as the settling time times the error of the mean of a signal with a short memory (what the eddies add to the wall shear), and batch means work on that signal. On the two recorded runs it gives 0.2 to 0.4 percent where batch means gave 0.02 to 0.08. The stop rule now uses it, with a limit of 0.25 percent (0.1 percent would need about 300 time units), the start-up cut waits for the slow approach, and the mean velocity profile and the centre velocity carry the same relative error. All runs restarted, the two old runs of the coarsest grid are kept as repeat runs. Cost, about 12 minutes of GPU time and half an hour of work.",
+   "lesson": "A statistical error is only as good as the longest block is long against the memory of the signal. When the flow has a known slow time scale, compare the block length with it before trusting the error, and when a run is cheap, repeat it, two runs that disagree settle the question at once.",
+   "guideline": "In cfdlib.signals.stationary, take the memory of the signal when it is known (an argument such as memory, in time units), report reliable as false when the longest block is shorter than a few memories, and add a test with a slowly relaxing signal. Add the estimator of run.bulk_average to gpucfd.turbulence or cfdlib.signals as the error of a channel's bulk velocity. Correct gpucfd/DESIGN.md and the note in cfdlib.gpu.check_fit, with the measured numbers, about 0.25 percent after 40 time units of averaging, and say that tens of time units give the bulk velocity to a few tenths of a percent, not better."
+  },
+  {
+   "id": 11,
+   "stage": "report",
+   "logged": "2026-11-14 08:57",
+   "status": "resolved",
+   "problem": "The report contract is built around an OpenFOAM case. With gpucfd as the only solver there is no case directory, so the check that every setting belongs to a decision does not run, the settings field of a decision has nothing defined to hold, and the environment table lists OpenFOAM but not the GPU or the solver.",
+   "diagnosis": "report.render(case_dir=None) skips the coverage check silently. cfdlib.report.environment_info reads the CPU, memory and OpenFOAM version only. The study report (cfdlib.study) knows gpucfd runs, the main report does not.",
+   "fix": "The decisions name where each choice lives (a key of numerics.yaml or an argument of the gpucfd call in run.py), written by hand and not checked by code. analyze.py adds the GPU and the solver to the environment table from the run record. Measured numbers inside decision texts are filled in by analyze.py from the recorded checks (tokens in double square brackets), so that none is typed.",
+   "lesson": "For a gpucfd case the list of every setting is short (the arguments of NavierStokes and run_transient and the numerics file), and a checker could read it from the run record.",
+   "guideline": "Let cfdlib.gpu.write_run store the solver arguments in the record, let the contract check decisions against that list when the case has no OpenFOAM directory, and add the GPU and the gpucfd build to cfdlib.report.environment_info. Say in workflow/references/report-contract.md what settings means for gpucfd."
+  },
+  {
+   "id": 12,
+   "stage": "report",
+   "logged": "2026-11-14 08:57",
+   "status": "resolved",
+   "problem": "The comparison section of the report takes one table. This case needs three more next to it, the grid study with its statistical errors, the parts of the remaining difference (request h asks for exactly that), and the repeat runs that test the error estimate.",
+   "diagnosis": "The template has one table per section (results, health, comparison). A case whose answer is an error budget has no place for it.",
+   "fix": "The three extra tables are written as HTML tables inside the comparison findings (helper html_table in analyze.py). The typesetting check still covers their text.",
+   "lesson": "Text fields of the report accept HTML, so a table can ride in a finding, but it is a workaround.",
+   "guideline": "Allow a list of extra tables (title, head, rows, note) in the simulation and comparison sections of the report contract, as the study report already has."
+  },
+  {
+   "id": 13,
+   "stage": "analysis",
+   "logged": "2026-11-14 10:21",
+   "status": "resolved",
+   "problem": "The bulk velocity on the three grids is 15.94, 15.44 and 15.65 against 15.70 in the reference. It does not approach a limit from one side, so the grid study gives no order of accuracy, no extrapolated value and no convergence index. On the finest grid it is 0.34 percent from the reference, while the mean velocity profile there is 0.31 friction velocities off at 22 wall units from the plate.",
+   "diagnosis": "The bulk velocity is the average of the profile over the channel, and the difference of the profile from the reference changes sign across the channel (too low in the wall layer, too high in the core on the coarsest grid, almost right in the core on the finest). The two parts cancel to a different degree on each grid. With cells of 24, 16 and 12 wall units in the wall plane, none of the levels is in the range where the error falls steadily. The peak of the streamwise fluctuation does fall one-sidedly, but its extrapolated value is further from the reference than the value on the finest grid.",
+   "fix": "No extrapolation and no index for the bulk velocity; the change from the second finest to the finest grid (1.3 percent) is reported as the grid uncertainty. The summary says that the agreement of the bulk velocity hides a larger error of the profile, with the numbers. The verdict rests on the profile limits.",
+   "lesson": "For turbulence resolved on a coarse grid, an integral output can agree with the reference by cancellation. Judge the profile the integral is made of, and do not read three coarse levels as a grid study.",
+   "guideline": "Add to WORKFLOW.md stage 5, next to the sentence that a coarse-mesh match can be luck, that an integral (a bulk velocity, a drag) should be shown together with the profile it is the integral of. Put the measured numbers of the three grids of this case (bulk velocity and the largest profile differences) into gpucfd/DESIGN.md and the note of cfdlib.gpu.check_fit, in place of the two numbers from the exploration."
+  },
+  {
+   "id": 14,
+   "stage": "analysis",
+   "logged": "2026-11-14 10:21",
+   "status": "resolved",
+   "problem": "All five profile limits I set before the runs are missed on the finest grid, two of them by less than two statistical errors, while every limit on a single number (bulk velocity, centre velocity, friction coefficient, peak of the streamwise fluctuation and its position) is met. The verdict is FAIL on limits I had to choose without data.",
+   "diagnosis": "Before the runs the repository had two numbers for this flow on these grids (bulk velocity and the peak of the streamwise fluctuation, in gpucfd/DESIGN.md). I sized the limits on the single numbers from them and guessed the profile limits as a few percent of each peak. The profiles turned out two to three times further off than the single numbers suggest, because the single numbers benefit from cancellation and from the peak being a flat maximum.",
+   "fix": "The limits stayed as set and the verdict is reported as it came out. The report marks the two limits that a longer average could turn, and lists every difference with its limit.",
+   "lesson": "A limit on a profile cannot be sized from a limit on its integral or its peak. Without prior data on the profile, say so in the plan and treat the first run as the one that sizes it.",
+   "guideline": "In WORKFLOW.md stage 2, where tolerances are sized from the coarse pre-flight error, add that a turbulent case has no such error before its first long run, so the coarsest level of the study is the place to size profile limits, before the finer levels run. With this case solved, its profile differences per grid can serve the next channel case."
+  },
+  {
+   "id": 15,
+   "stage": "performance",
+   "logged": "2026-11-14 10:27",
+   "status": "resolved",
+   "problem": "The four runs of the report took about 98 minutes of GPU time, 60 of them on the finest grid, and the three stopped or superseded runs another 12. About a third of every run from the field of another grid was start-up that is cut from the averages (20 of 58 time units on the finest grid, 25 of 62 on the middle one).",
+   "diagnosis": "Cost is time units times seconds per time unit (5.3, 24.8 and 62 seconds on the three grids, 65 ms per step on the finest). The time units are set by the bulk velocity, which needs two settling times to come from the level of the coarser grid to its own and about four more for an error of a quarter of a percent. The grid levels differ by 1.3 to 3 percent in bulk velocity, so every level starts that far from its own state.",
+   "fix": "None in this case beyond the pressure tolerance from the same-answer check (9 percent per step on the finest grid) and a start-up cut that follows the measured distance instead of a fixed number.",
+   "lesson": "On this flow the grid sets the price per time unit, the physics sets the number of time units, and the start-up is a large and avoidable share.",
+   "guideline": "Three things to try, in gpucfd/DESIGN.md under the channel section. A start field for a finer grid with its bulk velocity moved toward the expected level (the wall shear of the first time units says which way). Several independent shorter runs from decorrelated fields in place of one long run, which gives the error from their scatter. And cells twice as long as wide, the usual choice for this flow."
+  },
+  {
+   "id": 16,
+   "stage": "tooling",
+   "logged": "2026-11-14 10:27",
+   "status": "resolved",
+   "problem": "The tools to look into a running case, cfdlib.monitor peek and watch, read OpenFOAM cases. For an hour long gpucfd run the only live view was the log line of run_transient and the line my own stop rule printed.",
+   "diagnosis": "run_transient writes a partial record at every log line, which holds everything a live view needs, but nothing reads it.",
+   "fix": "The stop rule in run.py logs its state at every check (mean, error, drift, balance and which condition is still missing), and I followed that line. It was enough to see each run settle.",
+   "lesson": "A stop rule that says at every check why it does not hold yet is most of a live view.",
+   "guideline": "Let cfdlib.monitor peek and watch read the partial record of a gpucfd run, and have cfdlib.signals.stationary_watch report why it does not hold yet (today it returns nothing until it holds)."
+  },
+  {
+   "id": 17,
+   "stage": "tooling",
+   "logged": "2026-11-14 10:27",
+   "status": "resolved",
+   "problem": "cfdlib.signals.settle_time placed the end of the start-up at 1.2 time units in a run whose wall shear was still 10 percent off at 2 time units, and during the finest run its cut jumped between 20 and 24 time units from one check to the next.",
+   "diagnosis": "The rule picks the cut that minimises a naive error of the remaining mean. On a signal with a long memory that number has several shallow minima, and a slow approach hardly moves it.",
+   "fix": "run.py, start_up_end, takes the later of that cut and the time at which the slow approach of the bulk velocity has decayed to 0.2 percent, from its measured distance and the settling time.",
+   "lesson": "The end of a start-up is a physical statement, how far the flow still is from its state, and the relaxation time of the flow answers it better than a statistical rule alone.",
+   "guideline": "Say in the docstring of cfdlib.signals.settle_time that it finds the fast start-up only, and offer the slow-approach cut next to it for flows with a known relaxation time."
+  },
+  {
+   "id": 18,
+   "stage": "analysis",
+   "logged": "2026-11-14 10:27",
+   "status": "resolved",
+   "problem": "The time-step check (the coarsest grid with half the step) can only say that the bulk velocity changes by less than about a quarter of a percent. It cannot resolve anything smaller.",
+   "diagnosis": "It compares two time averages, and each carries the statistical error of the bulk velocity. A statistical check of a small time-step effect would need hundreds of time units per run.",
+   "fix": "Reported as it is, the change with its error, and the mean step in viscous time units next to it. The two earlier runs of the same grid with other Courant targets are listed as repeat runs.",
+   "lesson": "For a chaotic flow a time-step study by averages is as expensive as the averages themselves.",
+   "guideline": "Offer a short deterministic check in cfdlib.gpu, the same stretch of flow from the same field with the step and half the step, compared before the two runs part ways, as tolerance_check does for the pressure tolerance."
+  },
+  {
+   "id": 19,
+   "stage": "report",
+   "logged": "2026-11-14 10:27",
+   "status": "resolved",
+   "problem": "I broke the rule about LaTeX and shell here-documents once. A small patch script written through a here-document put a formula with single backslashes into analyze.py. It still ran, with a Python warning, and I corrected it with the file-editing tool. A second here-document, for insight text, failed outright on an apostrophe.",
+   "diagnosis": "Time pressure, and the patch looked like plain code. The backslash-parenthesis pair is not a control character, so neither Python nor the contract complained loudly.",
+   "fix": "The line was rewritten with the editing tool, and every later change of a case file went through it.",
+   "lesson": "The rule holds for every file that holds LaTeX or free text, also when the change itself seems harmless.",
+   "guideline": "Let the contract check, or a test, compile the case modules with warnings as errors, so an invalid escape sequence in a formula is caught at once."
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The problem: fluid between two plates at rest, driven along \\(x\\) by a constant force. The flow is turbulent; the box shown repeats along \\(x\\) and \\(z\\). The profile is a sketch, not a result."
+  },
+  {
+   "key": "history",
+   "section": "simulation",
+   "caption": "Left: bulk velocity of each run against time (time unit \\(\\delta/u_\\tau\\)); the dotted line of the same colour marks where its average starts. The slow wandering over ten and more time units is the bulk velocity's long memory (Section 3). Right: wall shear stress on the two plates in run G3; its average must equal the driving force (the line at 1)."
+  },
+  {
+   "key": "grid",
+   "section": "convergence",
+   "caption": "Left: bulk velocity on each grid against its cell size (relative to the finest grid), with one statistical standard error; the band is the reference with its own uncertainty. Right: largest difference from the reference along each profile, in wall units."
+  },
+  {
+   "key": "profile",
+   "section": "comparison",
+   "caption": "Left: mean velocity in wall units on the three grids against the reference, with the law of the wall (\\(u^+ = y^+\\) at the wall; the logarithmic law with textbook constants further out, for orientation). Right: difference from the reference; the dashed lines are the limit set before the runs, the shading two statistical errors of G3."
+  },
+  {
+   "key": "rms",
+   "section": "comparison",
+   "caption": "Left: the three fluctuation intensities on G3 (markers) against the reference (lines), in wall units. Right: \\(u'_{rms}\\) near its peak on the three grids."
+  },
+  {
+   "key": "stress",
+   "section": "comparison",
+   "caption": "Left: shear stresses on G3 across half the channel: the part carried by the eddies, the viscous part, their sum, and the exact straight line of the mean momentum balance. Right: what is left of that balance after averaging (sum minus exact line), over the whole channel, for each run."
+  }
+ ],
+ "performance": {
+  "intro": "Cost of each run on one RTX 4070, one run at a time. Wall time includes sampling the plane averages.",
+  "head": [
+   "Run",
+   "Cells",
+   "Steps",
+   "Time units",
+   "Wall (min)",
+   "ms per step",
+   "µs per cell and step",
+   "Pressure iterations per solve",
+   "Share spent sampling",
+   "Seconds per time unit",
+   "GPU memory (MiB)"
+  ],
+  "rows": [
+   [
+    "G1",
+    "98,304",
+    "26,205",
+    "\\(60.0\\)",
+    "\\(5.3\\)",
+    "\\(12.1\\)",
+    "\\(0.123\\)",
+    "\\(6.7\\)",
+    "\\(7.1\\,\\%\\)",
+    "\\(5.3\\)",
+    "\\(1577\\)"
+   ],
+   [
+    "G2",
+    "331,776",
+    "46,410",
+    "\\(62.0\\)",
+    "\\(25.6\\)",
+    "\\(33.1\\)",
+    "\\(0.100\\)",
+    "\\(6.8\\)",
+    "\\(8.1\\,\\%\\)",
+    "\\(24.8\\)",
+    "\\(1723\\)"
+   ],
+   [
+    "G3",
+    "786,432",
+    "55,690",
+    "\\(58.0\\)",
+    "\\(60.0\\)",
+    "\\(64.6\\)",
+    "\\(0.082\\)",
+    "\\(7.3\\)",
+    "\\(3.8\\,\\%\\)",
+    "\\(62.0\\)",
+    "\\(1747\\)"
+   ],
+   [
+    "G1h",
+    "98,304",
+    "38,580",
+    "\\(44.0\\)",
+    "\\(7.1\\)",
+    "\\(11.0\\)",
+    "\\(0.112\\)",
+    "\\(6.7\\)",
+    "\\(1.6\\,\\%\\)",
+    "\\(9.7\\)",
+    "\\(1549\\)"
+   ],
+   [
+    "first_G1",
+    "98,304",
+    "16,380",
+    "\\(40.0\\)",
+    "\\(3.0\\)",
+    "\\(11.2\\)",
+    "\\(0.113\\)",
+    "\\(6.7\\)",
+    "\\(3.8\\,\\%\\)",
+    "\\(4.6\\)",
+    "\\(1655\\)"
+   ],
+   [
+    "second_G1",
+    "98,304",
+    "13,915",
+    "\\(32.0\\)",
+    "\\(2.8\\)",
+    "\\(12.1\\)",
+    "\\(0.123\\)",
+    "\\(6.7\\)",
+    "\\(7.0\\,\\%\\)",
+    "\\(5.2\\)",
+    "\\(1636\\)"
+   ]
+  ],
+  "notes": [
+   "Wall time of all runs in the table: 104 min. Not counted: the pre-flight, the tolerance checks and the part of a half-step run that was stopped (a few minutes).",
+   "What sets the cost is the number of time units, not the grid alone: the bulk velocity needs about 15 to 25 time units of start-up and 40 of averaging for an error of a quarter of a per cent, and four times the averaging for half of that.",
+   "The pressure tolerance chosen by the same-answer check made a step \\(9\\,\\%\\) cheaper on the finest grid than the tolerance first planned.",
+   "Next to try: a start field for the finer grids whose bulk velocity is already near its settled value (it would save most of the start-up), cells twice as long as wide, and several shorter independent runs in place of one long one (the same statistics, and a direct error estimate)."
+  ]
+ },
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.turbulent_channel_re180.theory",
+    "what": "Theory self-checks and derived numbers"
+   },
+   {
+    "cmd": "python -m cases.turbulent_channel_re180.run preflight",
+    "what": "Short runs on G1 and G3: health, cost, projection"
+   },
+   {
+    "cmd": "python -m cases.turbulent_channel_re180.run tolcheck G1 G3",
+    "what": "Pressure tolerance, same-answer check"
+   },
+   {
+    "cmd": "python -m cases.turbulent_channel_re180.run production G1 G2 G3 G1h",
+    "what": "The four runs of the table, each ending on the stop rule"
+   },
+   {
+    "cmd": "python -m cases.turbulent_channel_re180.analyze",
+    "what": "Averages, comparison, figures, this report"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/turbulent_channel_re180/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/reference/",
+    "what": "Reference data of Vreman and Kuerten (2014), as published and parsed"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/numerics.yaml",
+    "what": "Grids, time step, stop rule, pass and fail limits, and the list of changes made on the way"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/decisions.yaml",
+    "what": "Every choice"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/insights.yaml",
+    "what": "Live workflow log"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/theory.py",
+    "what": "Exact results and derived numbers (SymPy)"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/run.py",
+    "what": "Runs, start fields, stop rule, error of the bulk velocity"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/stats.py",
+    "what": "Averages, reference, grid study"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/analyze.py",
+    "what": "Rules, figures, report"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/sketch.py",
+    "what": "The problem sketch"
+   },
+   {
+    "path": "cases/turbulent_channel_re180/run.sh, stop_runs.sh",
+    "what": "Launch and stop a run from Windows"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "~/gpucfd_runs/turbulent_channel_re180/",
+    "what": "Last velocity and pressure field of each run (outside git)"
+   },
+   {
+    "path": "results/turbulent_channel_re180/runs/",
+    "what": "Record of each run: <run>.json (settings, health, cost) and <run>.npz (the sampled plane averages)"
+   },
+   {
+    "path": "results/turbulent_channel_re180/",
+    "what": "preflight.json, tolcheck_G1.json, tolcheck_G3.json, logs/, results.json, report.html"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "23 GB visible to Linux"
+   ],
+   [
+    "GPU",
+    "NVIDIA GeForce RTX 4070"
+   ],
+   [
+    "Flow solver",
+    "gpucfd (this repository, gpucfd/), IMEX scheme, mixed-precision multigrid"
+   ]
+  ],
+  "notes": [
+   "One run at a time on the GPU. A turbulent run is chaotic: a repeat gives the same averages within the statistical error, not the same numbers.",
+   "first_G1 and second_G1 were made with earlier settings (numerics.yaml, changes) and cannot be reproduced by the commands above as they stand; their records are kept. The same holds for the recorded pre-flight and tolerance checks: they ran with the first plan's Courant target and sampling, and the commands now use the final ones.",
+   "The records keep every 2nd to 4th sampled profile (about 0.025 time units apart) and every sample of the scalar series."
+  ]
+ },
+ "data": {
+  "levels": [
+   "G1",
+   "G2",
+   "G3"
+  ],
+  "draft": false,
+  "fails": [
+   "Profile of mean velocity on G3: largest difference \\(-0.313\\) at \\(y^+ = 22\\) (limit \\(0.30\\)).",
+   "Profile of \\(u'_{rms}\\) on G3: largest difference \\(0.138\\) at \\(y^+ = 4\\) (limit \\(0.08\\)).",
+   "Profile of \\(v'_{rms}\\) on G3: largest difference \\(-0.072\\) at \\(y^+ = 36\\) (limit \\(0.05\\)).",
+   "Profile of \\(w'_{rms}\\) on G3: largest difference \\(-0.081\\) at \\(y^+ = 38\\) (limit \\(0.06\\)).",
+   "Profile of turbulent shear stress on G3: largest difference \\(0.034\\) at \\(y^+ = 8\\) (limit \\(0.03\\))."
+  ],
+  "warns": [
+   "Profile of mean velocity: the largest difference is within two statistical errors of its limit, so a longer average could change this rule's outcome (\\(-0.313\\) against \\(0.30\\), error \\(0.026\\)).",
+   "Profile of turbulent shear stress: the largest difference is within two statistical errors of its limit, so a longer average could change this rule's outcome (\\(0.034\\) against \\(0.03\\), error \\(0.002\\)).",
+   "Bulk velocity over the three grids: the three values do not approach a limit from one side, so no order can be read. With the statistical error of each level, \\(0\\,\\%\\) of resampled sets give a usable order."
+  ],
+  "passed": [
+   "Bulk velocity on G3: \\(-0.34\\,\\%\\) from the reference (limit \\(1.0\\,\\%\\), statistical error \\(0.16\\,\\%\\)).",
+   "Centre-plane velocity on G3: \\(+0.17\\,\\%\\) from the reference (limit \\(1.0\\,\\%\\), statistical error \\(0.18\\,\\%\\)).",
+   "Friction coefficient on G3: \\(+0.68\\,\\%\\) from the reference (limit \\(2.0\\,\\%\\), statistical error \\(0.31\\,\\%\\)).",
+   "Peak of \\(u'_{rms}\\) on G3: \\(-0.61\\,\\%\\) from the reference (limit \\(2.0\\,\\%\\), statistical error \\(0.29\\,\\%\\)).",
+   "Position of the peak of \\(u'_{rms}\\) on G3: \\(13.2\\) against \\(14.4\\) wall units (limit \\(1.5\\)).",
+   "Run G1: health ok.",
+   "Run G1 ended on the stop rule at \\(t = 60.0\\).",
+   "Run G1: total shear stress within \\(0.0040\\) of the exact line (limit \\(0.01\\)).",
+   "Run G1: the two plates' mean wall shear agree within \\(0.7\\) standard errors.",
+   "Run G2: health ok.",
+   "Run G2 ended on the stop rule at \\(t = 62.0\\).",
+   "Run G2: total shear stress within \\(0.0060\\) of the exact line (limit \\(0.01\\)).",
+   "Run G2: the two plates' mean wall shear agree within \\(0.8\\) standard errors.",
+   "Run G3: health ok.",
+   "Run G3 ended on the stop rule at \\(t = 58.0\\).",
+   "Run G3: total shear stress within \\(0.0041\\) of the exact line (limit \\(0.01\\)).",
+   "Run G3: the two plates' mean wall shear agree within \\(1.0\\) standard errors.",
+   "Run G1h: health ok.",
+   "Run G1h ended on the stop rule at \\(t = 44.0\\).",
+   "Run G1h: total shear stress within \\(0.0032\\) of the exact line (limit \\(0.01\\)).",
+   "Run G1h: the two plates' mean wall shear agree within \\(0.7\\) standard errors.",
+   "Finest-grid bulk velocity \\(15.646\\) against the reference \\(15.699\\): difference \\(-0.053\\), band \\(0.284\\) (grid part, two statistical errors, reference uncertainty).",
+   "Half the time step on G1: bulk velocity changes by \\(-0.018\\), \\(0.4\\) combined standard errors (limit \\(2\\))."
+  ],
+  "bulk": {
+   "G1": {
+    "mean": 15.937842858594808,
+    "stderr": 0.0324907073257804,
+    "stderr_batch": 0.013296749315587915,
+    "t0": 23.43151292927448,
+    "t1": 60.00461664164974,
+    "centre": 18.86770276003443,
+    "centre_err": 0.0460015098143298,
+    "cf": 0.00787355588942687,
+    "re_b": 5737.623428635121,
+    "urms_peak": 2.851650730381508,
+    "urms_peak_y": 12.294941261854163,
+    "urms_peak_err": 0.012462293429469843,
+    "shear_peak": 0.7152262053181954,
+    "imbalance": -0.002094676027789122,
+    "stress_max": 0.004003920764715563,
+    "halves_sigma": 0.6765356355105503,
+    "drift": 1.2365168408345055
+   },
+   "G2": {
+    "mean": 15.44146396606717,
+    "stderr": 0.03517849745335047,
+    "stderr_batch": 0.01029140204324113,
+    "t0": 25.44226394171092,
+    "t1": 62.000352784282974,
+    "centre": 18.173633521101852,
+    "centre_err": 0.046924385610863234,
+    "cf": 0.008387896269504013,
+    "re_b": 5558.927027339468,
+    "urms_peak": 2.694136280022448,
+    "urms_peak_y": 12.190990905050079,
+    "urms_peak_err": 0.010028934808151358,
+    "shear_peak": 0.7207612281936207,
+    "imbalance": 0.002606837952719765,
+    "stress_max": 0.0059995534921611915,
+    "halves_sigma": 0.8488305286201102,
+    "drift": -0.10329778511016201
+   },
+   "G3": {
+    "mean": 15.645670517056406,
+    "stderr": 0.024385668548148297,
+    "stderr_batch": 0.006743693163748725,
+    "t0": 20.08065607363312,
+    "t1": 58.00270666051001,
+    "centre": 18.313284777737778,
+    "centre_err": 0.03249955114034678,
+    "cf": 0.008170368326601098,
+    "re_b": 5632.441385689711,
+    "urms_peak": 2.6550359252929456,
+    "urms_peak_y": 13.186671584578862,
+    "urms_peak_err": 0.007599789332205283,
+    "shear_peak": 0.7170350621689252,
+    "imbalance": 0.00044251949343854236,
+    "stress_max": 0.0040563786123939405,
+    "halves_sigma": 1.015308009354276,
+    "drift": 0.015260842833479147
+   },
+   "G1h": {
+    "mean": 15.919911667173292,
+    "stderr": 0.02455164922062903,
+    "stderr_batch": 0.007382322531465372,
+    "t0": 6.471900855465944,
+    "t1": 44.0041869931953,
+    "centre": 18.889770296535314,
+    "centre_err": 0.031883244009953474,
+    "cf": 0.007891302438552232,
+    "re_b": 5731.168199723892,
+    "urms_peak": 2.828173446092585,
+    "urms_peak_y": 12.172492844314114,
+    "urms_peak_err": 0.0058543385990627,
+    "shear_peak": 0.7201263464755774,
+    "imbalance": 0.000755910507048263,
+    "stress_max": 0.003195587672005673,
+    "halves_sigma": 0.7252754600930527,
+    "drift": 0.2714357335400673
+   },
+   "first_G1": {
+    "mean": 15.959293570573104,
+    "stderr": 0.0394447975653711,
+    "stderr_batch": 0.012164572083418862,
+    "t0": 23.904905488114082,
+    "t1": 40.02863435845627,
+    "centre": 18.95033374194668,
+    "centre_err": 0.058156989646338364,
+    "cf": 0.007852404592847183,
+    "re_b": 5745.34568494669,
+    "urms_peak": 2.8345112883801415,
+    "urms_peak_y": 12.083865910789784,
+    "urms_peak_err": 0.012250127471302698,
+    "shear_peak": 0.7264612640952172,
+    "imbalance": 0.005279345975792493,
+    "stress_max": 0.012076432388841374,
+    "halves_sigma": 1.5142527859604118,
+    "drift": -0.551527323878472
+   },
+   "second_G1": {
+    "mean": 15.890193646498725,
+    "stderr": 0.03151807736933675,
+    "stderr_batch": 0.0032388867156789786,
+    "t0": 22.28332869689421,
+    "t1": 32.01146829517291,
+    "centre": 18.780090870259926,
+    "centre_err": 0.041137555968106046,
+    "cf": 0.007920846846821865,
+    "re_b": 5720.469712281903,
+    "urms_peak": 2.8584687684373002,
+    "urms_peak_y": 12.210419028141942,
+    "urms_peak_err": 0.01144821687288557,
+    "shear_peak": 0.7189422198043581,
+    "imbalance": 0.0006064163838543912,
+    "stress_max": 0.006599825817965421,
+    "halves_sigma": 1.0749116158590484,
+    "drift": -0.024557096245521385
+   }
+  },
+  "reference": {
+   "bulk": {
+    "value": 15.6985925,
+    "spectral": 15.696222,
+    "finite_difference": 15.700963,
+    "half_range": 0.002370499999999609
+   },
+   "centre": {
+    "value": 18.2813535,
+    "spectral": 18.280047,
+    "finite_difference": 18.28266,
+    "half_range": 0.0013065000000000992
+   },
+   "cf": {
+    "value": 0.008115375250000001,
+    "spectral": 0.008117826,
+    "finite_difference": 0.0081129245,
+    "half_range": 2.4507499999998003e-06
+   },
+   "re_b": {
+    "value": 5651.4932,
+    "spectral": 5650.6399,
+    "finite_difference": 5652.3465,
+    "half_range": 0.8532999999997628
+   },
+   "urms_peak": {
+    "value": 2.67138285,
+    "spectral": 2.6703207,
+    "finite_difference": 2.672445,
+    "half_range": 0.001062150000000095
+   },
+   "urms_peak_y": {
+    "value": 14.432678,
+    "spectral": 14.441496,
+    "finite_difference": 14.42386,
+    "half_range": 0.008818000000000659
+   },
+   "shear_peak": {
+    "value": 0.723185655,
+    "spectral": 0.72304561,
+    "finite_difference": 0.7233257,
+    "half_range": 0.00014004499999997755
+   },
+   "shear_peak_y": {
+    "value": 31.579994,
+    "spectral": 31.566286,
+    "finite_difference": 31.593702,
+    "half_range": 0.013707999999999387
+   }
+  },
+  "study": {
+   "R": -0.4113924948528423,
+   "R_limit": 0.7095112913514545,
+   "monotonic": false,
+   "p": NaN,
+   "p_used": 2.0,
+   "extrap": 15.908221796899708,
+   "gci_abs": 0.3281890998041288,
+   "gci": 0.020976352496132885,
+   "delta": 0.20420655098923568,
+   "reliable": false,
+   "basis": "order 2 assumed: the three values do not approach a limit from one side"
+  },
+  "study_noise": {
+   "share_monotonic": 0.0,
+   "extrap_formal_std": 0.07071144213330365
+  },
+  "study_centre": {
+   "R": -0.20120652062134023,
+   "R_limit": 0.7095112913514545,
+   "monotonic": false,
+   "p": NaN,
+   "p_used": 2.0,
+   "extrap": 18.49283639341254,
+   "gci_abs": 0.22443951959345187,
+   "gci": 0.012255557772262015,
+   "delta": 0.1396512566359256,
+   "reliable": false,
+   "basis": "order 2 assumed: the three values do not approach a limit from one side"
+  },
+  "study_urms": {
+   "R": 0.24823344550529766,
+   "R_limit": 0.7095112913514545,
+   "monotonic": true,
+   "p": 2.946524798161877,
+   "p_used": 2.946524798161877,
+   "extrap": 2.625729356584747,
+   "gci_abs": 0.03663321088524854,
+   "gci": 0.0137976328441607,
+   "delta": 0.03910035472950257,
+   "reliable": true,
+   "basis": "observed order"
+  },
+  "profile_differences": {
+   "G1": {
+    "U": {
+     "max_abs": 0.5819585543160457,
+     "signed": 0.5819585543160457,
+     "y_plus": 168.63203685949583
+    },
+    "u_rms": {
+     "max_abs": 0.3044860957605353,
+     "signed": 0.3044860957605353,
+     "y_plus": 6.104150195939229
+    },
+    "v_rms": {
+     "max_abs": 0.14188974511287988,
+     "signed": -0.14188974511287988,
+     "y_plus": 179.9999999856
+    },
+    "w_rms": {
+     "max_abs": 0.14930874991899867,
+     "signed": -0.14930874991899867,
+     "y_plus": 168.63203685949583
+    },
+    "uv": {
+     "max_abs": 0.028975863030246962,
+     "signed": 0.028975863030246962,
+     "y_plus": 7.687506825165554
+    }
+   },
+   "G2": {
+    "U": {
+     "max_abs": 0.6406450094123866,
+     "signed": -0.6406450094123866,
+     "y_plus": 25.73920530420355
+    },
+    "u_rms": {
+     "max_abs": 0.25972523954862003,
+     "signed": 0.25972523954862003,
+     "y_plus": 5.740419346494417
+    },
+    "v_rms": {
+     "max_abs": 0.09119217357444476,
+     "signed": -0.09119217357444476,
+     "y_plus": 179.9999999856
+    },
+    "w_rms": {
+     "max_abs": 0.09051232189731928,
+     "signed": -0.09051232189731928,
+     "y_plus": 59.56356271797712
+    },
+    "uv": {
+     "max_abs": 0.06150757164157172,
+     "signed": 0.06150757164157172,
+     "y_plus": 9.219588153903038
+    }
+   },
+   "G3": {
+    "U": {
+     "max_abs": 0.31282713425722797,
+     "signed": -0.31282713425722797,
+     "y_plus": 21.9478033220055
+    },
+    "u_rms": {
+     "max_abs": 0.13845302074320553,
+     "signed": 0.13845302074320553,
+     "y_plus": 4.075625168629272
+    },
+    "v_rms": {
+     "max_abs": 0.07239687400082173,
+     "signed": -0.07239687400082173,
+     "y_plus": 35.6453325008796
+    },
+    "w_rms": {
+     "max_abs": 0.08123322206522987,
+     "signed": -0.08123322206522987,
+     "y_plus": 38.05863113966981
+    },
+    "uv": {
+     "max_abs": 0.03419001890925144,
+     "signed": 0.03419001890925144,
+     "y_plus": 8.094681817767471
+    }
+   }
+  },
+  "budget": {
+   "difference": -0.003371129159738029,
+   "statistical": 0.0015586208671315063,
+   "settling": 0.00025286828196488135,
+   "reference": 0.002,
+   "codes": 0.00030200159663990375,
+   "grid": null,
+   "grid_last": 0.013007952846042451,
+   "time_step": [
+    -0.0011250701604104555,
+    0.002555165130424501
+   ]
+  },
+  "time_step_check": {
+   "diff": -0.01793119142151589,
+   "sigma": 0.040723820326466605,
+   "n_sigma": 0.4403121140838136,
+   "urms": -0.023477284288922817,
+   "urms_sigma": 0.013768879328205424,
+   "centre": 0.022067536500884444,
+   "centre_sigma": 0.0559703506670819
+  },
+  "repeat": {
+   "names": [
+    "G1",
+    "G1h",
+    "first_G1",
+    "second_G1"
+   ],
+   "values": [
+    15.937842858594808,
+    15.919911667173292,
+    15.959293570573104,
+    15.890193646498725
+   ],
+   "errs": [
+    0.0324907073257804,
+    0.02455164922062903,
+    0.0394447975653711,
+    0.03151807736933675
+   ],
+   "batch": [
+    0.013296749315587915,
+    0.007382322531465372,
+    0.012164572083418862,
+    0.0032388867156789786
+   ],
+   "chi2": 2.154406406478504,
+   "chi2_batch": 48.28407064112949,
+   "dof": 3
+  },
+  "total_wall_s": 6226.57607293129
+ }
+}

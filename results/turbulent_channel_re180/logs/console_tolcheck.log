@@ -1,0 +1,14 @@
+[08:33:06] pressure tolerance 1e-10: largest difference 0.00e+00 (passes the rule 0.0001), 14.81 ms per step, 11.3 pressure iterations per step
+[08:33:08] pressure tolerance 1e-09: largest difference 1.13e-14 (passes the rule 0.0001), 13.76 ms per step, 10.3 pressure iterations per step
+[08:33:11] pressure tolerance 1e-08: largest difference 3.24e-14 (passes the rule 0.0001), 12.85 ms per step, 9.3 pressure iterations per step
+[08:33:13] pressure tolerance 1e-07: largest difference 3.66e-12 (passes the rule 0.0001), 11.18 ms per step, 7.7 pressure iterations per step
+[08:33:15] pressure tolerance 1e-06: largest difference 1.09e-10 (passes the rule 0.0001), 10.25 ms per step, 6.7 pressure iterations per step
+[08:33:15] tolcheck G1: loosest tolerance that gives the same answer: 1e-06
+[08:33:54] pressure tolerance 1e-10: largest difference 0.00e+00 (passes the rule 0.0001), 80.69 ms per step, 11.7 pressure iterations per step
+[08:34:29] pressure tolerance 1e-09: largest difference 1.09e-14 (passes the rule 0.0001), 74.26 ms per step, 10.5 pressure iterations per step
+[08:35:02] pressure tolerance 1e-08: largest difference 6.37e-14 (passes the rule 0.0001), 66.99 ms per step, 9.3 pressure iterations per step
+[08:35:33] pressure tolerance 1e-07: largest difference 7.25e-13 (passes the rule 0.0001), 63.92 ms per step, 8.3 pressure iterations per step
+[08:36:03] pressure tolerance 1e-06: largest difference 1.69e-12 (passes the rule 0.0001), 61.00 ms per step, 7.3 pressure iterations per step
+[08:36:03] tolcheck G3: loosest tolerance that gives the same answer: 1e-06
+TOLCHECK DONE
+EXIT 0

@@ -1,0 +1,112 @@
+# Numerical plan of the turbulent channel at friction Reynolds number 180. Written BEFORE the runs
+# (2026-11-14); what was changed afterwards is listed under `changes` at the end, with the reason.
+solver: gpucfd            # decision "Solver" in decisions.yaml
+scheme: imex              # diffusion implicit (Crank-Nicolson), convection explicit (3 stages)
+
+# One family of grids: all three directions refined together, the same tanh stretching toward both
+# plates on every level (wall cell proportional to 1 / ny). nx = 3 nz makes the cells square in the
+# wall plane (dx = dz), which halves the pressure work (gpucfd/DESIGN.md). Sizes are 3 x 2^k and
+# 9 x 2^k, as the multigrid wants. Refinement ratio 1.5 from G1 to G2 and 4/3 from G2 to G3: three
+# levels of ratio 2 would end at 384 x 128 x 128 (6.3 million cells, hours per time unit budget).
+levels:
+  G1: {n: [96, 32, 32],  wall_cell_plus: 2.0}
+  G2: {n: [144, 48, 48], wall_cell_plus: 1.3333333333}
+  G3: {n: [192, 64, 64], wall_cell_plus: 1.0}
+
+time:
+  cfl: 0.75               # Courant number held by the adaptive step (run_transient(adapt_cfl=...)); first plan 0.8
+  dt_cap: 0.004           # largest step allowed; never reached by a developed flow (the Courant rule sets the step)
+  steps_per_sample: {G1: 5, G2: 5, G3: 5}      # the plane averages are sampled, and the step re-chosen, every 5 steps
+                          # (first plan: 10, 15, 20; changed twice, see `changes`)
+  store_every: {G1: 2, G2: 3, G3: 4}           # of those samples, the record keeps every 2nd, 3rd, 4th profile (about
+                          # 0.025 time units apart on every level); the scalar series are kept in full (keys *_all)
+  pressure_tol: 1.0e-6    # chosen by `run.py tolcheck` on G1 and G3 (same-answer rule below); first plan 1e-8, see `changes`
+  pressure_tol_rule: 1.0e-4   # largest change of bulk velocity (in u_tau) and wall shear (in u_tau^2) over 0.3 time units
+  time_step_check: {level: G1, cfl: 0.375}   # the coarsest level again with half the step (run G1h)
+
+# Start fields. G1: gpucfd.turbulence.channel_start. G2, G3: the last field of the level below,
+# interpolated (gpucfd.steady.prolong). The start-up of each run is cut from the averages.
+runs:                     # the run table: level, where the start field comes from, and what differs from the plan above
+  G1:  {level: G1, source: null}       # channel_start
+  G2:  {level: G2, source: G1}
+  G3:  {level: G3, source: G2}
+  G1h: {level: G1, source: G1, cfl: 0.375, steps_per_sample: 10, store_every: 1}   # the time-step check: G1 continued
+                                       # with half the step (twice the steps between samples: the same time apart)
+
+# Stop rule, fixed before the runs. A run ends when ALL hold over the record after the start-up
+# (the start-up's end is estimated on the bulk velocity by cfdlib.signals.settle_time):
+stop:                     # second version, 2026-11-14 08:50 (see `changes`): the error now knows the bulk velocity's slow mode
+  key: bulk
+  friction_exponent: 1.75 # n in tau_w ~ U_b^n (Blasius-type law, theory.py); gives the settling time T_s = delta U_b / (n u_tau^2)
+  gap_window: 5.0         # start-up: the largest distance of the bulk velocity from its mean in the first 5 time units ...
+  gap_left: 2.0e-3        # ... must have decayed (with T_s) to 0.2 % of the bulk velocity before the averaging starts
+  stderr_rel: 2.5e-3      # standard error of the mean bulk velocity below 0.25 % of it (first version: 0.1 % by batch means)
+  min_time: 36.0          # at least 36 time units averaged, about four settling times (first version: 30)
+  max_drift: 2.0          # second half minus first half of the record within 2 of its own standard errors
+  balance: 3.0e-3         # | mean wall shear / (rho f delta) - 1 | below 0.3 % (theory.py: an unsettled bulk velocity
+                          # of 0.17 % shows up as this much imbalance)
+  check_every: 2.0        # time units between checks
+  t_max: {G1: 150.0, G2: 100.0, G3: 66.0}  # the longest a run may go; reaching it without the rule holding is a WARN
+
+# Pass / fail limits, fixed before the runs. Reference value: the mean of the two codes of Vreman
+# and Kuerten. Sized from what was known before: gpucfd's exploration on 192 x 64 x 64 was 0.4 to
+# 0.8 % low in the bulk velocity and 1.1 % low in the peak of u_rms (gpucfd/DESIGN.md), and the
+# reference's own coarser fourth-order run (cells 8.8, 4.4, 5.9 wall units) was 0.8 % off in the
+# mean velocity.
+acceptance:
+  # requested outputs on the finest grid: a miss is a FAIL
+  bulk_pct: 1.0               # bulk velocity within 1 %
+  centre_pct: 1.0             # centre-plane velocity within 1 %
+  cf_pct: 2.0                 # friction coefficient within 2 % (it goes with the bulk velocity squared)
+  urms_peak_pct: 2.0          # peak of u_rms within 2 %
+  urms_peak_yplus: 1.5        # its position within 1.5 wall units
+  profile_abs:                # largest difference along the profile, in u_tau (u_tau^2 for the shear stress)
+    U: 0.30
+    u_rms: 0.08
+    v_rms: 0.05
+    w_rms: 0.06
+    uv: 0.03
+  # quality of the evidence: a miss is a WARN
+  stop_rule_held: true        # every run ended on the stop rule, not at t_max
+  total_stress_abs: 0.01      # averaged total shear stress within 0.01 u_tau^2 of the exact straight line
+  halves_sigma: 3.0           # the two plates' mean wall shear agree within 3 of their standard errors
+  order_range: [1.0, 3.0]     # observed order of the bulk velocity over the three grids (formal order 2), monotonic
+  extrapolated_in_band: true  # grid-extrapolated bulk velocity within (grid index + 2 statistical errors + reference
+                              # uncertainty) of the reference
+  time_step_sigma: 2.0        # half the time step changes the bulk velocity by less than 2 combined standard errors
+reference_uncertainty_pct:    # the reference's own, from its file (authors' bounds on the largest relative error)
+  mean_velocity: 0.2
+  rms: 1.0
+
+changes:
+  - when: 2026-11-14 08:32, after the pre-flight, before any production run
+    what: steps_per_sample 10 on every level (was 10, 15, 20)
+    why: the pre-flight on G3 reached a Courant number of 1.04 with 20 steps between two choices of the time step
+      (the largest local Courant rate rose by 30 % within 20 steps); the health limit is 1.
+  - when: 2026-11-14 08:37, after the tolerance check, before any production run
+    what: pressure_tol 1e-6 (was 1e-8)
+    why: over 0.3 time units, bulk velocity and wall shear with 1e-6 differ from those with 1e-10 by 1.1e-10 (G1) and
+      1.7e-12 (G3), against a rule of 1e-4; the divergence left is 1.2e-10 of the check's scale (limit 1e-6); a step is
+      20 % (G1) and 9 % (G3) cheaper than with 1e-8.
+  - when: 2026-11-14 08:37
+    what: order of the runs G1, G1h, G2, G3 (the time-step check before the two longer runs)
+    why: if half the step changed the answer, every level would need a smaller step; better known before G3's hour.
+  - when: 2026-11-14 08:42, after a first complete run of G1 (kept as runs/first_G1.*), production restarted from G1
+    what: cfl 0.75 (was 0.8), steps_per_sample 5 on every level (was 10), store_every added, G1h at cfl 0.375
+    why: the first G1 run (Courant target 0.8, step re-chosen every 10 steps) ended with a health warning - the Courant
+      number passed 1 at 4 of 1638 checks, largest 1.08 (the largest local Courant rate rose by up to 35 % within 10
+      steps). Looking twice as often with a slightly lower target keeps the number under the limit at about 10 % more
+      cost; a lower target alone would have cost about 23 %. Twice the samples would double the record, so the
+      record keeps the profiles about 0.025 time units apart as first planned.
+  - when: 2026-11-14 08:50, after the second complete run of G1 (kept as runs/second_G1.*), production restarted from G1
+    what: stop rule, second version - the standard error of the bulk velocity now knows its slow mode
+      (run.bulk_average), limit 0.25 % (was 0.1 % by batch means), at least 36 time units (was 30), the start-up
+      cut also waits for the slow approach of the bulk velocity (run.start_up_end), the drift test uses the new
+      error; t_max 150, 100, 66 (was 100, 90, 75); order of the runs G1, G2, G3, G1h
+    why: the two complete runs of G1, from the same start field, gave bulk velocities 15.978 and 15.904, each with
+      a batch-means standard error of 0.009 to 0.010 and the first stop rule holding - 0.46 % apart, five times the
+      combined error. The bulk velocity remembers for the settling time (9 time units, theory.py), longer than
+      the blocks batch means can form in a run of 30 to 40 time units. The first rule's 0.1 % was therefore never
+      reached; with the true error it would need about 300 time units, five hours on G3. 0.25 % needs about 40 to
+      45 time units after the start-up and is what the budget allows. The time-step check moved to the end
+      because at this error it cannot resolve a small effect, so nothing waits for it.
