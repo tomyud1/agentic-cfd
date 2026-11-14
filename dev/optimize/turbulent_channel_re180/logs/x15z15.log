@@ -1,0 +1,56 @@
+[13:22:44] x15z15: grid [288, 64, 96] (1,769,472 cells), wall cell 1.00, dx+ 7.9, dz+ 7.9; field interpolated from x15, max |div u| 6.0e-10
+[13:25:21] x15z15 adjust: t 1.001 bulk 15.8646 tau_low 0.995509 tau_high 1.02151 umax 21.4299 courant_rate 713.746 | CFL 0.81 div 2.3e-10 | GPU 145.0 s wall 157.6 s
+[13:28:10] x15z15 adjust: t 2.000 bulk 15.8497 tau_low 1.01383 tau_high 1.00015 umax 21.7631 courant_rate 727.976 | CFL 0.81 div 2.3e-10 | GPU 300.0 s wall 325.8 s
+[13:30:47] x15z15 adjust: t 3.002 bulk 15.8468 tau_low 1.0018 tau_high 0.999783 umax 21.2206 courant_rate 891.301 | CFL 0.81 div 2.3e-10 | GPU 445.9 s wall 483.3 s
+[13:33:34] x15z15 adjust: t 4.000 bulk 15.8183 tau_low 1.02426 tau_high 1.03936 umax 21.2599 courant_rate 736.996 | CFL 0.81 div 2.3e-10 | GPU 599.8 s wall 650.0 s
+[13:33:34] x15z15: over t = 1.5 to 4 the wall shear was 1.0158 of the driving force at a bulk velocity of 15.8437; field scaled by 0.9910 (to 15.7005)
+[13:36:06] x15z15 settle: t 5.004 bulk 15.6852 tau_low 0.967613 tau_high 0.9919 umax 20.8943 courant_rate 634.692 | CFL 0.79 div 2.7e-10 | GPU 140.5 s wall 152.1 s
+[13:38:45] x15z15 settle: t 6.001 bulk 15.7157 tau_low 0.954421 tau_high 0.979644 umax 21.1479 courant_rate 691.964 | CFL 0.81 div 2.7e-10 | GPU 288.1 s wall 311.5 s
+[13:41:16] x15z15 settle: t 7.000 bulk 15.737 tau_low 0.961558 tau_high 0.991907 umax 21.8725 courant_rate 619.125 | CFL 0.81 div 2.7e-10 | GPU 427.2 s wall 461.8 s
+[13:41:16] x15z15: PRE DONE at t = 7.00: health ['ok', 'ok'], Courant ['0.81', '0.81'], 169.1 ms per step, 9.7 pressure iterations, 159 s per time unit; wall shear while settling 0.9793, bulk velocity at the end 15.7370
+[13:44:01] x15z15 avg1: t 8.001 bulk 15.7474 tau_low 1.02199 tau_high 0.977965 umax 21.6481 courant_rate 724.491 | CFL 0.81 div 2.7e-10 | GPU 151.5 s wall 164.1 s
+[13:46:52] bulk 15.7461 +- 0.0213 (0.14%; batch means alone 0.0005) over t = 7.3 to 9.0, 9 independent samples, drift -0.0 sigma, wall shear +0.02% from the driving force; not yet: reliable, length
+[13:46:52] x15z15 avg1: t 9.000 bulk 15.7437 tau_low 1.01728 tau_high 0.988451 umax 21.5087 courant_rate 701.009 | CFL 0.81 div 2.7e-10 | GPU 310.6 s wall 335.8 s
+[13:49:37] x15z15 avg1: t 10.000 bulk 15.7499 tau_low 0.991756 tau_high 1.02004 umax 21.8615 courant_rate 769.175 | CFL 0.81 div 2.7e-10 | GPU 462.9 s wall 500.2 s
+[13:52:21] bulk 15.7473 +- 0.0166 (0.11%; batch means alone 0.0010) over t = 7.2 to 11.0, 19 independent samples, drift +0.1 sigma, wall shear -0.25% from the driving force; not yet: length
+[13:52:21] x15z15 avg1: t 11.002 bulk 15.7531 tau_low 0.997034 tau_high 1.01665 umax 21.2075 courant_rate 664.924 | CFL 0.82 div 2.7e-10 | GPU 615.1 s wall 664.2 s
+[13:55:07] x15z15 avg1: t 12.001 bulk 15.7346 tau_low 1.05984 tau_high 1.00372 umax 21.5287 courant_rate 741.321 | CFL 0.82 div 2.7e-10 | GPU 768.7 s wall 829.8 s
+[13:57:52] bulk 15.7420 +- 0.0472 (0.30%; batch means alone 0.0040) over t = 7.0 to 13.0, 9 independent samples, drift -0.1 sigma, wall shear +0.46% from the driving force; not yet: error, reliable, length, balance
+[13:57:52] x15z15 avg1: t 13.004 bulk 15.7095 tau_low 1.04524 tau_high 0.979189 umax 21.2286 courant_rate 704.595 | CFL 0.82 div 3.0e-10 | GPU 922.2 s wall 995.1 s
+[14:00:28] x15z15 avg1: t 14.005 bulk 15.7069 tau_low 0.965928 tau_high 1.01869 umax 22.3898 courant_rate 759.965 | CFL 0.82 div 3.0e-10 | GPU 1067.1 s wall 1151.6 s
+[14:03:17] bulk 15.7332 +- 0.0412 (0.26%; batch means alone 0.0067) over t = 7.0 to 15.0, 10 independent samples, drift -0.5 sigma, wall shear +0.44% from the driving force; not yet: error, reliable, length, balance
+[14:03:17] x15z15 avg1: t 15.004 bulk 15.7017 tau_low 1.00972 tau_high 1.00338 umax 21.082 courant_rate 695.02 | CFL 0.82 div 3.0e-10 | GPU 1223.7 s wall 1320.1 s
+[14:05:55] x15z15 avg1: t 16.004 bulk 15.7004 tau_low 1.01513 tau_high 0.995328 umax 21.1963 courant_rate 729.987 | CFL 0.82 div 3.0e-10 | GPU 1370.2 s wall 1478.2 s
+[14:08:37] bulk 15.7065 +- 0.0307 (0.20%; batch means alone 0.0033) over t = 11.9 to 17.0, 9 independent samples, drift -0.2 sigma, wall shear +0.80% from the driving force; not yet: reliable, length, balance, start-up found
+[14:08:37] x15z15 avg1: t 17.003 bulk 15.696 tau_low 0.98433 tau_high 1.01556 umax 21.3776 courant_rate 668.24 | CFL 0.82 div 3.0e-10 | GPU 1520.8 s wall 1640.4 s
+[14:11:20] x15z15 avg1: t 18.003 bulk 15.6987 tau_low 1.01628 tau_high 1.01041 umax 20.707 courant_rate 736.307 | CFL 0.83 div 3.2e-10 | GPU 1671.9 s wall 1803.7 s
+[14:13:59] bulk 15.7002 +- 0.0240 (0.15%; batch means alone 0.0024) over t = 12.9 to 19.0, 13 independent samples, drift -0.2 sigma, wall shear +0.46% from the driving force; not yet: length, balance, start-up found
+[14:13:59] x15z15 avg1: t 19.001 bulk 15.6825 tau_low 0.999722 tau_high 1.0018 umax 21.1329 courant_rate 914.428 | CFL 0.83 div 3.2e-10 | GPU 1819.3 s wall 1962.3 s
+[14:16:38] x15z15 avg1: t 20.002 bulk 15.6968 tau_low 0.958583 tau_high 0.991337 umax 21.0566 courant_rate 716.472 | CFL 0.83 div 3.2e-10 | GPU 1966.6 s wall 2121.1 s
+[14:19:16] bulk 15.7004 +- 0.0479 (0.31%; batch means alone 0.0031) over t = 12.7 to 21.0, 9 independent samples, drift -0.1 sigma, wall shear -0.19% from the driving force; not yet: error, reliable, length
+[14:19:16] x15z15 avg1: t 21.001 bulk 15.729 tau_low 0.96281 tau_high 0.965101 umax 21.7356 courant_rate 643.291 | CFL 0.83 div 3.2e-10 | GPU 2113.2 s wall 2278.9 s
+[14:21:57] x15z15 avg1: t 22.003 bulk 15.7377 tau_low 1.00399 tau_high 1.02312 umax 20.8215 courant_rate 710.896 | CFL 0.83 div 3.2e-10 | GPU 2262.9 s wall 2440.6 s
+[14:24:47] bulk 15.7071 +- 0.0475 (0.30%; batch means alone 0.0051) over t = 12.2 to 23.0, 10 independent samples, drift +0.1 sigma, wall shear +0.10% from the driving force; not yet: error, length
+[14:24:47] x15z15 avg1: t 23.001 bulk 15.7176 tau_low 1.02136 tau_high 0.992656 umax 22.0519 courant_rate 756.308 | CFL 0.83 div 3.2e-10 | GPU 2419.5 s wall 2609.9 s
+[14:27:30] x15z15 avg1: t 24.004 bulk 15.7139 tau_low 1.00412 tau_high 0.99401 umax 21.6416 courant_rate 682.115 | CFL 0.83 div 3.2e-10 | GPU 2570.8 s wall 2773.5 s
+[14:30:14] bulk 15.7080 +- 0.0398 (0.25%; batch means alone 0.0047) over t = 12.2 to 25.0, 13 independent samples, drift +0.1 sigma, wall shear +0.12% from the driving force; not yet: error, length
+[14:30:14] x15z15 avg1: t 25.004 bulk 15.7127 tau_low 0.981224 tau_high 0.999887 umax 21.14 courant_rate 804.076 | CFL 0.83 div 3.2e-10 | GPU 2722.7 s wall 2937.2 s
+[14:32:56] x15z15 avg1: t 26.006 bulk 15.7147 tau_low 0.991805 tau_high 0.977867 umax 20.9099 courant_rate 602.214 | CFL 0.83 div 3.2e-10 | GPU 2873.0 s wall 3099.4 s
+[14:35:38] bulk 15.7092 +- 0.0403 (0.26%; batch means alone 0.0042) over t = 12.2 to 27.0, 12 independent samples, drift +0.2 sigma, wall shear +0.02% from the driving force; not yet: error, length
+[14:35:38] x15z15 avg1: t 27.003 bulk 15.7258 tau_low 1.00007 tau_high 1.0008 umax 21.4221 courant_rate 677.868 | CFL 0.83 div 3.5e-10 | GPU 3023.2 s wall 3261.5 s
+[14:38:17] x15z15 avg1: t 28.002 bulk 15.7153 tau_low 1.00298 tau_high 1.01903 umax 20.9728 courant_rate 645.558 | CFL 0.83 div 3.5e-10 | GPU 3169.9 s wall 3420.3 s
+[14:40:51] bulk 15.7100 +- 0.0283 (0.18%; batch means alone 0.0044) over t = 12.2 to 29.0, 22 independent samples, drift +0.3 sigma, wall shear +0.13% from the driving force; not yet: length
+[14:40:51] x15z15 avg1: t 29.005 bulk 15.7058 tau_low 0.985083 tau_high 1.03867 umax 20.7798 courant_rate 650.283 | CFL 0.83 div 3.5e-10 | GPU 3311.6 s wall 3573.9 s
+[14:43:35] x15z15 avg1: t 30.000 bulk 15.7139 tau_low 0.964805 tau_high 0.982821 umax 21.2352 courant_rate 680.975 | CFL 0.83 div 3.5e-10 | GPU 3464.2 s wall 3738.5 s
+[14:46:25] bulk 15.7111 +- 0.0410 (0.26%; batch means alone 0.0035) over t = 12.1 to 31.0, 14 independent samples, drift +0.2 sigma, wall shear -0.11% from the driving force; not yet: error, length
+[14:46:25] x15z15 avg1: t 31.001 bulk 15.7511 tau_low 0.972242 tau_high 0.978273 umax 21.8538 courant_rate 760.551 | CFL 0.83 div 3.5e-10 | GPU 3621.8 s wall 3908.5 s
+[14:49:14] x15z15 avg1: t 32.001 bulk 15.7575 tau_low 1.02713 tau_high 1.0124 umax 21.0542 courant_rate 803.316 | CFL 0.83 div 3.5e-10 | GPU 3778.0 s wall 4077.5 s
+[14:52:03] bulk 15.7214 +- 0.0293 (0.19%; batch means alone 0.0069) over t = 7.2 to 33.0, 25 independent samples, drift +0.1 sigma, wall shear -0.06% from the driving force; not yet: length
+[14:52:03] x15z15 avg1: t 33.003 bulk 15.7568 tau_low 0.997472 tau_high 0.994273 umax 21.6358 courant_rate 734.01 | CFL 0.83 div 3.5e-10 | GPU 3934.5 s wall 4246.4 s
+[14:54:51] x15z15 avg1: t 34.003 bulk 15.7517 tau_low 1.01908 tau_high 0.981598 umax 21.2581 courant_rate 900.58 | CFL 0.83 div 3.5e-10 | GPU 4089.4 s wall 4413.8 s
+[14:57:51] bulk 15.7236 +- 0.0281 (0.18%; batch means alone 0.0069) over t = 7.0 to 35.0, 27 independent samples, drift +0.2 sigma, wall shear -0.02% from the driving force; not yet: length
+[14:57:51] x15z15 avg1: t 35.004 bulk 15.7437 tau_low 0.972563 tau_high 1.02053 umax 21.7297 courant_rate 772.275 | CFL 0.83 div 3.5e-10 | GPU 4256.8 s wall 4594.2 s
+[15:00:28] x15z15 avg1: t 36.004 bulk 15.7548 tau_low 1.01648 tau_high 1.00787 umax 22.1578 courant_rate 809.148 | CFL 0.83 div 3.5e-10 | GPU 4402.0 s wall 4751.3 s
+[15:03:19] x15z15 avg1: t 37.003 bulk 15.7446 tau_low 1.00058 tau_high 0.982204 umax 20.844 courant_rate 643.8 | CFL 0.83 div 3.5e-10 | GPU 4560.8 s wall 4922.8 s | stop rule holds: bulk 15.7253 +- 0.0303 (0.19%; batch means alone 0.0067) over t = 7.0 to 37.0, 22 independent samples, drift +0.2 sigma, wall shear -0.03% from the driving force
+[15:03:20] x15z15: AVG DONE part 1, t = 7.00 to 37.00, health ok, 170.6 ms per step, wall 4923 s; ended by: stop rule holds: bulk 15.7253 +- 0.0303 (0.19%; batch means alone 0.0067) over t = 7.0 to 37.0, 22 independent samples, drift +0.2 sigma, wall shear -0.03% from the driving force
+[15:03:20] x15z15: over 30.0 time units: bulk 15.7253, wall shear -0.03% from the driving force; gaps U +0.096@174  u_rms -0.038@25  v_rms -0.033@27  w_rms -0.031@9  uv +0.007@8

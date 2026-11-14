@@ -1,0 +1,22 @@
+[12:15:41] y15: grid [192, 96, 64] (1,179,648 cells), wall cell 0.67, dx+ 11.8, dz+ 11.8; field interpolated from the baseline, max |div u| 1.5e-10
+[12:17:30] y15 adjust: t 1.002 bulk 15.6151 tau_low 1.02441 tau_high 0.983083 umax 23.5892 courant_rate 1044.81 | CFL 0.83 div 8.4e-11 | GPU 100.4 s wall 108.5 s
+[12:19:18] y15 adjust: t 2.001 bulk 15.6118 tau_low 1.0149 tau_high 1.00312 umax 22.4835 courant_rate 1114.19 | CFL 0.84 div 8.4e-11 | GPU 200.9 s wall 217.0 s
+[12:21:10] y15 adjust: t 3.002 bulk 15.6137 tau_low 0.969953 tau_high 1.00553 umax 23.0681 courant_rate 952.862 | CFL 0.84 div 9.4e-11 | GPU 304.2 s wall 328.5 s
+[12:23:01] y15 adjust: t 4.000 bulk 15.6128 tau_low 1.01795 tau_high 0.987557 umax 23.1674 courant_rate 813.403 | CFL 0.84 div 9.4e-11 | GPU 407.5 s wall 439.9 s
+[12:23:01] y15: over t = 1.5 to 4 the wall shear was 1.0007 of the driving force at a bulk velocity of 15.6136; field scaled by 0.9996 (to 15.6070)
+[12:24:44] y15 settle: t 5.004 bulk 15.6008 tau_low 1.06587 tau_high 0.972927 umax 22.8793 courant_rate 770.107 | CFL 0.84 div 8.0e-11 | GPU 94.9 s wall 102.7 s
+[12:26:31] y15 settle: t 6.000 bulk 15.6003 tau_low 0.956267 tau_high 1.01072 umax 23.7683 courant_rate 884.028 | CFL 0.84 div 9.1e-11 | GPU 194.4 s wall 209.8 s
+[12:28:16] y15 settle: t 7.000 bulk 15.6267 tau_low 1.00304 tau_high 0.95084 umax 21.6998 courant_rate 821.465 | CFL 0.84 div 9.1e-11 | GPU 291.8 s wall 314.7 s
+[12:28:16] y15: PRE DONE at t = 7.00: health ['ok', 'ok'], Courant ['0.84', '0.84'], 88.9 ms per step, 6.7 pressure iterations, 108 s per time unit; wall shear while settling 0.9933, bulk velocity at the end 15.6267
+[12:30:04] y15 avg1: t 8.001 bulk 15.6417 tau_low 1.02831 tau_high 0.966876 umax 25.8908 courant_rate 1301.29 | CFL 0.83 div 7.2e-11 | GPU 97.8 s wall 107.1 s
+[12:31:51] y15 avg1: t 9.002 bulk 15.6386 tau_low 1.00929 tau_high 1.00938 umax 24.5775 courant_rate 856.43 | CFL 0.83 div 1.0e-10 | GPU 195.2 s wall 213.8 s
+[12:33:46] y15 avg1: t 10.004 bulk 15.6162 tau_low 1.01327 tau_high 1.0268 umax 23.2529 courant_rate 905.643 | CFL 0.83 div 1.2e-10 | GPU 300.8 s wall 329.5 s
+[12:35:37] y15 avg1: t 11.002 bulk 15.6001 tau_low 1.00792 tau_high 0.990682 umax 23.2228 courant_rate 923.181 | CFL 0.83 div 1.2e-10 | GPU 402.1 s wall 440.4 s
+[12:37:29] y15 avg1: t 12.002 bulk 15.6141 tau_low 0.992535 tau_high 0.996263 umax 23.1077 courant_rate 972.05 | CFL 0.83 div 1.2e-10 | GPU 503.6 s wall 551.9 s
+[12:39:17] y15 avg1: t 13.003 bulk 15.6184 tau_low 1.01885 tau_high 0.978784 umax 23.2827 courant_rate 1091.09 | CFL 0.83 div 1.2e-10 | GPU 602.3 s wall 660.1 s
+[12:41:04] y15 avg1: t 14.000 bulk 15.613 tau_low 1.03217 tau_high 1.01436 umax 23.9012 courant_rate 848.457 | CFL 0.83 div 1.2e-10 | GPU 700.1 s wall 767.2 s
+[12:42:56] y15 avg1: t 15.000 bulk 15.5989 tau_low 1.01415 tau_high 1.01272 umax 24.4412 courant_rate 1181.88 | CFL 0.83 div 1.2e-10 | GPU 802.3 s wall 879.3 s
+[12:44:50] y15 avg1: t 16.002 bulk 15.5858 tau_low 0.986293 tau_high 0.986127 umax 23.3522 courant_rate 961.235 | CFL 0.83 div 1.2e-10 | GPU 905.9 s wall 992.7 s
+[12:46:46] y15 avg1: t 17.000 bulk 15.611 tau_low 0.965488 tau_high 0.972321 umax 21.8313 courant_rate 1003.64 | CFL 0.83 div 1.2e-10 | GPU 1011.6 s wall 1108.8 s
+[12:46:46] y15: AVG DONE part 1, t = 7.00 to 17.00, health ok, 90.1 ms per step, wall 1109 s; ended by: its length
+[12:46:46] y15: over 10.0 time units: bulk 15.6144, wall shear +0.16% from the driving force; gaps U -0.360@23*  u_rms +0.145@4*  v_rms -0.078@38*  w_rms -0.094@21*  uv +0.036@8*

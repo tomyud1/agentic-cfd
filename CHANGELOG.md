@@ -15,7 +15,43 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-14
 
-### What case 17 taught the tools and the workflow, commit hash to be filled in
+### Case 17, optimize stage: a grid that meets every limit, commit hash to be filled in
+The first use of the loop's new step 8. Case 17 ended with a FAIL: the mean speed was right but
+the velocity and fluctuation profiles missed their limits. The question for this stage, fixed
+before any run: what is the cheapest grid on this PC that resolves the profiles?
+- **What was done.** Three short runs from the finest grid's field, each with one direction 1.5
+  times finer (along the flow, across it, toward the wall). Then one full run on the grid a rule
+  written beforehand picked from them.
+- **Result.** The grid 288 x 64 x 96 (1.8 million cells; the first was 192 x 64 x 64) meets every
+  pass / fail limit of the case. Mean speed +0.17 % from the reference with a statistical error
+  of 0.19 %. The five profile gaps (largest difference along the profile, in friction
+  velocities; first grid, new grid, limit): mean velocity 0.31, 0.10, 0.30. Fluctuation along
+  the flow 0.14, 0.04, 0.08. Toward the wall 0.07, 0.03, 0.05. Across the flow 0.08, 0.03, 0.06.
+  Shear stress 0.034, 0.007, 0.03.
+- **What matters.** The cells across the flow are the main cause, the cells along it the second.
+  Toward the wall the first grid was already fine enough. The first grid's good mean speed was
+  two grid errors cancelling: refining along the flow alone moved it from -0.3 % to +0.8 %.
+- **Cost.** The final run took 1.7 GPU hours with start-up (limit 2), the whole stage 3.1 of
+  the 5 budgeted. A time unit costs 2.6 times that of the first grid.
+- **How it was checked.** The script reproduces the report's numbers for the first grid before
+  anything is compared. The final run ended on the stop rule after 30 time units; its two
+  plates agree, and its total shear stress lies on the exact straight line within 0.0006.
+- **What did not work, recorded.** The planned model (each direction's share of a gap, assuming
+  the error falls with the square of the cell size) failed its own check: these grids are too
+  coarse for that. It only ranks the directions. What held was simpler: the new grid's result
+  is the first grid's plus the two measured changes (mean velocity predicted 0.20, measured
+  0.10; the others within 0.015).
+- **New tool.** `gpucfd.turbulence.rescale_to_balance`: after a few time units on a new grid,
+  move the flow's speed once to where the wall friction says it is heading. Start-up fell from
+  about 20 time units to 7. Tested in `tests/test_gpu_tools.py`.
+- **Limits.** One grid, no grid study at its level: the last refinement in each direction still
+  moved the mean speed by 0.6 to 0.8 %, in opposite directions, so the 0.17 % again includes
+  some cancellation. The case's verdict stays FAIL; this stage is recorded next to it, in
+  `gpucfd/DESIGN.md` (channel section) and `dev/optimize/turbulent_channel_re180/`.
+- **Open.** No page yet shows the new profiles next to the first ones. One finer step across
+  the flow would show whether the profiles have stopped moving.
+
+### What case 17 taught the tools and the workflow (`0aa0d12`)
 The agent's 19 insights each got an answer, tools first.
 - *The statistical error of a slowly settling quantity (insights 10, 17).* The flaw: the tool
   cuts the record into blocks, and a quantity whose memory is longer than a block looks more
@@ -63,7 +99,7 @@ The agent's 19 insights each got an answer, tools first.
 - *Old work still holds:* all tests pass (GPU tool tests included, 9 new checks), and all eight
   reports and both study pages rebuild. No old report changes. Case 17's page changes in the
   sixth decimal of its figure coordinates only; its numbers file is identical.
-- *Proposed, not started:* the optimize stage for case 17, in `ROADMAP.md` 3b.
+- *Proposed here, done since:* the optimize stage for case 17 (entry above).
 
 ### Case 17 solved: turbulent channel without a model, verdict FAIL (`b431e6d`)
 A fresh agent (Claude Fable 5.2, high effort) solved the channel on gpucfd in 2 h 15 min with no

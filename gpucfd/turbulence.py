@@ -157,6 +157,33 @@ def settling_time(bulk, force, exponent=1.75):
     return bulk / (exponent * force)
 
 
+def balance_factor(tau_mean, force, delta=1.0, exponent=1.75, limit=0.03):
+    """Factor that moves a channel's bulk velocity to where its mean wall shear says it is heading.
+    With the wall shear ~ U_b^n, a shear of (1 + e) x force x delta belongs to a bulk velocity (1 + e / n)
+    times the settled one, so the factor is 1 - e / n (first order in e), kept within 1 +- limit.
+    tau_mean: wall shear averaged over a few time units (over 2.5 units it scatters by about 1 %, so the
+    bulk velocity it points to by about 0.5 %; measured on case 17's finest run)."""
+    e = float(tau_mean) / (force * delta) - 1.0
+    return float(min(max(1.0 - e / exponent, 1.0 - limit), 1.0 + limit))
+
+
+def rescale_to_balance(s, tau_mean, force, delta=1.0, exponent=1.75, limit=0.03):
+    """Shorten a channel's start-up: scale the velocity by balance_factor (and the pressure by its square),
+    in place of waiting several settling times (9 time units each at friction Reynolds number 180) for the
+    bulk velocity to drift there. A scaled solenoidal field stays solenoidal. Returns the factor.
+
+    Use: run a few time units on the new grid or with the new setting, average the wall shear over the later
+    part, call this once, let it settle a few units, then average. In case 17's optimize stage (fields
+    interpolated to finer grids, 4 units, scaled, 3 units) the wall shear over the next 10 units was then
+    within 0.2 % of the driving force in two runs and 0.7 % off in the third, whose field was still
+    adapting when it was scaled: when the shear is still off after settling, scale again."""
+    factor = balance_factor(tau_mean, force, delta, exponent, limit)
+    q, p = s.get(), s.pressure()
+    s.set([c * factor for c in q])
+    s.set_pressure(p * factor ** 2)
+    return factor
+
+
 def bulk_average(t, bulk, tau_wall, force, delta=1.0, t_start=None, exponent=1.75):
     """Mean bulk velocity of a force-driven channel after t_start, with a statistical error that knows
     the slow settling (cfdlib.signals.relaxing: the error comes from the exact balance of the box).

@@ -119,6 +119,9 @@ Insights are gathered all the way through, from every agent.
      answer, faster, or a better answer at a stated cost. Report before and after.
    - What works becomes a tool or a default, with a test. What does not work is recorded with its
      measurement, so nobody tries it again blind.
+   - When refining one direction at a time, compare the profiles point by point. A single number
+     such as "largest difference along the profile" moves its place and its sign between runs
+     and cannot be split into shares (case 17's stage, `gpucfd/DESIGN.md`).
    - The solver agent's case folder stays as it is. Optimize runs live in `dev/` or in a study
      report of the case (`cfdlib.study`), and the improved result is shown next to the first one,
      never in place of it.
@@ -134,5 +137,6 @@ blind cases where the solver agent does not see the reference.
 ## Other things in `dev/`
 
 - `review_case.sh`: the scripted part of step 4.
+- `optimize/<case>/`: the plan, script and run records of a case's optimize stage (step 8).
 - `exploration/`, `steady_speed/`, `agent_checks/`: one-off experiments and migrations behind
   earlier changes, kept as a record. Their paths are those of the development PC.

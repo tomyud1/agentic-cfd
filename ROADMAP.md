@@ -121,21 +121,23 @@ the wall.
 from them: a contract check of a gpucfd case's decisions against its recorded solver settings, and
 gpucfd records in `cfdlib.monitor`'s own live view (`cfdlib.gpu.peek` is a separate command).
 
-*Optimize stage (step 8 of the loop), proposed 2026-11-14, not started.* The question: what is the
+*Optimize stage (step 8 of the loop), done 2026-11-14: target met.* The question was: what is the
 cheapest grid on this PC that resolves the profiles?
-- Target: one grid on which all five profile limits of case 17 hold (mean velocity within 0.30
-  friction velocities, fluctuations within 0.08, 0.05 and 0.06, shear stress within 0.03) and the
-  mean speed is within 1 % with a statistical error of at most 0.25 %, in a final run of at most
-  2 GPU hours. Refining everything (288 x 96 x 96) is projected at 4 hours, so this is "the same
-  accuracy at half the cost".
-- How: first three short runs from the finest grid's field, each refining one direction alone
-  (along the flow, across it, toward the wall), judged by the profile gaps, which at 0.14 to 0.31
-  stand far above the statistical error of a 15-unit average. Then one full run on the grid they
-  point to, started with its bulk velocity moved to the expected level to shorten the start-up.
-- Budget: 5 GPU hours and one agent session. Baseline: case 17's finest run.
-- Stop rule: if the three directional runs show that no grid of at most 3 million cells can meet
-  the limits within the 2 hours, stop there and report which direction limits the accuracy and
-  what a resolving run would cost. That is then the answer, and a job for the bigger machine.
+- Fixed in advance: one grid on which all five profile limits of case 17 hold and the mean speed
+  is within 1 % with a statistical error of at most 0.25 %, in a final run of at most 2 GPU
+  hours; budget 5 GPU hours; if no grid of at most 3 million cells can do it, stop and report
+  which direction limits the accuracy.
+- Outcome: 288 x 64 x 96 (1.8 million cells) meets every pass / fail limit of the case: mean
+  speed +0.17 % with an error of 0.19 %, the five profile gaps at a quarter to two thirds of
+  their limits. Final run 1.7 GPU hours, the stage 3.1. Three short runs, each refining one
+  direction, showed what matters: the cells across the flow first, along it second, toward the
+  wall not at all.
+- Its limits: one grid, no grid study at its level, and about 0.5 % of grid error left in the
+  mean speed from each of two directions, with opposite signs. The verdict of the case stays
+  FAIL, because that is the solve. Details: [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), channel
+  section; records in `dev/optimize/turbulent_channel_re180/`.
+- Not done: a page that shows the improved profiles next to the first ones (a study report of
+  the case), and one finer step across the flow to see whether the profiles have stopped moving.
 
 *After it,* with a target at a higher Reynolds number fixed in advance: a viscosity that varies
 from cell to cell (the first brick of any model), then a model for the smallest eddies (large-eddy

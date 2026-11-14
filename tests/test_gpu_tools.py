@@ -319,6 +319,16 @@ check("step_check: the same stretch with the step and half of it, compared sampl
       set(sk9["diff"]) == {"bulk", "tau_low"} and 0 < sk9["first"]["tau_low"] <= sk9["diff"]["tau_low"] < 1e-2
       and len(sk9["t"]) == 10 and sk9["health"] == ["ok", "ok"],
       f"wall shear differs by {sk9['diff']['tau_low']:.1e} (first sample {sk9['first']['tau_low']:.1e}), bulk velocity by {sk9['diff']['bulk']:.1e}")
+# 10. the optimize stage of case 17: a start-up shortened by moving the bulk velocity to where the wall shear points
+sc.set(state)
+before = ps.sample()
+fac = turbulence.rescale_to_balance(sc, 1.035, 1.0)                    # a wall shear 3.5 % above the driving force
+after = ps.sample()
+check("rescale_to_balance: the bulk velocity moves by 1 - e / 1.75 and the wall shear with it; the factor is limited",
+      abs(fac - 0.98) < 1e-12 and abs(after["bulk"] / before["bulk"] - fac) < 1e-12
+      and abs(after["tau_low"] / before["tau_low"] - fac) < 1e-9
+      and turbulence.balance_factor(2.0, 1.0) == 0.97 and turbulence.balance_factor(1.0, 1.0) == 1.0,
+      f"factor {fac:.4f}, bulk {before['bulk']:.4f} to {after['bulk']:.4f}")
 sc.close()
 
 print(f"\n{len(FAILS)} failed" if FAILS else "\nall passed")

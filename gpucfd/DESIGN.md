@@ -1468,6 +1468,62 @@ part 12):
   time, 58.0), and in `cfdlib.gpu`: `preflight`, `step_check`, `save_state` / `load_state` with
   checkpoints in `run_transient`, `sample_steps` and `cfl_steps`, thinned records, `peek`.
 
+**The optimize stage of case 17 (2026-11-14): which grid resolves the profiles.** Run by the dev
+agent after the solve, with target, budget and stop rule fixed first (`ROADMAP.md` 3b; plan,
+script and records in `dev/optimize/turbulent_channel_re180/`). The case's verdict stays FAIL:
+that is the solve. Same numerics in every run, only the grid differs. First one direction refined
+alone by 1.5, each run 10 time units from the finest grid's field; then one run on the grid the
+rule picked. "Gap" is the largest difference from the reference along a profile, in friction
+velocities, with the limits the solver agent set before its runs.
+
+| Grid | Cells in wall units, x / wall / z | Averaged | Bulk velocity | Mean velocity (0.30) | u (0.08) | v (0.05) | w (0.06) | Shear stress (0.03) | Seconds per time unit |
+|---|---|---|---|---|---|---|---|---|---|
+| 192 x 64 x 64, case 17's finest | 11.8 / 1.0 / 11.8 | 38 | -0.34 % | -0.31 | +0.14 | -0.07 | -0.08 | +0.034 | 62 |
+| 192 x 64 x 96, finer across the flow | 11.8 / 1.0 / 7.9 | 10 | -0.60 % | -0.17 | -0.10 | -0.04 | -0.04 | +0.012 | 81 |
+| 192 x 96 x 64, finer toward the wall | 11.8 / 0.67 / 11.8 | 10 | -0.54 % | -0.36 | +0.15 | -0.08 | -0.09 | +0.036 | 111 |
+| 288 x 64 x 64, finer along the flow | 7.9 / 1.0 / 11.8 | 10 | +0.77 %, rising | +0.26 | +0.11 | -0.08 | -0.08 | +0.018 | 118 |
+| **288 x 64 x 96, the final grid** | 7.9 / 1.0 / 7.9 | 30 | +0.17 % +- 0.19 % | +0.10 | -0.04 | -0.03 | -0.03 | +0.007 | 164 |
+
+- *The final grid meets every pass / fail limit of case 17:* the five profiles, the bulk velocity,
+  the centre velocity (+0.53 %, limit 1), the friction coefficient (-0.34 %, limit 2), the peak
+  of the streamwise fluctuation (-0.69 %, limit 2) and its place (0.4 wall units off, limit 1.5).
+  Its run ended on the stop rule after 30 time units; the two plates agree (0.1 standard errors)
+  and the total shear stress lies within 0.0006 of its exact straight line. Cost: 1.7 GPU hours
+  with start-up (2.25 times the cells of case 17's finest grid, 2.6 times the time per time unit).
+- *What limits the accuracy:* the cells across the flow first (they must resolve the streaks at
+  the wall), the cells along it second. Toward the wall 64 cells with a wall cell of one wall
+  unit are enough: refining there changed nothing beyond the scatter.
+- *The bulk velocity of the first grid was right by cancellation.* Refining across the flow lowers
+  it, refining along the flow raises it by about 1 %.
+- *Limits of this result.* It is one grid, with no grid study at its level. The last step in each
+  direction still moved the bulk velocity by 0.6 to 0.8 % in opposite directions, so by a
+  second-order estimate about 0.5 % of grid error is left from each, and the agreement to 0.17 %
+  again includes cancellation. The time-step check was not repeated (same step control as
+  case 17). One Reynolds number.
+- *The cheap option:* 192 x 64 x 96 costs 1.3 times the first grid and brings four of the five
+  profiles inside (the streamwise fluctuation stays out: -0.10, its peak 2.7 % low).
+- *How the grid was picked, and what did not work.* The plan was to split each gap into shares
+  of the three directions, assuming second order, and to predict candidate grids from them.
+  (1) On the gap as one number this fails: the place of the largest difference moves from run
+  to run and its sign with it. The model has to be applied at each height of the profile.
+  (2) Its own check failed even so: with all directions refined without end it leaves +0.24 in
+  the mean velocity, several times the scatter, so the grids are not yet in the range where the
+  error falls with the square of the cell size. It ranks the directions and no more. (3) What
+  held was the plainest form: the grid refined in two directions is the first grid plus the two
+  measured changes. Predicted against measured: fluctuations and shear stress within 0.015, the
+  mean velocity +0.20 against +0.10.
+- *Start-up.* Each run started from a field of the nearest grid, ran 4 time units, had its
+  velocity scaled once to where the wall shear pointed (`gpucfd.turbulence.rescale_to_balance`),
+  and settled for 3 more. The wall shear over the averaging was then within 0.2 % of the driving
+  force in three of four runs: 7 time units of start-up where case 17's levels needed about 20.
+  In the fourth (finer along the flow) it was 0.7 % off and the bulk velocity still rising: its
+  field was still adapting when it was scaled.
+- *Cost notes.* Steps per time unit at the same Courant target: 960 on the first grid, 808 with z
+  refined (the better resolved flow has milder extremes), 1136 with x refined, 962 on the final
+  grid. Pressure iterations per step rose from 7.3 to 9.7. The cost projected from the
+  directional runs was 139 s per time unit, measured 164.
+- GPU time of the stage: 3.1 of the 5 hours budgeted.
+
 **The other route, a model as in case 7 (RANS), predicted to lose.** On case 7's finest grid
 (208,896 cells, aspect ratio 21,479) the thin cells allow a convective time step of 1.7e-6 s,
 measured on OpenFOAM's solution, and one pass of the flow over the plate takes 34 thousand such
@@ -1477,15 +1533,13 @@ in space, a pressure solver for aspect ratios of 10^4 (tested to 64) and implici
 built.
 
 **Open.**
-- One flow, one Reynolds number, and no grid yet that resolves its profiles (case 17: FAIL).
+- One flow, one Reynolds number. One grid resolves its profiles (288 x 64 x 96, the optimize
+  stage above), with no grid study at that level: about 0.5 % of grid error is left in the bulk
+  velocity from each of two directions, of opposite sign.
 - Used in case 17 and so no longer open: cells with dx = dz, and the pressure tolerance of 1e-6.
-- To try next, for accuracy per cost (the optimize stage of case 17):
-  - which direction limits the accuracy: refine along the flow, across it and toward the wall one
-    at a time, on short runs judged by the profiles;
-  - cells twice as long as wide (the usual choice for this flow), which puts more cells across
-    the streaks for the same count but costs more pressure work;
-  - a finer grid's start field with its bulk velocity moved toward the level expected, to cut the
-    start-up that is a third of each run;
+- Still to try, for accuracy per cost:
+  - a finer step across the flow on the final grid (288 x 64 x 128, 2.4 million cells), to see
+    whether the profiles have stopped moving;
   - several shorter runs from decorrelated fields in place of one long one: the same statistics,
     and the error straight from their scatter;
   - the Courant rate computed on the GPU, so the step can be re-chosen every step at no cost
@@ -1616,10 +1670,10 @@ built.
    the explicit scheme too (it would remove that scheme's stability limit mu < 0.683).
 9. 3D cylinder (DFG 3D, case 5) once stretched grids work.
 10. Turbulence. The channel was run as a verified case (case 17, 2026-11-14, verdict FAIL: mean
-    flow rate within 0.3 %, profiles not resolved on 192 x 64 x 64). Next an optimize stage on the
-    same case, target fixed in advance: the profiles inside the limits at an affordable cost (the
-    list under "Open" in the channel section). Then, with a target at a higher Reynolds number, a
-    viscosity that varies in space and a model for the smallest eddies.
+    flow rate within 0.3 %, profiles not resolved on 192 x 64 x 64). The optimize stage on the same
+    case found the grid that meets every limit (288 x 64 x 96, 1.7 GPU hours; channel section).
+    Next, with a target at a higher Reynolds number, a viscosity that varies in space and a model
+    for the smallest eddies.
 
 ## Comparison with OpenFOAM (2026-11-12)
 

@@ -1,0 +1,68 @@
+# Optimize stage of case 17 (dev/LOOP.md step 8). Written BEFORE any run of the stage, 2026-11-14.
+# Question: what is the cheapest grid on this PC that resolves the profiles of the turbulent channel?
+# Baseline: the finest run of the solved case (results/turbulent_channel_re180/runs/G3), 192 x 64 x 64.
+# Target, budget and stop rule: ROADMAP.md, section 3b. The pass / fail limits are those the solver agent
+# set before its runs (cases/turbulent_channel_re180/numerics.yaml, acceptance); they are read from there.
+
+baseline: {run: G3, n: [192, 64, 64], wall_cell_plus: 1.0}
+
+# Same numerics as the baseline in every run of the stage, so that only the grid differs.
+numerics: {scheme: imex, cfl: 0.75, dt_cap: 0.004, steps_per_sample: 5, pressure_tol: 1.0e-6, store_every: 8}
+
+# Step 1: one direction refined alone by the same ratio 1.5, started from the baseline's last field.
+directional:
+  z15: {n: [192, 64, 96], wall_cell_plus: 1.0}            # across the flow: 11.8 -> 7.9 wall units
+  y15: {n: [192, 96, 64], wall_cell_plus: 0.6666666667}   # toward the wall: wall cell 1.0 -> 0.67, 64 -> 96 cells
+  x15: {n: [288, 64, 64], wall_cell_plus: 1.0}            # along the flow: 11.8 -> 7.9 wall units
+
+# How a directional run goes. Times in delta / u_tau.
+phases:
+  adjust: 4.0        # the interpolated field adapts to the new grid; the wall shear is read over t >= 1.5
+  settle: 3.0        # after the field was scaled once so that its bulk velocity is where the wall shear says
+                     # it is heading: U_eq = U_b (1 - (mean wall shear / (f delta) - 1) / 1.75), at most 3 %
+  average: 10.0      # the window the profile gaps are taken from
+  # Expected cost: about 110 to 170 s per time unit, so 30 to 50 minutes per run, about 2 GPU hours for the three.
+
+# What a directional run must show to be used (else it is extended by 5 time units, once):
+usable:
+  health: ok
+  imbalance: 0.02    # |mean wall shear / (f delta) - 1| over the averaging window below 2 %
+  # and its gaps must differ from the baseline's by more than the scatter of the baseline's own 10-unit windows
+  # (measured before the runs by `stage.py noise`) for the direction to count as "matters".
+
+# Step 2: the rule that picks the final grid, fixed now.
+#   Each direction's share of a gap, assuming the scheme's second order: e_d = (gap_d - gap_base) / (1.5^-2 - 1),
+#   so a grid with cell sizes h_d has the predicted gap  gap_base + sum_d e_d ((h_d / h_base_d)^2 - 1).
+#   Closure check: with all three directions refined without end the prediction should come near zero
+#   (gap_base - sum e_d ~ 0). If it does not, within the noise, say so: the model is then only a ranking.
+#   Candidates: nx in 192, 288, 384; ny in 64, 96, 128; nz in 64, 96, 128, 192 (sizes the multigrid likes).
+#   Final grid: the candidate of least projected cost whose five predicted gaps are all within 0.8 of
+#   their limits, cost = cells x steps per time unit x time per cell-step, each taken from the measured runs.
+final:
+  margin: 0.8
+  max_cells: 3.0e6
+  max_gpu_hours: 2.0           # for the final run, start-up included
+  stop: {tol: 2.5e-3, min_time: 30.0}     # gpucfd.turbulence.channel_watch: error of the bulk velocity 0.25 %, at least 30 units averaged
+budget_gpu_hours: 5.0
+
+# Step 3, written after the three directional runs and BEFORE the final run (2026-11-14, 1.45 GPU hours spent).
+# What the directional runs showed (stage.py table, table.json):
+#   - the rule as written above, on the single number "largest difference along the profile", does not work: the
+#     place of the largest difference moves from run to run and its sign with it (U: -0.31 at y+ 22 on the baseline,
+#     +0.26 at the centre with x refined). The same model is therefore applied point by point along the profile.
+#   - closure check, point by point: NOT met. With all three directions refined without end the model leaves
+#     U +0.24 at the centre and u_rms -0.14 at y+ 6, several times the scatter. So the second-order model is only a
+#     ranking, as foreseen above: z matters most, then x, y hardly at all.
+#   - the pick of the rule, 288 x 64 x 96, needs no extrapolation: its prediction is the baseline plus the two
+#     measured changes (x and z, each at the measured ratio 1.5). It rests on one assumption only, that the two
+#     changes add up. The final run tests exactly that.
+# Expected from the final run: gaps U +0.20 (centre), u_rms -0.05 (y+ 22), v_rms -0.04, w_rms -0.04, uv -0.01, each
+# with a scatter of about 1.4 short windows (U 0.03, u_rms 0.02); bulk velocity near 15.8 (+0.6 to +1 %, where the
+# x-refined run was heading); about 140 to 190 s per time unit.
+# Pass: all five gaps within the case's limits and the four requested outputs within theirs (numerics.yaml).
+# Ends: on the stop rule below, or at 2 GPU hours with start-up, whichever comes first. Started from the x-refined
+# run's last field (the direction that moved the bulk velocity most).
+candidates:
+  x15z15: {n: [288, 64, 96], wall_cell_plus: 1.0}
+# Stop rule of the stage: if no candidate passes the rule within max_cells and max_gpu_hours, no final run is
+# made; the result is then which direction limits the accuracy and what a resolving run would cost.
