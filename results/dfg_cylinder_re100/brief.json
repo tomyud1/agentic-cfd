@@ -1,0 +1,122 @@
+{
+ "title": "Flow past a cylinder in a channel at Re = 100 (DFG benchmark 2D-2)",
+ "date": "2026-11-11",
+ "verdict": "WARN",
+ "goal": "The first flow that never settles, vortices shed from a cylinder, against a benchmark. It is also the first case solved with both tools.",
+ "story": "Solved first with OpenFOAM on a grid fitted to the cylinder. gpucfd works on a box of cells with the cylinder cut out of it. It was extended for this case (cells clustered near the cylinder, an implicit time scheme) and then run on the same problem.",
+ "problem": {
+  "requirements": [
+   "A channel with a fixed round cylinder a little off the centre line. The fluid enters with a parabolic profile.",
+   "Reynolds number 100: the wake swings from side to side for ever, and the forces on the cylinder swing with it.",
+   "Asked for: the largest, smallest and mean drag, the lift, and the shedding frequency, once the swinging repeats itself.",
+   "Reference: the DFG benchmark 2D-2, a very fine finite-element solution."
+  ]
+ },
+ "results": {
+  "headline": "<b>Benchmark comparison passed with caveats.</b> On the finest mesh (M4, 214,912 cells) the mean drag is \\(3.1964\\) (reference \\(3.1884\\)), the lift amplitude \\(2.0147\\) (\\(2.0080\\)) and the Strouhal number \\(0.3015\\) (\\(0.3019\\)).",
+  "meaning": [
+   "Both tools reach the benchmark's drag within the benchmark's own uncertainty.",
+   "For a flow around a body, OpenFOAM's fitted grid is the cheaper way to a given accuracy: it needs far fewer cells.",
+   "gpucfd is much faster per cell, but it needs many more cells to describe a round cylinder on a grid of boxes."
+  ],
+  "limits": [
+   "gpucfd's lift is less accurate than its drag, and it depends on where the cylinder sits relative to the cells.",
+   "The benchmark is itself a computed solution. Its own uncertainty is shown in the table."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy: difference from the benchmark",
+  "head": [
+   "Requirement",
+   "Benchmark's own uncertainty",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Drag maximum \\(c_{D,\\max}\\)",
+    "\\(0.24\\)",
+    "\\(+0.25\\)",
+    "\\(-0.11\\) / \\(-0.19\\)"
+   ],
+   [
+    "Drag minimum \\(c_{D,\\min}\\)",
+    "\\(0.24\\)",
+    "\\(+0.25\\)",
+    "\\(-0.07\\) / \\(-0.14\\)"
+   ],
+   [
+    "Mean drag \\(\\bar c_D\\)",
+    "\\(0.24\\)",
+    "\\(+0.25\\)",
+    "\\(-0.09\\) / \\(-0.16\\)"
+   ],
+   [
+    "Lift maximum \\(c_{L,\\max}\\)",
+    "\\(0.42\\)",
+    "\\(+0.41\\)",
+    "\\(-0.85\\) / \\(-1.15\\)"
+   ],
+   [
+    "Lift minimum \\(c_{L,\\min}\\)",
+    "\\(0.36\\)",
+    "\\(-0.41\\)",
+    "\\(+1.16\\) / \\(+1.31\\)"
+   ],
+   [
+    "Lift swing \\(\\Delta c_L\\)",
+    "\\(0.25\\)",
+    "\\(+0.34\\)",
+    "\\(-1.08\\) / \\(-1.30\\)"
+   ],
+   [
+    "Shedding frequency \\(St\\)",
+    "\\(0.38\\)",
+    "\\(-0.12\\)",
+    "\\(+0.13\\) / \\(+0.10\\)"
+   ]
+  ],
+  "note": "In per cent, each tool on its finest grid. gpucfd was run with the cylinder at two positions relative to its cells."
+ },
+ "speed": {
+  "title": "Speed: a whole grid study",
+  "head": [
+   "Study",
+   "Time (s)",
+   "Drag error at the end (%)"
+  ],
+  "rows": [
+   [
+    "OpenFOAM, all four grids, each run stopped when periodic",
+    "1,743 *",
+    "\\(+0.25\\)"
+   ],
+   [
+    "OpenFOAM, first two grids only",
+    "153",
+    "\\(+0.24\\)"
+   ],
+   [
+    "gpucfd, equal cells",
+    "328",
+    "\\(-0.99\\)"
+   ],
+   [
+    "gpucfd, clustered, implicit scheme on the finest grid",
+    "1,005",
+    "\\(-0.09\\)"
+   ]
+  ],
+  "note": "Time in seconds for all grids of a study, with the drag error it ends at. The star marks an estimate explained in the study report."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  },
+  {
+   "href": "gpu_study.html",
+   "text": "its study report"
+  }
+ ]
+}

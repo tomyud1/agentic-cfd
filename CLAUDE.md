@@ -93,6 +93,10 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
   updating by hand ("five cases", "61 insights"). Detail goes in the linked pages: setup in
   `setup/README.md`, history in `CHANGELOG.md`, gpucfd details in `gpucfd/DESIGN.md`. Keep it under
   about 150 lines: a new section must replace or shorten something.
+- **Every case has a purpose and ends in a one-page progress report** (`cfdlib.brief`, step 9 of
+  [`dev/LOOP.md`](dev/LOOP.md)): the goal, the problem, then accuracy and speed as two tables
+  side by side, OpenFOAM next to gpucfd on the same problem and grid wherever both can run it.
+  Fix each tool's tuning budget before its runs.
 - **Every case lives in one list,** [`cases/catalogue.yaml`](cases/catalogue.yaml): solved, in
   progress and planned. The solved-case table, the backlog and the report gallery are generated
   from it by `python -m cfdlib.catalogue`; never edit those tables by hand. When a case is solved,

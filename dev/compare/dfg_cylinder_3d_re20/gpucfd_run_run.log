@@ -1,0 +1,56 @@
+[G1] t     1.00 cd 6.164603 (err inf/6.2e-05)  cl 0.001812545 (err inf/1.8e-08)  div 4.9e-07 gpu 15.2s
+[G1] t     2.00 cd 6.052333 (err inf/6.1e-05)  cl 0.01346884 (err inf/1.3e-07)  div 8.3e-07 gpu 26.6s
+[G1] t     3.01 cd 6.037045 (err inf/6.0e-05)  cl 0.01213084 (err inf/1.2e-07)  div 2.6e-07 gpu 36.0s
+[G1] t     4.01 cd 6.034602 (err inf/6.0e-05)  cl 0.01249826 (err inf/1.2e-07)  div 2.3e-07 gpu 43.1s
+[G1] t     5.01 cd 6.034182 (err 8.7e-05/6.0e-05, rho 0.172)  cl 0.01249805 (err 8.2e-08/1.2e-07, rho 0.275)  div 1.6e-07 gpu 49.9s
+[G1] t     6.01 cd 6.034106 (err 1.7e-05/6.0e-05, rho 0.182)  cl 0.0125031 (err inf/1.3e-07, rho 23.426)  div 8.9e-08 gpu 56.6s
+[G1] t     7.02 cd 6.034091 (err 3.9e-06/6.0e-05, rho 0.202)  cl 0.0125053 (err inf/1.3e-07, rho 23.426)  div 4.3e-07 gpu 62.8s
+[G1] t     8.02 cd 6.034088 (err 5.7e-07/6.0e-05, rho 0.202)  cl 0.01250545 (err inf/1.3e-07, rho 23.426)  div 3.2e-07 gpu 68.8s
+[G1] t     9.02 cd 6.034088 (err 1.3e-07/6.0e-05, rho 0.214)  cl 0.01250559 (err inf/1.3e-07, rho 0.906)  div 6.1e-08 gpu 74.7s
+[G1] t    10.02 cd 6.034088 (err 3.5e-08/6.0e-05, rho 0.236)  cl 0.01250562 (err inf/1.3e-07, rho 0.906)  div 1.6e-07 gpu 80.5s
+[G1] t    11.02 cd 6.034088 (err 7.5e-09/6.0e-05, rho 0.236)  cl 0.01250563 (err inf/1.3e-07, rho 0.906)  div 5.5e-07 gpu 86.1s
+[G1] t    12.03 cd 6.034088 (err 1.8e-10/6.0e-05, rho 0.236)  cl 0.01250564 (err 1.9e-09/1.3e-07, rho 0.365)  div 5.6e-08 gpu 91.6s
+[G1] t    13.03 cd 6.034088 (err inf/6.0e-05, rho 166.815)  cl 0.01250563 (err inf/1.3e-07, rho 0.644)  div 3.3e-07 gpu 97.0s
+[G1] t    14.03 cd 6.034088 (err inf/6.0e-05, rho 166.815)  cl 0.01250564 (err inf/1.3e-07, rho 3.044)  div 6.9e-08 gpu 102.4s
+[G1] t    15.03 cd 6.034088 (err inf/6.0e-05, rho 166.815)  cl 0.01250565 (err inf/1.3e-07, rho 3.044)  div 7.2e-07 gpu 107.8s
+[G1] t    16.04 cd 6.034088 (err inf/6.0e-05, rho 29.842)  cl 0.01250562 (err inf/1.3e-07, rho 4.937)  div 1.2e-06 gpu 113.1s
+[G1] t    17.04 cd 6.034087 (err inf/6.0e-05, rho 29.842)  cl 0.01250563 (err 2.9e-08/1.3e-07, noise floor)  div 6.3e-07 gpu 118.5s
+[G1] t    18.04 cd 6.034088 (err 6.3e-07/6.0e-05, noise floor)  cl 0.01250567 (err 4.5e-08/1.3e-07, noise floor)  div 1.6e-06 gpu 123.9s
+[G1] t    19.04 cd 6.034088 (err 6.3e-07/6.0e-05, noise floor)  cl 0.01250567 (err 4.5e-08/1.3e-07, noise floor)  div 3.3e-07 gpu 129.2s
+[G1] t    20.04 cd 6.034088 (err 6.3e-07/6.0e-05, noise floor)  cl 0.01250564 (err 4.5e-08/1.3e-07, noise floor)  div 1.7e-07 gpu 134.6s
+[G1] t    21.05 cd 6.034088 (err 6.3e-07/6.0e-05, noise floor)  cl 0.01250566 (err 4.5e-08/1.3e-07, noise floor)  div 4.7e-07 gpu 139.9s
+[G1] t    22.05 cd 6.034088 (err 6.3e-07/6.0e-05, noise floor)  cl 0.01250563 (err 4.5e-08/1.3e-07, noise floor)  div 1.4e-07 gpu 145.2s
+[G1] t    23.05 cd 6.034088 (err 7.0e-07/6.0e-05, noise floor)  cl 0.0125057 (err 7.5e-08/1.3e-07, noise floor)  div 1.3e-07 gpu 150.6s
+[G1] t    24.05 cd 6.034088 (err 7.0e-07/6.0e-05, noise floor)  cl 0.01250564 (err 7.5e-08/1.3e-07, noise floor)  div 1.2e-07 gpu 156.1s
+[G1] t    25.06 cd 6.034088 (err 7.0e-07/6.0e-05, noise floor)  cl 0.01250564 (err 7.5e-08/1.3e-07, noise floor)  div 9.6e-07 gpu 161.6s
+[G1] t    26.06 cd 6.034088 (err 7.0e-07/6.0e-05, noise floor)  cl 0.01250564 (err 7.5e-08/1.3e-07, noise floor)  div 2.7e-07 gpu 167.0s
+[G1] t    27.06 cd 6.034088 (err 7.0e-07/6.0e-05, noise floor)  cl 0.01250566 (err 7.5e-08/1.3e-07, noise floor)  div 1.6e-07 gpu 172.4s
+[G1] t    28.06 cd 6.034088 (err inf/6.0e-05, rho 23.500)  cl 0.01250565 (err 7.5e-08/1.3e-07, noise floor)  div 1.2e-06 gpu 177.7s
+[G1] t    29.06 cd 6.034088 (err 7.0e-07/6.0e-05, noise floor)  cl 0.01250564 (err 7.5e-08/1.3e-07, noise floor)  div 4.4e-07 gpu 183.3s
+[G1] t    30.07 cd 6.034088 (err 7.0e-07/6.0e-05, noise floor)  cl 0.01250564 (err 7.5e-08/1.3e-07, noise floor)  div 1.8e-07 gpu 188.6s
+[G1] t    31.07 cd 6.034088 (err 5.0e-07/6.0e-05, noise floor)  cl 0.01250563 (err inf/1.3e-07, rho 16.456)  div 3.1e-07 gpu 193.9s
+[G1] t    32.07 cd 6.034088 (err 1.7e-07/6.0e-05, noise floor)  cl 0.01250565 (err 1.9e-08/1.3e-07, noise floor)  div 5.3e-07 gpu 199.3s
+[G1] t    33.07 cd 6.034088 (err 1.7e-07/6.0e-05, noise floor)  cl 0.01250562 (err 2.1e-08/1.3e-07, noise floor)  div 5.1e-07 gpu 204.6s
+[G1] t    34.08 cd 6.034088 (err 1.7e-07/6.0e-05, noise floor)  cl 0.01250564 (err 2.1e-08/1.3e-07, noise floor)  div 1.3e-06 gpu 210.0s
+[G1] t    35.08 cd 6.034088 (err 2.3e-07/6.0e-05, noise floor)  cl 0.01250564 (err 2.1e-08/1.3e-07, noise floor)  div 1.1e-07 gpu 215.4s
+[G1] t    36.08 cd 6.034088 (err 2.8e-07/6.0e-05, noise floor)  cl 0.01250563 (err 2.1e-08/1.3e-07, noise floor)  div 1.2e-07 gpu 220.7s
+[G1] t    37.08 cd 6.034088 (err 4.0e-07/6.0e-05, noise floor)  cl 0.01250566 (err 3.0e-08/1.3e-07, noise floor)  div 2.2e-06 gpu 226.1s
+[G1] t    38.08 cd 6.034087 (err 7.6e-07/6.0e-05, noise floor)  cl 0.01250559 (err 6.4e-08/1.3e-07, noise floor)  div 9.1e-07 gpu 231.5s
+[G1] t    39.09 cd 6.034088 (err 7.6e-07/6.0e-05, noise floor)  cl 0.0125057 (err 1.1e-07/1.3e-07, noise floor)  div 3.4e-07 gpu 236.8s
+[G1] done: t 39.1 steps 5148 gpu 237 s converged True cd 6.03409 cl 0.012506 Courant 0.82 flow in/out -0.0336282/0.0336806
+[G2] t     1.00 cd 6.097141 (err inf/5.0e-04)  cl -0.006846844 (err inf/1.5e-04)  div 8.4e-07 gpu 43.9s
+[G2] t     2.00 cd 6.096367 (err inf/5.0e-04)  cl -0.00668949 (err inf/1.5e-04)  div 4.5e-07 gpu 76.4s
+[G2] t     3.01 cd 6.096246 (err inf/5.0e-04)  cl -0.006864399 (err inf/1.5e-04)  div 1.8e-06 gpu 106.1s
+[G2] t     4.01 cd 6.096226 (err inf/5.0e-04)  cl -0.00683301 (err inf/1.5e-04)  div 3.4e-07 gpu 134.4s
+[G2] t     5.01 cd 6.096222 (err 1.4e-06/5.0e-04, rho 0.236)  cl -0.006838081 (err inf/1.5e-04, rho 1.112)  div 1.7e-06 gpu 163.2s
+[G2] t     6.01 cd 6.096222 (err 5.1e-08/5.0e-04, rho 0.236)  cl -0.006837829 (err 1.4e-07/1.5e-04, rho 0.365)  div 7.8e-07 gpu 191.5s
+[G2] t     7.02 cd 6.096222 (err 7.1e-09/5.0e-04, rho 0.236)  cl -0.006837827 (err 1.3e-09/1.5e-04, rho 0.365)  div 1.2e-06 gpu 219.9s
+[G2] done: t 7.0 steps 1386 gpu 220 s converged True cd 6.09622 cl -0.006838 Courant 0.81 flow in/out -0.0336236/0.0336104
+[G3] t     1.00 cd 6.130318 (err inf/1.4e-03)  cl 0.02260123 (err inf/3.8e-04)  div 5.8e-06 gpu 132.4s
+[G3] t     2.00 cd 6.129429 (err inf/1.3e-03)  cl 0.02183994 (err inf/3.7e-04)  div 8.7e-07 gpu 234.9s
+[G3] t     3.01 cd 6.129286 (err inf/1.2e-03)  cl 0.02213936 (err inf/3.7e-04)  div 1.9e-06 gpu 327.2s
+[G3] t     4.01 cd 6.129263 (err inf/1.2e-03)  cl 0.0220919 (err inf/3.7e-04)  div 2.5e-06 gpu 418.0s
+[G3] t     5.01 cd 6.129259 (err 1.2e-06/1.2e-03, rho 0.236)  cl 0.02209794 (err 3.9e-06/3.7e-04, rho 0.393)  div 2.7e-06 gpu 509.0s
+[G3] t     6.01 cd 6.12926 (err 1.5e-07/1.2e-03, rho 0.236)  cl 0.02209765 (err 1.7e-07/3.7e-04, rho 0.365)  div 7.7e-07 gpu 599.7s
+[G3] done: t 6.0 steps 1584 gpu 600 s converged True cd 6.12926 cl 0.022098 Courant 0.81 flow in/out -0.0336221/0.0336093
+exit 0

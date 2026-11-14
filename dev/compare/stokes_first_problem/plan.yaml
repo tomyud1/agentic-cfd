@@ -1,0 +1,47 @@
+# Case 3 with gpucfd: Stokes' first problem, next to OpenFOAM. Written BEFORE the runs, 2026-11-14.
+# Why: the one-page progress report of case 3 has an empty gpucfd column.
+
+# What is compared: the same problem (cases/stokes_first_problem/problem.yaml: U, nu, rho, 20 s as given) in
+# the same water layer, on the same cells with the same time steps, the same four outputs formed by the
+# case's own code (analyze.py: analyse_run), against the same exact solution.
+domain: {H: from the case's numerics.yaml, Nx: 2}      # gpucfd needs two cells along a periodic direction
+runs:
+  family: the case's combined family, numerics.yaml runs.family (cells and time step halved together, 5 runs)
+  not_run: the case's two one-factor studies (cells only, time step only); the outputs come from the family
+set_up: >
+  The plate is the wall y = 0, moving at U from the first step on; periodic along x; the water starts at rest.
+  The top of the layer is a fixed wall (OpenFOAM: a symmetry plane); the exact velocity there is 3e-15 U at
+  20 s, so the difference cannot matter, and the case's own far-field check is applied.
+scheme: imex                 # diffusion implicit (Crank-Nicolson inside each of three sub-steps), second order in time
+time_step: "fixed, the case's own value for each run (OpenFOAM used second-order backward differences)"
+why_not_explicit: on the finest grid an explicit step is limited to 0.15 h^2 / nu, 27 times smaller than the case's step
+x_length: set so that U dt / hx = 0.4 on every run (the flow does not change along x, so the length is free)
+stop: at t = 20 s, the duration the problem asks for. Fields are read at 1, 5 and 20 s; the wall stress and the momentum after every step, as in the case.
+diffusion_tolerance: 1.0e-12 # relative, as the case's linear solvers (1e-12)
+outputs:                     # the case's analyse_run, unchanged
+  a: largest difference of u(y) from the exact solution over all cells at 1, 5 and 20 s, as a share of U
+  b: wall shear stress at 20 s (nu (U - u_1) / (h / 2), as OpenFOAM's wallShearStress)
+  c: depth where u has fallen to 1 % of U at 1, 5 and 20 s (linear between cell centres)
+  d: momentum given to the water by 20 s (rho times the sum of u h)
+judged_by: the acceptance rules of the case (numerics.yaml), unchanged, on the finest run
+checks: >
+  the case's far-field check; the momentum balance per step, written for gpucfd's time scheme (the change of
+  momentum over a step against the mean of the wall stress at its two ends), reported, not judged, because the
+  case's limit was written for OpenFOAM's scheme
+agreement: >
+  Same cells and time steps, both second order, different time schemes: the errors are not expected to be
+  equal digit for digit. "Equal accuracy" here means that on the finest run each of the four errors of gpucfd is
+  at most twice OpenFOAM's, and that each output passes or misses the case's rule for both tools alike.
+risk: >
+  The start is a jump (the plate moves at full speed from the first step). A Crank-Nicolson step does not damp
+  the sharpest cell-to-cell pattern; it flips its sign each step and lets it fade slowly. OpenFOAM's backward
+  scheme damps it. If this shows, it will be in the profile at 1 s and in the early wall stress.
+tuning_budget: None. One scheme, the case's cells and time steps. If an output misses, it is reported as it is.
+timing: >
+  Wall time per run from creating the solver to the last step; the one-off start of the GPU library is measured
+  separately. Marked busy if OpenFOAM is running on the CPU. OpenFOAM's times are the solver agent's one-core
+  runs, kept in results/stokes_first_problem/runs/*.json; OpenFOAM is not rerun.
+prediction:                  # by the main dev session, before the runs
+  accuracy: equal accuracy
+  speed: no meaningful speed difference; OpenFOAM's run times were not recorded
+expected_cost: "15 500 steps in all at 1 to 2 ms per step, read back after every step: under a minute"

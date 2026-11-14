@@ -40,6 +40,8 @@ Insights are gathered all the way through, from every agent.
    result wrong (a tool that refuses the problem, an output no tool can extract), and say in the
    changelog which fixes those were: a fresh-agent run is the expensive step. Leave what would only
    make it faster or more accurate for step 8, where it can be measured against the solve.
+   Write the case's purpose in one line (what it adds: a new kind of problem for OpenFOAM, for
+   gpucfd, or for both). The case ends in a one-page progress report (step 9).
 2. **Prepare.**
    - Write `cases/<name>/problem.yaml`: physical inputs only, no numerical choices.
      `python -m cfdlib.contract --problem cases/<name>/problem.yaml` says whether the report will
@@ -117,6 +119,10 @@ Insights are gathered all the way through, from every agent.
      if the target is not reached).
    - Change one thing at a time and measure it against the baseline on the same problem: the same
      answer, faster, or a better answer at a stated cost. Report before and after.
+   - Ask of every case whether a model or method gives the same answer for less: the problem's
+     symmetry, less physics, a model for the small swirls, better numerics (the kinds and the
+     first candidates are in [`ROADMAP.md`](../ROADMAP.md), section 5). Say whether OpenFOAM
+     has it or it must be built, measure it against the full solve, and state when it is valid.
    - What works becomes a tool or a default, with a test. What does not work is recorded with its
      measurement, so nobody tries it again blind.
    - When refining one direction at a time, compare the profiles point by point. A single number
@@ -127,6 +133,20 @@ Insights are gathered all the way through, from every agent.
      never in place of it.
    - An agent that is handed the stage sends back its insights like a solver agent, and each gets
      an answer as in step 5.
+9. **Report progress on one page** (`python -m cfdlib.brief`: the words of each page are in
+   [`cases/briefs.yaml`](../cases/briefs.yaml), the numbers come from the case's result files; a
+   page that needs more has its own script, as in `dev/compare/turbulent_channel_re180/`). In this order: the goal in one line, the problem with
+   its sketch and requirements as bullets, then two tables side by side: accuracy (each
+   requirement of the problem, one column per tool) and speed.
+   - Both tools solve the same problem on the same grid wherever both can run it. Where only one
+     can, the page says so. A tool's column is never filled from a different problem.
+   - "Each tool with its best settings" needs an end: before the runs, fix each tool's tuning
+     budget (a few short timed tries), then one full run per tool, with its stop rule.
+   - In the accuracy table show the difference from the reference first. A share of an error
+     band flatters the tool whose grid study is worse (a wide band): give the band's width
+     next to it, and "no band" when the grids do not converge.
+   - Check what data exists before promising a comparison: for case 17 OpenFOAM had only been
+     timed for a few dozen steps, and its accuracy took a five-hour run to get.
 
 ## What the loop does not do yet
 

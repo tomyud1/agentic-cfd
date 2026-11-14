@@ -1,0 +1,195 @@
+# The words of each case's one-page progress report (results/<folder>/brief.html). The numbers are not here:
+# `python -m cfdlib.brief` takes them from the case's own result files. Keys: cfdlib/brief.py.
+# Simple words, short bullets, no numbers typed by hand.
+
+plane_poiseuille:
+  goal: The first case of the project. It checks that the workflow and OpenFOAM reproduce a flow whose exact solution is known.
+  story: Solved with OpenFOAM by an agent that followed the workflow. gpucfd did not exist yet. It was run later on the same problem, with the same cells across the gap and the outputs formed in the same way.
+  requirements:
+    - Water between two very large flat plates, pushed by a constant pressure drop.
+    - Slow and steady. The fluid moves in straight layers (laminar flow).
+    - "Asked for: the velocity profile across the gap, the largest velocity, the flow rate and the friction on the walls."
+    - "Reference: the exact textbook solution, a parabola."
+  gpucfd: not run
+  record: dev/compare/plane_poiseuille/gpucfd.json
+  accuracy:
+    note: Differences from the exact solution on the finest grid. The last two rows are zero up to rounding in both tools.
+    rows: {a: Velocity profile across the gap, b: Largest velocity, c: Flow rate, d: Friction on the walls}
+  speed:
+    data: {list: rows, label: "{Ny} cells across the gap", wall: wall}
+    note: Each run takes a fraction of a second.
+  meaning:
+    - The workflow can take a problem statement to a checked report.
+    - Both tools reproduce the exact solution to a tiny fraction of a per cent.
+    - "The two tools give the same numbers. Across the gap they use the same cells and the same formulas, so they solve the same small set of equations."
+    - Neither tool is faster in a way that matters. Every run is over in less than a second.
+  limits:
+    - "The tools work differently here. OpenFOAM solves the steady flow directly. gpucfd has no steady solver: it starts from rest and steps in time until the wall friction balances the pressure drop."
+    - gpucfd's time step was picked in three timed tries, fixed before the runs. The largest try was the fastest, so a still larger step might be faster.
+    - OpenFOAM's times are the first, untuned runs on one core. It was not run again.
+    - This is the simplest flow there is. Passing it says little about harder flows.
+
+lid_driven_cavity_re100:
+  goal: The first comparison with a published benchmark, for a flow that has no exact solution.
+  story: Solved first with OpenFOAM. gpucfd was then run on the same problem and the same four grids, each from rest, with the outputs formed in the same way. Its settings were those its own development had measured for this flow. Nothing was tuned for these runs.
+  requirements:
+    - A square box full of fluid. Its top wall, the lid, slides sideways and drags the fluid round.
+    - "Reynolds number 100: slow and steady, with one large vortex."
+    - "Asked for: the velocity along the two centre lines, the strongest return flow, and the centre and strength of the vortex."
+    - "Reference: the benchmark tables of Ghia, Ghia and Shin (1982)."
+  gpucfd: not run
+  record: dev/compare/lid_driven_cavity_re100/gpucfd.json
+  accuracy:
+    note: Differences from the benchmark on the finest grid. The first three rows are shares of the lid speed.
+    rows: {a: Velocity along the vertical centre line, b: Velocity along the horizontal centre line, c: Strongest return flow, d: Strength of the vortex}
+  speed:
+    data: {list: rows, label: "{N} by {N}", cells: "N*N", wall: wall}
+    note: Time to reach the steady flow from rest.
+  meaning:
+    - Both tools agree with the benchmark about as closely as the benchmark's own grid allows.
+    - The two tools agree with each other far more closely than either agrees with the benchmark, and the gap between them shrinks four times with each finer grid.
+    - On the two finest grids gpucfd reaches the steady flow many times faster than OpenFOAM's first runs did.
+    - "By the case's own rules both tools get the same verdict, WARN, for the same reason: the benchmark differs from both along the horizontal centre line by more than the pass limit."
+  limits:
+    - "The speed table overstates the gap. OpenFOAM's times are the solver agent's first, untuned runs on one core, with a very strict stop. It was not run again."
+    - "The tools stop by different rules: OpenFOAM when its equations are satisfied to a set level, gpucfd when the flow no longer changes from one time unit to the next."
+    - A flow in a plain box suits gpucfd. A flow around a body does not suit it as well (see the cylinder cases).
+    - The benchmark is itself a computed solution from 1982 on a coarser grid, not an experiment.
+
+stokes_first_problem:
+  goal: The first flow that changes in time, checked against an exact solution.
+  story: Solved first with OpenFOAM. gpucfd was then run on the same problem, with the same cells and the same time steps, and its outputs were formed by the case's own code. Nothing was tuned.
+  requirements:
+    - A flat plate under deep, still water suddenly starts to move along itself.
+    - The motion spreads slowly into the water. The first 20 seconds are computed.
+    - "Asked for: velocity profiles at three times, the friction on the plate, how deep the motion has reached, and the momentum given to the water."
+    - "Reference: the exact solution, known as Stokes' first problem."
+  gpucfd: not run
+  record: dev/compare/stokes_first_problem/gpucfd.json
+  accuracy:
+    note: Differences from the exact solution on the finest run.
+    rows: {a: Velocity profiles at three times, b: Friction on the plate at the end, c: Depth the motion has reached, d: Momentum given to the water}
+  speed:
+    data:
+      files: [results/stokes_first_problem/runs/N125_dt40ms.json, results/stokes_first_problem/runs/N250_dt20ms.json, results/stokes_first_problem/runs/N500_dt10ms.json, results/stokes_first_problem/runs/N1000_dt5ms.json, results/stokes_first_problem/runs/N2000_dt2.5ms.json]
+      label: "{Ny} cells, {steps} steps"
+      wall: wall_time
+    note: The five runs of the grid study. Cells and time step are halved together from one run to the next.
+  meaning:
+    - Both tools follow a flow in time to within a few thousandths of a per cent of the exact solution.
+    - "Their errors are nearly the same, although they step in time by different methods. Both errors shrink four times when cells and time step are halved, as they should."
+    - gpucfd is a few times faster on the finest run and no faster on the coarsest. Every run takes less than a minute, so the difference does not matter here.
+  limits:
+    - This flow changes in one direction only, across the water layer. It does not test how either tool carries a flow along with itself.
+    - "gpucfd ran the five runs of the grid study, not the case's two extra studies (finer cells alone, smaller time step alone)."
+    - OpenFOAM's times are the first, untuned runs on one core. It was not run again.
+
+dfg_cylinder_re100:
+  goal: The first flow that never settles, vortices shed from a cylinder, against a benchmark. It is also the first case solved with both tools.
+  story: Solved first with OpenFOAM on a grid fitted to the cylinder. gpucfd works on a box of cells with the cylinder cut out of it. It was extended for this case (cells clustered near the cylinder, an implicit time scheme) and then run on the same problem.
+  requirements:
+    - A channel with a fixed round cylinder a little off the centre line. The fluid enters with a parabolic profile.
+    - "Reynolds number 100: the wake swings from side to side for ever, and the forces on the cylinder swing with it."
+    - "Asked for: the largest, smallest and mean drag, the lift, and the shedding frequency, once the swinging repeats itself."
+    - "Reference: the DFG benchmark 2D-2, a very fine finite-element solution."
+  gpucfd: none
+  accuracy:
+    title: "Accuracy: difference from the benchmark"
+    note: In per cent, each tool on its finest grid. gpucfd was run with the cylinder at two positions relative to its cells.
+    pick:
+      file: results/dfg_cylinder_re100/gpu_study.json
+      table: Each study's own error estimate
+      columns: [0, 2, 3, 5]
+      head: [Requirement, "Benchmark's own uncertainty", OpenFOAM, gpucfd]
+  speed:
+    title: "Speed: a whole grid study"
+    note: Time in seconds for all grids of a study, with the drag error it ends at. The star marks an estimate explained in the study report.
+    pick:
+      file: results/dfg_cylinder_re100/gpu_study.json
+      table: Cost of each whole study
+      columns: [0, 3, 4]
+      head: [Study, Time (s), Drag error at the end (%)]
+      rows:
+        - OpenFOAM, all four grids, each run stopped when periodic
+        - OpenFOAM, first two grids only
+        - gpucfd, equal cells
+        - gpucfd, clustered, implicit scheme on the finest grid
+  meaning:
+    - Both tools reach the benchmark's drag within the benchmark's own uncertainty.
+    - "For a flow around a body, OpenFOAM's fitted grid is the cheaper way to a given accuracy: it needs far fewer cells."
+    - gpucfd is much faster per cell, but it needs many more cells to describe a round cylinder on a grid of boxes.
+  limits:
+    - gpucfd's lift is less accurate than its drag, and it depends on where the cylinder sits relative to the cells.
+    - The benchmark is itself a computed solution. Its own uncertainty is shown in the table.
+
+dfg_cylinder_3d_re20:
+  goal: The first three-dimensional case, with up to 2.4 million cells. It also tests whether OpenFOAM's pressure solver gets faster on the GPU.
+  story: Solved with OpenFOAM on CPU cores. A separate study moved OpenFOAM's pressure solve to the GPU with OpenFOAM's own plugin. gpucfd was run on the same problem later, on a box of cells with the cylinder cut out of it and the cells made finer around the cylinder along the flow. Its force tool first had to learn a body that touches the walls.
+  requirements:
+    - A channel of square cross-section with a round cylinder spanning it from wall to wall.
+    - "Reynolds number 20: slow and steady, with a small region of reversed flow behind the cylinder."
+    - "Asked for: the drag and the lift on the cylinder."
+    - "Reference: the DFG benchmark 3D-1Z."
+  gpucfd: not run
+  record: dev/compare/dfg_cylinder_3d_re20/gpucfd.json
+  accuracy:
+    note: "Each tool on its finest grid. Band: the share of the allowed difference that is used; above 1 is a miss. Each tool's band comes from its own three finest grids, so a tool whose grids still differ a lot gets a wide band. Compare the differences first."
+    rows: {a: Drag on the cylinder, b: Lift on the cylinder}
+  speed:
+    performance: [L1, L2, L3, L4]
+    note: "Neither set of times is a fair measure of speed: OpenFOAM's runs shared the PC with other runs, and gpucfd's ran while another solver used the CPU. gpucfd's grids are named by their cells across the cylinder's diameter; each started from the one before, the first from rest. OpenFOAM's speed study is the separate report."
+  meaning:
+    - OpenFOAM's drag is right. Its lift, a very small force here, misses its band, so the verdict of the case is FAIL.
+    - "gpucfd's drag is close, but much further from the benchmark than OpenFOAM's (see the table), with more cells and a similar run time. OpenFOAM's cells are wrapped around the cylinder. gpucfd cuts the cylinder out of a grid of boxes, and that costs accuracy at the surface."
+    - "gpucfd's lift is not usable on these grids: it changes sign from one grid to the next. The lift is a tiny part of the drag, smaller than the error gpucfd makes at the surface."
+    - A second family of OpenFOAM grids showed that the lift depends on how the cells are graded around the cylinder.
+    - On this PC, OpenFOAM's pressure solver on the GPU pays off only on the largest grids.
+  limits:
+    - gpucfd ran three grids of one family, with the cylinder at one position relative to the cells. Its drag is inside its band only because that band is wide.
+    - "The 12 GB of the graphics card could hold a finer gpucfd grid of this family, but not one fine enough to match OpenFOAM's drag. That needs fine cells around the cylinder in all three directions, which gpucfd's pressure solver cannot yet handle well in 3D."
+    - The lift is tiny compared with the drag, which makes it hard to compute to a per cent.
+
+heated_pipe_re200:
+  goal: The first case with heat transfer.
+  story: "Solved with OpenFOAM. gpucfd cannot solve it yet: it has no temperature equation and no round pipe."
+  requirements:
+    - Water flows slowly through a small tube. After an unheated entrance, the wall is heated evenly.
+    - Slow and steady (laminar flow).
+    - "Asked for: how the heat transfer develops along the tube, its final value, the length of the thermal entrance, and the wall and water temperatures."
+    - "Reference: the exact series solution of this problem."
+  gpucfd: cannot yet
+  accuracy:
+    note: Differences from the exact solution on the finest grid. The heat transfer is given as the Nusselt number.
+    rows: {a: Heat transfer along the tube, b: Its fully developed value, c: Length of the thermal entrance, d: Wall and water temperature at the end}
+  speed:
+    performance: [L1, L2, L3, L4]
+  meaning:
+    - OpenFOAM matches the exact solution of a heat-transfer problem to about a hundredth of a per cent.
+    - The verdict is WARN. The numbers agree, and the full report lists what was not checked.
+  limits:
+    - "gpucfd has no column: heat transfer is not built into it yet."
+    - The fluid's properties are constant, and buoyancy was checked on one grid only.
+
+turbulent_flat_plate_sa:
+  goal: The first turbulent flow, computed with a turbulence model.
+  story: Solved with OpenFOAM on the grids NASA publishes for this test. gpucfd has no turbulence model, so it cannot run this case. For turbulence computed without a model, see the turbulent channel (case 17).
+  requirements:
+    - Air flows along a thin, smooth flat plate. The layer of slowed air on the plate is turbulent.
+    - "The swirls are not computed. A model (Spalart-Allmaras) stands for their effect, and the average flow is computed."
+    - "Asked for: the friction on the plate, its drag, and the velocity and model profiles in the layer."
+    - "Reference: NASA's Turbulence Modeling Resource, the same model in NASA's own codes."
+  gpucfd: cannot yet
+  accuracy:
+    note: Only the first row has a like-for-like reference (NASA's incompressible runs). The others are compared with NASA's runs at Mach 0.2.
+    rows: {a: Friction at the check point, b: Drag of the plate, c: Friction along the plate, d: Velocity profile, e: Model viscosity at its peak}
+  speed:
+    performance: [G1, G2, G3, G4, G5]
+  meaning:
+    - OpenFOAM's version of the model gives NASA's answer to a few hundredths of a per cent.
+    - The verdict is WARN, because that small difference is just outside the estimated grid error.
+  limits:
+    - "gpucfd has no column: it has no turbulence model, and for this thin-layer kind of flow it is predicted to be slower than OpenFOAM."
+    - This checks the model's implementation against other codes. It does not check the model against a real boundary layer.
+
+turbulent_channel_re180:
+  script: dev/compare/turbulent_channel_re180/brief.py

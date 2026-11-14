@@ -1,0 +1,115 @@
+{
+ "title": "Steady 3D flow past a cylinder in a square channel at Re = 20 (DFG benchmark 3D-1Z)",
+ "date": "2026-11-11",
+ "verdict": "FAIL",
+ "goal": "The first three-dimensional case, with up to 2.4 million cells. It also tests whether OpenFOAM's pressure solver gets faster on the GPU.",
+ "story": "Solved with OpenFOAM on CPU cores. A separate study moved OpenFOAM's pressure solve to the GPU with OpenFOAM's own plugin. gpucfd was run on the same problem later, on a box of cells with the cylinder cut out of it and the cells made finer around the cylinder along the flow. Its force tool first had to learn a body that touches the walls.",
+ "problem": {
+  "requirements": [
+   "A channel of square cross-section with a round cylinder spanning it from wall to wall.",
+   "Reynolds number 20: slow and steady, with a small region of reversed flow behind the cylinder.",
+   "Asked for: the drag and the lift on the cylinder.",
+   "Reference: the DFG benchmark 3D-1Z."
+  ]
+ },
+ "results": {
+  "headline": "<b>Benchmark comparison FAILED.</b> On the finest mesh (L4, 2,433,024 cells) the drag is \\(6.1805\\) (reference \\(6.1853\\), \\(-0.077\\,\\%\\)) and the lift \\(0.00956\\) (\\(0.00940\\), \\(1.7\\,\\%\\)); mesh-extrapolated: \\(0.017\\,\\%\\) and \\(1.2\\,\\%\\). gpucfd on its finest grid (6,291,456 cells, 31 across the cylinder's diameter): the drag is \\(-0.91\\,\\%\\) from the reference; the lift does not converge on its grids (0.0125, -0.0068, 0.0221).",
+  "meaning": [
+   "OpenFOAM's drag is right. Its lift, a very small force here, misses its band, so the verdict of the case is FAIL.",
+   "gpucfd's drag is close, but much further from the benchmark than OpenFOAM's (see the table), with more cells and a similar run time. OpenFOAM's cells are wrapped around the cylinder. gpucfd cuts the cylinder out of a grid of boxes, and that costs accuracy at the surface.",
+   "gpucfd's lift is not usable on these grids: it changes sign from one grid to the next. The lift is a tiny part of the drag, smaller than the error gpucfd makes at the surface.",
+   "A second family of OpenFOAM grids showed that the lift depends on how the cells are graded around the cylinder.",
+   "On this PC, OpenFOAM's pressure solver on the GPU pays off only on the largest grids."
+  ],
+  "limits": [
+   "gpucfd ran three grids of one family, with the cylinder at one position relative to the cells. Its drag is inside its band only because that band is wide.",
+   "The 12 GB of the graphics card could hold a finer gpucfd grid of this family, but not one fine enough to match OpenFOAM's drag. That needs fine cells around the cylinder in all three directions, which gpucfd's pressure solver cannot yet handle well in 3D.",
+   "The lift is tiny compared with the drag, which makes it hard to compute to a per cent."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy: difference from the reference",
+  "head": [
+   "Requirement",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Drag on the cylinder",
+    "\\(-0.0048\\) (\\(-0.077\\,\\%\\))<br>0.60 band ✓",
+    "\\(-0.0561\\) (\\(-0.91\\,\\%\\))<br>0.36 band ✓, a wide band: \\(\\pm 2.5\\,\\%\\)"
+   ],
+   [
+    "Lift on the cylinder",
+    "\\(+0.00016\\) (\\(1.7\\,\\%\\))<br>2.51 band ✗",
+    "\\(+0.01270\\) (\\(135\\,\\%\\))<br>no band ✗: its grids do not converge"
+   ]
+  ],
+  "note": "Each tool on its finest grid. Band: the share of the allowed difference that is used; above 1 is a miss. Each tool's band comes from its own three finest grids, so a tool whose grids still differ a lot gets a wide band. Compare the differences first."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "Run",
+   "Cells",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "L1",
+    "4,752",
+    "1 s on 1 core",
+    "–"
+   ],
+   [
+    "L2",
+    "38,016",
+    "2 s on 4 cores",
+    "–"
+   ],
+   [
+    "L3",
+    "304,128",
+    "21 s on 8 cores",
+    "–"
+   ],
+   [
+    "L4",
+    "2,433,024",
+    "961 s on 12 cores",
+    "–"
+   ],
+   [
+    "gpucfd G1, 16 cells per diameter",
+    "786,432",
+    "–",
+    "239 s on the GPU"
+   ],
+   [
+    "gpucfd G2, 23 cells per diameter",
+    "2,654,208",
+    "–",
+    "221 s on the GPU"
+   ],
+   [
+    "gpucfd G3, 31 cells per diameter",
+    "6,291,456",
+    "–",
+    "602 s on the GPU"
+   ]
+  ],
+  "note": "Neither set of times is a fair measure of speed: OpenFOAM's runs shared the PC with other runs, and gpucfd's ran while another solver used the CPU. gpucfd's grids are named by their cells across the cylinder's diameter; each started from the one before, the first from rest. OpenFOAM's speed study is the separate report. gpucfd's times were taken while another solver was using the CPU, so they are upper bounds."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  },
+  {
+   "href": "gpu_study.html",
+   "text": "its study report"
+  }
+ ]
+}

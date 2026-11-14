@@ -4,7 +4,7 @@
 cd "$(dirname "$0")/.." || exit 1
 PY="${PY:-$HOME/venvs/cfd/bin/python}"
 fails=0
-for t in test_poisson test_ns test_walls test_open test_bodies test_steady test_stretched test_stretched_bodies test_imex_bodies test_reproducible; do
+for t in test_poisson test_ns test_walls test_open test_bodies test_wall_forces test_steady test_stretched test_stretched_bodies test_imex_bodies test_reproducible; do
   out=$($PY -m gpucfd.tests.$t 2>&1)
   echo "$out" | grep -E "^FAIL" || true
   echo "$t: $(echo "$out" | tail -1)"

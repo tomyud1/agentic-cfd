@@ -504,3 +504,29 @@ for case13 in sorted(p.parent for p in (ROOT / "cases").glob("*/problem.yaml")):
     assert contract.check_code(case13) == [], (case13.name, contract.check_code(case13))
 assert report13.environment_info(gpu="RTX")[-2] == ["GPU", "RTX"] and len(report13.environment_info()) == 5
 print("slow signals, channel bulk velocity, unequal grid ratios, extra tables, code check: ok")
+
+# 14. the one-page report takes gpucfd's column from a record of its runs (cases/briefs.yaml: record)
+import yaml  # noqa: E402
+from cfdlib import brief as brief14  # noqa: E402
+spec14 = {k: v for k, v in yaml.safe_load(brief14.SPEC.read_text(encoding="utf-8"))["plane_poiseuille"].items() if k != "record"}
+b14, _ = brief14.from_case("plane_poiseuille", spec14)                      # no record: every gpucfd cell waits
+assert all("wait" in r[-1] for r in b14["accuracy"]["rows"] + b14["speed"]["rows"]) and "difference" in b14["accuracy"]["head"][1]
+with tempfile.TemporaryDirectory() as tmp14:
+    rec14 = dict(answers=dict(b=dict(diff=r"\(1\,\%\)<div class='sub'>small print</div>"), a=dict(diff="", sim="RMS x")),
+                 runs=[dict(Ny=8, wall_s=0.5), dict(label="a grid of its own", cells=10, wall_s=12.0)], busy_cpu=True, startup_s=0.2)
+    (Path(tmp14) / "gpucfd.json").write_text(json.dumps(rec14))
+    b14, _ = brief14.from_case("plane_poiseuille", dict(spec14, record=str(Path(tmp14) / "gpucfd.json")))
+    rec14["runs"].append(dict(Ny=7, wall_s=1.0))                            # a run that matches no row of the table
+    (Path(tmp14) / "gpucfd.json").write_text(json.dumps(rec14))
+    try:
+        brief14.from_case("plane_poiseuille", dict(spec14, record=str(Path(tmp14) / "gpucfd.json")))
+        raise AssertionError("a gpucfd run without a row was dropped silently")
+    except ValueError as e14:
+        assert "match no row" in str(e14)
+acc14, sp14 = {r[0]: r[-1] for r in b14["accuracy"]["rows"]}, {r[0]: r for r in b14["speed"]["rows"]}
+assert acc14["Largest velocity"] == r"\(1\,\%\)" and acc14["Velocity profile across the gap"] == "RMS x" and "wait" in acc14["Flow rate"]
+assert sp14["8 cells across the gap"][-1] == "0.50 s on the GPU" and "wait" in sp14["16 cells across the gap"][-1]
+assert sp14["a grid of its own"][-2:] == [brief14.DASH, "12 s on the GPU"]
+assert "upper bounds" in b14["speed"]["note"] and "0.20 s once" in b14["speed"]["note"] and brief14.check_brief(b14) == []
+assert [brief14.seconds(x) for x in (0.336, 3.97, 679.2)] == ["0.34 s", "4.0 s", "679 s"]
+print("one-page report with a record of gpucfd's runs: ok")

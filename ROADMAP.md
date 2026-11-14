@@ -13,7 +13,7 @@ change the order.
 | Part | Works today | Missing |
 |---|---|---|
 | Workflow | Problem statement to checked report, on laminar flow (steady, unsteady, 2D, 3D), heat transfer, and one turbulent flow with a turbulence model (flat plate) | Turbulent flows with pressure gradients and separation, real geometry, a problem with no reference answer |
-| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box; runs a turbulent channel without a model, 2-9× faster per step than OpenFOAM on 8 cores (case 17, verdict FAIL: mean speed 0.34 % off on the finest grid, but the profiles are not resolved there) | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
+| Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box; runs a turbulent channel without a model, 2-9× faster per step than OpenFOAM on 8 cores (case 17, verdict FAIL on the agent's own grids; a finer grid meets all ten limits in 1.7 GPU hours; on the same grid OpenFOAM meets 1 limit of 10 and gpucfd 5) | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
 | Agent | Claude at high effort (case 7: Fable 5.2), on one PC | Never tried with another agent or on another machine |
 
 ## Now: until the meeting (development PC)
@@ -157,6 +157,62 @@ The instruction to read every solved case is gone: the solved cases are now a li
   changelog only (Fable 5.2 at high effort, 52 minutes, 26 of them solver runs; tokens not recorded).
 - The same diet for `gpucfd/DESIGN.md` (about 1500 lines): one file per stage, with DESIGN.md as
   the index, status table and limits. Less urgent: no agent reads it on every case.
+
+### 5. Cheaper ways to the same answer
+
+Asked by the student on 2026-11-14: for every new case, and for old ones where it applies, look
+for a model or method that makes the solution simpler and faster without losing more accuracy
+than the case can afford, and say whether it exists in OpenFOAM or has to be built. Each one is a
+claim to measure in the optimize step (`dev/LOOP.md` step 8) against the verified full solve:
+the same answer within the case's limits, at a stated saving. Its condition of validity goes
+into the report. The kinds of shortcut:
+
+- *Use the problem's shape:* a symmetry plane, two dimensions in place of three, a body of
+  revolution computed as a slice, a periodic box.
+- *Solve less physics:* a steady solve where the flow is steady; the temperature alone when the
+  velocity is already known; density changes kept only in the buoyancy term.
+- *Model the small swirls:* a turbulence model, a model for the smallest swirls only, a formula
+  for the layer at the wall in place of very thin cells.
+- *Better numerics:* cells where they are needed, a start from a coarser grid's solution, larger
+  time steps, a faster pressure solver, the GPU.
+
+First candidates, none measured yet (the predictions are the dev agent's, to be tested):
+
+| Case | Shortcut | Expected | In OpenFOAM? | In gpucfd? |
+|---|---|---|---|---|
+| 5, cylinder in 3D | Half the duct, with a symmetry plane across the span | Half the cells, same forces | Yes | To check |
+| 6, heated pipe | Solve only the temperature on the known velocity profile | Much cheaper, same heat transfer | Yes | No heat transfer yet |
+| 7, flat plate with a model | A wall formula in place of the thinnest cells | Far fewer cells; friction a few per cent off | Yes | No model yet |
+| 17, turbulent channel | A model for the smallest swirls on a coarser grid | Several times cheaper; profiles less exact | Yes | To build (viscosity per cell first) |
+| 11, cylinder at Re 40 (planned) | Half the domain: the steady wake is symmetric | Half the cells | Yes | To check |
+| 12, sphere at Re 100 (planned) | A slice of a body of revolution in place of 3D | Tens of times fewer cells | Yes | To build |
+| 8, buoyancy cavity (planned) | Density changes kept only in the buoyancy term | The standard set-up of this benchmark | Yes | No heat transfer yet |
+
+Nothing to gain in cases 1, 2 and 3 (already one or two dimensions with few cells) and no model
+replaces the shedding of case 4.
+
+*Left open by the gpucfd runs of cases 1, 2, 3 and 5* (2026-11-14; the agent's notes, each with
+its answer so far):
+
+- A round body in 3D is gpucfd's weak point: drag 0.9 % low on 6.3 million cells, lift not
+  settled. Matching OpenFOAM's drag in this grid family would take hundreds of millions of
+  cells. What would help: fine cells around the body in all three directions (needs the
+  pressure solver's plane relaxation, already listed in `gpucfd/DESIGN.md`) or a more accurate
+  rule at the body's surface. Until then, bodies in 3D go to OpenFOAM.
+- An error band built from a grid study that does not converge can make a wrong value look
+  "inside its band". To do: `verification.three_grid_study` flags an observed order below 1 as
+  doubtful, and a band from an unreliable study is shown as "no band". The one-page reports
+  show the difference first and the band's width next to its ratio.
+- Memory: `gpucfd/DESIGN.md` says 12 GB holds about 17 million cells; case 5 measured 0.4 GB
+  per million on its grid, which would be about 28 million. To do: one measured line per grid
+  layout and time scheme.
+- Mass in case 5: the flow out differs from the flow in by 4e-4 on the two finer grids and does
+  not shrink. To look at.
+- `gpucfd.steady`: `march` should accept a change at round-off as converged at once (it waits
+  seven more checks), and `sequence` should take a cell size and a time cap per level.
+- A check of the momentum balance per time step that fits gpucfd's three-stage time scheme.
+- A fourth, finer grid for case 5 fits the card (about 55 GPU minutes, drag expected near
+  -0.6 %). Not run: it would not change the conclusion.
 
 ## Next week
 

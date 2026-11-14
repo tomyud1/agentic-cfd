@@ -1,0 +1,49 @@
+# Case 2 with gpucfd: the lid-driven cavity at Re 100, next to OpenFOAM. Written BEFORE the runs, 2026-11-14.
+# Why: the one-page progress report of case 2 has an empty gpucfd column. gpucfd checks this flow in its own
+# ladder (rung 7b, centre-line velocities only), but it never produced the four outputs the case asks for.
+
+# What is compared: the same problem (cases/lid_driven_cavity_re100/problem.yaml: L, U, nu as given) on the
+# same grids as OpenFOAM, the same outputs formed the same way, against the same benchmark tables.
+grids: {N: [32, 64, 128, 256], kind: uniform N x N}      # numerics.yaml mesh.N of the case; each run from rest
+scheme: imex                 # diffusion implicit, so the time step follows the flow speed only
+time_step: {rule: "dt = cfl h / U", cfl: 2.0}
+                             # half the measured stability limit of this flow (gpucfd/DESIGN.md, speed work round 2);
+                             # the steady answer does not depend on the time step (rung 7c)
+pressure_tolerance: 1.0e-4   # relative; DESIGN.md: changes the cavity answer by 3e-7 U
+stop:                        # decided before the runs
+  rule: the largest change of any velocity over one time unit L / U is below 1e-7 U
+  settle: 1.0e-7
+  cap_time_units: 80         # a run that reaches the cap has not converged and is reported so
+outputs:                     # formed as in cases/lid_driven_cavity_re100/analyze.py (extract), with gpucfd's layout
+  a: u on the vertical centre line, largest difference from Ghia Table I at its interior points (cubic spline)
+  b: v on the horizontal centre line, the same against Table II
+  c: minimum of u on the vertical centre line and where it is (minimum of the spline)
+  d: minimum of the stream function and where it is (stream function from the face fluxes, bicubic spline)
+  layout: >
+    gpucfd stores u on the cell faces, so the centre lines are rows of stored values (OpenFOAM: mean of the two
+    neighbouring cell columns). The stream function at the grid corners is the running sum of the face fluxes,
+    as OpenFOAM's streamFunction.
+judged_by: the acceptance rules of the case (cases/lid_driven_cavity_re100/numerics.yaml), unchanged
+agreement:                   # what counts as "the two tools agree" on the finest grid
+  rule: >
+    for each output, |gpucfd - OpenFOAM| is not larger than the sum of the two tools' own grid-error
+    estimates (GCI of the three finest grids; for the profiles the band 1.25 |change| / (2^p - 1) at each point)
+  and: each output passes or misses the case's acceptance rule for both tools alike
+check_run:                   # one extra run: does the answer depend on the two speed settings?
+  N: 128
+  cfl: 0.8
+  pressure_tolerance: 1.0e-10
+  expect: outputs within 1e-5 U (1e-5 relative for the stream function) of the main 128 x 128 run
+tuning_budget: >
+  None. The settings above are those gpucfd's own development measured for this flow before today
+  (DESIGN.md); no setting is tried and changed for these runs. The check run is not tuning. Grid sequencing
+  (starting each grid from the coarser one) is not used: OpenFOAM's runs each started from rest too.
+timing: >
+  Wall time per grid from creating the solver to the final field, in one Python process; the one-off start of
+  the GPU library is measured separately. Timings taken while OpenFOAM's case 17 run is on the CPU are marked
+  busy and repeated when the CPU is idle. OpenFOAM's times are the solver agent's untuned one-core runs
+  (results.json); OpenFOAM is not rerun.
+prediction:                  # by the main dev session, before the runs
+  accuracy: the same accuracy as OpenFOAM on equal grids, both second order, differences within the benchmark's own grid spacing
+  speed: gpucfd reaches the steady state on 256 x 256 in under a minute, against OpenFOAM's 679 s on one core
+expected_cost: "about 30 s of GPU time for the four grids (DESIGN.md round 2: 17.7 s on 256 x 256 at cfl 2), plus about 15 s for the check run"

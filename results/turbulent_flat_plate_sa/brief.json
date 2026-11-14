@@ -1,0 +1,110 @@
+{
+ "title": "Turbulent boundary layer on a flat plate with the Spalart-Allmaras model (NASA TMR case 2DZP)",
+ "date": "2026-11-13",
+ "verdict": "WARN",
+ "goal": "The first turbulent flow, computed with a turbulence model.",
+ "story": "Solved with OpenFOAM on the grids NASA publishes for this test. gpucfd has no turbulence model, so it cannot run this case. For turbulence computed without a model, see the turbulent channel (case 17).",
+ "problem": {
+  "requirements": [
+   "Air flows along a thin, smooth flat plate. The layer of slowed air on the plate is turbulent.",
+   "The swirls are not computed. A model (Spalart-Allmaras) stands for their effect, and the average flow is computed.",
+   "Asked for: the friction on the plate, its drag, and the velocity and model profiles in the layer.",
+   "Reference: NASA's Turbulence Modeling Resource, the same model in NASA's own codes."
+  ]
+ },
+ "results": {
+  "headline": "<b>WARN.</b> OpenFOAM's Spalart-Allmaras model, set to NASA's standard form, gives a grid-converged skin friction at \\(x_1\\) of \\(0.0027286\\), \\(-0.028\\,\\%\\) from NASA's incompressible reference (\\(0.0027294\\); combined grid uncertainty \\(0.024\\,\\%\\)).",
+  "meaning": [
+   "OpenFOAM's version of the model gives NASA's answer to a few hundredths of a per cent.",
+   "The verdict is WARN, because that small difference is just outside the estimated grid error."
+  ],
+  "limits": [
+   "gpucfd has no column: it has no turbulence model, and for this thin-layer kind of flow it is predicted to be slower than OpenFOAM.",
+   "This checks the model's implementation against other codes. It does not check the model against a real boundary layer."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy",
+  "head": [
+   "Requirement",
+   "OpenFOAM: difference from the reference",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Friction at the check point",
+    "\\(-0.028\\,\\%\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Drag of the plate",
+    "\\(+0.81\\,\\%\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Friction along the plate",
+    "\\(+0.91\\,\\%\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Velocity profile",
+    "\\(0.24\\,\\%\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Model viscosity at its peak",
+    "\\(+0.50\\,\\%\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ]
+  ],
+  "note": "Only the first row has a like-for-like reference (NASA's incompressible runs). The others are compared with NASA's runs at Mach 0.2."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "Run",
+   "Cells",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "G1",
+    "816",
+    "10 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "G2",
+    "3,264",
+    "15 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "G3",
+    "13,056",
+    "40 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "G4",
+    "52,224",
+    "90 s on 4 cores",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "G5",
+    "208,896",
+    "602 s on 8 cores",
+    "<span class=\"wait\">cannot yet</span>"
+   ]
+  ],
+  "note": ""
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  }
+ ]
+}

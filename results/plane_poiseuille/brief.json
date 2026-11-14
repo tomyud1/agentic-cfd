@@ -1,0 +1,103 @@
+{
+ "title": "Pressure-driven laminar flow between two parallel plates",
+ "date": "2026-11-11",
+ "verdict": "PASS",
+ "goal": "The first case of the project. It checks that the workflow and OpenFOAM reproduce a flow whose exact solution is known.",
+ "story": "Solved with OpenFOAM by an agent that followed the workflow. gpucfd did not exist yet. It was run later on the same problem, with the same cells across the gap and the outputs formed in the same way.",
+ "problem": {
+  "requirements": [
+   "Water between two very large flat plates, pushed by a constant pressure drop.",
+   "Slow and steady. The fluid moves in straight layers (laminar flow).",
+   "Asked for: the velocity profile across the gap, the largest velocity, the flow rate and the friction on the walls.",
+   "Reference: the exact textbook solution, a parabola."
+  ]
+ },
+ "results": {
+  "headline": "<b>Verification passed.</b> The simulation reproduces the exact solution: on the finest mesh (128 cells across the gap) the velocity profile differs by \\(0.0061\\,\\%\\) of \\(u_{\\max}\\). gpucfd on the same cells gives the same four numbers (largest difference between the tools \\(2.7 \\times 10^{-9}\\,\\%\\)), its finest run in 0.39 s.",
+  "meaning": [
+   "The workflow can take a problem statement to a checked report.",
+   "Both tools reproduce the exact solution to a tiny fraction of a per cent.",
+   "The two tools give the same numbers. Across the gap they use the same cells and the same formulas, so they solve the same small set of equations.",
+   "Neither tool is faster in a way that matters. Every run is over in less than a second."
+  ],
+  "limits": [
+   "The tools work differently here. OpenFOAM solves the steady flow directly. gpucfd has no steady solver: it starts from rest and steps in time until the wall friction balances the pressure drop.",
+   "gpucfd's time step was picked in three timed tries, fixed before the runs. The largest try was the fastest, so a still larger step might be faster.",
+   "OpenFOAM's times are the first, untuned runs on one core. It was not run again.",
+   "This is the simplest flow there is. Passing it says little about harder flows."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy: difference from the reference",
+  "head": [
+   "Requirement",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Velocity profile across the gap",
+    "RMS difference \\(0.0061\\,\\%\\) of \\(u_{\\max}\\)",
+    "RMS difference \\(0.0061\\,\\%\\) of \\(u_{\\max}\\)"
+   ],
+   [
+    "Largest velocity",
+    "\\(4.46 \\times 10^{-11}\\,\\%\\)",
+    "\\(2.71 \\times 10^{-9}\\,\\%\\)"
+   ],
+   [
+    "Flow rate",
+    "\\(0.0122\\,\\%\\)",
+    "\\(0.0122\\,\\%\\)"
+   ],
+   [
+    "Friction on the walls",
+    "\\(6.82 \\times 10^{-11}\\,\\%\\)",
+    "\\(2.33 \\times 10^{-9}\\,\\%\\)"
+   ]
+  ],
+  "note": "Differences from the exact solution on the finest grid. The last two rows are zero up to rounding in both tools."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "Run",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "8 cells across the gap",
+    "0.33 s on 1 core",
+    "0.02 s on the GPU"
+   ],
+   [
+    "16 cells across the gap",
+    "0.33 s on 1 core",
+    "0.04 s on the GPU"
+   ],
+   [
+    "32 cells across the gap",
+    "0.33 s on 1 core",
+    "0.08 s on the GPU"
+   ],
+   [
+    "64 cells across the gap",
+    "0.33 s on 1 core",
+    "0.17 s on the GPU"
+   ],
+   [
+    "128 cells across the gap",
+    "0.34 s on 1 core",
+    "0.39 s on the GPU"
+   ]
+  ],
+  "note": "Each run takes a fraction of a second. gpucfd's times run from creating the solver to the final field; starting the GPU library adds 0.09 s once."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  }
+ ]
+}

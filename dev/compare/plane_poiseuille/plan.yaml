@@ -1,0 +1,52 @@
+# Case 1 with gpucfd: plane Poiseuille flow, next to OpenFOAM. Written BEFORE the runs, 2026-11-14.
+# Why: the one-page progress report of case 1 has an empty gpucfd column.
+
+# What is compared: the same problem (cases/plane_poiseuille/problem.yaml: H, rho, nu, dp/dx as given) on the
+# same cells across the gap, the same four outputs formed the same way, against the same exact solution.
+grids: {Ny: [8, 16, 32, 64, 128], Nx: 2}      # the case's Ny; gpucfd needs two cells along a periodic direction
+set_up: >
+  Walls at y = 0 and y = H, periodic along x, the pressure gradient as a constant force G / rho along x.
+  OpenFOAM solved the steady equations directly (5 iterations). gpucfd has no steady solver: it marches in
+  time from rest until the flow no longer changes.
+scheme: imex                 # diffusion implicit: an explicit march would need about 15 Ny^2 steps
+time_step:
+  rule: "dt = c H h / nu, with h = H / Ny"
+  why: >
+    The flow does not change along x, so the flow speed sets no limit and the time step is a free choice
+    (the domain length is set so that u_max dt / hx = 0.8, from the exact u_max). With implicit diffusion a
+    small step wastes steps on the slow, gap-wide mode and a large step leaves the cell-to-cell mode
+    undamped; for a plain Crank-Nicolson step the two balance at c = 1 / pi.
+  c_tries: [0.1, 0.3183, 1.0]
+stop:                        # decided before the runs
+  rule: >
+    the wall friction balances the driving force, |sum of both wall stresses - G H| / (G H) below 1e-10,
+    at two checks in a row (a check every 20 steps). For this flow d(flow rate)/dt = (G H - friction) / rho,
+    so this is the physical statement that the flow has stopped changing. The case's own limit is 1e-8.
+  force_balance: 1.0e-10
+  check_every: 20
+  cap_steps: 50000           # a run that reaches the cap has not converged and is reported so
+diffusion_tolerance: 1.0e-12 # relative, of the implicit solves; below the stop rule
+outputs:                     # formed as in cases/plane_poiseuille/analyze.py
+  a: RMS difference of u(y) from the exact parabola over the cells, as a share of u_max
+  b: largest velocity (mean of the two middle cells)
+  c: flow rate (sum of u h over the cells)
+  d: wall shear stress (mu u / (h / 2) in the first cell at each wall, mean of both walls, as OpenFOAM's wallShearStress)
+judged_by: >
+  the rules of the case (analyze.py): profile error on the finest grid below 0.5 %, observed order between
+  1.5 and 2.5, force balance below 1e-6
+agreement: >
+  In the direction across the gap gpucfd's cells and difference formulas are the same as OpenFOAM's here, so the
+  two discrete solutions should be the same. Agreement: on every grid the profile error and the flow-rate
+  error equal OpenFOAM's to 1e-8 (as shares of the exact value), and the largest velocity and the wall stress
+  are exact to 1e-8.
+tuning_budget: >
+  Three timed tries of the time-step constant c on Ny = 32 (the three values above). The fastest that meets
+  the stop rule is used on all grids. Nothing else is tried.
+timing: >
+  Wall time per grid from creating the solver to the final field; the one-off start of the GPU library is
+  measured separately. Marked busy if OpenFOAM is running on the CPU. OpenFOAM's times are the solver
+  agent's one-core runs (results.json); OpenFOAM is not rerun.
+prediction:                  # by the main dev session, before the runs
+  accuracy: equal accuracy
+  speed: no speed gain, because every run is a fraction of a second and start-up dominates
+expected_cost: "about 7 Ny steps per grid at c = 1 / pi, 2 to 3 ms per step: 2 to 3 s on Ny = 128, under 10 s in all. gpucfd is expected to be slower than OpenFOAM's 0.3 s here."

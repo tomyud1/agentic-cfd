@@ -1,0 +1,87 @@
+# Case 5 with gpucfd: the 3D cylinder in a square channel at Re 20 (DFG 3D-1Z), next to OpenFOAM.
+# Written BEFORE any run, 2026-11-14. Budget set by the main session: at most 2 GPU hours, one plan first, and
+# no production run if the plan shows that no grid within 12 GB can bring the drag within about 1 %.
+
+# What would be compared: the same problem (cases/dfg_cylinder_3d_re20/problem.yaml as given), drag and lift
+# formed as the problem defines them, against the same reference (Braack and Richter 2006).
+
+# ---- what stands in the way, found while planning (before any run) ---------------------------------------
+obstacles:
+  force_tool: >
+    The cylinder spans the channel from wall to wall. gpucfd's force tool (NavierStokes.forces) adds up the
+    momentum flowing through a box around the body. It refuses a box that reaches a wall, and it refuses a
+    box whose faces cut a body. For a wall-to-wall cylinder every box does one or the other, so gpucfd
+    cannot give the drag of this case as it is. The tool has to learn the wall: the friction on the piece of
+    wall inside the box is part of the balance. It is Python only (gpucfd/gcfd.py), no change to the solver.
+  grid: >
+    Uniform cells: 35 cells per diameter everywhere is 18 million cells, above the 17 million that fit in
+    12 GB. Cells clustered around the cylinder in x and y (case 4's recipe) make the pressure solver slow in
+    3D (DESIGN.md: 23 to 38 iterations at ratio 16, growing with the grid; the cure, plane relaxation, is
+    not built). What is left: cluster in x only and keep the far-field cells at most 4 times longer than the
+    fine ones (11 to 14 iterations were measured at ratio 4 for a box clustered to all walls). y and z stay
+    uniform. A body on such a 3D grid has not been run before.
+
+# ---- the grids that fit ----------------------------------------------------------------------------------
+grids:
+  family: >
+    cells of size h = H / ny in a band around the cylinder (1 diameter ahead, 4 behind: grids.body_band),
+    growing along x to at most 4 h away from it (grids.clustered); uniform in y and z
+  band_x: {ahead: 1.0, behind: 4.0}
+  grow_x: [0.2, 0.4]             # metres over which the cells grow, upstream and downstream of the band
+  far_field_cap: 4.0
+  levels:                        # cell counts halve cleanly for the pressure solver (2^k or 3 x 2^k)
+    G1: [192, 64, 64]            # 15.6 cells per diameter, 0.8 million cells
+    G2: [288, 96, 96]            # 23.4 cells per diameter, 2.7 million cells
+    G3: [384, 128, 128]          # 31.2 cells per diameter, 6.3 million cells
+expected_accuracy: >
+  From the 2D version of this flow (DFG 2D-1, DESIGN.md rung 10 and 13): drag 2.3 % low at 17.6 cells per
+  diameter and 0.6 % low at 35, order 1.8. That gives about -2.8 %, -1.4 % and -0.8 % on G1, G2, G3. So a
+  grid within 12 GB can probably bring the drag within about 1 %: the stop rule of the budget does not
+  forbid the run. The lift is 0.15 % of the drag; in 2D it was still 15 % off at 35 cells per diameter.
+
+scheme: imex                     # explicit: the viscous limit is 2.7 times below the flow-speed limit on G3
+time_step: {rule: "dt = cfl h / (speed_factor Um), fixed per grid", cfl: 0.8, speed_factor: 1.5}
+                                 # the flow speeds up past the cylinder; 1.5 Um is taken as its largest speed, and the
+                                 # Courant number actually reached (local speeds over local cell sizes) is recorded
+pressure_tolerance: 1.0e-9       # case 4's checked value for this scheme with a body; not tuned here
+start: G1 from the inflow profile everywhere; each finer grid from the coarser solution (steady.sequence)
+stop:                            # gpucfd/steady.py: the error still left in drag and lift, estimated from their history
+  G1: relative error below 1e-5, and not before 37.5 s of flow time (3 times the channel length over the mean speed)
+  finer: below 1 % of the grid's own error estimate, |f_k - f_(k-1)| / (r^p - 1)
+  check_every: 1.0               # seconds of flow time
+  caps_gpu_s: {G1: 900, G2: 1800, G3: 3600}      # a run that reaches its cap has not converged and is reported so
+  total_gpu_s: 7200              # the budget; a run is not started if its projected time does not fit in what is left
+outputs:
+  drag: c_D = 2 F_x / (rho Ubar^2 D H), Ubar = 4 Um / 9, force from the momentum balance on a box from wall to wall
+  lift: c_L, the same with F_y
+judged_by: >
+  the case's rule (numerics.yaml): band = grid convergence index of the finest grid (from three grids) + the
+  reference's uncertainty; within the band ok, within twice WARN, else FAIL. And the budget's question:
+  is the drag within about 1 % of the reference?
+
+# ---- before any production run ---------------------------------------------------------------------------
+preflight:
+  force_tool_checks: >
+    (1) no body, random field, box from wall to wall: the force must be zero to round-off, on a uniform and
+    on a stretched grid; (2) a wall-to-wall cylinder: two different boxes must give the same force to
+    round-off. Both are exact statements, so they test the new wall terms sharply.
+  short_run: G1, 200 steps from the start field
+  measures: [memory in use on the GPU, time per step, pressure iterations per projection, divergence]
+  go_on_if:
+    force_tool: both checks hold to 1e-10 (relative)
+    pressure_iterations_at_most: 30
+    memory_G3_at_most_gb: 10     # G1's memory above the idle level, scaled by the cell count
+    projected_total_gpu_s_at_most: 7200
+  otherwise: no production run. The record then says what was measured and what a resolving run would need.
+
+tuning_budget: None beyond the pre-flight. No setting is tried and changed.
+timing: >
+  GPU and wall time per grid (steady.march). OpenFOAM's case 17 run is on 8 CPU cores during these runs, so
+  the times are marked busy. OpenFOAM's own times for this case were also taken on a shared PC (its report
+  says so); it is not rerun.
+prediction:                      # by the main dev session, before the runs
+  cells: gpucfd needs many more cells than OpenFOAM's body-fitted grid
+  drag: within about 1 % on a grid that fits 12 GB
+  lift: probably not within its band
+  speed: much faster per cell, not clearly faster per answer
+expected_cost: "if a step costs 120 ns per cell: G1 about 8 min, G2 about 10 min, G3 about 30 min of GPU time"

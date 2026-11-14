@@ -1,0 +1,193 @@
+{
+ "tool": "gpucfd",
+ "case": "dfg_cylinder_3d_re20",
+ "date": "2026-11-14",
+ "busy_cpu": true,
+ "plain": "gpucfd on its finest grid (6,291,456 cells, 31 across the cylinder's diameter): the drag is \\(-0.91\\,\\%\\) from the reference; the lift does not converge on its grids (0.0125, -0.0068, 0.0221).",
+ "answers": {
+  "a": {
+   "value": -0.009065000252511606,
+   "diff": "\\(-0.0561\\) (\\(-0.91\\,\\%\\))<br>0.36 band \u2713, a wide band: \\(\\pm 2.5\\,\\%\\)"
+  },
+  "b": {
+   "value": 1.350563854833567,
+   "diff": "\\(+0.01270\\) (\\(135\\,\\%\\))<br>no band \u2717: its grids do not converge"
+  }
+ },
+ "judged": {
+  "cd": {
+   "values": [
+    6.034087898096087,
+    6.096221869361323,
+    6.129259981988133
+   ],
+   "value": 6.129259981988133,
+   "reference": 6.18533,
+   "u_ref": 0.0006800000000000139,
+   "diff": -0.05607001801186762,
+   "rel": -0.009065000252511606,
+   "study": {
+    "R": 0.531723821189169,
+    "monotonic": true,
+    "p": 0.8256159744784508,
+    "p_used": 0.8256159744784508,
+    "extrap": 6.2524933395007825,
+    "gci_abs": 0.1540416968908121,
+    "gci": 0.02513218518116211,
+    "delta": 0.03303811262680956,
+    "gci_reliable": true,
+    "gci_basis": "observed order"
+   },
+   "band": 0.1547216968908121,
+   "band_rel": 0.025014299461922337,
+   "band_ratio": 0.3623927292591453,
+   "status": "ok",
+   "iteration_error": 1.5098980077589014e-07,
+   "noise_limited": false,
+   "openfoam": {
+    "value": 6.180538076476831,
+    "rel": -0.0007747239877531253,
+    "band_ratio": 0.6027852097226587
+   }
+  },
+  "cl": {
+   "values": [
+    0.012505704390130823,
+    -0.006837826565353049,
+    0.022097650799290363
+   ],
+   "value": 0.022097650799290363,
+   "reference": 0.009401,
+   "u_ref": 3.999999999998796e-06,
+   "diff": 0.012696650799290363,
+   "rel": 1.350563854833567,
+   "study": {
+    "R": -1.495873604009212,
+    "monotonic": false,
+    "p": NaN,
+    "p_used": 2.0,
+    "extrap": 0.059300407410974754,
+    "gci_abs": 0.046503445764605494,
+    "gci": 2.1044520156006308,
+    "delta": 0.028935477364643414,
+    "gci_reliable": false,
+    "gci_basis": "order 2 assumed: the three values do not approach a limit from one side"
+   },
+   "band": null,
+   "band_rel": null,
+   "band_ratio": null,
+   "status": "not converged",
+   "iteration_error": 1.6674445083833542e-07,
+   "noise_limited": false,
+   "openfoam": {
+    "value": 0.009556712360069516,
+    "rel": 0.016563382626264913,
+    "band_ratio": 2.5128027018917045
+   }
+  }
+ },
+ "drag_within_1_percent": true,
+ "to_match_openfoam_drag": {
+  "order_from_reference": 1.6102823090443976,
+  "cells_per_diameter": 143.81393942295236,
+  "cells": 615000931.3201232,
+  "memory_gb": 243.61572798480503,
+  "memory_gb_finest_run": 2.4921875,
+  "openfoam_cells": 2433024,
+  "cells_ratio_finest": 2.585858585858586
+ },
+ "runs": [
+  {
+   "label": "gpucfd G1, 16 cells per diameter",
+   "level": "G1",
+   "cells": 786432,
+   "D_h": 15.609756097560977,
+   "wall_s": 239.02653169631958,
+   "gpu_s": 236.82004541015624,
+   "steps": 5148,
+   "flow_time": 39.08666666666667,
+   "converged": true,
+   "courant": 0.8197784293293954,
+   "cd": 6.034087898096087,
+   "cl": 0.012505704390130823
+  },
+  {
+   "label": "gpucfd G2, 23 cells per diameter",
+   "level": "G2",
+   "cells": 2654208,
+   "D_h": 23.414634146341466,
+   "wall_s": 221.02659511566162,
+   "gpu_s": 219.92725,
+   "steps": 1386,
+   "flow_time": 7.015555555555557,
+   "converged": true,
+   "courant": 0.808595189702628,
+   "cd": 6.096221869361323,
+   "cl": -0.006837826565353049
+  },
+  {
+   "label": "gpucfd G3, 31 cells per diameter",
+   "level": "G3",
+   "cells": 6291456,
+   "D_h": 31.219512195121954,
+   "wall_s": 602.1378538608551,
+   "gpu_s": 599.731109375,
+   "steps": 1584,
+   "flow_time": 6.013333333333334,
+   "converged": true,
+   "courant": 0.8058046804463217,
+   "cd": 6.129259981988133,
+   "cl": 0.022097650799290363
+  }
+ ],
+ "total_gpu_s": 1056.4784047851563,
+ "preflight": {
+  "grid": {
+   "n": 192,
+   "min": 0.006406249999999947,
+   "max": 0.021339813399861907,
+   "ratio": 3.3310928233931056,
+   "max_step": 1.0775261555562756
+  },
+  "n": [
+   192,
+   64,
+   64
+  ],
+  "cells": {
+   "G1": 786432,
+   "G2": 2654208,
+   "G3": 6291456
+  },
+  "build_s": 0.9534552689997327,
+  "start_divergence": 5.599613396882138e-09,
+  "dt": 0.007592592592592593,
+  "ms_per_step": 106.999833984375,
+  "ns_per_cell_step": 136.0573247075081,
+  "poisson_its": 2.875,
+  "helm_its": 3.263333333333333,
+  "max_div": 2.6649397138255633e-06,
+  "courant": 0.820949105706968,
+  "after_200_steps": {
+   "cd": 6.080174420181411,
+   "cl": 0.009489415418539997
+  },
+  "memory_mib": {
+   "before": 1439.0,
+   "with_G1": 1912.0
+  },
+  "memory_G3_gb": 3.6953125,
+  "projected_gpu_s": {
+   "G1": 528.4747898008765,
+   "G2": 713.4409662311834,
+   "G3": 2254.825769817073
+  },
+  "projected_total_gpu_s": 3496.741525849133,
+  "busy_cpu": true,
+  "go_on": {
+   "pressure_iterations": true,
+   "memory": true,
+   "time": true
+  }
+ }
+}

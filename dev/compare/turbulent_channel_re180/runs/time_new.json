@@ -1,0 +1,13 @@
+{
+ "n": [
+  288,
+  64,
+  96
+ ],
+ "dt": 0.0010414858531504947,
+ "pressure_solver": "tutorial",
+ "cores": 8,
+ "s_per_step": 1.4242,
+ "courant_max": 0.652156912432079,
+ "steps": 60
+}

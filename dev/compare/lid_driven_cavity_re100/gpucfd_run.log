@@ -1,0 +1,18 @@
+GPU: {'name': 'NVIDIA GeForce RTX 4070', 'compute_capability': 8.9}; start-up 0.09 s; other solver processes on the CPU: 0
+N   32: 27 time units, 432 steps, change 9.4e-08, gpu 1.0 s, wall 1.1 s | du 0.00200 dv 0.00858 u_min -0.209028 psi_min -0.102253 centre (0.6179, 0.7392)
+N   64: 27 time units, 864 steps, change 9.3e-08, gpu 2.2 s, wall 2.2 s | du 0.00381 dv 0.00908 u_min -0.212808 psi_min -0.103213 centre (0.6162, 0.7378)
+N  128: 27 time units, 1728 steps, change 9.2e-08, gpu 5.3 s, wall 5.4 s | du 0.00475 dv 0.00921 u_min -0.213739 psi_min -0.103446 centre (0.6158, 0.7374)
+N  256: 27 time units, 3456 steps, change 9.2e-08, gpu 19.4 s, wall 19.4 s | du 0.00497 dv 0.00924 u_min -0.213967 psi_min -0.103502 centre (0.6158, 0.7373)
+check run (cfl 0.8, ptol 1e-10): profiles 2.7e-10, u_min 1.5e-10, psi_min 3.4e-10 -> ok
+by the case's rules: WARN; fail []; warn ['(b) v profile: 0.0092 U above 0.005']
+orders: u_min p=2.03 GCI=0.0432%, y_umin p=2.22 GCI=0.0036%, psi_min p=2.04 GCI=0.0219%, x_c p=2.24 GCI=0.0038%, y_c p=2.09 GCI=0.0041%; profiles u 2.08 v 2.09
+gpucfd - OpenFOAM, N   32: profiles 2.7e-03 U, u_min 1.6e-03 U, psi_min 0.0210 %, centre 2.1e-03 L
+gpucfd - OpenFOAM, N   64: profiles 7.2e-04 U, u_min 4.3e-04 U, psi_min 0.0133 %, centre 5.0e-04 L
+gpucfd - OpenFOAM, N  128: profiles 1.8e-04 U, u_min 1.1e-04 U, psi_min 0.0023 %, centre 1.2e-04 L
+gpucfd - OpenFOAM, N  256: profiles 4.5e-05 U, u_min 2.7e-05 U, psi_min 0.0003 %, centre 3.1e-05 L
+  (a) difference 1.97e-06, allowed 2.20e-06, agree; vs benchmark: gpucfd 0.00497, OpenFOAM 0.004986, limit 0.005
+  (b) difference 1.61e-05, allowed 3.79e-05, agree; vs benchmark: gpucfd 0.009236, OpenFOAM 0.009239, limit 0.005
+  (c) difference 2.65e-05, allowed 1.51e-04, agree; vs benchmark: gpucfd 0.003067, OpenFOAM 0.003094, limit 0.005
+  (d) difference 3.49e-07, allowed 4.48e-05, agree; vs benchmark: gpucfd 0.000768, OpenFOAM 0.0007714, limit 0.01
+record: /mnt/d/Projects/Agentic CFD/dev/compare/lid_driven_cavity_re100/gpucfd.json
+exit 0

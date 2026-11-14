@@ -1,0 +1,36 @@
+# Case 17 with both tools: OpenFOAM on the turbulent channel, next to gpucfd. Written BEFORE the runs, 2026-11-14.
+# Why: the one-page progress report compares the two tools on every requirement of the problem and on speed.
+# Until now OpenFOAM was only timed on this flow for 40 to 60 steps; it never produced an answer.
+
+# What is compared: the same problem on the same cells with the same time step.
+grid: {n: [192, 64, 64], wall_cell_plus: 1.0}     # case 17's finest grid (gpucfd run G3), the same cell faces
+time_step: fixed, gpucfd's mean step on this grid (results/turbulent_channel_re180/runs/G3.json, dt)
+start: gpucfd's last field of run G3, put on OpenFOAM's cell centres
+
+# OpenFOAM's numerics: those of its own channel tutorial (pimpleFoam/LES/periodicPlaneChannel) without a
+# model: backward time scheme, linear interpolation, PISO with two pressure corrections. Not changed by tuning.
+# Tuning budget, fixed so that "best settings" has an end: three timed tries of 60 steps on 8 cores, pressure
+# solver only (the numerics above stay); the fastest is used. 8 cores were faster than 4 in the earlier timing.
+tuning:
+  steps: 60
+  cores: 8
+  tries: [tutorial, pcg, gamg_dic]
+
+# The full run. Times in delta / u_tau.
+run:
+  startup: 12.0        # the field is gpucfd's settled one, but OpenFOAM's own level may differ; the bulk velocity
+                       # settles with a time of 9, and no rescaling is done here
+  average: 30.0        # as long as gpucfd's run on the new grid
+  sample_steps: 5      # bulk velocity and wall shear every 5 steps, as in gpucfd's runs
+usable:                # checked after the run; if missed, extend once by 10 time units and average over the later 30
+  imbalance: 0.02      # |mean wall shear / (f delta) - 1| over the averaging window
+  bulk_stderr: 0.0025  # statistical error of the bulk velocity (gpucfd.turbulence.bulk_average)
+# Expected before the run: 449 ms per step (measured earlier) x 960 steps per time unit = 430 s per time unit,
+# so 42 time units take about 5 hours on 8 cores. Accuracy: unknown, that is the point; the guess is that the
+# profiles miss their limits as gpucfd's do on these cells, with a bulk velocity within 2 %.
+# Judged by: the limits of case 17 (cases/turbulent_channel_re180/numerics.yaml), formed as for gpucfd.
+# Ends: at startup + average. Stopped early only if the flow goes laminar (wall shear below 0.6 of the
+# driving force over 5 time units) or the solver fails.
+
+# The new grid (288 x 64 x 96) is only timed for OpenFOAM (60 steps): a full run is projected at over 12 hours.
+new_grid: {n: [288, 64, 96], wall_cell_plus: 1.0, timed_steps: 60}

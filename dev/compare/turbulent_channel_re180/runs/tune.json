@@ -1,0 +1,25 @@
+{
+ "rows": {
+  "tutorial": {
+   "cores": 8,
+   "s_per_step": 0.4482,
+   "courant_max": 0.4831473718437031,
+   "steps": 60
+  },
+  "pcg": {
+   "cores": 8,
+   "s_per_step": 0.6958,
+   "courant_max": 0.4831547894917885,
+   "steps": 60
+  },
+  "gamg_dic": {
+   "cores": 8,
+   "s_per_step": 0.45840000000000003,
+   "courant_max": 0.4831624624369092,
+   "steps": 60
+  }
+ },
+ "best": "tutorial",
+ "dt": 0.0010415282215929253,
+ "cores": 8
+}

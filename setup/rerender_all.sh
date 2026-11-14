@@ -17,3 +17,5 @@ echo "== turbulent_channel_re180 optimize study (from recorded runs; needs no GP
 PYTHONPATH=. $PY dev/optimize/turbulent_channel_re180/study.py 2>&1 | grep -iE "error|Traceback|study:|PASS|WARN|FAIL" | cut -c1-200 | head -4
 echo "== dfg_cylinder_re100 gpucfd study (from recorded runs; needs no GPU)"
 $PY -m cases.dfg_cylinder_re100.gpu_study 2>&1 | grep -iE "error|Traceback|gpu_study|PASS|WARN|FAIL" | cut -c1-200 | head -4
+echo "== one-page progress reports (from the result files above; words in cases/briefs.yaml)"
+$PY -m cfdlib.brief 2>&1 | grep -iE "error|Traceback|brief" | cut -c1-200 | head -12

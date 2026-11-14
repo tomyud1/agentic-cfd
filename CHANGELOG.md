@@ -15,7 +15,64 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-14
 
-### A page for case 17's optimize stage, commit hash to be filled in
+### One-page progress reports for every case, commit hash to be filled in
+A new kind of report, asked for by the student: one page per case, in simple words, to show
+first. The long reports stay and are linked from it.
+- **What a page holds, in this order.** The goal of the case in one line. The problem: its
+  sketch and its requirements as a few bullets. The results as two tables side by side:
+  accuracy (one row per requirement, OpenFOAM next to gpucfd) and speed. Then two short boxes:
+  what it means, and the limits.
+- **All eight solved cases have one** (`results/<case>/brief.html`). The gallery and the case
+  table now open the one-page report first.
+- **How they are built.** `python -m cfdlib.brief` takes every number from the case's own
+  result files; the words are in `cases/briefs.yaml`. No solver was rerun for cases 1 to 7.
+- **What the pages show honestly.** Only case 4 (cylinder) and case 17 (turbulent channel)
+  have numbers from both tools. On the other pages gpucfd's column says "not run yet" (cases
+  1, 2, 3 and 5, which it could solve) or "cannot yet" (case 6 needs heat transfer, case 7 a
+  turbulence model).
+- **Case 17 with both tools.** OpenFOAM had never solved the turbulent channel; it had only
+  been timed there. It has now run the same problem on the same grid with the same time step
+  (`dev/compare/turbulent_channel_re180/`, plan written first; 5.2 hours on 8 CPU cores).
+  - *Accuracy on the same grid:* OpenFOAM meets 1 of the case's 10 limits, gpucfd 5. OpenFOAM's
+    mean speed is 4.5 % too high, gpucfd's 0.3 % too low. On its finer grid gpucfd meets all 10.
+  - *Speed:* gpucfd is 7.2 times faster per time step on the shared grid and 8.3 times on the
+    finer one (OpenFOAM only timed there: about 14 hours projected against gpucfd's 1.7).
+  - *Limits:* OpenFOAM used the settings of its own channel tutorial, tuned only for speed.
+    Its mean speed was still rising slowly while it was averaged (1 % from the first ten time
+    units to the last ten), inside the rule written before the run, so its settled value is
+    somewhat higher. Why it is less accurate on the same cells was not tested.
+- **New rule for the loop** (`dev/LOOP.md` step 9, `CLAUDE.md`): each case has a stated purpose
+  and ends in this page, with both tools on the same problem wherever both can run it, and a
+  tuning budget for each tool fixed before its runs.
+- **gpucfd on cases 1, 2, 3 and 5** (a second agent session, the same day; plans written
+  before the runs in `dev/compare/<case>/`). Each page now has gpucfd's numbers next to
+  OpenFOAM's, from the same problem, the same outputs and the same reference.
+  - *Cavity (case 2):* the same four answers to two digits; on the finest grid 19 s against
+    OpenFOAM's 679 s.
+  - *Flow between plates (case 1):* the same numbers; no speed difference (runs of a fraction
+    of a second).
+  - *Suddenly moved plate (case 3):* errors 0.96 to 1.00 times OpenFOAM's; 17 s against 46 s on
+    the finest run.
+  - *Cylinder in 3D (case 5):* gpucfd's drag is 0.9 % low on 6.3 million cells, OpenFOAM's
+    0.08 % on 2.4 million. gpucfd's lift does not settle from grid to grid and counts as a
+    miss. Here OpenFOAM is clearly ahead.
+  - *The predictions written before the runs* held for accuracy in all four cases. Two were
+    off: case 3 is faster on its finest run, where "no difference" was predicted, and in case 5
+    OpenFOAM is clearly ahead, where "not clearly faster" was predicted.
+  - *New in the tools:* gpucfd's force tool accepts a body that touches a wall
+    (`gpucfd/tests/test_wall_forces.py`, exact to rounding error; rerun and reviewed by the dev
+    agent). `cfdlib.brief` takes gpucfd's column from a run record.
+  - *Limits:* gpucfd's times of cases 1 to 3 were retaken on an idle PC after OpenFOAM's
+    case 17 run ended (they changed little: 19 s, 0.4 s and 14 s on the finest runs). Case 5's
+    times were taken while that run used the CPU, and its page says so. OpenFOAM's times for
+    cases 1 to 3 are the first, untuned one-core runs.
+- **Open.** The agent's 19 notes are answered in part: the open ones are listed in
+  `ROADMAP.md`, section 5. Why OpenFOAM is less accurate than gpucfd on the same channel grid
+  is a question for the supervisor (a second time scheme would be the first test). Three
+  result files of gpucfd's ladder tests were rewritten by reruns with new timings only; they
+  are left out of this commit.
+
+### A page for case 17's optimize stage (`28ddf67`)
 `results/turbulent_channel_re180/optimize_study.html`: the new grid's profiles next to the first
 grid's, in simple words, with a list of the words used.
 - **What it shows.** The curves themselves, their difference from the reference with the pass

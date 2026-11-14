@@ -1,0 +1,22 @@
+[16:44:11] OpenFOAM run to t = 42 on 8 cores, pressure solver 'tutorial', time step 1.0415e-03
+[16:59:11] t 2.10: bulk 15.7462, wall shear over the last 2 units 0.9417
+[17:14:11] t 4.19: bulk 15.9386, wall shear over the last 2 units 0.9074
+[17:29:11] t 6.24: bulk 16.0378, wall shear over the last 2 units 0.9524
+[17:44:11] t 8.30: bulk 16.1209, wall shear over the last 2 units 0.9593
+[17:59:11] t 10.33: bulk 16.1671, wall shear over the last 2 units 0.9774
+[18:14:11] t 12.31: bulk 16.1888, wall shear over the last 2 units 0.9891
+[18:29:11] t 14.29: bulk 16.2343, wall shear over the last 2 units 0.9772
+[18:44:12] t 16.31: bulk 16.3127, wall shear over the last 2 units 0.9616
+[18:59:12] t 18.34: bulk 16.3225, wall shear over the last 2 units 0.9952
+[19:14:12] t 20.36: bulk 16.3918, wall shear over the last 2 units 0.9658
+[19:29:12] t 22.35: bulk 16.3859, wall shear over the last 2 units 1.0028
+[19:44:12] t 24.34: bulk 16.4164, wall shear over the last 2 units 0.9847
+[19:59:12] t 26.33: bulk 16.4587, wall shear over the last 2 units 0.9789
+[20:14:12] t 28.33: bulk 16.4659, wall shear over the last 2 units 0.9964
+[20:29:12] t 30.30: bulk 16.4254, wall shear over the last 2 units 1.0206
+[20:44:12] t 32.31: bulk 16.4272, wall shear over the last 2 units 0.9991
+[20:59:12] t 34.33: bulk 16.4353, wall shear over the last 2 units 0.9959
+[21:14:12] t 36.34: bulk 16.4643, wall shear over the last 2 units 0.9855
+[21:29:12] t 38.36: bulk 16.4797, wall shear over the last 2 units 0.9924
+[21:44:12] t 40.38: bulk 16.5133, wall shear over the last 2 units 0.9835
+[21:56:16] RUN DONE: wall time 5.20 h

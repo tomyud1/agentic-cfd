@@ -1,0 +1,103 @@
+{
+ "title": "Lid-driven cavity flow at Re = 100",
+ "date": "2026-11-11",
+ "verdict": "WARN",
+ "goal": "The first comparison with a published benchmark, for a flow that has no exact solution.",
+ "story": "Solved first with OpenFOAM. gpucfd was then run on the same problem and the same four grids, each from rest, with the outputs formed in the same way. Its settings were those its own development had measured for this flow. Nothing was tuned for these runs.",
+ "problem": {
+  "requirements": [
+   "A square box full of fluid. Its top wall, the lid, slides sideways and drags the fluid round.",
+   "Reynolds number 100: slow and steady, with one large vortex.",
+   "Asked for: the velocity along the two centre lines, the strongest return flow, and the centre and strength of the vortex.",
+   "Reference: the benchmark tables of Ghia, Ghia and Shin (1982)."
+  ]
+ },
+ "results": {
+  "headline": "<b>Benchmark comparison passed with caveats.</b> On the finest mesh (256×256 cells) the velocity profiles match Ghia et al. (1982) to within \\(0.0092\\,U\\) and the vortex strength to \\(0.077\\,\\%\\). gpucfd on the same four grids: on the finest its centre-line velocities differ from OpenFOAM's by at most \\(4.5 \\times 10^{-5}\\,U\\), and it reaches the steady flow there in 19 s.",
+  "meaning": [
+   "Both tools agree with the benchmark about as closely as the benchmark's own grid allows.",
+   "The two tools agree with each other far more closely than either agrees with the benchmark, and the gap between them shrinks four times with each finer grid.",
+   "On the two finest grids gpucfd reaches the steady flow many times faster than OpenFOAM's first runs did.",
+   "By the case's own rules both tools get the same verdict, WARN, for the same reason: the benchmark differs from both along the horizontal centre line by more than the pass limit."
+  ],
+  "limits": [
+   "The speed table overstates the gap. OpenFOAM's times are the solver agent's first, untuned runs on one core, with a very strict stop. It was not run again.",
+   "The tools stop by different rules: OpenFOAM when its equations are satisfied to a set level, gpucfd when the flow no longer changes from one time unit to the next.",
+   "A flow in a plain box suits gpucfd. A flow around a body does not suit it as well (see the cylinder cases).",
+   "The benchmark is itself a computed solution from 1982 on a coarser grid, not an experiment."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy: difference from the reference",
+  "head": [
+   "Requirement",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Velocity along the vertical centre line",
+    "\\(\\le 0.005\\,U\\)",
+    "\\(\\le 0.005\\,U\\)"
+   ],
+   [
+    "Velocity along the horizontal centre line",
+    "\\(\\le 0.0092\\,U\\)",
+    "\\(\\le 0.0092\\,U\\)"
+   ],
+   [
+    "Strongest return flow",
+    "\\(-0.0031\\,U\\)",
+    "\\(-0.0031\\,U\\)"
+   ],
+   [
+    "Strength of the vortex",
+    "\\(-0.077\\,\\%\\)",
+    "\\(-0.077\\,\\%\\)"
+   ]
+  ],
+  "note": "Differences from the benchmark on the finest grid. The first three rows are shares of the lid speed."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "Run",
+   "Cells",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "32 by 32",
+    "1,024",
+    "0.71 s on 1 core",
+    "1.1 s on the GPU"
+   ],
+   [
+    "64 by 64",
+    "4,096",
+    "4.0 s on 1 core",
+    "2.2 s on the GPU"
+   ],
+   [
+    "128 by 128",
+    "16,384",
+    "46 s on 1 core",
+    "5.4 s on the GPU"
+   ],
+   [
+    "256 by 256",
+    "65,536",
+    "679 s on 1 core",
+    "19 s on the GPU"
+   ]
+  ],
+  "note": "Time to reach the steady flow from rest. gpucfd's times run from creating the solver to the final field; starting the GPU library adds 0.09 s once."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  }
+ ]
+}

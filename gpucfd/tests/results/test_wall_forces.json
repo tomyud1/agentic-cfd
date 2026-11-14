@@ -1,0 +1,26 @@
+{
+ "report": {
+  "no_body": {
+   "uniform_walls": 1.1102230246251565e-16,
+   "uniform_sides": 1.1102230246251565e-16,
+   "stretched": 2.220446049250313e-16
+  },
+  "cylinder": {
+   "uniform, rk3": {
+    "drag": 0.39324523428916414,
+    "lift": 0.010548341231554256,
+    "boxes_differ": 1.4116166298010095e-16,
+    "cut_refused": true,
+    "normal_is_nan": true
+   },
+   "clustered in x, imex": {
+    "drag": 0.373327003152487,
+    "lift": 0.011286560799172896,
+    "boxes_differ": 4.646659527246283e-18,
+    "cut_refused": true,
+    "normal_is_nan": true
+   }
+  }
+ },
+ "fails": []
+}

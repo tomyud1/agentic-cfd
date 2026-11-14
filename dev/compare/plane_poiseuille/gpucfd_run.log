@@ -1,0 +1,19 @@
+GPU: {'name': 'NVIDIA GeForce RTX 4070', 'compute_capability': 8.9}; start-up 0.09 s; other solver processes on the CPU: 0
+try c = 0.1: 780 steps, converged True, balance 5.3e-11, wall 0.57 s
+try c = 0.3183: 260 steps, converged True, balance 1.5e-11, wall 0.17 s
+try c = 1: 100 steps, converged True, balance 3.3e-12, wall 0.08 s
+chosen: c = 1
+Ny    8: 40 steps, converged True, balance 8.0e-13, gpu 0.02 s, wall 0.02 s | profile 1.562e-02 u_max 6.0e-13 q 3.125e-02 tau 8.0e-13
+Ny   16: 60 steps, converged True, balance 1.7e-12, gpu 0.04 s, wall 0.04 s | profile 3.906e-03 u_max 1.6e-12 q 7.812e-03 tau 1.7e-12
+Ny   32: 100 steps, converged True, balance 3.3e-12, gpu 0.08 s, wall 0.08 s | profile 9.766e-04 u_max 5.3e-12 q 1.953e-03 tau 3.3e-12
+Ny   64: 180 steps, converged True, balance 9.5e-12, gpu 0.17 s, wall 0.17 s | profile 2.441e-04 u_max 1.1e-11 q 4.883e-04 tau 9.5e-12
+Ny  128: 320 steps, converged True, balance 2.3e-11, gpu 0.38 s, wall 0.39 s | profile 6.104e-05 u_max 2.7e-11 q 1.221e-04 tau 2.3e-11
+by the case's rules: PASS; fail []; orders profile 2.000, q 2.000
+gpucfd - OpenFOAM, Ny    8: profile error differs by 2.3e-13, flow rate by 5.8e-14; u_max 6.0e-13 (OpenFOAM 4.5e-13), tau 8.0e-13 (OpenFOAM 5.2e-13)
+gpucfd - OpenFOAM, Ny   16: profile error differs by 7.3e-13, flow rate by 1.0e-12; u_max 1.6e-12 (OpenFOAM 4.5e-13), tau 1.7e-12 (OpenFOAM 5.2e-13)
+gpucfd - OpenFOAM, Ny   32: profile error differs by 2.9e-12, flow rate by 4.5e-12; u_max 5.3e-12 (OpenFOAM 4.5e-13), tau 3.3e-12 (OpenFOAM 5.2e-13)
+gpucfd - OpenFOAM, Ny   64: profile error differs by 6.7e-12, flow rate by 1.0e-11; u_max 1.1e-11 (OpenFOAM 4.5e-13), tau 9.5e-12 (OpenFOAM 5.2e-13)
+gpucfd - OpenFOAM, Ny  128: profile error differs by 1.7e-11, flow rate by 2.5e-11; u_max 2.7e-11 (OpenFOAM 4.5e-13), tau 2.3e-11 (OpenFOAM 6.8e-13)
+agree to 1e-08: True
+record: /mnt/d/Projects/Agentic CFD/dev/compare/plane_poiseuille/gpucfd.json
+exit 0

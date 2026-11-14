@@ -1,0 +1,5 @@
+cd: 6.03409, 6.09622, 6.12926 | reference 6.18533 | finest -0.907 % | band 0.025014299461922337 ratio 0.3623927292591453 (ok) | OpenFOAM -0.077 %, band ratio 0.60 | order 0.83, extrapolated 6.25249, GCI reliable True
+cl: 0.0125057, -0.00683783, 0.0220977 | reference 0.009401 | finest +135.056 % | band None ratio None (not converged) | OpenFOAM +1.656 %, band ratio 2.51 | order nan, extrapolated 0.0593004, GCI reliable False
+drag within 1 %: True; total GPU time 1056 s
+to match OpenFOAM's drag in this grid family: {'order_from_reference': 1.61, 'cells_per_diameter': 143.814, 'cells': 615000931.32, 'memory_gb': 243.616, 'memory_gb_finest_run': 2.492, 'openfoam_cells': 2433024, 'cells_ratio_finest': 2.586}
+exit 0

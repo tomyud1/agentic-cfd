@@ -1,0 +1,101 @@
+{
+ "title": "Impulsively started flat plate (Stokes' first problem)",
+ "date": "2026-11-11",
+ "verdict": "PASS",
+ "goal": "The first flow that changes in time, checked against an exact solution.",
+ "story": "Solved first with OpenFOAM. gpucfd was then run on the same problem, with the same cells and the same time steps, and its outputs were formed by the case's own code. Nothing was tuned.",
+ "problem": {
+  "requirements": [
+   "A flat plate under deep, still water suddenly starts to move along itself.",
+   "The motion spreads slowly into the water. The first 20 seconds are computed.",
+   "Asked for: velocity profiles at three times, the friction on the plate, how deep the motion has reached, and the momentum given to the water.",
+   "Reference: the exact solution, known as Stokes' first problem."
+  ]
+ },
+ "results": {
+  "headline": "<b>Verification passed.</b> OpenFOAM reproduces the exact solution of Stokes' first problem: on the finest run the velocity differs by at most \\(0.00205\\,\\%\\) of \\(U\\), and the wall shear stress at 20 s, \\(0.002519\\ \\mathrm{Pa}\\), by \\(1.95 \\times 10^{-4}\\,\\%\\). gpucfd with the same cells and time steps: its four errors are 0.96 to 1.00 times OpenFOAM's, and its finest run takes 14 s.",
+  "meaning": [
+   "Both tools follow a flow in time to within a few thousandths of a per cent of the exact solution.",
+   "Their errors are nearly the same, although they step in time by different methods. Both errors shrink four times when cells and time step are halved, as they should.",
+   "gpucfd is a few times faster on the finest run and no faster on the coarsest. Every run takes less than a minute, so the difference does not matter here."
+  ],
+  "limits": [
+   "This flow changes in one direction only, across the water layer. It does not test how either tool carries a flow along with itself.",
+   "gpucfd ran the five runs of the grid study, not the case's two extra studies (finer cells alone, smaller time step alone).",
+   "OpenFOAM's times are the first, untuned runs on one core. It was not run again."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy: difference from the reference",
+  "head": [
+   "Requirement",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Velocity profiles at three times",
+    "\\(\\le 0.00205\\,\\%\\)",
+    "\\(\\le 0.00202\\,\\%\\)"
+   ],
+   [
+    "Friction on the plate at the end",
+    "\\(1.95 \\times 10^{-4}\\,\\%\\)",
+    "\\(1.95 \\times 10^{-4}\\,\\%\\)"
+   ],
+   [
+    "Depth the motion has reached",
+    "\\(\\le 0.00633\\,\\%\\)",
+    "\\(\\le 0.00608\\,\\%\\)"
+   ],
+   [
+    "Momentum given to the water",
+    "\\(1.95 \\times 10^{-4}\\,\\%\\)",
+    "\\(1.95 \\times 10^{-4}\\,\\%\\)"
+   ]
+  ],
+  "note": "Differences from the exact solution on the finest run."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "Run",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "125 cells, 500 steps",
+    "0.72 s on 1 core",
+    "0.65 s on the GPU"
+   ],
+   [
+    "250 cells, 1000 steps",
+    "1.4 s on 1 core",
+    "1.1 s on the GPU"
+   ],
+   [
+    "500 cells, 2000 steps",
+    "3.5 s on 1 core",
+    "2.2 s on the GPU"
+   ],
+   [
+    "1000 cells, 4000 steps",
+    "12 s on 1 core",
+    "5.3 s on the GPU"
+   ],
+   [
+    "2000 cells, 8000 steps",
+    "46 s on 1 core",
+    "14 s on the GPU"
+   ]
+  ],
+  "note": "The five runs of the grid study. Cells and time step are halved together from one run to the next. gpucfd's times run from creating the solver to the final field; starting the GPU library adds 0.09 s once."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  }
+ ]
+}

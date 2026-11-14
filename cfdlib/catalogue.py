@@ -84,14 +84,22 @@ def cell(text) -> str:
     return str(text or "").replace("|", "\\|").replace("\n", " ").strip()
 
 
+def brief_of(report: dict) -> str | None:
+    """The one-page progress report next to a case's main report (results/<folder>/brief.html), if it exists."""
+    p = Path(report["path"])
+    return p.with_name("brief.html").as_posix() if p.name == "report.html" and (ROOT / p.with_name("brief.html")).exists() else None
+
+
 def solved_table(cases: list[dict]) -> str:
     rows = ["| # | Case | What it tests | Verdict | Headline | Report |", "|---|---|---|---|---|---|"]
     for c in cases:
         if c["status"] != "solved":
             continue
         for r in c["reports"]:
+            b = brief_of(r)
+            links = (f"[one page]({PAGES}{b}) · [full report]({PAGES}{r['path']})" if b else f"[view]({PAGES}{r['path']})")
             rows.append(f"| {c['id']} | {cell(c['title'])} | {cell(c['tests'])} | "
-                        f"{VERDICT_MD[verdict(r)]} | {cell(headline(c))} | [view]({PAGES}{r['path']}) |")
+                        f"{VERDICT_MD[verdict(r)]} | {cell(headline(c))} | {links} |")
     return "\n".join(rows)
 
 
@@ -157,8 +165,8 @@ def cards(cases: list[dict]) -> str:
             continue
         for r in c["reports"]:
             v = verdict(r)
-            out.append(
-                f'  <a class="card" href="{html.escape(r["path"])}"><div class="row"><span class="t">'
+            out.append(                                           # a case's card opens its one-page report, which links on
+                f'  <a class="card" href="{html.escape(brief_of(r) or r["path"])}"><div class="row"><span class="t">'
                 f'{html.escape(c["id"], False)}. {html.escape(c["title"], False)}</span><span class="v {v.lower()}">{v}</span></div>\n'
                 f'    <div class="d">{html.escape(c["tests"], False)}. {html.escape(headline(c), False)}.</div></a>')
     return "\n".join(out)

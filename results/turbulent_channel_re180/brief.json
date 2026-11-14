@@ -1,0 +1,180 @@
+{
+ "title": "Turbulent channel flow without a turbulence model: OpenFOAM and gpucfd",
+ "date": "2026-11-14",
+ "goal": "Simulate a turbulent flow directly, with every swirl computed and no turbulence model, for the first time in this project, and see how accurate and how fast each of our two tools is on it.",
+ "story": "OpenFOAM computed the project's first turbulent flow earlier, with a turbulence model (case 7, a flat plate). For this case gpucfd, the project's GPU solver, was extended to compute turbulence directly and solved the problem first. OpenFOAM then ran the same problem on the same grid with the same time step.",
+ "problem": {
+  "requirements": [
+   "Fluid between two flat plates at rest, pushed along the plates by a constant force. The box repeats along the flow and across it.",
+   "Fast enough to be turbulent: friction Reynolds number \\(180\\).",
+   "No turbulence model: the grid and the time step must resolve the swirls. The answers are averages over time.",
+   "Asked for: the mean speed, the speed at the centre, the friction coefficient, and the profiles of the mean velocity, of the swirl strength in the three directions and of the shear stress.",
+   "Reference: the published simulation of Vreman and Kuerten (2014), two independent codes.",
+   "Pass limits, set before the runs: 1 % for the two speeds, 2 % for friction and the peak, and a largest difference along each profile."
+  ]
+ },
+ "results": {
+  "headline": "On the same grid OpenFOAM meets 1 of 10 limits and gpucfd 5; gpucfd is \\(7.2\\times\\) faster per time step. On a finer grid gpucfd meets all 10.",
+  "meaning": [
+   "On the same cells and with the same time step gpucfd is closer to the reference: the mean speed differs by \\(-0.34\\,\\%\\) with gpucfd and by \\(+4.48\\,\\%\\) with OpenFOAM.",
+   "With both tools the swirls toward the wall and across the flow come out too weak on this grid, more so with OpenFOAM. With OpenFOAM the shear stress they carry is too low as well, so the flow is braked too little and runs too fast. The likely cause is that OpenFOAM's numerical scheme damps small swirls more than gpucfd's. That cause was not tested.",
+   "gpucfd reaches an answer inside every limit on this PC in \\(1.7\\) h. OpenFOAM's run on the coarser grid took \\(5.2\\) h, and the finer grid would take it about \\(14.1\\) h."
+  ],
+  "limits": [
+   "OpenFOAM uses the settings of its own channel tutorial, tuned only for speed (three timed tries of its pressure solver), not for accuracy. Another time scheme may do better: that would be a new test. It runs on 8 CPU cores, gpucfd on one desktop GPU: two different pieces of hardware in one PC.",
+   "OpenFOAM's mean speed was still changing during its averaging time: by \\(+1.0\\,\\%\\) from the first ten time units to the last ten. Its wall friction was within \\(1.0\\,\\%\\) of the driving force, inside the rule written before the run, so the run was not extended. A longer run would move its mean speed further in that direction.",
+   "The finer grid was run with gpucfd only. It is one grid, with no finer one to confirm it.",
+   "Averaging times differ between the runs (30 to 38 time units); the statistical error of the mean speed is about 0.2 %."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy: difference from the reference",
+  "head": [
+   "Requirement",
+   "Limit",
+   "OpenFOAM<br>\\(192\\times64\\times64\\)",
+   "gpucfd<br>\\(192\\times64\\times64\\)",
+   "gpucfd<br>\\(288\\times64\\times96\\)"
+  ],
+  "rows": [
+   [
+    "Mean speed",
+    "\\(1\\,\\%\\)",
+    "<span class=\"miss\">\\(+4.48\\,\\%\\)</span>",
+    "\\(-0.34\\,\\%\\)",
+    "\\(+0.17\\,\\%\\)"
+   ],
+   [
+    "Speed at the centre",
+    "\\(1\\,\\%\\)",
+    "<span class=\"miss\">\\(+4.77\\,\\%\\)</span>",
+    "\\(+0.17\\,\\%\\)",
+    "\\(+0.53\\,\\%\\)"
+   ],
+   [
+    "Friction coefficient",
+    "\\(2\\,\\%\\)",
+    "<span class=\"miss\">\\(-8.38\\,\\%\\)</span>",
+    "\\(+0.68\\,\\%\\)",
+    "\\(-0.34\\,\\%\\)"
+   ],
+   [
+    "Peak swirl strength",
+    "\\(2\\,\\%\\)",
+    "<span class=\"miss\">\\(+3.77\\,\\%\\)</span>",
+    "\\(-0.61\\,\\%\\)",
+    "\\(-0.69\\,\\%\\)"
+   ],
+   [
+    "Place of that peak",
+    "\\(1.5\\) wall units",
+    "\\(-0.1\\)",
+    "\\(-1.2\\)",
+    "\\(-0.4\\)"
+   ],
+   [
+    "Profile: mean velocity",
+    "\\(0.30\\)",
+    "<span class=\"miss\">\\(+0.872\\)</span>",
+    "<span class=\"miss\">\\(-0.313\\)</span>",
+    "\\(+0.096\\)"
+   ],
+   [
+    "Profile: swirls along the flow",
+    "\\(0.08\\)",
+    "<span class=\"miss\">\\(+0.101\\)</span>",
+    "<span class=\"miss\">\\(+0.138\\)</span>",
+    "\\(-0.038\\)"
+   ],
+   [
+    "Profile: swirls toward the wall",
+    "\\(0.05\\)",
+    "<span class=\"miss\">\\(-0.112\\)</span>",
+    "<span class=\"miss\">\\(-0.072\\)</span>",
+    "\\(-0.033\\)"
+   ],
+   [
+    "Profile: swirls across the flow",
+    "\\(0.06\\)",
+    "<span class=\"miss\">\\(-0.098\\)</span>",
+    "<span class=\"miss\">\\(-0.081\\)</span>",
+    "\\(-0.031\\)"
+   ],
+   [
+    "Profile: shear stress",
+    "\\(0.03\\)",
+    "<span class=\"miss\">\\(-0.031\\)</span>",
+    "<span class=\"miss\">\\(+0.034\\)</span>",
+    "\\(+0.007\\)"
+   ],
+   [
+    "<b>Limits met</b>",
+    "",
+    "1 of 10",
+    "5 of 10",
+    "10 of 10"
+   ]
+  ],
+  "note": "Per cent for the first four rows; wall units for the place of the peak; friction velocities for the profiles (largest difference along the profile). Red is outside its limit."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "",
+   "OpenFOAM<br>8 CPU cores",
+   "gpucfd<br>RTX 4070",
+   "gpucfd faster by"
+  ],
+  "rows": [
+   [
+    "One time step, \\(192\\times64\\times64\\)",
+    "\\(464\\) ms",
+    "\\(65\\) ms",
+    "\\(7.2\\times\\)"
+   ],
+   [
+    "One time unit of flow, \\(192\\times64\\times64\\)",
+    "\\(446\\) s",
+    "\\(62\\) s",
+    "\\(7.2\\times\\)"
+   ],
+   [
+    "Whole run, \\(192\\times64\\times64\\)",
+    "\\(5.2\\) h for 42 time units",
+    "\\(1.0\\) h for 58 time units",
+    "\\(7.2\\times\\)"
+   ],
+   [
+    "One time step, \\(288\\times64\\times96\\)",
+    "\\(1424\\) ms",
+    "\\(171\\) ms",
+    "\\(8.3\\times\\)"
+   ],
+   [
+    "Whole run, \\(288\\times64\\times96\\)",
+    "\\(14.1\\) h (projected)",
+    "\\(1.7\\) h",
+    "\\(8.4\\times\\)"
+   ]
+  ],
+  "note": "A time unit is the time a large swirl needs to turn over once; a run needs 40 to 60 of them. Whole runs include the start-up. The two whole runs on the first grid differ in length, so their \"faster by\" compares the time per time unit."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case (the solver agent's, verdict FAIL on its own grids)"
+  },
+  {
+   "href": "optimize_study.html",
+   "text": "the finer grid (17b)"
+  }
+ ],
+ "verdict": "FAIL",
+ "summary": {
+  "plain": "Same grid (192 x 64 x 64): OpenFOAM meets 1 of 10 limits, gpucfd 5; gpucfd is 7.2 times faster per step. On a finer grid gpucfd meets 10 of 10",
+  "reasons": [
+   "OpenFOAM was not run on the finer grid; its time there is projected from a short timing",
+   "gpucfd's finer grid is one grid, with no finer one to confirm it"
+  ]
+ }
+}

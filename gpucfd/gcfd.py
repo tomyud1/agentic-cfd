@@ -520,14 +520,18 @@ class NavierStokes:
 
     def forces(self, box):
         """Force per unit density of the fluid on whatever lies inside box = ((x0, x1), (y0, y1), (z0, z1))
-        (2D: per unit depth; any z range). The box must lie in the fluid and away from non-periodic sides.
+        (2D: per unit depth; any z range). The box surface must lie in the fluid, away from inflow and
+        outflow sides. It may reach a wall (box[d] from 0 or up to the length), for a body that touches
+        the wall, such as a cylinder from wall to wall: the friction on the piece of wall inside the box is
+        then part of the balance, so the result is still the force on the bodies alone. The component
+        normal to such a wall is not computed (NaN).
 
         Exact discrete momentum balance: summed over the fluid faces in the box, the solver's own momentum
         equation telescopes to the fluxes through the box surface plus those into the bodies, so
             F_on_body = - [ sum_box (rhs - grad p - g) vol + sum_surface (flux out) area ]
         with the solver's discrete fluxes (convection, viscous stress, pressure). It includes the unsteady
         term (rhs - grad p is the momentum change rate) and gives the same force for any box around the
-        same bodies, to round-off (rung 10 checks it)."""
+        same bodies, to round-off (rung 10 checks it; tests/test_wall_forces.py for boxes at a wall)."""
         if self.stretched:
             return self._forces_s(box)
         q = self.get()
@@ -536,6 +540,7 @@ class NavierStokes:
         h = [self.length[d] / self.n[d] for d in range(3)]
         vol = float(np.prod([h[d] for d in act]))
         per = [self.kinds[2 * d] == 0 for d in range(3)]
+        low, high = self._box_at_walls(box)
         F = np.zeros(3)
 
         def take(a, idx):  # a[k, j, i] at index triples (lists over directions), wrapped if periodic
@@ -550,6 +555,9 @@ class NavierStokes:
             return a[I[2], I[1], I[0]]
 
         for c in range(self.ncomp):
+            if low[c] or high[c]:  # normal to a wall the box reaches: the wall faces are not unknowns
+                F[c] = np.nan
+                continue
             R = self.rhs(c) - self.g[c]
             rng = []
             for d in range(3):
@@ -582,15 +590,41 @@ class NavierStokes:
             out = 0.0
             for d in act:
                 top = [x.take([-1], axis=2 - d) for x in idx]
-                bot = [x.take([0], axis=2 - d) for x in idx]
-                bot = sh(bot, -e[d])
+                first = [x.take([0], axis=2 - d) for x in idx]
+                bot = sh(first, -e[d])
                 if self.fluid is not None:
-                    for ix in (top, sh(top, e[d]), bot):
+                    for ix in ([] if high[d] else [top, sh(top, e[d])]) + ([] if low[d] else [bot]):
                         if not np.all(take(self.fluid[c], ix)):
                             raise ValueError("forces: the box surface cuts a body")
-                out += np.sum(flux(d, top) - flux(d, bot)) * vol / h[d]
+                ft = self._wall_flux(c, d, True, top, q) if high[d] else flux(d, top)
+                fb = self._wall_flux(c, d, False, first, q) if low[d] else flux(d, bot)
+                out += np.sum(ft - fb) * vol / h[d]
             F[c] = -(S + out)
         return F
+
+    def _box_at_walls(self, box):
+        """Per direction, whether a forces() box reaches the low and the high side. Allowed on walls only
+        (velocity prescribed, no flow through the side)."""
+        low, high = [False] * 3, [False] * 3
+        for d in range(3):
+            if self.n[d] == 1 or self.kinds[2 * d] == 0:
+                continue
+            tol = 1e-9 * self.length[d]
+            low[d], high[d] = bool(box[d][0] <= tol), bool(box[d][1] >= self.length[d] - tol)
+            for s, at in ((2 * d, low[d]), (2 * d + 1, high[d])):
+                if at and (self.kinds[s] != 1 or np.any(self.get_boundary(self.SIDES[s], d) != 0.0)):
+                    raise ValueError(f"forces: the box reaches the side {self.SIDES[s]}, which is not a wall")
+        return low, high
+
+    def _wall_flux(self, c, d, high, ix, q):
+        """Flux of c-momentum along +d through a wall of direction d (c != d), at the faces ix of the cell
+        layer next to it: viscous only, with the solver's wall rule (the mirror value 2 u_wall - u beyond the
+        wall, at the mirror distance). Zero where the face is in a body: its box is not part of the balance."""
+        a, b = [e for e in range(3) if e != d]
+        uw = self.get_boundary(self.SIDES[2 * d + (1 if high else 0)], c)[ix[b], ix[a]]
+        qc = q[c][ix[2], ix[1], ix[0]]
+        f = (2.0 if high else -2.0) * self.nu * (qc - uw) / self.widths(d)[-1 if high else 0]
+        return f if self.fluid is None else np.where(self.fluid[c][ix[2], ix[1], ix[0]], f, 0.0)
 
     def pressure_at(self, points):
         """Pressure interpolated (bi- or trilinear, from cell centres) at points (array (m, 3))."""
@@ -671,6 +705,7 @@ class NavierStokes:
         # half cell on the face's high side (a mirror cell beyond a bounded side; periodic: uniform)
         dm = [np.concatenate(([w[0]], 0.5 * (w[:-1] + w[1:]), [w[-1]])) for w in dc]
         fw = [np.concatenate(([0.5], w[1:] / (w[:-1] + w[1:]), [0.5])) for w in dc]
+        low, high = self._box_at_walls(box)
         F = np.zeros(3)
 
         def wrap(d, i):
@@ -688,6 +723,9 @@ class NavierStokes:
             return a[I[2], I[1], I[0]]
 
         for c in range(self.ncomp):
+            if low[c] or high[c]:  # normal to a wall the box reaches: the wall faces are not unknowns
+                F[c] = np.nan
+                continue
             R = self.rhs(c) - self.g[c]
             rng = []
             for d in range(3):
@@ -727,17 +765,19 @@ class NavierStokes:
             out = 0.0
             for d in act:
                 top = [x.take([-1], axis=2 - d) for x in idx]
-                bot = [x.take([0], axis=2 - d) for x in idx]
-                bot = sh(bot, -e[d])
+                first = [x.take([0], axis=2 - d) for x in idx]
+                bot = sh(first, -e[d])
                 if self.fluid is not None:
-                    for ix in (top, sh(top, e[d]), bot):
+                    for ix in ([] if high[d] else [top, sh(top, e[d])]) + ([] if low[d] else [bot]):
                         if not np.all(take(self.fluid[c], ix)):
                             raise ValueError("forces: the box surface cuts a body")
                 area = np.ones(top[0].shape)
                 for d2 in act:
                     if d2 != d:
                         area = area * width(d2, top)
-                out += np.sum((flux(d, top) - flux(d, bot)) * area)
+                ft = self._wall_flux(c, d, True, top, q) if high[d] else flux(d, top)
+                fb = self._wall_flux(c, d, False, first, q) if low[d] else flux(d, bot)
+                out += np.sum((ft - fb) * area)
             F[c] = -(S + out)
         return F
 

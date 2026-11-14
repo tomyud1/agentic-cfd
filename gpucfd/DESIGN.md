@@ -302,7 +302,16 @@ Found while building (each a measured failure first):
 discrete momentum equation telescopes to the fluxes through the box surface plus those into the
 bodies, so F = -[sum_box (rhs - grad p - g) vol + sum_surface (flux out) area] with the solver's
 fluxes is the exact discrete force, including the unsteady term. For a random field and no body it
-returns 6e-16; two different boxes around the DFG cylinder agree to 2e-18. `surface_pressure(points)`
+returns 6e-16; two different boxes around the DFG cylinder agree to 2e-18. *Added 2026-11-14 for case 5
+(a cylinder from wall to wall):* the box may reach a wall. Before, `forces` refused a box at a
+non-periodic side and a box whose faces cut a body, and for a body that touches a wall every box does
+one or the other. Now the friction on the piece of wall inside the box enters the balance (the
+solver's own wall rule, the mirror value 2 u_wall - u at the mirror distance), so the result is still
+the force on the bodies alone. The component normal to that wall is not computed (NaN). Walls only,
+not inflow or outflow sides; Python only, no change to the solver. Checks
+(`tests/test_wall_forces.py`, in `run_ladder.sh`): no body and a random field, boxes from wall to
+wall, uniform and stretched grids, a moving wall: 2e-16; a cylinder from wall to wall, two boxes:
+equal to 1e-16. `surface_pressure(points)`
 extrapolates the pressure to the surface along the normal (quadratic through samples at 1.5, 2.5,
 3.5 h in the fluid).
 
@@ -452,6 +461,39 @@ a uniform grid has to resolve the boundary layer everywhere, and the immersed bo
 cylinder, 140 cells per diameter fit in 459 thousand cells and give the drag within 0.11 % of the benchmark's
 finest tabulated level (0.31 % below the value it converges to) in 1 421 s for three levels. See "Stretched
 grids, stage 2", and the study report `results/dfg_cylinder_re100/gpu_study.html`.)
+
+### gpucfd on case 5, the 3D cylinder from wall to wall (2026-11-14)
+
+Plan, script and records: `dev/compare/dfg_cylinder_3d_re20/` (the plan was written before the runs).
+DFG 3D-1Z, Re 20, steady: drag and lift of a cylinder that spans a square channel.
+
+- **What had to be added:** `forces` for a box that reaches a wall (Immersed bodies, Forces, above).
+- **Grid:** uniform in y and z, clustered along x only (cells of size h = H / ny from one diameter
+  ahead of the cylinder to four behind, growing to 3.3 h away from it). Clustering in two directions
+  would need plane relaxation in the pressure solver (stage 1's open item); with one direction the
+  pressure took 3 iterations per projection. IMEX at CFL 0.8, pressure tolerance 1e-9, each grid
+  started from the one before (`steady.march`, `steady.prolong`).
+
+| Grid | Cells | D/h | Steps | GPU s | cD (reference 6.18533) | cL (reference 0.009401) |
+|---|---|---|---|---|---|---|
+| G1 | 192 x 64 x 64 = 0.79 M | 15.6 | 5148 | 237 | 6.03409 (-2.44 %) | +0.01251 |
+| G2 | 288 x 96 x 96 = 2.65 M | 23.4 | 1386 | 220 | 6.09622 (-1.44 %) | -0.00684 |
+| G3 | 384 x 128 x 128 = 6.29 M | 31.2 | 1584 | 600 | 6.12926 (-0.91 %) | +0.02210 |
+
+- **Drag:** within 1 % on G3, as the 2D version of the flow suggested (-0.65 % at D/h 35). OpenFOAM's
+  body-fitted grid: -0.08 % with 2.4 M cells. The three values give an observed order of 0.83 and a
+  wide error band (2.5 %); against the reference the last pair converges at order 1.6.
+- **Lift: not converged.** It changes sign from grid to grid. The lift is 0.15 % of the drag, below
+  the error the ghost-cell surface makes in the forces on these grids (rung 10 saw the same in 2D: +335 %,
+  +15 %, -5 % at D/h 17.6, 35, 70).
+- **Cost:** about 60 ns of GPU time per cell and step (46 ms per step on G1, 380 ms on G3), 2.5 GB for
+  G3. 12 GB would hold about four times G3's cells in this family. Matching OpenFOAM's drag in this
+  family would need about 140 cells per diameter, 600 million cells: it needs fine cells around the
+  cylinder in y and z too, so plane relaxation (or semi-coarsening), or a more accurate surface rule.
+- **Seen on the way:** G1's forces had settled after one flow-through time (12 s of 37.5 s marched:
+  the minimum time of three flow-throughs was too cautious). Flow out differs from flow in by 1.6e-3
+  (G1), 4e-4 (G2 and G3): the cells cut by the body, and it did not shrink from G2 to G3. One position
+  of the cylinder in the grid only; times taken while another solver used 8 CPU cores.
 
 ### Stretched grids, stage 1: boxes with walls, no bodies (2026-11-13)
 
@@ -1406,6 +1448,20 @@ differencing, linear interpolation, two pressure corrections, GAMG), best of 8 a
 The OpenFOAM times for 30 units are projected from 40 to 60 timed steps; OpenFOAM was not run
 that long, and its accuracy on these grids was not measured. Its settings are the tutorial's, not
 tuned, and its two-correction PISO is first order in time (case 4's lesson).
+
+**OpenFOAM's accuracy on 192 x 64 x 64, measured later (2026-11-14,
+`dev/compare/turbulent_channel_re180/`, plan written before the run).** One full run with the
+same cells and time step, started from gpucfd's field: 12 time units of start-up, 30 averaged,
+5.2 hours on 8 cores (464 ms per step; gpucfd 65 ms, 7.2 times faster). OpenFOAM meets 1 of the
+case's 10 limits, gpucfd 5 on this grid and 10 on 288 x 64 x 96. OpenFOAM's bulk velocity is
++4.5 % from the reference (gpucfd -0.34 %), its friction coefficient -8.4 %; v rms and w rms are
+too low by 0.11 and 0.10 (gpucfd 0.07 and 0.08). Limits: its bulk velocity was still rising
+(+1.0 % from the first ten averaged time units to the last ten, wall shear 1.0 % below the
+driving force), so the settled value is somewhat higher; its numerics were the tutorial's and
+only the pressure solver was tuned, for speed. Why it is less accurate on the same cells was not
+tested (a guess: the backward time scheme and the co-located layout damp the small eddies more).
+On 288 x 64 x 96 OpenFOAM was timed only: 1424 ms per step against gpucfd's 171 ms (8.3 times),
+about 14 hours projected for gpucfd's 1.7-hour run.
 
 **Where the time goes, and what this flow taught.**
 - A step costs about four times more per cell than on the periodic box (6 to 15 million

@@ -1,0 +1,15 @@
+GPU: {'name': 'NVIDIA GeForce RTX 4070', 'compute_capability': 8.9}; start-up 0.09 s; other solver processes on the CPU: 0
+     N125_dt40ms: wall 0.7 s (gpu 0.3) | profile 5.28e-03, 1.04e-03, 2.60e-04 | tau 5.01e-04 | depth 1.65e-02 | momentum 5.00e-04 | tau within 1 % from t = 1.08 s | far 4.1e-14 | balance 3.1e-01 (after 1 s 3.3e-04)
+     N250_dt20ms: wall 1.1 s (gpu 0.7) | profile 1.30e-03, 2.60e-04, 6.49e-05 | tau 1.25e-04 | depth 3.96e-03 | momentum 1.25e-04 | tau within 1 % from t = 0.26 s | far 8.5e-15 | balance 8.2e-01 (after 1 s 8.5e-05)
+     N500_dt10ms: wall 2.2 s (gpu 1.5) | profile 3.24e-04, 6.49e-05, 1.62e-05 | tau 3.12e-05 | depth 6.67e-04 | momentum 3.13e-05 | tau within 1 % from t = 0.07 s | far 3.3e-15 | balance 9.6e-01 (after 1 s 2.2e-05)
+     N1000_dt5ms: wall 5.3 s (gpu 3.7) | profile 8.09e-05, 1.62e-05, 4.06e-06 | tau 7.81e-06 | depth 2.82e-04 | momentum 7.81e-06 | tau within 1 % from t = 0.01 s | far 1.6e-15 | balance 1.5e+00 (after 1 s 5.6e-06)
+   N2000_dt2.5ms: wall 14.2 s (gpu 10.8) | profile 2.02e-05, 4.05e-06, 1.01e-06 | tau 1.95e-06 | depth 6.08e-05 | momentum 1.95e-06 | tau within 1 % from t = 0.005 s | far 7.7e-16 | balance 2.8e+00 (after 1 s 1.4e-06)
+by the case's rules: PASS; fail []; warn []
+orders (last pair): profile_20s 2.00, profile_1s 2.00, tau 2.00, momentum 2.00
+  (a) gpucfd 2.023e-05, OpenFOAM 2.047e-05, ratio 0.99, limit 0.002
+  (b) gpucfd 1.953e-06, OpenFOAM 1.952e-06, ratio 1.00, limit 0.002
+  (c) gpucfd 6.081e-05, OpenFOAM 6.331e-05, ratio 0.96, limit 0.005
+  (d) gpucfd 1.954e-06, OpenFOAM 1.954e-06, ratio 1.00, limit 0.002
+equal accuracy by the plan's rule: True
+record: /mnt/d/Projects/Agentic CFD/dev/compare/stokes_first_problem/gpucfd.json
+exit 0
