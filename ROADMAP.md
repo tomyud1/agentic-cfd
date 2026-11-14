@@ -136,8 +136,9 @@ cheapest grid on this PC that resolves the profiles?
   mean speed from each of two directions, with opposite signs. The verdict of the case stays
   FAIL, because that is the solve. Details: [`gpucfd/DESIGN.md`](gpucfd/DESIGN.md), channel
   section; records in `dev/optimize/turbulent_channel_re180/`.
-- Not done: a page that shows the improved profiles next to the first ones (a study report of
-  the case), and one finer step across the flow to see whether the profiles have stopped moving.
+- The page that shows the new profiles next to the first ones:
+  `results/turbulent_channel_re180/optimize_study.html` (case "17b" in the tables, verdict WARN).
+- Not done: one finer step across the flow to see whether the profiles have stopped moving.
 
 *After it,* with a target at a higher Reynolds number fixed in advance: a viscosity that varies
 from cell to cell (the first brick of any model), then a model for the smallest eddies (large-eddy

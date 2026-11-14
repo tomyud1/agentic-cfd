@@ -1470,7 +1470,8 @@ part 12):
 
 **The optimize stage of case 17 (2026-11-14): which grid resolves the profiles.** Run by the dev
 agent after the solve, with target, budget and stop rule fixed first (`ROADMAP.md` 3b; plan,
-script and records in `dev/optimize/turbulent_channel_re180/`). The case's verdict stays FAIL:
+script and records in `dev/optimize/turbulent_channel_re180/`; the page with the profiles side by
+side is `results/turbulent_channel_re180/optimize_study.html`). The case's verdict stays FAIL:
 that is the solve. Same numerics in every run, only the grid differs. First one direction refined
 alone by 1.5, each run 10 time units from the finest grid's field; then one run on the grid the
 rule picked. "Gap" is the largest difference from the reference along a profile, in friction

@@ -401,47 +401,64 @@ def do_table():
                                                     candidates=[dict(c, n=list(c["n"])) for c in cands], spent_h=spent / 3600), indent=1, default=float))
 
 
-def do_final(name):
-    """The final grid against the baseline on the case's own criteria (numerics.yaml, acceptance): the four
-    requested outputs and the five profile gaps. The bulk velocity's error knows its slow settling
-    (gpucfd.turbulence.bulk_average)."""
-    g, ref, limits, numerics = setup()
+def assess(name=None):
+    """A run on the case's own criteria (numerics.yaml, acceptance): the four requested outputs, the place of
+    the fluctuation peak and the five profile gaps. name: a variant of plan.yaml, or None for the baseline.
+    The bulk velocity's error knows its slow settling (gpucfd.turbulence.bulk_average).
+    Returns dict(n, cells, bulk, bulk_stderr, span, imbalance, s_per_unit, wall_h, startup_h, steps_per_unit,
+    ms_per_step, poisson_its, checks{key: dict(value, limit, ok, unit)}, all_ok, gaps (what gaps() returns))."""
     from gpucfd import turbulence
+    g, ref, limits, numerics = setup()
     acc, R = numerics["acceptance"], ref["scalars"]
+    if name is None:
+        rec, d, t0 = load_baseline()
+        t, y, yf, n = d["t"], np.array(rec["y"]), np.array(rec["y_faces"]), rec["n"]
+        G = gaps(t, d, y, yf, g, ref, t0=t0)
+        wall, startup = rec["wall_time"], rec["wall_time"] * (t0 - 0.0) / rec["end_time"]
+        steps_per_unit, ms, its = rec["perf"]["steps"] / rec["end_time"], rec["perf"]["ms_per_step_wall"], rec["perf"]["poisson_its"]
+    else:
+        recs, t, d, y, yf = load_variant(name)
+        pre = json.loads((RUNS / f"{name}_pre.json").read_text())
+        t0, n = None, recs[0]["n"]
+        G = gaps(t, d, y, yf, g, ref)
+        avg_wall = sum(r["wall_time"] for r in recs)
+        wall, startup = pre["wall_s"] + avg_wall, pre["wall_s"]
+        steps = sum(r["perf"]["steps"] for r in recs)
+        steps_per_unit, ms = steps / (t[-1] - t[0]), 1e3 * sum(r["perf"]["wall_s"] for r in recs) / steps
+        its = float(np.mean([r["perf"]["poisson_its"] for r in recs]))
+    B = turbulence.bulk_average(t, d["bulk"], 0.5 * (d["tau_low"] + d["tau_high"]), g["f"], g["delta"], t_start=t0)
+    ub, ue = float(B["mean"]), float(B["stderr"])
+    cf = 2.0 * g["u_tau"] ** 2 / ub ** 2
+    checks = dict(
+        bulk=(100 * (ub / R["bulk"]["value"] - 1), acc["bulk_pct"], "%"),
+        centre=(100 * (G["centre"] / R["centre"]["value"] - 1), acc["centre_pct"], "%"),
+        cf=(100 * (cf / R["cf"]["value"] - 1), acc["cf_pct"], "%"),
+        urms_peak=(100 * (G["urms_peak"] / R["urms_peak"]["value"] - 1), acc["urms_peak_pct"], "%"),
+        urms_peak_y=(G["urms_peak_y"] - R["urms_peak_y"]["value"], acc["urms_peak_yplus"], " wall units"))
+    for q in QS:
+        checks[q] = (G[q]["signed"], limits[q], f"@{G[q]['y_plus']:.0f}")
+    checks = {k: dict(value=float(v[0]), limit=float(v[1]), ok=bool(abs(v[0]) <= v[1]), unit=v[2]) for k, v in checks.items()}
+    return dict(n=list(n), cells=int(np.prod(n)), bulk=ub, bulk_stderr=ue, bulk_reliable=bool(B.get("reliable", False)), span=G["span"],
+                imbalance=G["imbalance"], s_per_unit=float(ms * steps_per_unit / 1e3), wall_h=float(wall) / 3600, startup_h=float(startup) / 3600,
+                steps_per_unit=float(steps_per_unit), ms_per_step=float(ms), poisson_its=float(its), cf=cf, centre=G["centre"],
+                urms_peak=G["urms_peak"], urms_peak_y=G["urms_peak_y"], checks=checks, all_ok=all(c["ok"] for c in checks.values()), gaps=G)
 
-    def BA(t_, d_, start):
-        return turbulence.bulk_average(t_, d_["bulk"], 0.5 * (d_["tau_low"] + d_["tau_high"]), g["f"], g["delta"], t_start=start)
-    rec, d, t0 = load_baseline()
-    recs, t, series, y, yf = load_variant(name)
-    pre = json.loads((RUNS / f"{name}_pre.json").read_text())
+
+def do_final(name):
+    """The final grid against the baseline on the case's criteria (assess); writes final.json."""
     table = json.loads((HERE / "table.json").read_text()) if (HERE / "table.json").exists() else {}
-    pred = next((c for c in table.get("candidates", []) if list(c["n"]) == list(recs[0]["n"])), None)
-    sides = {"baseline": (gaps(d["t"], d, np.array(rec["y"]), np.array(rec["y_faces"]), g, ref, t0=t0), BA(d["t"], d, t0),
-                          rec["n"], rec["wall_time"] / rec["end_time"], rec["wall_time"]),
-             name: (gaps(t, series, y, yf, g, ref), BA(t, series, None), recs[0]["n"],
-                    sum(r["wall_time"] for r in recs) / (t[-1] - t[0]), pre["wall_s"] + sum(r["wall_time"] for r in recs))}
     out = {}
-    for label, (G, B, n, s_per_unit, wall) in sides.items():
-        ub, ue = float(B["mean"]), float(B["stderr"])
-        cf = 2.0 * g["u_tau"] ** 2 / ub ** 2
-        checks = dict(
-            bulk=(100 * (ub / R["bulk"]["value"] - 1), acc["bulk_pct"], "%"),
-            centre=(100 * (G["centre"] / R["centre"]["value"] - 1), acc["centre_pct"], "%"),
-            cf=(100 * (cf / R["cf"]["value"] - 1), acc["cf_pct"], "%"),
-            urms_peak=(100 * (G["urms_peak"] / R["urms_peak"]["value"] - 1), acc["urms_peak_pct"], "%"),
-            urms_peak_y=(G["urms_peak_y"] - R["urms_peak_y"]["value"], acc["urms_peak_yplus"], " wall units"))
-        for q in QS:
-            checks[q] = (G[q]["signed"], limits[q], f"@{G[q]['y_plus']:.0f}")
-        ok = {k: bool(abs(v[0]) <= v[1]) for k, v in checks.items()}
-        out[label] = dict(n=list(n), cells=int(np.prod(n)), bulk=ub, bulk_stderr=ue, bulk_reliable=bool(B.get("reliable", False)), span=G["span"],
-                          imbalance=G["imbalance"], s_per_unit=float(s_per_unit), wall_h=float(wall) / 3600,
-                          checks={k: dict(value=float(v[0]), limit=float(v[1]), ok=ok[k]) for k, v in checks.items()}, all_ok=all(ok.values()))
-        print(f"{label}: {list(n)} ({np.prod(n) / 1e6:.2f} M cells), {G['span']:.1f} time units averaged, wall shear {G['imbalance']:+.2%} from the "
-              f"driving force, bulk {ub:.4f} +- {ue:.4f}, {s_per_unit:.0f} s per time unit, {wall / 3600:.2f} GPU hours")
-        print("   " + "  ".join(f"{k} {v[0]:+.3f}{v[2]} (limit {v[1]:g})" + ("" if ok[k] else "*") for k, v in checks.items()))
-        print(f"   {'every criterion met' if all(ok.values()) else 'outside its limit: ' + ', '.join(k for k in ok if not ok[k])}")
+    for label, key in (("baseline", None), (name, name)):
+        A = assess(key)
+        out[label] = {k: v for k, v in A.items() if k != "gaps"}
+        print(f"{label}: {A['n']} ({A['cells'] / 1e6:.2f} M cells), {A['span']:.1f} time units averaged, wall shear {A['imbalance']:+.2%} from the "
+              f"driving force, bulk {A['bulk']:.4f} +- {A['bulk_stderr']:.4f}, {A['s_per_unit']:.0f} s per time unit, {A['wall_h']:.2f} GPU hours")
+        print("   " + "  ".join(f"{k} {c['value']:+.3f}{c['unit']} (limit {c['limit']:g})" + ("" if c["ok"] else "*") for k, c in A["checks"].items()))
+        bad = [k for k, c in A["checks"].items() if not c["ok"]]
+        print(f"   {'every criterion met' if not bad else 'outside its limit: ' + ', '.join(bad)}")
+    pred = next((c for c in table.get("candidates", []) if list(c["n"]) == out[name]["n"]), None)
     if pred:
-        out["predicted"] = pred["pred"]
+        out["predicted"] = dict(pred=pred["pred"], where=pred["where"])
         print("predicted for this grid from the directional runs: " + "  ".join(f"{q} {pred['pred'][q]:+.3f}@{pred['where'][q]:.0f}" for q in QS))
         print("measured minus predicted:                           " + "  ".join(
             f"{q} {out[name]['checks'][q]['value'] - pred['pred'][q]:+.3f}" for q in QS))

@@ -13,5 +13,7 @@ for c in plane_poiseuille lid_driven_cavity_re100 stokes_first_problem dfg_cylin
 done
 echo "== dfg_cylinder_3d_re20 GPU study"
 $PY -m cases.dfg_cylinder_3d_re20.gpu_study 2>&1 | grep -iE "error|Traceback|gpu_study|PASS|WARN|FAIL" | head -4
+echo "== turbulent_channel_re180 optimize study (from recorded runs; needs no GPU)"
+PYTHONPATH=. $PY dev/optimize/turbulent_channel_re180/study.py 2>&1 | grep -iE "error|Traceback|study:|PASS|WARN|FAIL" | cut -c1-200 | head -4
 echo "== dfg_cylinder_re100 gpucfd study (from recorded runs; needs no GPU)"
 $PY -m cases.dfg_cylinder_re100.gpu_study 2>&1 | grep -iE "error|Traceback|gpu_study|PASS|WARN|FAIL" | cut -c1-200 | head -4

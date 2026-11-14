@@ -15,7 +15,19 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-14
 
-### Case 17, optimize stage: a grid that meets every limit, commit hash to be filled in
+### A page for case 17's optimize stage, commit hash to be filled in
+`results/turbulent_channel_re180/optimize_study.html`: the new grid's profiles next to the first
+grid's, in simple words, with a list of the words used.
+- **What it shows.** The curves themselves, their difference from the reference with the pass
+  band, which grid direction mattered, all ten limits of the case for both grids, how sure the
+  result is, and what each run cost.
+- **Its verdict is WARN,** set by rules in the script: every limit is met, but on one grid with
+  no finer one to confirm it, and the time-step check was not repeated.
+- **How it is built.** `dev/optimize/turbulent_channel_re180/study.py` forms every number from
+  the recorded runs; it needs no GPU and builds the same file twice. It is in the case tables
+  as "17b", in the report gallery, and in `setup/rerender_all.sh`.
+
+### Case 17, optimize stage: a grid that meets every limit (`e8b9054`)
 The first use of the loop's new step 8. Case 17 ended with a FAIL: the mean speed was right but
 the velocity and fluctuation profiles missed their limits. The question for this stage, fixed
 before any run: what is the cheapest grid on this PC that resolves the profiles?
@@ -48,8 +60,8 @@ before any run: what is the cheapest grid on this PC that resolves the profiles?
   moved the mean speed by 0.6 to 0.8 %, in opposite directions, so the 0.17 % again includes
   some cancellation. The case's verdict stays FAIL; this stage is recorded next to it, in
   `gpucfd/DESIGN.md` (channel section) and `dev/optimize/turbulent_channel_re180/`.
-- **Open.** No page yet shows the new profiles next to the first ones. One finer step across
-  the flow would show whether the profiles have stopped moving.
+- **Open.** One finer step across the flow would show whether the profiles have stopped moving.
+  (The page that shows the new profiles next to the first ones came after this commit.)
 
 ### What case 17 taught the tools and the workflow (`0aa0d12`)
 The agent's 19 insights each got an answer, tools first.

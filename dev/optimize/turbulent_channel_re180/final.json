@@ -11,58 +11,76 @@
   "bulk_reliable": true,
   "span": 37.897140399461264,
   "imbalance": 0.00045395231827294324,
-  "s_per_unit": 62.026579099379845,
+  "s_per_unit": 62.02657909937984,
   "wall_h": 0.9993637424045139,
+  "startup_h": 0.34631506663820416,
+  "steps_per_unit": 960.1276079399831,
+  "ms_per_step": 64.60243262086999,
+  "poisson_its": 7.326623570959147,
+  "cf": 0.008170367867484426,
+  "centre": 18.31326175597105,
+  "urms_peak": 2.655007589243487,
+  "urms_peak_y": 13.186715764321303,
   "checks": {
    "bulk": {
     "value": -0.33711011580046524,
     "limit": 1.0,
-    "ok": true
+    "ok": true,
+    "unit": "%"
    },
    "centre": {
     "value": 0.17453989919866686,
     "limit": 1.0,
-    "ok": true
+    "ok": true,
+    "unit": "%"
    },
    "cf": {
     "value": 0.6776349311071517,
     "limit": 2.0,
-    "ok": true
+    "ok": true,
+    "unit": "%"
    },
    "urms_peak": {
     "value": -0.612988166653583,
     "limit": 2.0,
-    "ok": true
+    "ok": true,
+    "unit": "%"
    },
    "urms_peak_y": {
     "value": -1.2459622356786966,
     "limit": 1.5,
-    "ok": true
+    "ok": true,
+    "unit": " wall units"
    },
    "U": {
     "value": -0.31279439603308923,
     "limit": 0.3,
-    "ok": false
+    "ok": false,
+    "unit": "@22"
    },
    "u_rms": {
     "value": 0.13845290431689694,
     "limit": 0.08,
-    "ok": false
+    "ok": false,
+    "unit": "@4"
    },
    "v_rms": {
     "value": -0.07237453924321169,
     "limit": 0.05,
-    "ok": false
+    "ok": false,
+    "unit": "@36"
    },
    "w_rms": {
     "value": -0.08121755418107202,
     "limit": 0.06,
-    "ok": false
+    "ok": false,
+    "unit": "@38"
    },
    "uv": {
     "value": 0.034200670421711155,
     "limit": 0.03,
-    "ok": false
+    "ok": false,
+    "unit": "@8"
    }
   },
   "all_ok": false
@@ -81,65 +99,92 @@
   "imbalance": -0.00025227411266959265,
   "s_per_unit": 164.07384790066854,
   "wall_h": 1.6762884775135252,
+  "startup_h": 0.308847079873085,
+  "steps_per_unit": 961.5546150038011,
+  "ms_per_step": 170.63393523416238,
+  "poisson_its": 9.69802426343198,
+  "cf": 0.00808781434980172,
+  "centre": 18.378009144460034,
+  "urms_peak": 2.6528945024916086,
+  "urms_peak_y": 14.063462384781406,
   "checks": {
    "bulk": {
     "value": 0.17023546445851245,
     "limit": 1.0,
-    "ok": true
+    "ok": true,
+    "unit": "%"
    },
    "centre": {
     "value": 0.5287116430412686,
     "limit": 1.0,
-    "ok": true
+    "ok": true,
+    "unit": "%"
    },
    "cf": {
     "value": -0.3396133801487733,
     "limit": 2.0,
-    "ok": true
+    "ok": true,
+    "unit": "%"
    },
    "urms_peak": {
     "value": -0.6920890245436517,
     "limit": 2.0,
-    "ok": true
+    "ok": true,
+    "unit": "%"
    },
    "urms_peak_y": {
     "value": -0.36921561521859303,
     "limit": 1.5,
-    "ok": true
+    "ok": true,
+    "unit": " wall units"
    },
    "U": {
     "value": 0.0962561402978146,
     "limit": 0.3,
-    "ok": true
+    "ok": true,
+    "unit": "@174"
    },
    "u_rms": {
     "value": -0.03844985679490032,
     "limit": 0.08,
-    "ok": true
+    "ok": true,
+    "unit": "@25"
    },
    "v_rms": {
     "value": -0.0328413327862801,
     "limit": 0.05,
-    "ok": true
+    "ok": true,
+    "unit": "@27"
    },
    "w_rms": {
     "value": -0.03143279790361597,
     "limit": 0.06,
-    "ok": true
+    "ok": true,
+    "unit": "@9"
    },
    "uv": {
     "value": 0.0067574548642600485,
     "limit": 0.03,
-    "ok": true
+    "ok": true,
+    "unit": "@8"
    }
   },
   "all_ok": true
  },
  "predicted": {
-  "U": 0.20276914556375658,
-  "u_rms": -0.05166730539205444,
-  "v_rms": -0.03665822165718846,
-  "w_rms": -0.03642040423020987,
-  "uv": -0.008717389358308014
+  "pred": {
+   "U": 0.20276914556375658,
+   "u_rms": -0.05166730539205444,
+   "v_rms": -0.03665822165718846,
+   "w_rms": -0.03642040423020987,
+   "uv": -0.008717389358308014
+  },
+  "where": {
+   "U": 174.39616871665822,
+   "u_rms": 21.9478033220055,
+   "v_rms": 23.595011597159633,
+   "w_rms": 11.133336160740694,
+   "uv": 23.595011597159633
+  }
  }
 }
