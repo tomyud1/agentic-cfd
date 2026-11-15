@@ -58,9 +58,9 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   hot gas needs about ten small steps of chemistry per flow step, burnt gas included, so there
   it runs at 16 to 19 million and chemistry would be most of a run's time.
   **Next for gpucfd, in order:** join the two: the flow carries each species, heat capacities
-  change with temperature, and a guard stops negative pressure; choose the chemistry method
-  again at detonation states (the implicit one, or a cheaper rule for burnt gas); then step 4
-  on the GPU.
+  change with temperature, and a guard stops negative pressure; make the chemistry cheaper at
+  detonation states (the other built-in methods gain only 1.6 times; the implicit one needs an
+  exact matrix, or burnt gas a cheaper rule); then step 4 on the GPU.
 - **Step 3 is done (2026-11-15):** ignition of hydrogen and air in one cell (case 20), with
   OpenFOAM's `chemFoam` and the full hydrogen scheme, solved by a fresh agent in about 35
   minutes. Ignition time within 0.03 % of the reference, final temperature within 0.002 %

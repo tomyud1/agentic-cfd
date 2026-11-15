@@ -16,7 +16,20 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### gpucfd: the chemistry of many cells on the GPU (stage 1), commit hash to be filled in
+### The chemistry kernel's methods timed at detonation conditions, commit hash to be filled in
+- **Purpose.** The review found the kernel ten times slower behind a detonation's shock than in the
+  ignition problem. Is one of its other built-in methods cheaper there?
+- **Test** (`dev/agent_checks/chem_detonation_methods.py`; 12 runs, fixed in advance): three methods,
+  two precisions, two tolerances, on 250 000 cells that ignite and burn at 28 to 54 atm.
+- **Result.** All 12 give the right answer. The best is only 1.6 times cheaper than the default (29
+  against 19 million cells times steps per second). The simple methods need about ten small steps
+  per flow step whatever accuracy is asked: the fastest reactions set their step. The implicit
+  method needs two or three, but each is expensive because of how its matrix is built.
+- **What it means.** In a detonation, chemistry will take most of the GPU's time until the implicit
+  method gets an exact matrix or burnt gas gets a cheaper rule. That is now the first speed item for
+  the joined solver (`gpucfd/CHEMISTRY.md`).
+
+### gpucfd: the chemistry of many cells on the GPU (stage 1) (`c6c1d84`)
 - **Purpose.** Prof. Frankel named chemistry on the GPU as the key to speed in the lab's own code.
   This is the second half of the third detonation solver: the shock solver exists, the burning
   was missing.

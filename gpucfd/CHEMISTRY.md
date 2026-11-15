@@ -324,10 +324,29 @@ a few steps.
 - Limit of this number: 54 atm is the constant-volume end state. Behind a real detonation the burnt
   gas expands to about 16 atm, where the chemistry is slower. That state was not timed.
 
+**Is another built-in method cheaper there?** Timed with a budget of 12 runs fixed in advance
+([`dev/agent_checks/chem_detonation_methods.py`](../dev/agent_checks/chem_detonation_methods.py)):
+3 methods × mixed and double × tolerances 1e-4 and 1e-6, on 250 000 cells for 2 microseconds in steps
+of 5e-9 s. All 12 keep the accuracy rule. Million cells × steps per second, mixed precision:
+
+| Method | Tolerance 1e-4 | Tolerance 1e-6 |
+|---|---|---|
+| `bs23` (explicit, the default) | 25 (8.8 sub-steps per step) | 19 (10.5), the default |
+| `dp45` (explicit) | 18 (6.5) | 12 (8.8) |
+| `ros34` (implicit) | 29 (2.8) | 5.6 (15) |
+
+- The best setting is only 1.6 times cheaper than the default. No setting brings back the 200 million
+  of the ignition problem.
+- The explicit methods take 9 to 10 sub-steps whatever the tolerance. Their sub-step is set by
+  stability (the fastest reaction), not by accuracy. That is what "stiff" means.
+- The implicit method needs only 2 to 3 sub-steps, but each costs 11 rate evaluations because its
+  matrix is built by differences. With a matrix written out exactly it would cost about a third of
+  that. That is the most promising saving, and it is not built.
+- In double every method is about ten times slower than in mixed (1.5 to 3.4 million).
+
 What follows: in a detonation the chemistry will cost several times the flow step in every hot
-cell, not about the same. Before step 4 on the GPU, the integrator must be chosen again at these
-states (the implicit method was built for exactly this), or burnt cells near equilibrium must get a
-cheaper treatment.
+cell, not about the same. Before step 4 on the GPU: give the implicit method an exact matrix, or
+give burnt cells near equilibrium a cheaper treatment, and measure again.
 
 ## What coupling to the flow solver needs next (not in this stage)
 
@@ -363,6 +382,7 @@ wave is cheap. All of this is before the cost of carrying 9 more species fields.
   the trial for case 21 (`reactingFoam`, 1200 cells, the whole solver, chemistry tolerance 1e-3)
   cost 57 microseconds per cell and step on one core. Case 21 asks its solver agent for the share of
   the chemistry in that.
-- The choice of integrator at detonation states (section above), and a second scheme.
+- An exact matrix for the implicit method, then the choice of integrator at detonation states again
+  (section above). A second scheme.
 - A cheaper explicit method with two stages for flow-sized steps; exact (not differenced) matrix for
   the implicit method; sorting cells by work at large steps.
