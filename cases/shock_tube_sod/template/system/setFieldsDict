@@ -1,0 +1,29 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      setFieldsDict;
+}
+
+// Start state: the left state everywhere, then the right state in the cells right of the wall
+// at x = {{ x0 }} (the wall sits on a cell face, so no cell is cut).
+defaultFieldValues
+(
+    volVectorFieldValue U (0 0 0)
+    volScalarFieldValue T {{ T_L }}
+    volScalarFieldValue p {{ p_L }}
+);
+
+regions
+(
+    boxToCell
+    {
+        box ({{ x0 }} -1 -1) ({{ L }} 1 1);
+        fieldValues
+        (
+            volScalarFieldValue T {{ T_R }}
+            volScalarFieldValue p {{ p_R }}
+        );
+    }
+);

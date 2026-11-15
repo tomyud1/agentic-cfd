@@ -9,14 +9,58 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Case 18 (the shock tube) is with a fresh solver agent, launched on 2026-11-15 right after the
-commit below (Fable 5.2, high effort). Its report and its review are not in yet.
+Nothing is waiting to be committed.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### Case 18 prepared: the shock tube, step 1 of the detonation-engine ladder, commit hash to be filled in
+### Case 18 solved: the shock tube, verdict FAIL on one of its own limits, commit hash to be filled in
+A fresh agent (Fable 5.2, high effort) solved step 1 of the detonation-engine ladder in 37 minutes
+with no human help: `results/shock_tube_sod/report.html`, one page: `brief.html`.
+- **The answer is accurate.** On 12 800 cells the mean difference from the exact solution is
+  0.0085 % (density), 0.012 % (velocity) and 0.0068 % (pressure). Every wave is in the right
+  place, and mass and energy are kept to round-off.
+- **Why FAIL.** Before its fine runs the agent set a limit that assumed the pressure error would
+  fall with order 0.85 as the grid is refined. It fell with order 0.78: 0.0068 % reached against
+  a limit of 0.0055 %. The agent did not soften its rule. The review agrees with the verdict.
+- **What step 1 taught for the engine.** A shock is spread over 2 cells on every grid; the border
+  between two gases over 4 to 6. OpenFOAM's shock solver needs half the time step its own
+  examples use, or the pressure rings behind the shock (3 % against 0.6 %). The error falls
+  slowly, so ten times less error costs about 17 times more cells.
+- **Review by the dev agent** (`dev/agent_checks/case18_review.py`): the headline numbers were
+  recomputed with an exact solution written from scratch and agree with the agent's (pressure
+  0.00685 % against 0.00684 %). Its limits were written at 08:54, production started at 08:55,
+  and the one later edit changed a comment only (read from its transcript). The case list named
+  OpenFOAM's shock solver for this step, a small hint the agent could have read.
+- **Open.** Why the error in the expansion falls with order 0.78 is not explained (the agent's
+  insight 10). A second solver on the same grids would tell; it is a question for the supervisor.
+
+### What case 18's 14 insights led to, commit hash to be filled in (the commit after the case's)
+- **Tools, each with a test** (`tests/test_tools.py`, checks 15 to 17):
+  - `foam.gas_constant()` and `foam.mol_weight(R)`: OpenFOAM's own gas constant is not the
+    textbook value, so a typed molar mass gives a density wrong in the fifth digit. The helper
+    reads the constant from OpenFOAM's files and matches the value the agent measured with a run.
+  - `monitor.preflight` no longer rewrites the time step with 6 digits when it shortens a run.
+  - `monitor.assess` says that the shock solver's printed Courant number is half the usual one.
+    Checked in the solver's source.
+  - `verification.mean_abs_error` and `verification.cell_averages`: the right way to compare
+    with an exact solution that has jumps.
+  - `verification.project_error`: sizes a limit from three coarse grids and warns when the order
+    of convergence is falling. Replayed on this case, it warns; its projection would still have
+    been 16 % too low, so it is a warning, not a cure.
+  - `report.lines`: several values in one table cell without a line break inside a pair.
+  - Numbers from 10 000 to 100 000 are written in full, not as `1e+04`. This also corrected one
+    number in case 5's published report ("1.1e+02 %" now reads "110 %"; the value is unchanged).
+- **Guidance, in the most specific place:** a new section on flows with shocks in the OpenFOAM
+  notes (gas constant, Courant number, ringing, how to compare, measured cost); one line each in
+  the workflow on symbolic checks with powers and on sizing limits; one line in the report
+  contract on list-valued settings.
+- **Nothing new:** the note on the report server's port (the machine file already covers it).
+- **Found by the rebuild:** case 17's one-page report did not build from `setup/rerender_all.sh`
+  (a missing path setting in `cfdlib/brief.py`); fixed. All nine reports rebuild and pass.
+
+### Case 18 prepared: the shock tube, step 1 of the detonation-engine ladder (`11dbfb7`)
 - **Purpose.** The first flow with shock waves and changing density: does the workflow, with
   OpenFOAM's shock solver, get a problem with an exact answer right, and what breaks on the way?
 - **The problem** (`cases/shock_tube_sod/problem.yaml`): Sod's shock tube in SI units. Air at

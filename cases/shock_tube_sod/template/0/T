@@ -1,0 +1,26 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      T;
+}
+
+dimensions      [0 0 0 1 0 0 0];
+
+// Left state everywhere (T = p / (rho R)); setFields then writes the right state into the right half.
+internalField   uniform {{ T_L }};
+
+boundaryField
+{
+    // No heat through the ends.
+    leftEnd
+    {
+        type            zeroGradient;
+    }
+    rightEnd
+    {
+        type            zeroGradient;
+    }
+    #includeEtc "caseDicts/setConstraintTypes"
+}

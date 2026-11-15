@@ -1,0 +1,47 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+// Tube 0 <= x <= L, {{ N }} equal cells along x. One cell across (empty in y and z): the flow is 1D.
+// The cross-section is {{ side }} m x {{ side }} m, so a volume integral is the value per unit of cross-section.
+scale   1;
+
+vertices
+(
+    (0        -{{ half }} -{{ half }})
+    ({{ L }}  -{{ half }} -{{ half }})
+    ({{ L }}   {{ half }} -{{ half }})
+    (0         {{ half }} -{{ half }})
+    (0        -{{ half }}  {{ half }})
+    ({{ L }}  -{{ half }}  {{ half }})
+    ({{ L }}   {{ half }}  {{ half }})
+    (0         {{ half }}  {{ half }})
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ({{ N }} 1 1) simpleGrading (1 1 1)
+);
+
+boundary
+(
+    leftEnd
+    {
+        type            wall;
+        faces           ((0 4 7 3));
+    }
+    rightEnd
+    {
+        type            wall;
+        faces           ((1 2 6 5));
+    }
+    sides
+    {
+        type            empty;
+        faces           ((0 1 5 4) (5 6 7 4) (3 7 6 2) (0 3 2 1));
+    }
+);

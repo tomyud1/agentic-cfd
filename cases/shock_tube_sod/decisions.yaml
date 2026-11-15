@@ -1,0 +1,110 @@
+# Every modelling and numerical choice for this case. Written by the agent WHILE setting up the case.
+# `settings`: the OpenFOAM settings (path patterns, * = wildcard) this decision controls.
+
+- area: Physical model
+  kind: physics
+  choice: 'The Euler equations in one dimension: an ideal gas with a constant ratio of specific heats, no viscosity, no heat conduction, no turbulence model'
+  settings: [constant/thermophysicalProperties/thermoType/*, constant/thermophysicalProperties/mixture/thermodynamics/*,
+             constant/thermophysicalProperties/mixture/transport/*, constant/turbulenceProperties/simulationType]
+  why: 'This is the problem as stated, and the exact solution is a solution of these equations. The viscosity is set to zero (<code>mu 0</code>); the solver then skips its viscous and heat-conduction steps. The specific heat is \(c_p = \gamma R/(\gamma - 1)\), so that the gas has exactly the given \(\gamma\). <code>Tref 0</code> makes the internal energy \(c_v T\) with no offset, so the solver''s total energy is the physical one, \(p/(\gamma-1) + \tfrac12\rho u^2\) per unit volume.'
+  affects: 'Defines the equations solved. Real air has a small viscosity, which would give the shock a thickness of well under a micrometre here: far below any cell, so it could not be seen.'
+  alternatives: 'A viscous gas (the Navier-Stokes equations): not what the exact solution describes.'
+
+- area: Physical model
+  kind: physics
+  choice: 'The molar mass is set so that OpenFOAM''s gas constant is exactly the given \(R\); OpenFOAM''s universal gas constant is measured by a one-step run, not typed in'
+  settings: [constant/thermophysicalProperties/mixture/specie/*]
+  why: 'OpenFOAM takes the molar mass and divides its own universal gas constant by it. That constant is built into the program from two rounded numbers, so its digits are not the textbook ones. <code>run.py</code> advances a 10-cell case by one step and reads the constant back from an undisturbed cell (\(p W/(\rho T)\)). The pre-flight then checks that the solver''s start densities are the given ones to 12 digits.'
+  affects: 'The start densities and \(\gamma\). With the tutorial''s rounded molar mass (28.96) the densities would be off by about 0.03 % and every comparison with the exact solution would carry that offset.'
+  alternatives: 'The tutorial''s rounded value; a textbook value of the universal gas constant.'
+
+- area: Solver
+  kind: solver
+  choice: '<code>rhoCentralFoam</code>, starting from OpenFOAM''s own tutorial of this problem (<code>compressible/rhoCentralFoam/shockTube</code>)'
+  settings: [system/controlDict/application]
+  why: 'A flow with shocks needs a method that keeps mass, momentum and energy exactly (so that a captured shock moves at the right speed) and that does not ring at a jump. <code>rhoCentralFoam</code> is OpenFOAM''s solver built for that: it advances density, momentum and energy directly, with fluxes that need no knowledge of the wave pattern. gpucfd does not apply: it solves flows of constant density.'
+  affects: 'Which equations are advanced and how; the exact solution it converges to is the same for any conservative method.'
+  alternatives: '<code>rhoPimpleFoam</code> or <code>sonicFoam</code> (pressure-based, implicit: built for lower speeds, and they smear shocks more); a solver that splits each face into its waves (a Riemann solver, not part of standard OpenFOAM).'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'The whole tube, \(0 \le x \le L\), one cell across with <code>empty</code> sides (a one-dimensional model); closed ends: no flow through them (<code>slip</code>), zero gradient for pressure and temperature'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/boundary, 0/*/boundaryField/*]
+  why: 'The flow depends on \(x\) and \(t\) only, and the tube wall is frictionless, so one cell across loses nothing. A frictionless end lets no gas through and no heat: velocity zero normal to it, no gradient of temperature. The cross-section is \(1\,\mathrm{m} \times 1\,\mathrm{m}\), so that a volume integral is the value per unit of cross-section.'
+  affects: 'Sets the problem. No wave reaches an end before the time of interest (Theory), so the end conditions are only there to close the tube; the conservation check confirms that nothing leaks through them.'
+  alternatives: 'Open ends as in the tutorial (zero gradient for everything): the same answer until a wave arrives, but gas could then leave, and mass would no longer be a check.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Start state: air at rest, the left state in the left half and the right state in the right half, set cell by cell with <code>setFields</code>; temperatures from \(T = p/(\rho R)\)'
+  settings: [system/setFieldsDict/*, 0/*/internalField]
+  why: 'Given in the problem. Every grid has an even number of cells, so the wall at \(x = L/2\) lies on a cell face and the start state is exact on the grid: no cell holds a mixture. The solver takes pressure and temperature as inputs, so the given densities enter through the temperatures.'
+  affects: 'Defines the initial-value problem.'
+  alternatives: 'None (it is part of the problem).'
+
+- area: Mesh
+  kind: accuracy
+  choice: 'Equal cells along the tube, 100 to 12800 cells (cell size \(10\) to \(0.078\,\mathrm{mm}\)), refinement ratio 2, eight levels'
+  settings: [system/blockMeshDict/blocks]
+  why: 'Ratio-2 refinement gives the observed order of accuracy directly. Equal cells keep that test clean, and the waves move, so there is no fixed place to cluster cells. The first plan had six levels, up to 3200 cells. The pre-flight showed that a cell costs about a third of a microsecond per step, so two more levels were added before any production run: the finest was projected at a minute and a half. Eight levels show whether the order has settled.'
+  affects: 'The size of the discretisation error: how many cells each jump is smeared over, in metres.'
+  alternatives: 'Cells that follow the waves (adaptive refinement): fewer cells for the same sharpness, but a different tool. Fewer levels.'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Central-upwind fluxes of Kurganov, Noelle and Petrova (<code>Kurganov</code>); face values reconstructed with the van Leer limiter for density, velocity and temperature'
+  settings: [system/fvSchemes/fluxScheme, system/fvSchemes/interpolationSchemes/*]
+  why: 'The tutorial''s choice. Each cell value is extended to its faces with a slope (second order where the flow is smooth); the limiter flattens the slope next to a jump so that no new peak appears. The flux then mixes the two face values with the local wave speeds. Five other combinations are run on one grid to show how much this choice matters (Comparison).'
+  affects: 'How many cells a jump is smeared over and whether the profile wiggles next to it. It does not change what the method converges to.'
+  alternatives: '<code>Tadmor</code> flux (more smearing); limiters <code>vanAlbada</code>, <code>Minmod</code> (more smearing), <code>SuperBee</code> (sharper, can square off smooth parts); <code>upwind</code> (first order). All five were run.'
+
+- area: Time stepping
+  kind: accuracy
+  choice: 'Explicit Euler steps of fixed size: the time of interest divided by 1.8 steps per cell (180 steps on 100 cells, 23040 on 12800), a Courant number of 0.19 on every grid, half the tutorial''s step'
+  settings: [system/controlDict/deltaT, system/controlDict/adjustTimeStep, system/controlDict/endTime,
+             system/controlDict/startTime, system/fvSchemes/ddtSchemes/*]
+  why: 'The solver is explicit: a cell is updated from its neighbours'' old values, which is only stable if no signal crosses a cell in one step. The fastest signal of the exact solution is \(u^* + c^*_R = 693\,\mathrm{m/s}\) (Theory); with 1.8 steps per cell it crosses 0.19 of a cell per step. This is the usual Courant number, \((|u| + c)\,\Delta t/\Delta x\). The solver prints half of it (0.097), because it counts differently, so the tutorial''s limit of 0.2 is a usual Courant number of about 0.4. The time-step study of the pre-flight tested that step and three smaller ones on 400 cells: at the tutorial''s step the pressure behind the shock rings by 2 % and its error doubles; at the step chosen here the ringing is 0.3 %. A fixed step (not the tutorial''s adjustable one) makes every run end exactly at the time of interest, writes the snapshots at exact times, and keeps the Courant number the same on every grid, so that the grid study changes one thing only.'
+  affects: 'The time error, the ringing behind the shock and a part of the smearing. Euler steps are first order in time, the only choice this solver has. The time error is not negligible: see the time-step study in Comparison.'
+  alternatives: 'The tutorial''s adjustable step with its limit of 0.2 (rings, and the output times are then not exact). A step two or four times smaller (less ringing, 2 to 4 times the cost, no gain in the error against the exact solution; both tested).'
+
+- area: Discretisation
+  kind: solver
+  choice: 'Schemes for gradients, the viscous stress and diffusion: the tutorial''s central schemes, kept because the solver reads them'
+  settings: [system/fvSchemes/gradSchemes/*, system/fvSchemes/divSchemes/*, system/fvSchemes/laplacianSchemes/*,
+             system/fvSchemes/snGradSchemes/*]
+  why: 'The solver forms the viscous stress on every step even when the viscosity is zero, so it asks for these schemes. Everything they produce is multiplied by zero.'
+  affects: 'Nothing in the answer.'
+  alternatives: 'None needed.'
+
+- area: Algorithm and linear solvers
+  kind: solver
+  choice: 'No iteration: density, momentum and energy are advanced explicitly (<code>diagonal</code> solver)'
+  settings: [system/fvSolution/solvers/*]
+  why: 'With explicit steps each cell''s new value is a formula of old values. There is no system of equations to solve and so no iteration error; the step-by-step conservation check confirms it.'
+  affects: 'Nothing in the answer.'
+  alternatives: 'None for this solver without viscosity.'
+
+- area: Stopping
+  kind: accuracy
+  choice: 'Every run ends at the time of interest, \(t_{\mathrm{end}}\); the physical check is made on every step: total mass and total energy must not change, and the total momentum must equal \((p_L - p_R)\,t\)'
+  settings: []
+  why: 'The problem asks for the state at one time, so there is nothing to wait for and no steady state to judge. What must hold instead is conservation, step by step: the ends are closed, so mass and energy can only change through an error, and the only force on the air is the pressure on the two end walls, which stays \(p_L\) and \(p_R\) until a wave arrives. All three were written down as checks before the first run, with limits sized from the pre-flight''s round-off level.'
+  affects: 'Whether a run counts as healthy.'
+  alternatives: 'Residuals: an explicit solver has none.'
+
+- area: Outputs
+  kind: output
+  choice: 'Fields written at 10 equally spaced times with 15 digits; total mass, momentum and energy recorded after every step'
+  settings: [system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision,
+             system/controlDict/timePrecision, system/controlDict/functions/*]
+  why: 'The profiles at \(t_{\mathrm{end}}\) answer (a), (b), (c) and (e); the earlier snapshots give the wave speeds as slopes of position against time, which does not assume where the waves started. The totals after every step answer (d). 15 digits, because the conservation check looks for changes in the 13th.'
+  affects: 'What is measured and how precisely; not the solution.'
+  alternatives: 'Wave speeds from the last snapshot alone (position divided by time): also reported.'
+
+- area: Outputs
+  kind: output
+  choice: 'The simulation is compared with the exact cell averages, and each output is read from a profile by a fixed rule that is also applied to the exact solution'
+  settings: []
+  why: 'A finite-volume solver holds the average of density, momentum and energy over each cell, not the value at its centre. In a cell that a jump passes through, the two differ by a large part of the jump. So the exact solution is integrated over each cell (in closed form, Theory), and velocity and pressure are formed from those averages as the solver forms them. The rules for reading states, positions and widths are in <code>numerics.yaml</code> (<code>extraction</code>) and <code>measure.py</code>; reading the exact cell averages with the same rules gives each rule''s own bias, reported next to the results.'
+  affects: 'The reported errors. With point values instead of cell averages every jump would add an error of up to half a cell that the solver did not make.'
+  alternatives: 'Point values of the exact solution at the cell centres (simpler, biased at jumps).'

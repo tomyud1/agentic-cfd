@@ -1,0 +1,225 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling | performance
+
+- id: 1
+  stage: theory
+  logged: '2026-11-15 08:44'
+  status: resolved
+  problem: SymPy could not prove that the expansion fan satisfies the Euler equations. Four self-checks came back
+    false although the formulas were right.
+  diagnosis: The fan's density and pressure are powers of a base with the exponent 2/(gamma-1), kept symbolic. The
+    base was written as an expression in the ray variable, whose sign SymPy does not know, so it refused to combine
+    the powers and the residual did not reduce to zero.
+  fix: The fan is written with the local speed of sound divided by the left one as the variable, declared positive.
+    The three conservation laws then reduce to zero for any gamma. The entropy check compares logarithms.
+  lesson: A symbolic proof with non-integer powers needs a base that is a single positive symbol. A check that fails
+    this way says nothing about the physics.
+  guideline: In the workflow's theory stage, add one line. When a solution has powers with a symbolic exponent
+    (gas dynamics, similarity solutions), write it in a variable that is a positive symbol before asking SymPy to
+    verify it.
+  resolved: '2026-11-15 08:46'
+- id: 2
+  stage: setup
+  logged: '2026-11-15 08:47'
+  status: resolved
+  problem: OpenFOAM's universal gas constant is not the textbook value, and the tutorial's molar mass of air (28.96)
+    does not give the gas constant of the problem. Typed from memory, the start densities would be wrong by a few
+    hundredths of a per cent.
+  diagnosis: The solver divides its own universal gas constant by the molar mass. The constant is built into the
+    program as a product of two rounded numbers; a one-step run gave \(8314.47006651\ \mathrm{J/(kmol\,K)}\), where
+    textbooks give 8314.4626. With the tutorial's 28.96 the gas constant is 287.10, not 287.
+  fix: run.py measures the constant with a 10-cell, one-step run (p W / (rho T) in an undisturbed cell) and sets
+    the molar mass from it. The pre-flight checks that the solver's start densities are the given ones to 12 digits.
+  lesson: For a compressible case the density is not an input. It follows from pressure, temperature and the
+    solver's own constants, so it has to be checked in the solver's output before anything else.
+  guideline: Add to the OpenFOAM primer, in a new section on compressible flow, that molWeight must be set from
+    the solver's own universal gas constant, with the measured value for v2606 and the one-step check of the start
+    density. A helper in cfdlib.foam that returns the constant would save every later case of the ladder this step.
+  resolved: '2026-11-15 08:50'
+- id: 3
+  stage: tooling
+  logged: '2026-11-15 08:50'
+  status: resolved
+  problem: The pre-flight copy of a case does not run with the case's time step. monitor.preflight sets the end time
+    with foamDictionary, which rewrites the whole controlDict with 6 digits, so a time step written with 16 digits
+    (the time of interest divided by 180) ran as its 6-digit rounding.
+  diagnosis: Seen in the total momentum, which is the wall pressure difference times the time. After one step it was
+    0.2500002 where 0.25 was expected, exactly the rounded time step. The function object also prints its time
+    column with too few digits for a check at round-off level.
+  fix: The analysis takes the time of each row as step number times the time step read from the case's own
+    controlDict. The momentum check then holds to 15 digits in the pre-flight copy and in production.
+  lesson: A pre-flight copy edited by foamDictionary is a slightly different case. With a fixed time step chosen to
+    hit an end time exactly, the copy can end one step early or late.
+  guideline: In cfdlib.monitor.preflight, change the end time without rewriting the file (replace the one entry
+    in the text, or pass writePrecision high enough), and say in the workflow that printed times of function
+    objects carry timePrecision digits only.
+  resolved: '2026-11-15 08:52'
+- id: 4
+  stage: preflight
+  logged: '2026-11-15 08:53'
+  status: resolved
+  problem: The Courant number that rhoCentralFoam prints is half the usual one. The run was planned at 0.19 and
+    the log says 0.097.
+  diagnosis: The solver forms its Courant number from the face fluxes of its central scheme. In subsonic flow
+    that is (|u| + c) dt / (2 dx), half of the usual (|u| + c) dt / dx (read in its source, centralCourantNo.H, and
+    confirmed by the log). The tutorial's limit maxCo 0.2 is therefore a usual Courant number of about 0.4.
+  fix: The time step is set from the exact solution's fastest signal with the usual definition, and the report
+    states both numbers.
+  lesson: A Courant limit copied from a rhoCentralFoam tutorial is twice as large as it looks.
+  guideline: Add to the primer's compressible section that rhoCentralFoam's printed Courant number is half the
+    usual one in subsonic flow, and that monitor.assess reports the solver's number.
+  resolved: '2026-11-15 08:55'
+- id: 5
+  stage: preflight
+  logged: '2026-11-15 08:55'
+  status: resolved
+  problem: At the tutorial's time-step limit the solution rings behind the shock. On 400 cells, pressure and
+    velocity between the fan and the shock ripple by 3 % (highest minus lowest value), and the pressure error is
+    twice that of half the step.
+  diagnosis: The solver's only time scheme is the explicit Euler step, which is first order and barely stable with
+    a second-order reconstruction in space. The time-step study on 400 cells shows the ripple falling with the
+    step (3.1 %, 0.6 %, 0.5 % and 0.3 % at usual Courant numbers 0.39, 0.19, 0.10, 0.05). The total variation above
+    the exact one falls from 12 % to 2 %, 1 % and 0.9 %.
+  fix: The main runs use a usual Courant number of 0.19 (0.097 as the solver prints it), half the tutorial's step,
+    where the ripple is 0.6 %. A limit on the ripple and on the total variation is part of the acceptance rules.
+  lesson: The time step of rhoCentralFoam is set by the ringing its Euler step makes, not by stability alone. The
+    error against the exact solution is not a good guide here; it was lowest at 0.19 only because the time error
+    and the space error partly cancel.
+  guideline: Add to the primer that rhoCentralFoam needs a usual Courant number of about 0.2 or less (maxCo 0.1
+    in its own measure) for a clean shock, with these measured numbers, and that a total-variation check of a
+    profile that should be monotone is a cheap detector. A tool for the ladder would be a solver with a
+    multi-stage time scheme.
+  resolved: '2026-11-15 08:57'
+- id: 6
+  stage: setup
+  logged: '2026-11-15 08:48'
+  status: resolved
+  problem: The workflow does not say what to compare a finite-volume result with when the solution has jumps. The
+    exact value at a cell centre is the wrong reference in a cell that a jump passes through.
+  diagnosis: The solver holds cell averages of density, momentum and energy. Next to a jump the exact cell average
+    and the exact centre value differ by up to half the jump, and the error this adds is as large as the error
+    being measured (a few cells times the jump).
+  fix: The exact solution is integrated over each cell in closed form, and velocity and pressure are formed from
+    the averaged conserved quantities as the solver forms them. Every reading rule (states, positions, widths) is
+    also applied to these exact cell averages, which gives its bias (up to 0.11 cells for a jump's position, 1.3
+    to 1.6 cells for a jump's width).
+  lesson: With jumps, compare cell averages with cell averages, and use the mean error (L1), not the largest one.
+  guideline: Add to the workflow's analysis stage, for flows with shocks. Compare with exact cell averages of the
+    conserved quantities, judge profiles by the L1 error, and measure each extraction rule on the exact solution.
+    cases/shock_tube_sod/theory.py (Exact.cell_averages) and measure.py are the worked example.
+  resolved: '2026-11-15 08:50'
+- id: 7
+  stage: tooling
+  logged: '2026-11-15 08:51'
+  status: resolved
+  problem: The decision check reported blockMeshDict's boundary list as undocumented although a pattern ending in
+    a wildcard after the list's name was given.
+  diagnosis: cfdlib.foamdict keeps a list (blockMesh boundary, the regions of setFieldsDict) as one setting. Its
+    key is the list's name with nothing after it, so a pattern that expects sub-keys does not match.
+  fix: The pattern names the list itself.
+  lesson: A list in an OpenFOAM dictionary is one setting for the checker, whatever it holds.
+  guideline: One line in report-contract.md under the settings patterns, saying that a list-valued entry is matched
+    by its own name.
+  resolved: '2026-11-15 08:52'
+- id: 8
+  stage: analysis
+  logged: '2026-11-15 08:58'
+  status: resolved
+  problem: The pressure error on the finest grid is above its limit (0.0068 % against 0.0055 % of the left
+    pressure). The limit, written before the runs, assumed that pressure converges with an order of at least 0.85.
+    The measured order is 0.78.
+  diagnosis: My first explanation was the ripple behind the shock. The data did not support it. Split by wave, 81 %
+    of the pressure error on the finest grid sits in the expansion fan, where it falls steadily with order 0.78.
+    The time-step study shows the fan's part does not fall with a smaller step, and the scheme study shows it
+    depends on the limiter (twice as large with SuperBee). The pre-flight had only two grids (100 and 400 cells),
+    whose single order of 0.94 hid that the order between 200 and 400 cells was already 0.80.
+  fix: The verdict stays FAIL, as the rule says. The report shows the split by wave, the time-step and scheme
+    studies, and says that the limit rested on a wrong expectation.
+  lesson: An order measured between two coarse grids is one number and hides its trend. With an exact solution,
+    split the error by region before explaining it; the first explanation here was wrong.
+  guideline: In the workflow's stage 2, where limits are sized from the coarse pre-flight error and the expected
+    order, ask for three coarse levels when they are cheap, and say that for flows with jumps the L1 error of every
+    quantity can converge with an order below 1 (0.8 here, set by the corners of the expansion fan). A helper in
+    cfdlib.verification that projects the finest error from three coarse levels would make the limit a
+    calculation.
+  resolved: '2026-11-15 09:03'
+- id: 9
+  stage: analysis
+  logged: '2026-11-15 08:59'
+  status: resolved
+  problem: The wiggle measure (total variation above the exact one) grows with refinement, from 1.6 % on 100 cells
+    to 5.5 % on 12800, and crosses its 5 % limit on the finest grid.
+  diagnosis: The ripple behind the shock keeps its size (0.6 % of the pressure on 400 and on 12800 cells) but
+    covers more cells on a finer grid, and the total variation counts every up and down. So the measure is not
+    independent of the grid; the ripple's size is, and its own limit of 1 % holds.
+  fix: Reported as a broken WARN rule, with both measures in the health table.
+  lesson: Total variation is a good detector of wiggles and a poor measure of their size.
+  guideline: Where the workflow or primer suggests a check for wiggles, recommend the ripple's size on a stretch
+    that should be uniform as the rule, and the total variation only as a detector.
+  resolved: '2026-11-15 09:04'
+- id: 10
+  stage: analysis
+  logged: '2026-11-15 09:01'
+  status: open
+  problem: Why the error in the expansion fan falls with order 0.78, not 1, is not established. The back of the fan,
+    read from a straight-line fit of the velocity, is about one cell too far right on every grid and with every
+    second-order limiter.
+- id: 11
+  stage: performance
+  logged: '2026-11-15 08:58'
+  status: resolved
+  problem: What the runs cost. The finest grid (12800 cells, 23040 steps) took 84 seconds on one core, and all 16
+    runs together about two minutes of solver time.
+  diagnosis: The solver is explicit, so a run costs cells times steps, about 0.3 microseconds per cell and step on
+    the larger grids. Runs below 1000 cells are dominated by start-up (about half a second). The time step is set
+    by the ripple of the Euler step, not by stability. At twice the step the run still holds together but ripples
+    by 3 %.
+  fix: Nothing to fix in one dimension. Recorded in the performance appendix.
+  lesson: For this solver the lever on speed is the time scheme, not the work per step. With an error that falls
+    like the cell size to the power 0.8, ten times less error needs about 17 times more cells.
+  guideline: For the next steps of the ladder (two dimensions, chemistry), carry these two numbers into the
+    cost estimate before choosing grids. A solver with a multi-stage time scheme would be the tool to compare
+    against.
+  resolved: '2026-11-15 09:05'
+- id: 12
+  stage: report
+  logged: '2026-11-15 09:06'
+  status: resolved
+  problem: In the summary table, an answer with eight numbers (four waves, each a position and a speed) wrapped in
+    the middle of a number pair and could not be read. One theory card's equation was wider than its card.
+  diagnosis: The answer columns are narrow and wrap at any space. The equation for the pressure between the waves
+    was written on one line.
+  fix: Each line of the answer is kept together with a no-wrap span and shorter wave names; the equation is split
+    over two lines.
+  lesson: An answer with several values per line needs lines that cannot break.
+  guideline: A helper in cfdlib.report for an answer cell with several lines that do not wrap would save the next
+    case the same trial.
+  resolved: '2026-11-15 09:09'
+- id: 13
+  stage: tooling
+  logged: '2026-11-15 09:05'
+  status: resolved
+  problem: The report server's port 8765 was already taken by another session, and the preview tool started a
+    second server on 8766.
+  diagnosis: Several sessions share this checkout and one of them already serves the results folder.
+  fix: Opened the report at port 8765, as the machine file advises. It worked at once.
+  lesson: This went well only because the machine file says what to do.
+  guideline: None needed; keep the line in dev-pc.md.
+  resolved: '2026-11-15 09:06'
+- id: 14
+  stage: tooling
+  logged: '2026-11-15 09:12'
+  status: resolved
+  problem: In the theory cards' symbol tables a pressure of 10000 Pa and one of 30313 Pa were printed in computer
+    e-notation (a 1, the letter e and +04), not as numbers.
+  diagnosis: cfdlib.report.tex_num formats numbers between 0.001 and 100000 with Python's g format and 4
+    significant digits. A five-digit number then comes out in e-notation, inside math, where the typesetting check
+    does not look. The template applies this to every value of a card's symbol table.
+  fix: The case passes these values as a float that prints a five-digit number in full (theory.py, class _Shown).
+    A workaround in the case, because the shared tools are not mine to change.
+  lesson: Any case with pressures in pascal meets this; the earlier cases had no values in that range.
+  guideline: In cfdlib.report.tex_num, write numbers from 10000 to 100000 without e-notation whatever the number
+    of significant digits (or switch to the power-of-ten form), and add a test with 10000 and 30313.
+  resolved: '2026-11-15 09:14'

@@ -1,0 +1,435 @@
+{
+ "gas_constant": {
+  "RR": 8314.47006650545,
+  "mol_weight": 28.970278977370906,
+  "R": 287.0,
+  "measured_from": {
+   "rho": 0.999990370221456,
+   "p": 100000.0,
+   "T": 348.432055749129
+  },
+  "openfoam": "v2606"
+ },
+ "short": [
+  {
+   "status": "ok",
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "Max Courant number",
+     "status": "ok",
+     "value": "0.0971",
+     "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+    },
+    {
+     "name": "Courant number trend",
+     "status": "ok",
+     "value": "\\(\\times\\,1.17\\) (late vs early)",
+     "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+    },
+    {
+     "name": "Density and pressure stay positive",
+     "status": "ok",
+     "value": "lowest density \\(0.125\\), lowest pressure \\(10000\\)",
+     "meaning": "A negative density or pressure is not a gas; a scheme that overshoots at a jump can produce one."
+    },
+    {
+     "name": "Cells are in order along the tube",
+     "status": "ok",
+     "value": "largest difference \\(0\\,\\mathrm{m}\\)",
+     "meaning": "The analysis places cell number i at (i + 1/2) h. OpenFOAM's own cell centres must agree."
+    },
+    {
+     "name": "Start state as given",
+     "status": "ok",
+     "value": "density in the first and last cell: \\(1\\) and \\(0.125\\)",
+     "meaning": "The solver forms the density from pressure, temperature and its own gas constant. The end cells are still undisturbed, so they must hold the given densities."
+    },
+    {
+     "name": "Totals recorded after every step",
+     "status": "ok",
+     "value": "18 rows for 18 steps",
+     "meaning": "Mass, momentum and energy of the whole tube are needed after every step for the conservation check."
+    },
+    {
+     "name": "Mass and energy unchanged, momentum equals the push of the end walls",
+     "status": "ok",
+     "value": "mass \\(5.9 \\times 10^{-16}\\), energy \\(6.3 \\times 10^{-16}\\), momentum \\(3 \\times 10^{-17}\\) (relative)",
+     "meaning": "The physical check of every step. Closed ends let no mass or energy through, and the only force on the air is the pressure on the two end walls."
+    }
+   ],
+   "steps": 18,
+   "last_time": 5.000004e-05,
+   "wall_time": 0.01,
+   "est_full_runtime": 0.01,
+   "est_kind": "fixed run length",
+   "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod/pf_N100_preflight",
+   "end_time_short": "5e-05",
+   "timed_out": false,
+   "N": 100,
+   "name": "N100",
+   "n_steps": 18,
+   "header": "# Time                 \tvolIntegrate(rho)\tvolIntegrate(rhoU)\tvolIntegrate(rhoE)",
+   "first_rows": [
+    [
+     2.77778e-06,
+     0.5624999999999987,
+     0.2500002,
+     137499.9999999999
+    ],
+    [
+     5.55556e-06,
+     0.5624999999999987,
+     0.5000004,
+     137499.9999999999
+    ],
+    [
+     8.33334e-06,
+     0.5624999999999987,
+     0.7500006000000001,
+     137499.9999999999
+    ]
+   ],
+   "mass_drift": 5.921189464667501e-16,
+   "energy_drift": 6.349926645105534e-16,
+   "momentum_err": 2.960594732333751e-17,
+   "ends": 0.0,
+   "mass_start": 2.3314683517128287e-15,
+   "energy_start": 8.881784197001252e-16
+  },
+  {
+   "status": "ok",
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "Max Courant number",
+     "status": "ok",
+     "value": "0.099",
+     "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+    },
+    {
+     "name": "Courant number trend",
+     "status": "ok",
+     "value": "\\(\\times\\,0.999\\) (late vs early)",
+     "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+    },
+    {
+     "name": "Density and pressure stay positive",
+     "status": "ok",
+     "value": "lowest density \\(0.125\\), lowest pressure \\(10000\\)",
+     "meaning": "A negative density or pressure is not a gas; a scheme that overshoots at a jump can produce one."
+    },
+    {
+     "name": "Cells are in order along the tube",
+     "status": "ok",
+     "value": "largest difference \\(0\\,\\mathrm{m}\\)",
+     "meaning": "The analysis places cell number i at (i + 1/2) h. OpenFOAM's own cell centres must agree."
+    },
+    {
+     "name": "Start state as given",
+     "status": "ok",
+     "value": "density in the first and last cell: \\(1\\) and \\(0.125\\)",
+     "meaning": "The solver forms the density from pressure, temperature and its own gas constant. The end cells are still undisturbed, so they must hold the given densities."
+    },
+    {
+     "name": "Totals recorded after every step",
+     "status": "ok",
+     "value": "2304 rows for 2304 steps",
+     "meaning": "Mass, momentum and energy of the whole tube are needed after every step for the conservation check."
+    },
+    {
+     "name": "Mass and energy unchanged, momentum equals the push of the end walls",
+     "status": "ok",
+     "value": "mass \\(5.7 \\times 10^{-15}\\), energy \\(3.8 \\times 10^{-15}\\), momentum \\(5.2 \\times 10^{-15}\\) (relative)",
+     "meaning": "The physical check of every step. Closed ends let no mass or energy through, and the only force on the air is the pressure on the two end walls."
+    }
+   ],
+   "steps": 2304,
+   "last_time": 5.00000256e-05,
+   "wall_time": 8.36,
+   "est_full_runtime": 83.485170120507,
+   "est_kind": "fixed run length",
+   "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod/pf_N12800_preflight",
+   "end_time_short": "5e-05",
+   "timed_out": false,
+   "N": 12800,
+   "name": "N12800",
+   "n_steps": 2304,
+   "header": "# Time                 \tvolIntegrate(rho)\tvolIntegrate(rhoU)\tvolIntegrate(rhoE)",
+   "first_rows": [
+    [
+     2.17014e-08,
+     0.5624999999999432,
+     0.001953126,
+     137499.999999999
+    ],
+    [
+     4.34028e-08,
+     0.5624999999999432,
+     0.003906252,
+     137499.999999999
+    ],
+    [
+     6.51042e-08,
+     0.5624999999999432,
+     0.005859377999999998,
+     137499.999999999
+    ]
+   ],
+   "mass_drift": 5.723816482511918e-15,
+   "energy_drift": 3.80995598706332e-15,
+   "momentum_err": 5.151434834260726e-15,
+   "ends": 2.4808393984430357e-16,
+   "mass_start": 1.0103029524088925e-13,
+   "energy_start": 7.438494264988549e-15
+  }
+ ],
+ "decisions": [],
+ "timestep": [
+  {
+   "name": "N400_spc0.9",
+   "spc": 0.9,
+   "courant": 0.38501891820384193,
+   "errors": {
+    "rho": 0.0017225570493749186,
+    "u": 0.0037323747671922074,
+    "p": 0.001788159218526867,
+    "wiggle_rho": 0.08705137081211878,
+    "wiggle_p": 0.11852300406210325
+   }
+  },
+  {
+   "name": "N400",
+   "spc": 1.8,
+   "courant": 0.19250945910192097,
+   "errors": {
+    "rho": 0.0012742637958446643,
+    "u": 0.002303398608623419,
+    "p": 0.0009248288440459627,
+    "wiggle_rho": 0.018545366974425326,
+    "wiggle_p": 0.02080405258108642
+   },
+   "change": {
+    "rho": 0.0011692847741737772,
+    "u": 0.002889649320993842,
+    "p": 0.0013446220541093493
+   }
+  },
+  {
+   "name": "N400_spc3.6",
+   "spc": 3.6,
+   "courant": 0.09625472955096048,
+   "errors": {
+    "rho": 0.0013897385258570438,
+    "u": 0.0024027106185929735,
+    "p": 0.0009550574022435051,
+    "wiggle_rho": 0.010487437567362035,
+    "wiggle_p": 0.012036742740235473
+   },
+   "change": {
+    "rho": 0.00042107217592100604,
+    "u": 0.0007633147676334694,
+    "p": 0.000412312611453091
+   }
+  },
+  {
+   "name": "N400_spc7.2",
+   "spc": 7.2,
+   "courant": 0.04812736477548024,
+   "errors": {
+    "rho": 0.0015055674963252142,
+    "u": 0.0025569279072761688,
+    "p": 0.001040996524716485,
+    "wiggle_rho": 0.00836913205103329,
+    "wiggle_p": 0.008890888173175737
+   },
+   "change": {
+    "rho": 0.0001931846704122417,
+    "u": 0.00032952742803134103,
+    "p": 0.00018061927108985285
+   }
+  }
+ ],
+ "sizing": {
+  "N100": {
+   "errors": {
+    "rho": 0.0045458594998266455,
+    "u": 0.008184340227745612,
+    "p": 0.003420173642907113,
+    "wiggle_rho": 0.015853690237693785,
+    "wiggle_p": 0.027595286559664478
+   },
+   "sim": {
+    "states": {
+     "p": {
+      "mean": 30301.43509647207,
+      "spread": 546.9257643100027,
+      "cells": 15
+     },
+     "u": {
+      "mean": 293.8536747754868,
+      "spread": 4.896242292478007,
+      "cells": 15
+     },
+     "rho_L": {
+      "mean": 0.42620342765963,
+      "spread": 0.004655809130024002,
+      "cells": 8
+     },
+     "rho_R": {
+      "mean": 0.2633601054820525,
+      "spread": 0.0024631328424190024,
+      "cells": 6
+     }
+    },
+    "positions": {
+     "shock": 0.7788802254281455,
+     "contact": 0.6448210424667707,
+     "head": 0.3072405154409008,
+     "tail": 0.49890273163992405,
+     "fan_cells": 11
+    },
+    "widths": {
+     "shock": 2.146288857803336,
+     "contact": 4.422415479512043
+    }
+   },
+   "exact_cells": {
+    "states": {
+     "p": {
+      "mean": 30313.0178050647,
+      "spread": 7.566995918750763e-10,
+      "cells": 15
+     },
+     "u": {
+      "mean": 293.28627012454285,
+      "spread": 1.4949819160392508e-11,
+      "cells": 15
+     },
+     "rho_L": {
+      "mean": 0.426319428178495,
+      "spread": 8.326672684688674e-16,
+      "cells": 8
+     },
+     "rho_R": {
+      "mean": 0.26557371170530836,
+      "spread": 1.1102230246251565e-14,
+      "cells": 6
+     }
+    },
+    "positions": {
+     "shock": 0.778152304102518,
+     "contact": 0.647473433171039,
+     "head": 0.31295401401969836,
+     "tail": 0.48893262386600234,
+     "fan_cells": 10
+    },
+    "widths": {
+     "shock": 1.4924387809888253,
+     "contact": 1.5515716617390376
+    }
+   }
+  },
+  "N400": {
+   "errors": {
+    "rho": 0.0012742637958446643,
+    "u": 0.002303398608623419,
+    "p": 0.0009248288440459627,
+    "wiggle_rho": 0.018545366974425326,
+    "wiggle_p": 0.02080405258108642
+   },
+   "sim": {
+    "states": {
+     "p": {
+      "mean": 30318.962537699266,
+      "spread": 184.92036868819923,
+      "cells": 58
+     },
+     "u": {
+      "mean": 293.2945138117518,
+      "spread": 1.716650814600996,
+      "cells": 58
+     },
+     "rho_L": {
+      "mean": 0.4264714136024586,
+      "spread": 0.0005726030081529832,
+      "cells": 32
+     },
+     "rho_R": {
+      "mean": 0.2656092687779919,
+      "spread": 0.0014677809200289715,
+      "cells": 26
+     }
+    },
+    "positions": {
+     "shock": 0.7773584058262991,
+     "contact": 0.6463528530565531,
+     "head": 0.3109355528841242,
+     "tail": 0.4913608110001652,
+     "fan_cells": 43
+    },
+    "widths": {
+     "shock": 2.1960721441562474,
+     "contact": 5.169090126797427
+    }
+   },
+   "exact_cells": {
+    "states": {
+     "p": {
+      "mean": 30313.017805064705,
+      "spread": 3.743480192497373e-09,
+      "cells": 58
+     },
+     "u": {
+      "mean": 293.2862701245426,
+      "spread": 5.974243322270922e-11,
+      "cells": 58
+     },
+     "rho_L": {
+      "mean": 0.4263194281784951,
+      "spread": 2.5479618415147343e-14,
+      "cells": 32
+     },
+     "rho_R": {
+      "mean": 0.26557371170530786,
+      "spread": 4.440892098500626e-14,
+      "cells": 26
+     }
+    },
+    "positions": {
+     "shock": 0.7772505942829782,
+     "contact": 0.6468481478201311,
+     "head": 0.31291943605765327,
+     "tail": 0.48889162623722315,
+     "fan_cells": 42
+    },
+    "widths": {
+     "shock": 1.2788561445716164,
+     "contact": 1.5560905584698583
+    }
+   }
+  }
+ }
+}

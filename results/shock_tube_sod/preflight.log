@@ -1,0 +1,54 @@
+gas constant: OpenFOAM's RR = 8314.47006651 J/(kmol K) -> molWeight 28.9702789774 for R = 287.0
+preflight N100: ok; 0.01 s for 18 steps; projected 0.01 s
+   ok   Solver finished without errors: no errors
+   ok   No NaN values: none
+   ok   Max Courant number: 0.0971
+   ok   Courant number trend: \(\times\,1.17\) (late vs early)
+   ok   Density and pressure stay positive: lowest density \(0.125\), lowest pressure \(10000\)
+   ok   Cells are in order along the tube: largest difference \(0\,\mathrm{m}\)
+   ok   Start state as given: density in the first and last cell: \(1\) and \(0.125\)
+   ok   Totals recorded after every step: 18 rows for 18 steps
+   ok   Mass and energy unchanged, momentum equals the push of the end walls: mass \(5.9 \times 10^{-16}\), energy \(6.3 \times 10^{-16}\), momentum \(3 \times 10^{-17}\) (relative)
+   totals file: # Time                 	volIntegrate(rho)	volIntegrate(rhoU)	volIntegrate(rhoE) | first rows: [[2.77778e-06, 0.5624999999999987, 0.2500002, 137499.9999999999], [5.55556e-06, 0.5624999999999987, 0.5000004, 137499.9999999999], [8.33334e-06, 0.5624999999999987, 0.7500006000000001, 137499.9999999999]]
+preflight N12800: ok; 8.36 s for 2304 steps; projected 83.485170120507 s
+   ok   Solver finished without errors: no errors
+   ok   No NaN values: none
+   ok   Max Courant number: 0.099
+   ok   Courant number trend: \(\times\,0.999\) (late vs early)
+   ok   Density and pressure stay positive: lowest density \(0.125\), lowest pressure \(10000\)
+   ok   Cells are in order along the tube: largest difference \(0\,\mathrm{m}\)
+   ok   Start state as given: density in the first and last cell: \(1\) and \(0.125\)
+   ok   Totals recorded after every step: 2304 rows for 2304 steps
+   ok   Mass and energy unchanged, momentum equals the push of the end walls: mass \(5.7 \times 10^{-15}\), energy \(3.8 \times 10^{-15}\), momentum \(5.2 \times 10^{-15}\) (relative)
+   totals file: # Time                 	volIntegrate(rho)	volIntegrate(rhoU)	volIntegrate(rhoE) | first rows: [[2.17014e-08, 0.5624999999999432, 0.001953126, 137499.999999999], [4.34028e-08, 0.5624999999999432, 0.003906252, 137499.999999999], [6.51042e-08, 0.5624999999999432, 0.005859377999999998, 137499.999999999]]
+   decisions: cover every setting
+N400_spc0.9: 360 steps, solver 0.5 s, health ok; L1 errors rho 1.723e-03, u 3.732e-03, p 1.788e-03; wiggle rho 8.7e-02, p 1.2e-01; mass drift 9.7e-15 (start 1.5e-14), energy drift 1.3e-15 (start 8.9e-16), momentum 1.7e-15, ends 1.7e-16
+N400: 720 steps, solver 0.7 s, health ok; L1 errors rho 1.274e-03, u 2.303e-03, p 9.248e-04; wiggle rho 1.9e-02, p 2.1e-02; mass drift 1.0e-14 (start 1.5e-14), energy drift 1.5e-15 (start 8.9e-16), momentum 1.6e-15, ends 2.3e-16
+N400_spc3.6: 1440 steps, solver 0.9 s, health ok; L1 errors rho 1.390e-03, u 2.403e-03, p 9.551e-04; wiggle rho 1.0e-02, p 1.2e-02; mass drift 1.1e-14 (start 1.5e-14), energy drift 1.5e-15 (start 8.9e-16), momentum 3.0e-15, ends 5.7e-16
+N400_spc7.2: 2880 steps, solver 1.4 s, health ok; L1 errors rho 1.506e-03, u 2.557e-03, p 1.041e-03; wiggle rho 8.4e-03, p 8.9e-03; mass drift 1.3e-14 (start 1.5e-14), energy drift 3.0e-15 (start 8.9e-16), momentum 4.9e-15, ends 6.8e-16
+N100: 180 steps, solver 0.4 s, health ok; L1 errors rho 4.546e-03, u 8.184e-03, p 3.420e-03; wiggle rho 1.6e-02, p 2.8e-02; mass drift 1.8e-15 (start 2.3e-15), energy drift 1.3e-15 (start 8.9e-16), momentum 6.3e-16, ends 1.5e-16
+time step N400_spc0.9: Courant 0.385, L1 rho 1.7226e-03, u 3.7324e-03, p 1.7882e-03; wiggle rho 8.71e-02, p 1.19e-01; change from the larger step: None
+time step N400: Courant 0.193, L1 rho 1.2743e-03, u 2.3034e-03, p 9.2483e-04; wiggle rho 1.85e-02, p 2.08e-02; change from the larger step: {'rho': 0.0011692847741737772, 'u': 0.002889649320993842, 'p': 0.0013446220541093493}
+time step N400_spc3.6: Courant 0.096, L1 rho 1.3897e-03, u 2.4027e-03, p 9.5506e-04; wiggle rho 1.05e-02, p 1.20e-02; change from the larger step: {'rho': 0.00042107217592100604, 'u': 0.0007633147676334694, 'p': 0.000412312611453091}
+time step N400_spc7.2: Courant 0.048, L1 rho 1.5056e-03, u 2.5569e-03, p 1.0410e-03; wiggle rho 8.37e-03, p 8.89e-03; change from the larger step: {'rho': 0.0001931846704122417, 'u': 0.00032952742803134103, 'p': 0.00018061927108985285}
+N100: errors {'rho': 0.0045458594998266455, 'u': 0.008184340227745612, 'p': 0.003420173642907113, 'wiggle_rho': 0.015853690237693785, 'wiggle_p': 0.027595286559664478}
+   state p: sim 30301.435 (spread 5.47e+02, 15 cells), rel. error -3.82e-04; the rule on the exact cells: +6.66e-16
+   state u: sim 293.85367 (spread 4.90e+00, 15 cells), rel. error +1.93e-03; the rule on the exact cells: +6.66e-16
+   state rho_L: sim 0.42620343 (spread 4.66e-03, 8 cells), rel. error -2.72e-04; the rule on the exact cells: -5.55e-16
+   state rho_R: sim 0.26336011 (spread 2.46e-03, 6 cells), rel. error -8.34e-03; the rule on the exact cells: +4.88e-15
+   position head: sim 0.307241, exact 0.312917, error -0.568 cells; the rule on the exact cells: +0.004 cells
+   position tail: sim 0.498903, exact 0.488889, error +1.001 cells; the rule on the exact cells: +0.004 cells
+   position contact: sim 0.644821, exact 0.646643, error -0.182 cells; the rule on the exact cells: +0.083 cells
+   position shock: sim 0.778880, exact 0.777040, error +0.184 cells; the rule on the exact cells: +0.111 cells
+   widths in cells: sim {'shock': 2.146288857803336, 'contact': 4.422415479512043}, exact cells {'shock': 1.4924387809888253, 'contact': 1.5515716617390376}
+N400: errors {'rho': 0.0012742637958446643, 'u': 0.002303398608623419, 'p': 0.0009248288440459627, 'wiggle_rho': 0.018545366974425326, 'wiggle_p': 0.02080405258108642}
+   state p: sim 30318.963 (spread 1.85e+02, 58 cells), rel. error +1.96e-04; the rule on the exact cells: +6.66e-16
+   state u: sim 293.29451 (spread 1.72e+00, 58 cells), rel. error +2.81e-05; the rule on the exact cells: +0.00e+00
+   state rho_L: sim 0.42647141 (spread 5.73e-04, 32 cells), rel. error +3.57e-04; the rule on the exact cells: -2.22e-16
+   state rho_R: sim 0.26560927 (spread 1.47e-03, 26 cells), rel. error +1.34e-04; the rule on the exact cells: +2.89e-15
+   position head: sim 0.310936, exact 0.312917, error -0.793 cells; the rule on the exact cells: +0.001 cells
+   position tail: sim 0.491361, exact 0.488889, error +0.989 cells; the rule on the exact cells: +0.001 cells
+   position contact: sim 0.646353, exact 0.646643, error -0.116 cells; the rule on the exact cells: +0.082 cells
+   position shock: sim 0.777358, exact 0.777040, error +0.127 cells; the rule on the exact cells: +0.084 cells
+   widths in cells: sim {'shock': 2.1960721441562474, 'contact': 5.169090126797427}, exact cells {'shock': 1.2788561445716164, 'contact': 1.5560905584698583}
+exit 0

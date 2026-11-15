@@ -1,0 +1,3940 @@
+{
+ "title": "Shock tube, air at rest released across a pressure jump (Sod's problem)",
+ "date": "2026-11-15",
+ "verdict": "FAIL",
+ "comparison_type": "verification",
+ "summary": {
+  "headline": "<b>Verification FAILED on one of its own limits.</b> OpenFOAM's shock solver converges to the exact solution of the shock tube: on 12800 cells the mean errors are \\(0.0085\\,\\%\\) (density), \\(0.012\\,\\%\\) (velocity), \\(0.0068\\,\\%\\) (pressure), the states between the waves are within \\(0.0022\\,\\%\\) and mass and energy are kept to round-off. But the pressure error falls more slowly than the limit set before the runs assumed (order \\(0.78\\) against \\(0.85\\)): \\(0.0068\\,\\%\\) against a limit of \\(0.0055\\,\\%\\).",
+  "answer_columns": [
+   "Requested",
+   "Exact solution",
+   "Simulation (12800 cells)",
+   "Difference"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Density, velocity and pressure along the tube at \\(t_{\\mathrm{end}}\\), compared with the exact solution",
+    "theory": "the exact solution, averaged over each cell<div class='sub'>Figure 2</div>",
+    "sim": "mean difference along the tube on 12800 cells<div class='sub'>as a fraction of \\(\\rho_L\\), \\(u^*\\) and \\(p_L\\)</div>",
+    "diff": "\\(\\rho\\): \\(0.0085\\,\\%\\)<br>\\(u\\): \\(0.012\\,\\%\\)<br>\\(p\\): \\(0.0068\\,\\%\\)"
+   },
+   {
+    "letter": "b",
+    "label": "The uniform states between the waves at \\(t_{\\mathrm{end}}\\): the pressure and the velocity there, and the density on each side of the border between the gas from the left and the gas from the right",
+    "theory": "\\(p^* = 30313.0\\ \\mathrm{Pa}\\)<br>\\(u^* = 293.286\\ \\mathrm{m/s}\\)<br>\\(\\rho^*_L = 0.42632\\ \\mathrm{kg/m^3}\\)<br>\\(\\rho^*_R = 0.26557\\ \\mathrm{kg/m^3}\\)",
+    "sim": "\\(30313.1\\ \\mathrm{Pa}\\)<br>\\(293.287\\ \\mathrm{m/s}\\)<br>\\(0.42633\\ \\mathrm{kg/m^3}\\)<br>\\(0.26557\\ \\mathrm{kg/m^3}\\)",
+    "diff": "\\(0.00023\\,\\%\\)<br>\\(0.000094\\,\\%\\)<br>\\(0.0022\\,\\%\\)<br>\\(0.000033\\,\\%\\)"
+   },
+   {
+    "letter": "c",
+    "label": "Where each wave is at \\(t_{\\mathrm{end}}\\), and how fast it moves",
+    "theory": "<span style='white-space:nowrap'>fan front: \\(0.31292\\,\\mathrm{m},\\ -374.17\\,\\mathrm{m/s}\\)</span><br><span style='white-space:nowrap'>fan back: \\(0.48889\\,\\mathrm{m},\\ -22.22\\,\\mathrm{m/s}\\)</span><br><span style='white-space:nowrap'>border: \\(0.64664\\,\\mathrm{m},\\ 293.29\\,\\mathrm{m/s}\\)</span><br><span style='white-space:nowrap'>shock: \\(0.77704\\,\\mathrm{m},\\ 554.08\\,\\mathrm{m/s}\\)</span><div class='sub'>position at \\(t_{\\mathrm{end}}\\) and speed; border: of the two gases</div>",
+    "sim": "<span style='white-space:nowrap'>\\(0.31281\\,\\mathrm{m},\\ -374.20\\,\\mathrm{m/s}\\)</span><br><span style='white-space:nowrap'>\\(0.48897\\,\\mathrm{m},\\ -22.22\\,\\mathrm{m/s}\\)</span><br><span style='white-space:nowrap'>\\(0.64667\\,\\mathrm{m},\\ 293.33\\,\\mathrm{m/s}\\)</span><br><span style='white-space:nowrap'>\\(0.77705\\,\\mathrm{m},\\ 554.08\\,\\mathrm{m/s}\\)</span><div class='sub'>Figure 3</div>",
+    "diff": "\\(-0.11\\,\\mathrm{mm},\\ -0.04\\,\\mathrm{m/s}\\)<br>\\(+0.08\\,\\mathrm{mm},\\ +0.00\\,\\mathrm{m/s}\\)<br>\\(+0.03\\,\\mathrm{mm},\\ +0.05\\,\\mathrm{m/s}\\)<br>\\(+0.01\\,\\mathrm{mm},\\ -0.00\\,\\mathrm{m/s}\\)"
+   },
+   {
+    "letter": "d",
+    "label": "Total mass and total energy of the air in the tube: do they stay constant up to \\(t_{\\mathrm{end}}\\)?",
+    "theory": "constant: \\(M = 0.5625\\ \\mathrm{kg/m^2}\\), \\(E_{\\mathrm{tot}} = 1.375 \\times 10^{5}\\ \\mathrm{J/m^2}\\)<div class='sub'>per unit of cross-section</div>",
+    "sim": "constant. Largest change during any of the 16 runs: mass \\(3.6 \\times 10^{-14}\\), energy \\(5.3 \\times 10^{-14}\\) (relative)<div class='sub'>Figure 5</div>",
+    "diff": "round-off"
+   },
+   {
+    "letter": "e",
+    "label": "How many cells wide each computed jump is, and how the error of the profiles falls as the grid is refined",
+    "theory": "An exact jump has no width. A jump spread over a few cells leaves an error in proportion to the cell size at best (order 1).",
+    "sim": "shock: \\(1.8\\) to \\(2.2\\) cells on every grid<br>border of the two gases: \\(4.4\\) cells on 100 cells, \\(6.3\\) on 12800<br>error against cell size, all eight grids: order \\(0.81\\) (\\(\\rho\\)), \\(0.85\\) (\\(u\\)), \\(0.78\\) (\\(p\\))<div class='sub'>Figures 4 and 6</div>",
+    "diff": "–"
+   }
+  ],
+  "findings": [
+   "<b>Verdict by the rules written before the runs: FAIL.</b> 16 of 18 rules hold. Broken, FAIL: mean pressure error on the finest grid. Broken, WARN: extra up-and-down of density and pressure (wiggles), every grid of the family.",
+   "<b>The simulation converges to the exact solution.</b> From 100 to 12800 cells the mean error falls by \\(54\\times\\) (\\(\\rho\\)), \\(70\\times\\) (\\(u\\)), \\(50\\times\\) (\\(p\\)). On the finest grid the uniform states are within \\(0.0022\\,\\%\\), the shock within \\(0.06\\) cells and the border of the two gases within \\(0.35\\) cells of their exact places.",
+   "<b>It converges more slowly than the pressure limit assumed.</b> The limit was sized for an order of \\(0.85\\); the measured order over the eight grids is \\(0.78\\). The pressure error on the finest grid is \\(0.0068\\,\\%\\) of \\(p_L\\), the limit \\(0.0055\\,\\%\\). The error sits in the expansion fan: \\(81\\,\\%\\) of the pressure error and \\(51\\,\\%\\) of the density error on the finest grid, falling with order \\(0.78\\) there. A smaller time step does not reduce it (see the time-step study).",
+   "<b>Mass, momentum and energy are kept to round-off</b> on every step of every run (largest relative change \\(5.3 \\times 10^{-14}\\)). This is why the shock sits in the right place on every grid.",
+   "<b>Sharpness.</b> The shock is \\(1.8\\) to \\(2.2\\) cells wide on every grid, so its width in metres halves with the cell size. The border of the two gases is wider, \\(4.4\\) to \\(6.3\\) cells: nothing in the flow pushes it back together once it is smeared.",
+   "<b>The time step matters more than the tutorial suggests.</b> At the tutorial's limit (twice the step used here) pressure and velocity between the fan and the shock ripple by \\(3.1\\,\\%\\) on 400 cells; at the step used here by \\(0.6\\,\\%\\). The ripple does not go away with a finer grid: it is \\(0.6\\,\\%\\) on 12800 cells.",
+   "<b>Choice of limiter</b> (400 cells): the tutorial's van Leer limiter has the lowest density error of the six combinations tried. The first-order scheme smears the border of the two gases over \\(21\\) cells; SuperBee keeps it to \\(2.4\\) cells but doubles the error in the fan."
+  ],
+  "limitations": [
+   "One of the limits set before the runs is not met (pressure on the finest grid), so the verdict is FAIL. The limit rested on my expectation that pressure would converge with an order of at least \\(0.85\\). Whether the measured \\(0.78\\) is a property of this solver's scheme or of any method of this kind was not settled: only one solver was run. A second, independent solver on the same grids would tell.",
+   "The time step is not converged. On 400 cells the density profile changes by \\(0.061\\,\\%\\) of \\(\\rho_L\\) when the step is cut to a quarter, against a total error of \\(0.13\\,\\%\\). The error against the exact solution is lowest at the step used here because the time error and the space error partly cancel, not because the time error is small.",
+   "The solver's only time scheme (explicit Euler) leaves a ripple of about \\(0.6\\,\\%\\) behind the shock at this time step, and the extra up-and-down of the profiles grows slowly with the number of cells (\\(2.8\\,\\%\\) to \\(5.5\\,\\%\\)).",
+   "The grid study was made at one Courant number. The order of convergence at a smaller time step was not measured.",
+   "The problem is one-dimensional, without viscosity, and ends before any wave reaches a wall. Reflections, boundary layers and the bursting of a real diaphragm are outside it.",
+   "With an error that falls like the cell size to the power \\(0.8\\), accuracy is expensive: ten times less error needs about \\(17\\) times more cells, and in one dimension the time steps grow with the cells, so about \\(289\\) times more work.",
+   "Statements about published methods (the flux scheme, the expected order at a jump) are cited from memory, not from references supplied with the problem: G. A. Sod, J. Comput. Phys. 27 (1978) 1–31; A. Kurganov, S. Noelle and G. Petrova, SIAM J. Sci. Comput. 23 (2001) 707–740; C. J. Greenshields, H. G. Weller, L. Gasparini and J. M. Reese, Int. J. Numer. Meth. Fluids 63 (2010) 1–21; J. W. Banks, T. Aslam and W. J. Rider, J. Comput. Phys. 227 (2008) 6985–7002."
+  ]
+ },
+ "problem": {
+  "description": "A closed tube of air is divided by a thin wall. The air on the left is at ten times the pressure and eight times the density of the air on the right, and all of it is at rest. At time zero the wall is removed. Find how the air moves in the first half millisecond, before any wave reaches an end of the tube, and compare the simulation with the exact solution of this problem.\n",
+  "setup": [
+   "A straight tube of length \\(L\\) with closed ends, filled with air at rest. Coordinate \\(x\\) along the tube, from \\(0\\) to \\(L\\). The flow depends only on \\(x\\) and on time \\(t\\).",
+   "A thin wall at \\(x = L/2\\) separates two uniform states. Left of it: pressure \\(p_L\\), density \\(\\rho_L\\). Right of it: pressure \\(p_R\\), density \\(\\rho_R\\).",
+   "At \\(t = 0\\) the wall is removed instantly.",
+   "The air is an ideal gas, \\(p = \\rho R T\\), with a constant ratio of specific heats \\(\\gamma\\).",
+   "No viscosity and no heat conduction (the Euler equations). The tube wall and the closed ends are frictionless and let no heat through.",
+   "This is the test problem of Sod (1978) in SI units: in units of \\(\\rho_L\\), \\(p_L\\) and \\(L\\) the two states are \\((\\rho, u, p) = (1, 0, 1)\\) and \\((0.125, 0, 0.1)\\).",
+   "The problem has an exact solution (the Riemann problem of gas dynamics). It holds until the first wave reaches an end of the tube."
+  ],
+  "given": [
+   {
+    "label": "Length of the tube; the wall is at the middle",
+    "symbol": "\\(L\\)",
+    "value": "\\(1\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Pressure left of the wall",
+    "symbol": "\\(p_L\\)",
+    "value": "\\(1 \\times 10^{5}\\)",
+    "unit": "Pa"
+   },
+   {
+    "label": "Density left of the wall",
+    "symbol": "\\(\\rho_L\\)",
+    "value": "\\(1\\)",
+    "unit": "kg/m³"
+   },
+   {
+    "label": "Pressure right of the wall",
+    "symbol": "\\(p_R\\)",
+    "value": "\\(10000\\)",
+    "unit": "Pa"
+   },
+   {
+    "label": "Density right of the wall",
+    "symbol": "\\(\\rho_R\\)",
+    "value": "\\(0.125\\)",
+    "unit": "kg/m³"
+   },
+   {
+    "label": "Ratio of specific heats of the air",
+    "symbol": "\\(\\gamma\\)",
+    "value": "\\(1.4\\)",
+    "unit": "-"
+   },
+   {
+    "label": "Specific gas constant of the air",
+    "symbol": "\\(R\\)",
+    "value": "\\(287\\)",
+    "unit": "J/(kg K)"
+   },
+   {
+    "label": "Time of interest",
+    "symbol": "\\(t_{\\mathrm{end}}\\)",
+    "value": "\\(5 \\times 10^{-4}\\)",
+    "unit": "s"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "profiles",
+    "text": "Density, velocity and pressure along the tube at \\(t_{\\mathrm{end}}\\), compared with the exact solution"
+   },
+   {
+    "letter": "b",
+    "key": "states",
+    "text": "The uniform states between the waves at \\(t_{\\mathrm{end}}\\): the pressure and the velocity there, and the density on each side of the border between the gas from the left and the gas from the right"
+   },
+   {
+    "letter": "c",
+    "key": "positions",
+    "text": "Where each wave is at \\(t_{\\mathrm{end}}\\), and how fast it moves"
+   },
+   {
+    "letter": "d",
+    "key": "conserved",
+    "text": "Total mass and total energy of the air in the tube: do they stay constant up to \\(t_{\\mathrm{end}}\\)?"
+   },
+   {
+    "letter": "e",
+    "key": "sharpness",
+    "text": "How many cells wide each computed jump is, and how the error of the profiles falls as the grid is refined"
+   }
+  ],
+  "reference": "The exact solution of this problem (derived and checked in Theory). The problem is the test of G. A. Sod, J. Comput. Phys. 27 (1978) 1–31."
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "The flow depends on the position along the tube and on time only",
+    "status": "imposed",
+    "check": "One cell across the tube, with empty sides. A real tube has a thin layer of slowed gas at its wall; the problem excludes it by making the wall frictionless."
+   },
+   {
+    "name": "No viscosity, no heat conduction (the Euler equations)",
+    "status": "imposed",
+    "check": "Given in the problem, and what the exact solution assumes. The solver's viscosity is set to zero, so it skips its viscous steps."
+   },
+   {
+    "name": "Ideal gas with a constant ratio of specific heats",
+    "status": "standard",
+    "check": "Given in the problem. The temperatures in the exact solution lie between \\(248\\) and \\(398\\,\\mathrm{K}\\) (from \\(T = p/(\\rho R)\\) in the four uniform states), a range in which the specific heats of air change little; that last statement is textbook knowledge and was not checked here."
+   },
+   {
+    "name": "Compressibility matters",
+    "status": "ok",
+    "check": "The gas between the waves moves at \\(0.93\\) and \\(0.73\\) times the local speed of sound (left and right of the border of the two gases), and the shock at \\(M_s = 1.656\\). Far above 0.3: a constant-density solver cannot be used."
+   },
+   {
+    "name": "No wave reaches an end of the tube before the time of interest",
+    "status": "ok",
+    "check": "Exact solution: the front of the fan is at \\(x = 0.313\\,\\mathrm{m}\\) and the shock at \\(x = 0.777\\,\\mathrm{m}\\) in a tube of \\(1\\,\\mathrm{m}\\). Simulation: in the two end cells of every run, pressure and velocity differ from the start state by at most \\(1.2 \\times 10^{-15}\\) (relative)."
+   },
+   {
+    "name": "The wall is removed instantly",
+    "status": "imposed",
+    "check": "The start state has the jump on one cell face. A real diaphragm takes time to burst and leaves a curved, three-dimensional front at first."
+   },
+   {
+    "name": "Closed ends, frictionless and without heat flow",
+    "status": "imposed",
+    "check": "No flow through the ends, no temperature gradient at them. They only close the tube here: nothing reaches them, and the conservation checks confirm that nothing leaks."
+   }
+  ]
+ },
+ "theory": {
+  "intro": "This problem has an exact solution, so the simulation can be checked against it everywhere, not only at a few numbers. The solution is put together from three pieces, each proven by SymPy below, and one equation for the pressure between the waves, solved numerically in two independent ways. The assembled solution is checked once more as a whole: its mass, momentum and energy at the time of interest equal what the tube started with. One thing theory also says about the simulation: a method that captures jumps over a few cells cannot reach the accuracy it has in smooth flow, so the error should fall roughly in proportion to the cell size, not to its square (see Comparison).",
+  "steps": [
+   {
+    "label": "Governing equations: mass, momentum and energy of a gas without friction or heat conduction, in one dimension",
+    "latex": "\\frac{\\partial}{\\partial t}\\begin{pmatrix}\\rho\\\\ \\rho u\\\\ E\\end{pmatrix} + \\frac{\\partial}{\\partial x}\\begin{pmatrix}\\rho u\\\\ \\rho u^2 + p\\\\ u(E+p)\\end{pmatrix} = 0,\\qquad E = \\frac{p}{\\gamma-1} + \\frac12\\rho u^2",
+    "note": "These are the Euler equations. \\(E\\) is the energy per unit volume. Written like this, each line says: what a slice of the tube holds changes only by what flows in and out through its two faces. That stays true across a jump, where derivatives do not exist."
+   },
+   {
+    "label": "No length or time scale: the solution depends on \\((x - x_0)/t\\) only",
+    "latex": "\\rho,\\ u,\\ p = \\text{functions of }\\ \\xi = \\frac{x - x_0}{t},\\qquad x_0 = \\frac{L}{2}",
+    "note": "Two uniform states meeting at a point have no length scale, so the picture at a later time is the earlier one stretched. Every wave leaves the wall position at a constant speed. Three waves form: an expansion fan to the left, a shock to the right and, between them, the border of the two gases."
+   },
+   {
+    "label": "Left: the expansion fan (a smooth drop in pressure and density)",
+    "latex": "s = \\frac{2}{\\gamma+1} - \\frac{\\gamma-1}{\\gamma+1}\\,\\frac{\\xi}{c_L},\\qquad \\rho = \\rho_L\\,s^{\\frac{2}{\\gamma-1}},\\quad u = \\frac{2}{\\gamma+1}\\,(c_L + \\xi),\\quad p = p_L\\,s^{\\frac{2\\gamma}{\\gamma-1}}\\qquad (-c_L \\le \\xi \\le u^* - c^*_L)",
+    "note": "\\(s\\) is the local speed of sound divided by \\(c_L\\). The velocity rises linearly across the fan. SymPy checks below that these three functions satisfy the three equations above."
+   },
+   {
+    "label": "Right: the shock (a jump), from conservation across it",
+    "latex": "\\frac{\\rho^*_R}{\\rho_R} = \\frac{(\\gamma+1)\\,p^*/p_R + (\\gamma-1)}{(\\gamma-1)\\,p^*/p_R + (\\gamma+1)},\\qquad S = c_R\\sqrt{\\frac{(\\gamma+1)\\,p^*/p_R + (\\gamma-1)}{2\\gamma}},\\qquad u^* = S\\left(1 - \\frac{\\rho_R}{\\rho^*_R}\\right)",
+    "note": "These are the Rankine-Hugoniot relations for a shock moving into gas at rest. SymPy checks below that mass, momentum and energy flowing into the jump equal what flows out."
+   },
+   {
+    "label": "Between them: one pressure and one speed; the density jumps at the border of the two gases",
+    "latex": "p = p^*,\\quad u = u^*\\quad (x_{\\mathrm{tail}} < x < x_{\\mathrm{shock}}),\\qquad \\rho = \\rho^*_L\\ \\ (x < x_{\\mathrm{contact}}),\\quad \\rho = \\rho^*_R\\ \\ (x > x_{\\mathrm{contact}})",
+    "note": "\\(p^*\\) follows from requiring that the fan and the shock give the same \\(u^*\\) (first card below)."
+   }
+  ],
+  "derived": [
+   {
+    "key": "c_L",
+    "label": "Speed of sound left of the wall",
+    "symbol": "c_L",
+    "value": 374.1657386773942,
+    "value_tex": "374.166",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "c_L = \\frac{\\sqrt{\\gamma} \\sqrt{p_L}}{\\sqrt{\\rho_L}}",
+    "check": "\\begin{aligned}c_L &= \\frac{\\sqrt{1.4} \\sqrt{\\left(1 \\times 10^{5}\\right)}}{\\sqrt{\\left(1\\right)}}\\\\ &= 374.166\\ \\mathrm{m/s}\\end{aligned}",
+    "why": "Small pressure changes travel through a gas at the speed of sound. The front of the expansion fan runs into the still gas on the left at exactly this speed.",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "\\rho_L",
+      "meaning": "density left of the wall",
+      "value": 1.0,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "p_L",
+      "meaning": "pressure left of the wall",
+      "value": 100000.0,
+      "unit": "\\mathrm{Pa}"
+     }
+    ]
+   },
+   {
+    "key": "c_R",
+    "label": "Speed of sound right of the wall",
+    "symbol": "c_R",
+    "value": 334.66401061363024,
+    "value_tex": "334.664",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "c_R = \\frac{\\sqrt{\\gamma} \\sqrt{p_R}}{\\sqrt{\\rho_R}}",
+    "check": "\\begin{aligned}c_R &= \\frac{\\sqrt{1.4} \\sqrt{\\left(10000\\right)}}{\\sqrt{\\left(0.125\\right)}}\\\\ &= 334.664\\ \\mathrm{m/s}\\end{aligned}",
+    "why": "The shock must move faster than this, or the gas ahead would be warned of it.",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "\\rho_R",
+      "meaning": "density right of the wall",
+      "value": 0.125,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "p_R",
+      "meaning": "pressure right of the wall",
+      "value": 10000.0,
+      "unit": "\\mathrm{Pa}"
+     }
+    ]
+   },
+   {
+    "key": "p_star",
+    "label": "Pressure between the waves",
+    "symbol": "p^*",
+    "value": 30313.017805064683,
+    "value_tex": "30313.02",
+    "unit_tex": "\\mathrm{Pa}",
+    "formula": "\\begin{aligned}&\\frac{2c_L}{\\gamma-1}\\left[1-\\left(\\frac{p^*}{p_L}\\right)^{\\frac{\\gamma-1}{2\\gamma}}\\right] = (p^*-p_R)\\sqrt{\\frac{A}{p^*+B}},\\\\[4pt] &A = \\frac{2}{(\\gamma+1)\\rho_R},\\quad B = \\frac{\\gamma-1}{\\gamma+1}\\,p_R\\end{aligned}",
+    "check": "\\begin{aligned}\\text{left side} &= 293.28627\\ \\mathrm{m/s}\\\\\\text{right side} &= 293.28627\\ \\mathrm{m/s}\\end{aligned}",
+    "why": "The fan lowers the pressure of the left gas and pushes it to the right; the shock raises the pressure of the right gas and pushes it to the right too. Between them the pressure and the gas speed must be the same on both sides of the border between the two gases. This one equation fixes that pressure; it has no closed-form solution and is solved numerically, twice. Requested output (b).",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "c_L",
+      "meaning": "speed of sound left of the wall",
+      "value": 374.16573867739413,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "p_L",
+      "meaning": "pressure left of the wall",
+      "value": 100000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "p_R",
+      "meaning": "pressure right of the wall",
+      "value": 10000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "\\rho_R",
+      "meaning": "density right of the wall",
+      "value": 0.125,
+      "unit": "\\mathrm{kg/m^3}"
+     }
+    ]
+   },
+   {
+    "key": "u_star",
+    "label": "Gas speed between the waves",
+    "symbol": "u^*",
+    "value": 293.2862701245424,
+    "value_tex": "293.2863",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "u^* = \\frac{2 c_L \\left(1 - \\left(\\frac{p^*}{p_L}\\right)^{\\frac{\\gamma - 1}{2 \\gamma}}\\right)}{\\gamma - 1}",
+    "check": "\\begin{aligned}u^* &= \\frac{2 \\left(374.1657\\right) \\left(1 - \\left(\\frac{\\left(30313\\right)}{\\left(1 \\times 10^{5}\\right)}\\right)^{\\frac{1.4 - 1}{2 \\cdot 1.4}}\\right)}{1.4 - 1}\\\\ &= 293.2863\\ \\mathrm{m/s}\\end{aligned}",
+    "why": "The speed of all the gas between the fan and the shock, and so the speed at which the border between the two gases moves. Requested outputs (b) and (c).",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "p_L",
+      "meaning": "pressure left of the wall",
+      "value": 100000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "c_L",
+      "meaning": "speed of sound left of the wall",
+      "value": 374.16573867739413,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "p^*",
+      "meaning": "pressure between the waves",
+      "value": 30313.017805064683,
+      "unit": "\\mathrm{Pa}"
+     }
+    ]
+   },
+   {
+    "key": "rho_starL",
+    "label": "Density between the fan and the border",
+    "symbol": "\\rho^*_L",
+    "value": 0.4263194281784951,
+    "value_tex": "0.4263194",
+    "unit_tex": "\\mathrm{kg/m^3}",
+    "formula": "\\rho^*_L = \\rho_L \\left(\\frac{p^*}{p_L}\\right)^{\\frac{1}{\\gamma}}",
+    "check": "\\begin{aligned}\\rho^*_L &= \\left(1\\right) \\left(\\frac{\\left(30313\\right)}{\\left(1 \\times 10^{5}\\right)}\\right)^{\\frac{1}{1.4}}\\\\ &= 0.4263194\\ \\mathrm{kg/m^3}\\end{aligned}",
+    "why": "The left gas has expanded through the fan without friction or heat, so its pressure and density stay linked by \\(p/\\rho^\\gamma = \\text{constant}\\). Requested output (b).",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "\\rho_L",
+      "meaning": "density left of the wall",
+      "value": 1.0,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "p_L",
+      "meaning": "pressure left of the wall",
+      "value": 100000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "p^*",
+      "meaning": "pressure between the waves",
+      "value": 30313.017805064683,
+      "unit": "\\mathrm{Pa}"
+     }
+    ]
+   },
+   {
+    "key": "rho_starR",
+    "label": "Density between the border and the shock",
+    "symbol": "\\rho^*_R",
+    "value": 0.26557371170530714,
+    "value_tex": "0.2655737",
+    "unit_tex": "\\mathrm{kg/m^3}",
+    "formula": "\\rho^*_R = \\frac{\\rho_R \\left(\\gamma - 1 + \\frac{p^* \\left(\\gamma + 1\\right)}{p_R}\\right)}{\\gamma + 1 + \\frac{p^* \\left(\\gamma - 1\\right)}{p_R}}",
+    "check": "\\begin{aligned}\\rho^*_R &= \\frac{\\left(0.125\\right) \\left(1.4 - 1 + \\frac{\\left(30313\\right) \\left(1.4 + 1\\right)}{\\left(10000\\right)}\\right)}{1.4 + 1 + \\frac{\\left(30313\\right) \\left(1.4 - 1\\right)}{\\left(10000\\right)}}\\\\ &= 0.2655737\\ \\mathrm{kg/m^3}\\end{aligned}",
+    "why": "The right gas has been compressed by the shock. A shock heats the gas more than a gentle compression would, so this density differs from the left gas's at the same pressure: the two gases meet at a jump in density (and temperature) that moves with the flow. Requested output (b).",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "\\rho_R",
+      "meaning": "density right of the wall",
+      "value": 0.125,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "p_R",
+      "meaning": "pressure right of the wall",
+      "value": 10000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "p^*",
+      "meaning": "pressure between the waves",
+      "value": 30313.017805064683,
+      "unit": "\\mathrm{Pa}"
+     }
+    ]
+   },
+   {
+    "key": "S",
+    "label": "Speed of the shock",
+    "symbol": "S",
+    "value": 554.0802928535006,
+    "value_tex": "554.0803",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "S = \\frac{\\sqrt{2} c_R \\sqrt{\\gamma - 1 + \\frac{p^* \\left(\\gamma + 1\\right)}{p_R}}}{2 \\sqrt{\\gamma}}",
+    "check": "\\begin{aligned}S &= \\frac{\\sqrt{2} \\left(334.664\\right) \\sqrt{1.4 - 1 + \\frac{\\left(30313\\right) \\left(1.4 + 1\\right)}{\\left(10000\\right)}}}{2 \\sqrt{1.4}}\\\\ &= 554.0803\\ \\mathrm{m/s}\\end{aligned}",
+    "why": "From the conservation of mass, momentum and energy across the jump. Requested output (c).",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "p_R",
+      "meaning": "pressure right of the wall",
+      "value": 10000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "c_R",
+      "meaning": "speed of sound right of the wall",
+      "value": 334.66401061363024,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "p^*",
+      "meaning": "pressure between the waves",
+      "value": 30313.017805064683,
+      "unit": "\\mathrm{Pa}"
+     }
+    ]
+   },
+   {
+    "key": "Ms",
+    "label": "Mach number of the shock",
+    "symbol": "M_s",
+    "value": 1.6556315447172079,
+    "value_tex": "1.65563",
+    "unit_tex": "",
+    "formula": "M_s = \\frac{S}{c_R}",
+    "check": "\\begin{aligned}M_s &= \\frac{\\left(554.08\\right)}{\\left(334.664\\right)}\\\\ &= 1.65563\\ \\end{aligned}",
+    "why": "The shock's speed compared with the speed of sound in the gas it runs into: above 1 by definition, and a measure of its strength.",
+    "params": [
+     {
+      "tex": "c_R",
+      "meaning": "speed of sound right of the wall",
+      "value": 334.66401061363024,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "S",
+      "meaning": "speed of the shock",
+      "value": 554.0802928535006,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "tail",
+    "label": "Speed of the last ray of the fan",
+    "symbol": "u^* - c^*_L",
+    "value": -22.22221452794298,
+    "value_tex": "-22.2222",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "u^* - c^*_L = - c_L \\left(\\frac{p^*}{p_L}\\right)^{\\frac{\\gamma - 1}{2 \\gamma}} + u^*",
+    "check": "\\begin{aligned}u^* - c^*_L &= - \\left(374.166\\right) \\left(\\frac{\\left(30313\\right)}{\\left(1 \\times 10^{5}\\right)}\\right)^{\\frac{1.4 - 1}{2 \\cdot 1.4}} + \\left(293.286\\right)\\\\ &= -22.2222\\ \\mathrm{m/s}\\end{aligned}",
+    "why": "The back of the fan is a sound wave running to the left through gas that itself moves to the right at \\(u^*\\). Here the two nearly cancel, so the back of the fan barely moves. Requested output (c).",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "p_L",
+      "meaning": "pressure left of the wall",
+      "value": 100000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "c_L",
+      "meaning": "speed of sound left of the wall",
+      "value": 374.16573867739413,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "p^*",
+      "meaning": "pressure between the waves",
+      "value": 30313.017805064683,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "u^*",
+      "meaning": "gas speed between the waves",
+      "value": 293.2862701245426,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "x_head",
+    "label": "Front of the fan at the time of interest",
+    "symbol": "x_{\\mathrm{head}}",
+    "value": 0.3129171306613029,
+    "value_tex": "0.312917",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "x_{\\mathrm{head}} = \\frac{L}{2} - c_L t_{\\mathrm{end}}",
+    "check": "\\begin{aligned}x_{\\mathrm{head}} &= \\frac{\\left(1\\right)}{2} - \\left(374.166\\right) \\left(5 \\times 10^{-4}\\right)\\\\ &= 0.312917\\ \\mathrm{m}\\end{aligned}",
+    "why": "Every wave starts at the wall, \\(x = L/2\\), and moves at a constant speed. Requested output (c).",
+    "params": [
+     {
+      "tex": "L",
+      "meaning": "length of the tube",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "t_{\\mathrm{end}}",
+      "meaning": "time of interest",
+      "value": 0.0005,
+      "unit": "\\mathrm{s}"
+     },
+     {
+      "tex": "c_L",
+      "meaning": "speed of sound left of the wall",
+      "value": 374.16573867739413,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "x_tail",
+    "label": "Back of the fan at the time of interest",
+    "symbol": "x_{\\mathrm{tail}}",
+    "value": 0.48888889273602854,
+    "value_tex": "0.488889",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "x_{\\mathrm{tail}} = \\frac{L}{2} + t_{\\mathrm{end}} \\left(- c^*_L + u^*\\right)",
+    "check": "\\begin{aligned}x_{\\mathrm{tail}} &= \\frac{\\left(1\\right)}{2} + \\left(5 \\times 10^{-4}\\right) \\left(- \\left(315.508\\right) + \\left(293.286\\right)\\right)\\\\ &= 0.488889\\ \\mathrm{m}\\end{aligned}",
+    "why": "Requested output (c).",
+    "params": [
+     {
+      "tex": "L",
+      "meaning": "length of the tube",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "t_{\\mathrm{end}}",
+      "meaning": "time of interest",
+      "value": 0.0005,
+      "unit": "\\mathrm{s}"
+     },
+     {
+      "tex": "u^*",
+      "meaning": "gas speed between the waves",
+      "value": 293.2862701245426,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "c^*_L",
+      "meaning": "speed of sound behind the fan",
+      "value": 315.5084846524856,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "x_contact",
+    "label": "Border between the two gases at the time of interest",
+    "symbol": "x_{\\mathrm{contact}}",
+    "value": 0.6466431350622713,
+    "value_tex": "0.646643",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "x_{\\mathrm{contact}} = \\frac{L}{2} + t_{\\mathrm{end}} u^*",
+    "check": "\\begin{aligned}x_{\\mathrm{contact}} &= \\frac{\\left(1\\right)}{2} + \\left(5 \\times 10^{-4}\\right) \\left(293.286\\right)\\\\ &= 0.646643\\ \\mathrm{m}\\end{aligned}",
+    "why": "It moves with the gas. In the literature this border is called the contact discontinuity. Requested output (c).",
+    "params": [
+     {
+      "tex": "L",
+      "meaning": "length of the tube",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "t_{\\mathrm{end}}",
+      "meaning": "time of interest",
+      "value": 0.0005,
+      "unit": "\\mathrm{s}"
+     },
+     {
+      "tex": "u^*",
+      "meaning": "gas speed between the waves",
+      "value": 293.2862701245426,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "x_shock",
+    "label": "Shock at the time of interest",
+    "symbol": "x_{\\mathrm{shock}}",
+    "value": 0.7770401464267503,
+    "value_tex": "0.77704",
+    "unit_tex": "\\mathrm{m}",
+    "formula": "x_{\\mathrm{shock}} = \\frac{L}{2} + S t_{\\mathrm{end}}",
+    "check": "\\begin{aligned}x_{\\mathrm{shock}} &= \\frac{\\left(1\\right)}{2} + \\left(554.08\\right) \\left(5 \\times 10^{-4}\\right)\\\\ &= 0.77704\\ \\mathrm{m}\\end{aligned}",
+    "why": "It is still \\(0.223\\,\\mathrm{m}\\) from the right end, so the exact solution holds at the time of interest. Requested output (c).",
+    "params": [
+     {
+      "tex": "L",
+      "meaning": "length of the tube",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     },
+     {
+      "tex": "t_{\\mathrm{end}}",
+      "meaning": "time of interest",
+      "value": 0.0005,
+      "unit": "\\mathrm{s}"
+     },
+     {
+      "tex": "S",
+      "meaning": "speed of the shock",
+      "value": 554.0802928535006,
+      "unit": "\\mathrm{m/s}"
+     }
+    ]
+   },
+   {
+    "key": "mass",
+    "label": "Mass of the air in the tube, per unit of cross-section",
+    "symbol": "M",
+    "value": 0.5625,
+    "value_tex": "0.5625",
+    "unit_tex": "\\mathrm{kg/m^2}",
+    "formula": "M = \\frac{L \\left(\\rho_L + \\rho_R\\right)}{2}",
+    "check": "\\begin{aligned}M &= \\frac{\\left(1\\right) \\left(\\left(1\\right) + \\left(0.125\\right)\\right)}{2}\\\\ &= 0.5625\\ \\mathrm{kg/m^2}\\end{aligned}",
+    "why": "The ends are closed, so this cannot change. Requested output (d).",
+    "params": [
+     {
+      "tex": "\\rho_L",
+      "meaning": "density left of the wall",
+      "value": 1.0,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "\\rho_R",
+      "meaning": "density right of the wall",
+      "value": 0.125,
+      "unit": "\\mathrm{kg/m^3}"
+     },
+     {
+      "tex": "L",
+      "meaning": "length of the tube",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   },
+   {
+    "key": "energy",
+    "label": "Energy of the air in the tube, per unit of cross-section",
+    "symbol": "E_{\\mathrm{tot}}",
+    "value": 137500.00000000003,
+    "value_tex": "1.375 \\times 10^{5}",
+    "unit_tex": "\\mathrm{J/m^2}",
+    "formula": "E_{\\mathrm{tot}} = \\frac{L \\left(p_L + p_R\\right)}{2 \\gamma - 2}",
+    "check": "\\begin{aligned}E_{\\mathrm{tot}} &= \\frac{\\left(1\\right) \\left(\\left(1 \\times 10^{5}\\right) + \\left(10000\\right)\\right)}{2 \\cdot 1.4 - 2}\\\\ &= 1.375 \\times 10^{5}\\ \\mathrm{J/m^2}\\end{aligned}",
+    "why": "Internal energy plus kinetic energy, \\(\\int (p/(\\gamma-1) + \\tfrac12\\rho u^2)\\,dx\\). The air starts at rest, so at the start it is all internal energy. No heat or work crosses the walls, so it cannot change. Requested output (d).",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "p_L",
+      "meaning": "pressure left of the wall",
+      "value": 100000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "p_R",
+      "meaning": "pressure right of the wall",
+      "value": 10000.0,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "L",
+      "meaning": "length of the tube",
+      "value": 1.0,
+      "unit": "\\mathrm{m}"
+     }
+    ]
+   },
+   {
+    "key": "s_max",
+    "label": "Fastest signal in the solution",
+    "symbol": "u^* + c^*_R",
+    "value": 693.0340527669155,
+    "value_tex": "693.034",
+    "unit_tex": "\\mathrm{m/s}",
+    "formula": "u^* + c^*_R = \\frac{\\sqrt{\\gamma} \\sqrt{p^*}}{\\sqrt{\\rho^*_R}} + u^*",
+    "check": "\\begin{aligned}u^* + c^*_R &= \\frac{\\sqrt{1.4} \\sqrt{\\left(30313\\right)}}{\\sqrt{\\left(0.265574\\right)}} + \\left(293.286\\right)\\\\ &= 693.034\\ \\mathrm{m/s}\\end{aligned}",
+    "why": "Sound running to the right through the shocked gas, which itself moves to the right. An explicit solver must not let this signal cross a whole cell in one time step, so it sets the time step (see Decisions).",
+    "params": [
+     {
+      "tex": "\\gamma",
+      "meaning": "ratio of specific heats of the air",
+      "value": 1.4,
+      "unit": ""
+     },
+     {
+      "tex": "p^*",
+      "meaning": "pressure between the waves",
+      "value": 30313.017805064683,
+      "unit": "\\mathrm{Pa}"
+     },
+     {
+      "tex": "u^*",
+      "meaning": "gas speed between the waves",
+      "value": 293.2862701245426,
+      "unit": "\\mathrm{m/s}"
+     },
+     {
+      "tex": "\\rho^*_R",
+      "meaning": "density between the border of the two gases and the shock",
+      "value": 0.2655737117053071,
+      "unit": "\\mathrm{kg/m^3}"
+     }
+    ]
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "fan: mass equation \\(\\partial_t \\rho + \\partial_x(\\rho u) = 0\\)",
+    "ok": true
+   },
+   {
+    "name": "fan: momentum equation \\(\\partial_t(\\rho u) + \\partial_x(\\rho u^2 + p) = 0\\)",
+    "ok": true
+   },
+   {
+    "name": "fan: energy equation \\(\\partial_t E + \\partial_x(u(E + p)) = 0\\)",
+    "ok": true
+   },
+   {
+    "name": "fan: each ray \\(x - x_0 = \\xi t\\) moves at the speed of a left-running sound wave, \\(\\xi = u - c\\)",
+    "ok": true
+   },
+   {
+    "name": "fan: no entropy is made, \\(p/\\rho^\\gamma = p_L/\\rho_L^\\gamma\\)",
+    "ok": true
+   },
+   {
+    "name": "fan: it starts at the undisturbed gas, \\(\\rho = \\rho_L,\\ u = 0\\) at \\(\\xi = -c_L\\) (\\(s = 1\\))",
+    "ok": true
+   },
+   {
+    "name": "fan: written with \\(s = c/c_L\\), the velocity is \\(u = 2c_L(1 - s)/(\\gamma - 1)\\)",
+    "ok": true
+   },
+   {
+    "name": "shock: momentum is conserved across the jump, \\(p_1 + \\rho_1 S^2 = p_2 + \\rho_2 (S - u_2)^2\\)",
+    "ok": true
+   },
+   {
+    "name": "shock: energy is conserved across the jump, \\(h_1 + \\tfrac12 S^2 = h_2 + \\tfrac12 (S - u_2)^2\\) with \\(h = \\gamma p/((\\gamma-1)\\rho)\\)",
+    "ok": true
+   },
+   {
+    "name": "shock: the gas speed behind it is \\(u_2 = (p_2 - p_1)\\sqrt{A/(p_2 + B)}\\), \\(A = 2/((\\gamma+1)\\rho_1)\\), \\(B = (\\gamma-1)p_1/(\\gamma+1)\\)",
+    "ok": true
+   },
+   {
+    "name": "pressure between the waves: SymPy (30 digits) and SciPy (bracketing) agree to \\(10^{-12}\\) of \\(p_L\\)",
+    "ok": true
+   },
+   {
+    "name": "wave pattern: \\(p_R < p^* < p_L\\), so the left wave is an expansion fan and the right wave a shock",
+    "ok": true
+   },
+   {
+    "name": "the gas speed behind the shock equals the gas speed behind the fan (one \\(u^*\\)), to \\(10^{-12}\\)",
+    "ok": true
+   },
+   {
+    "name": "the fan ends at the left middle state: at its last ray \\(\\rho = \\rho^*_L\\), \\(u = u^*\\), \\(p = p^*\\)",
+    "ok": true
+   },
+   {
+    "name": "the shock compresses and heats: entropy rises, \\(p^*/\\rho_R^{*\\gamma} > p_R/\\rho_R^\\gamma\\)",
+    "ok": true
+   },
+   {
+    "name": "whole solution at \\(t_{\\mathrm{end}}\\): total mass equals the starting mass, to \\(10^{-12}\\)",
+    "ok": true
+   },
+   {
+    "name": "whole solution at \\(t_{\\mathrm{end}}\\): total energy equals the starting energy, to \\(10^{-12}\\)",
+    "ok": true
+   },
+   {
+    "name": "whole solution at \\(t_{\\mathrm{end}}\\): total momentum equals the push of the end walls, \\((p_L - p_R)\\,t_{\\mathrm{end}}\\), to \\(10^{-12}\\)",
+    "ok": true
+   },
+   {
+    "name": "no wave has reached an end of the tube at \\(t_{\\mathrm{end}}\\): fan head at \\(x > 0\\), shock at \\(x < L\\)",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "The Euler equations in one dimension: an ideal gas with a constant ratio of specific heats, no viscosity, no heat conduction, no turbulence model",
+   "settings": [
+    "constant/thermophysicalProperties/thermoType/*",
+    "constant/thermophysicalProperties/mixture/thermodynamics/*",
+    "constant/thermophysicalProperties/mixture/transport/*",
+    "constant/turbulenceProperties/simulationType"
+   ],
+   "why": "This is the problem as stated, and the exact solution is a solution of these equations. The viscosity is set to zero (<code>mu 0</code>); the solver then skips its viscous and heat-conduction steps. The specific heat is \\(c_p = \\gamma R/(\\gamma - 1)\\), so that the gas has exactly the given \\(\\gamma\\). <code>Tref 0</code> makes the internal energy \\(c_v T\\) with no offset, so the solver's total energy is the physical one, \\(p/(\\gamma-1) + \\tfrac12\\rho u^2\\) per unit volume.",
+   "affects": "Defines the equations solved. Real air has a small viscosity, which would give the shock a thickness of well under a micrometre here: far below any cell, so it could not be seen.",
+   "alternatives": "A viscous gas (the Navier-Stokes equations): not what the exact solution describes."
+  },
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "The molar mass is set so that OpenFOAM's gas constant is exactly the given \\(R\\); OpenFOAM's universal gas constant is measured by a one-step run, not typed in",
+   "settings": [
+    "constant/thermophysicalProperties/mixture/specie/*"
+   ],
+   "why": "OpenFOAM takes the molar mass and divides its own universal gas constant by it. That constant is built into the program from two rounded numbers, so its digits are not the textbook ones. <code>run.py</code> advances a 10-cell case by one step and reads the constant back from an undisturbed cell (\\(p W/(\\rho T)\\)). The pre-flight then checks that the solver's start densities are the given ones to 12 digits.",
+   "affects": "The start densities and \\(\\gamma\\). With the tutorial's rounded molar mass (28.96) the densities would be off by about 0.03 % and every comparison with the exact solution would carry that offset.",
+   "alternatives": "The tutorial's rounded value; a textbook value of the universal gas constant."
+  },
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "<code>rhoCentralFoam</code>, starting from OpenFOAM's own tutorial of this problem (<code>compressible/rhoCentralFoam/shockTube</code>)",
+   "settings": [
+    "system/controlDict/application"
+   ],
+   "why": "A flow with shocks needs a method that keeps mass, momentum and energy exactly (so that a captured shock moves at the right speed) and that does not ring at a jump. <code>rhoCentralFoam</code> is OpenFOAM's solver built for that: it advances density, momentum and energy directly, with fluxes that need no knowledge of the wave pattern. gpucfd does not apply: it solves flows of constant density.",
+   "affects": "Which equations are advanced and how; the exact solution it converges to is the same for any conservative method.",
+   "alternatives": "<code>rhoPimpleFoam</code> or <code>sonicFoam</code> (pressure-based, implicit: built for lower speeds, and they smear shocks more); a solver that splits each face into its waves (a Riemann solver, not part of standard OpenFOAM)."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "The whole tube, \\(0 \\le x \\le L\\), one cell across with <code>empty</code> sides (a one-dimensional model); closed ends: no flow through them (<code>slip</code>), zero gradient for pressure and temperature",
+   "settings": [
+    "system/blockMeshDict/vertices",
+    "system/blockMeshDict/scale",
+    "system/blockMeshDict/boundary",
+    "0/*/boundaryField/*"
+   ],
+   "why": "The flow depends on \\(x\\) and \\(t\\) only, and the tube wall is frictionless, so one cell across loses nothing. A frictionless end lets no gas through and no heat: velocity zero normal to it, no gradient of temperature. The cross-section is \\(1\\,\\mathrm{m} \\times 1\\,\\mathrm{m}\\), so that a volume integral is the value per unit of cross-section.",
+   "affects": "Sets the problem. No wave reaches an end before the time of interest (Theory), so the end conditions are only there to close the tube; the conservation check confirms that nothing leaks through them.",
+   "alternatives": "Open ends as in the tutorial (zero gradient for everything): the same answer until a wave arrives, but gas could then leave, and mass would no longer be a check."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "Start state: air at rest, the left state in the left half and the right state in the right half, set cell by cell with <code>setFields</code>; temperatures from \\(T = p/(\\rho R)\\)",
+   "settings": [
+    "system/setFieldsDict/*",
+    "0/*/internalField"
+   ],
+   "why": "Given in the problem. Every grid has an even number of cells, so the wall at \\(x = L/2\\) lies on a cell face and the start state is exact on the grid: no cell holds a mixture. The solver takes pressure and temperature as inputs, so the given densities enter through the temperatures.",
+   "affects": "Defines the initial-value problem.",
+   "alternatives": "None (it is part of the problem)."
+  },
+  {
+   "area": "Mesh",
+   "kind": "accuracy",
+   "choice": "Equal cells along the tube, 100 to 12800 cells (cell size \\(10\\) to \\(0.078\\,\\mathrm{mm}\\)), refinement ratio 2, eight levels",
+   "settings": [
+    "system/blockMeshDict/blocks"
+   ],
+   "why": "Ratio-2 refinement gives the observed order of accuracy directly. Equal cells keep that test clean, and the waves move, so there is no fixed place to cluster cells. The first plan had six levels, up to 3200 cells. The pre-flight showed that a cell costs about a third of a microsecond per step, so two more levels were added before any production run: the finest was projected at a minute and a half. Eight levels show whether the order has settled.",
+   "affects": "The size of the discretisation error: how many cells each jump is smeared over, in metres.",
+   "alternatives": "Cells that follow the waves (adaptive refinement): fewer cells for the same sharpness, but a different tool. Fewer levels."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "accuracy",
+   "choice": "Central-upwind fluxes of Kurganov, Noelle and Petrova (<code>Kurganov</code>); face values reconstructed with the van Leer limiter for density, velocity and temperature",
+   "settings": [
+    "system/fvSchemes/fluxScheme",
+    "system/fvSchemes/interpolationSchemes/*"
+   ],
+   "why": "The tutorial's choice. Each cell value is extended to its faces with a slope (second order where the flow is smooth); the limiter flattens the slope next to a jump so that no new peak appears. The flux then mixes the two face values with the local wave speeds. Five other combinations are run on one grid to show how much this choice matters (Comparison).",
+   "affects": "How many cells a jump is smeared over and whether the profile wiggles next to it. It does not change what the method converges to.",
+   "alternatives": "<code>Tadmor</code> flux (more smearing); limiters <code>vanAlbada</code>, <code>Minmod</code> (more smearing), <code>SuperBee</code> (sharper, can square off smooth parts); <code>upwind</code> (first order). All five were run."
+  },
+  {
+   "area": "Time stepping",
+   "kind": "accuracy",
+   "choice": "Explicit Euler steps of fixed size: the time of interest divided by 1.8 steps per cell (180 steps on 100 cells, 23040 on 12800), a Courant number of 0.19 on every grid, half the tutorial's step",
+   "settings": [
+    "system/controlDict/deltaT",
+    "system/controlDict/adjustTimeStep",
+    "system/controlDict/endTime",
+    "system/controlDict/startTime",
+    "system/fvSchemes/ddtSchemes/*"
+   ],
+   "why": "The solver is explicit: a cell is updated from its neighbours' old values, which is only stable if no signal crosses a cell in one step. The fastest signal of the exact solution is \\(u^* + c^*_R = 693\\,\\mathrm{m/s}\\) (Theory); with 1.8 steps per cell it crosses 0.19 of a cell per step. This is the usual Courant number, \\((|u| + c)\\,\\Delta t/\\Delta x\\). The solver prints half of it (0.097), because it counts differently, so the tutorial's limit of 0.2 is a usual Courant number of about 0.4. The time-step study of the pre-flight tested that step and three smaller ones on 400 cells: at the tutorial's step the pressure behind the shock rings by 2 % and its error doubles; at the step chosen here the ringing is 0.3 %. A fixed step (not the tutorial's adjustable one) makes every run end exactly at the time of interest, writes the snapshots at exact times, and keeps the Courant number the same on every grid, so that the grid study changes one thing only.",
+   "affects": "The time error, the ringing behind the shock and a part of the smearing. Euler steps are first order in time, the only choice this solver has. The time error is not negligible: see the time-step study in Comparison.",
+   "alternatives": "The tutorial's adjustable step with its limit of 0.2 (rings, and the output times are then not exact). A step two or four times smaller (less ringing, 2 to 4 times the cost, no gain in the error against the exact solution; both tested)."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "solver",
+   "choice": "Schemes for gradients, the viscous stress and diffusion: the tutorial's central schemes, kept because the solver reads them",
+   "settings": [
+    "system/fvSchemes/gradSchemes/*",
+    "system/fvSchemes/divSchemes/*",
+    "system/fvSchemes/laplacianSchemes/*",
+    "system/fvSchemes/snGradSchemes/*"
+   ],
+   "why": "The solver forms the viscous stress on every step even when the viscosity is zero, so it asks for these schemes. Everything they produce is multiplied by zero.",
+   "affects": "Nothing in the answer.",
+   "alternatives": "None needed."
+  },
+  {
+   "area": "Algorithm and linear solvers",
+   "kind": "solver",
+   "choice": "No iteration: density, momentum and energy are advanced explicitly (<code>diagonal</code> solver)",
+   "settings": [
+    "system/fvSolution/solvers/*"
+   ],
+   "why": "With explicit steps each cell's new value is a formula of old values. There is no system of equations to solve and so no iteration error; the step-by-step conservation check confirms it.",
+   "affects": "Nothing in the answer.",
+   "alternatives": "None for this solver without viscosity."
+  },
+  {
+   "area": "Stopping",
+   "kind": "accuracy",
+   "choice": "Every run ends at the time of interest, \\(t_{\\mathrm{end}}\\); the physical check is made on every step: total mass and total energy must not change, and the total momentum must equal \\((p_L - p_R)\\,t\\)",
+   "settings": [],
+   "why": "The problem asks for the state at one time, so there is nothing to wait for and no steady state to judge. What must hold instead is conservation, step by step: the ends are closed, so mass and energy can only change through an error, and the only force on the air is the pressure on the two end walls, which stays \\(p_L\\) and \\(p_R\\) until a wave arrives. All three were written down as checks before the first run, with limits sized from the pre-flight's round-off level.",
+   "affects": "Whether a run counts as healthy.",
+   "alternatives": "Residuals: an explicit solver has none."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "Fields written at 10 equally spaced times with 15 digits; total mass, momentum and energy recorded after every step",
+   "settings": [
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/writePrecision",
+    "system/controlDict/timePrecision",
+    "system/controlDict/functions/*"
+   ],
+   "why": "The profiles at \\(t_{\\mathrm{end}}\\) answer (a), (b), (c) and (e); the earlier snapshots give the wave speeds as slopes of position against time, which does not assume where the waves started. The totals after every step answer (d). 15 digits, because the conservation check looks for changes in the 13th.",
+   "affects": "What is measured and how precisely; not the solution.",
+   "alternatives": "Wave speeds from the last snapshot alone (position divided by time): also reported."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "The simulation is compared with the exact cell averages, and each output is read from a profile by a fixed rule that is also applied to the exact solution",
+   "settings": [],
+   "why": "A finite-volume solver holds the average of density, momentum and energy over each cell, not the value at its centre. In a cell that a jump passes through, the two differ by a large part of the jump. So the exact solution is integrated over each cell (in closed form, Theory), and velocity and pressure are formed from those averages as the solver forms them. The rules for reading states, positions and widths are in <code>numerics.yaml</code> (<code>extraction</code>) and <code>measure.py</code>; reading the exact cell averages with the same rules gives each rule's own bias, reported next to the results.",
+   "affects": "The reported errors. With point values instead of cell averages every jump would add an error of up to half a cell that the solver did not make.",
+   "alternatives": "Point values of the exact solution at the cell centres (simpler, biased at jumps)."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before the production runs: measure OpenFOAM's gas constant; run the first 10 % of the coarsest and the finest grid to see that the case runs, keeps mass and energy, records its outputs and to project the run time; run the time-step study on one grid to choose the time step; run the coarsest grid in full to size the pass and fail limits.",
+  "runs": [
+   {
+    "name": "100 cells, short",
+    "setup": "first 18 of 180 steps",
+    "outcome": "✓ OK; \\(0.01\\,\\mathrm{s}\\) of solver time; projected full run \\(0.01\\,\\mathrm{s}\\)"
+   },
+   {
+    "name": "12800 cells, short",
+    "setup": "first 2304 of 23040 steps",
+    "outcome": "✓ OK; \\(8.36\\,\\mathrm{s}\\) of solver time; projected full run \\(83\\,\\mathrm{s}\\)"
+   },
+   {
+    "name": "400 cells, Courant 0.39, full",
+    "setup": "time-step study: the whole run, time step halved from one run to the next",
+    "outcome": "mean errors \\(\\rho\\) \\(0.17\\,\\%\\), \\(u\\) \\(0.37\\,\\%\\), \\(p\\) \\(0.18\\,\\%\\); extra up-and-down of the pressure \\(11.9\\,\\%\\)"
+   },
+   {
+    "name": "400 cells, Courant 0.19, full",
+    "setup": "time-step study: the whole run, time step halved from one run to the next",
+    "outcome": "mean errors \\(\\rho\\) \\(0.13\\,\\%\\), \\(u\\) \\(0.23\\,\\%\\), \\(p\\) \\(0.092\\,\\%\\); extra up-and-down of the pressure \\(2.1\\,\\%\\)"
+   },
+   {
+    "name": "400 cells, Courant 0.10, full",
+    "setup": "time-step study: the whole run, time step halved from one run to the next",
+    "outcome": "mean errors \\(\\rho\\) \\(0.14\\,\\%\\), \\(u\\) \\(0.24\\,\\%\\), \\(p\\) \\(0.096\\,\\%\\); extra up-and-down of the pressure \\(1.2\\,\\%\\)"
+   },
+   {
+    "name": "400 cells, Courant 0.05, full",
+    "setup": "time-step study: the whole run, time step halved from one run to the next",
+    "outcome": "mean errors \\(\\rho\\) \\(0.15\\,\\%\\), \\(u\\) \\(0.26\\,\\%\\), \\(p\\) \\(0.1\\,\\%\\); extra up-and-down of the pressure \\(0.9\\,\\%\\)"
+   },
+   {
+    "name": "100 cells, full",
+    "setup": "the coarsest grid in full, to size the limits",
+    "outcome": "mean errors \\(\\rho\\) \\(0.45\\,\\%\\), \\(u\\) \\(0.82\\,\\%\\), \\(p\\) \\(0.34\\,\\%\\)"
+   }
+  ],
+  "checks": [
+   {
+    "name": "Solver finished without errors (100 cells)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (100 cells)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number (100 cells)",
+    "status": "ok",
+    "value": "0.0971",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend (100 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,1.17\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Density and pressure stay positive (100 cells)",
+    "status": "ok",
+    "value": "lowest density \\(0.125\\), lowest pressure \\(10000\\)",
+    "meaning": "A negative density or pressure is not a gas; a scheme that overshoots at a jump can produce one."
+   },
+   {
+    "name": "Cells are in order along the tube (100 cells)",
+    "status": "ok",
+    "value": "largest difference \\(0\\,\\mathrm{m}\\)",
+    "meaning": "The analysis places cell number i at (i + 1/2) h. OpenFOAM's own cell centres must agree."
+   },
+   {
+    "name": "Start state as given (100 cells)",
+    "status": "ok",
+    "value": "density in the first and last cell: \\(1\\) and \\(0.125\\)",
+    "meaning": "The solver forms the density from pressure, temperature and its own gas constant. The end cells are still undisturbed, so they must hold the given densities."
+   },
+   {
+    "name": "Totals recorded after every step (100 cells)",
+    "status": "ok",
+    "value": "18 rows for 18 steps",
+    "meaning": "Mass, momentum and energy of the whole tube are needed after every step for the conservation check."
+   },
+   {
+    "name": "Mass and energy unchanged, momentum equals the push of the end walls (100 cells)",
+    "status": "ok",
+    "value": "mass \\(5.9 \\times 10^{-16}\\), energy \\(6.3 \\times 10^{-16}\\), momentum \\(3 \\times 10^{-17}\\) (relative)",
+    "meaning": "The physical check of every step. Closed ends let no mass or energy through, and the only force on the air is the pressure on the two end walls."
+   },
+   {
+    "name": "Solver finished without errors (12800 cells)",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values (12800 cells)",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number (12800 cells)",
+    "status": "ok",
+    "value": "0.099",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend (12800 cells)",
+    "status": "ok",
+    "value": "\\(\\times\\,0.999\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Density and pressure stay positive (12800 cells)",
+    "status": "ok",
+    "value": "lowest density \\(0.125\\), lowest pressure \\(10000\\)",
+    "meaning": "A negative density or pressure is not a gas; a scheme that overshoots at a jump can produce one."
+   },
+   {
+    "name": "Cells are in order along the tube (12800 cells)",
+    "status": "ok",
+    "value": "largest difference \\(0\\,\\mathrm{m}\\)",
+    "meaning": "The analysis places cell number i at (i + 1/2) h. OpenFOAM's own cell centres must agree."
+   },
+   {
+    "name": "Start state as given (12800 cells)",
+    "status": "ok",
+    "value": "density in the first and last cell: \\(1\\) and \\(0.125\\)",
+    "meaning": "The solver forms the density from pressure, temperature and its own gas constant. The end cells are still undisturbed, so they must hold the given densities."
+   },
+   {
+    "name": "Totals recorded after every step (12800 cells)",
+    "status": "ok",
+    "value": "2304 rows for 2304 steps",
+    "meaning": "Mass, momentum and energy of the whole tube are needed after every step for the conservation check."
+   },
+   {
+    "name": "Mass and energy unchanged, momentum equals the push of the end walls (12800 cells)",
+    "status": "ok",
+    "value": "mass \\(5.7 \\times 10^{-15}\\), energy \\(3.8 \\times 10^{-15}\\), momentum \\(5.2 \\times 10^{-15}\\) (relative)",
+    "meaning": "The physical check of every step. Closed ends let no mass or energy through, and the only force on the air is the pressure on the two end walls."
+   },
+   {
+    "name": "Every setting belongs to a decision",
+    "status": "ok",
+    "value": "all covered",
+    "meaning": "The checker compares the finest case's files with decisions.yaml."
+   }
+  ],
+  "conclusion": "All pre-flight checks passed. What the pre-flight decided: (1) the molar mass, from the measured gas constant \\(8314.47007\\ \\mathrm{J/(kmol\\,K)}\\); (2) the time step: half the tutorial's, because at the tutorial's step the pressure behind the shock rippled by \\(3.1\\,\\%\\) (the solver prints a Courant number that is half the usual one, so the tutorial's limit of 0.2 is a usual \\(0.39\\)); (3) the limits in numerics.yaml, written before any finer grid was run. Projected time of the finest run: \\(83\\,\\mathrm{s}\\); measured: \\(84\\,\\mathrm{s}\\)."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Tube",
+    "real": "A straight tube with closed ends, flow along it only",
+    "model": "100 to 12800 equal cells along \\(x\\), one cell across with empty sides; cross-section \\(1\\,\\mathrm{m^2}\\), so that totals are per unit of cross-section."
+   },
+   {
+    "aspect": "Start",
+    "real": "Two uniform states at rest, separated by a thin wall that is removed at once",
+    "model": "The jump lies on the cell face at \\(x = L/2\\). Pressure and temperature are set cell by cell; the solver's start densities equal the given ones to 12 digits (pre-flight)."
+   },
+   {
+    "aspect": "Gas",
+    "real": "Air as an ideal gas with constant \\(\\gamma\\), no viscosity, no heat conduction",
+    "model": "\\(c_p = \\gamma R/(\\gamma-1) = 1004.5\\ \\mathrm{J/(kg\\,K)}\\), molar mass \\(28.970279\\) (from OpenFOAM's measured gas constant), viscosity zero."
+   },
+   {
+    "aspect": "Ends",
+    "real": "Closed, frictionless, no heat flow",
+    "model": "No flow through them; zero gradient of pressure and temperature. Nothing reaches them before the time of interest."
+   },
+   {
+    "aspect": "Time",
+    "real": "From the removal of the wall to \\(t_{\\mathrm{end}} = 5 \\times 10^{-4}\\,\\mathrm{s}\\)",
+    "model": "Explicit steps of fixed size, \\(1.8\\) steps per cell: Courant number \\(0.19\\) (the solver prints \\(0.099\\), it counts half)."
+   },
+   {
+    "aspect": "Outputs",
+    "real": "Profiles, states, wave positions and speeds, totals",
+    "model": "Fields at ten times; total mass, momentum and energy after every step. States, positions and widths are read from the profiles by fixed rules (numerics.yaml, extraction)."
+   }
+  ],
+  "meshes": {
+   "intro": "16 runs in three studies. <b>Grid</b>: cells doubled seven times, the time step halved with the cell size. <b>Time step</b>: one grid, the step halved three times. <b>Scheme</b>: one grid and step, six ways of building the face values. Every run covers the whole time of interest.",
+   "head": [
+    "Run",
+    "Cells",
+    "Cell size (mm)",
+    "Time steps",
+    "Courant number",
+    "Flux, limiter",
+    "Studies"
+   ],
+   "rows": [
+    [
+     "N100",
+     100,
+     "\\(10\\)",
+     180,
+     "\\(0.193\\)",
+     "Kurganov, vanLeer",
+     "grid"
+    ],
+    [
+     "N200",
+     200,
+     "\\(5\\)",
+     360,
+     "\\(0.193\\)",
+     "Kurganov, vanLeer",
+     "grid"
+    ],
+    [
+     "N400",
+     400,
+     "\\(2.5\\)",
+     720,
+     "\\(0.193\\)",
+     "Kurganov, vanLeer",
+     "grid, time step, scheme"
+    ],
+    [
+     "N800",
+     800,
+     "\\(1.25\\)",
+     1440,
+     "\\(0.193\\)",
+     "Kurganov, vanLeer",
+     "grid"
+    ],
+    [
+     "N1600",
+     1600,
+     "\\(0.625\\)",
+     2880,
+     "\\(0.193\\)",
+     "Kurganov, vanLeer",
+     "grid"
+    ],
+    [
+     "N3200",
+     3200,
+     "\\(0.312\\)",
+     5760,
+     "\\(0.193\\)",
+     "Kurganov, vanLeer",
+     "grid"
+    ],
+    [
+     "N6400",
+     6400,
+     "\\(0.156\\)",
+     11520,
+     "\\(0.193\\)",
+     "Kurganov, vanLeer",
+     "grid"
+    ],
+    [
+     "N12800",
+     12800,
+     "\\(0.0781\\)",
+     23040,
+     "\\(0.193\\)",
+     "Kurganov, vanLeer",
+     "grid"
+    ],
+    [
+     "N400_spc7.2",
+     400,
+     "\\(2.5\\)",
+     2880,
+     "\\(0.048\\)",
+     "Kurganov, vanLeer",
+     "time step"
+    ],
+    [
+     "N400_spc3.6",
+     400,
+     "\\(2.5\\)",
+     1440,
+     "\\(0.096\\)",
+     "Kurganov, vanLeer",
+     "time step"
+    ],
+    [
+     "N400_spc0.9",
+     400,
+     "\\(2.5\\)",
+     360,
+     "\\(0.385\\)",
+     "Kurganov, vanLeer",
+     "time step"
+    ],
+    [
+     "N400_Tadmor_vanLeer",
+     400,
+     "\\(2.5\\)",
+     720,
+     "\\(0.193\\)",
+     "Tadmor, vanLeer",
+     "scheme"
+    ],
+    [
+     "N400_Kurganov_vanAlbada",
+     400,
+     "\\(2.5\\)",
+     720,
+     "\\(0.193\\)",
+     "Kurganov, vanAlbada",
+     "scheme"
+    ],
+    [
+     "N400_Kurganov_Minmod",
+     400,
+     "\\(2.5\\)",
+     720,
+     "\\(0.193\\)",
+     "Kurganov, Minmod",
+     "scheme"
+    ],
+    [
+     "N400_Kurganov_SuperBee",
+     400,
+     "\\(2.5\\)",
+     720,
+     "\\(0.193\\)",
+     "Kurganov, SuperBee",
+     "scheme"
+    ],
+    [
+     "N400_Kurganov_upwind",
+     400,
+     "\\(2.5\\)",
+     720,
+     "\\(0.193\\)",
+     "Kurganov, upwind",
+     "scheme"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Cells",
+    "\\(p^*\\) (Pa)",
+    "\\(u^*\\) (m/s)",
+    "\\(\\rho^*_L\\) (kg/m³)",
+    "\\(\\rho^*_R\\) (kg/m³)",
+    "Shock width (cells)",
+    "Border width (cells)"
+   ],
+   "rows": [
+    [
+     "exact",
+     "\\(30313.0\\)",
+     "\\(293.286\\)",
+     "\\(0.42632\\)",
+     "\\(0.26557\\)",
+     "\\(0\\)",
+     "\\(0\\)"
+    ],
+    [
+     "100",
+     "\\(30301.4\\)",
+     "\\(293.854\\)",
+     "\\(0.42620\\)",
+     "\\(0.26336\\)",
+     "\\(2.15\\)",
+     "\\(4.42\\)"
+    ],
+    [
+     "200",
+     "\\(30304.3\\)",
+     "\\(293.276\\)",
+     "\\(0.42628\\)",
+     "\\(0.26504\\)",
+     "\\(1.84\\)",
+     "\\(4.71\\)"
+    ],
+    [
+     "400",
+     "\\(30319.0\\)",
+     "\\(293.295\\)",
+     "\\(0.42647\\)",
+     "\\(0.26561\\)",
+     "\\(2.20\\)",
+     "\\(5.17\\)"
+    ],
+    [
+     "800",
+     "\\(30313.6\\)",
+     "\\(293.280\\)",
+     "\\(0.42645\\)",
+     "\\(0.26557\\)",
+     "\\(1.97\\)",
+     "\\(5.59\\)"
+    ],
+    [
+     "1600",
+     "\\(30313.7\\)",
+     "\\(293.291\\)",
+     "\\(0.42639\\)",
+     "\\(0.26557\\)",
+     "\\(1.91\\)",
+     "\\(6.03\\)"
+    ],
+    [
+     "3200",
+     "\\(30313.3\\)",
+     "\\(293.287\\)",
+     "\\(0.42635\\)",
+     "\\(0.26557\\)",
+     "\\(1.85\\)",
+     "\\(6.29\\)"
+    ],
+    [
+     "6400",
+     "\\(30313.2\\)",
+     "\\(293.287\\)",
+     "\\(0.42634\\)",
+     "\\(0.26557\\)",
+     "\\(2.16\\)",
+     "\\(6.41\\)"
+    ],
+    [
+     "12800",
+     "\\(30313.1\\)",
+     "\\(293.287\\)",
+     "\\(0.42633\\)",
+     "\\(0.26557\\)",
+     "\\(2.12\\)",
+     "\\(6.34\\)"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Run",
+    "Log checks",
+    "Mass change",
+    "Energy change",
+    "Momentum",
+    "Ends",
+    "Wiggles \\(\\rho\\), \\(p\\)",
+    "Solver time (s)"
+   ],
+   "rows": [
+    [
+     "N100",
+     "✓ OK",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(6 \\times 10^{-16}\\)",
+     "\\(2 \\times 10^{-16}\\)",
+     "\\(1.6\\,\\%\\), \\(2.8\\,\\%\\)",
+     "\\(0.4\\)"
+    ],
+    [
+     "N200",
+     "✓ OK",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(8 \\times 10^{-16}\\)",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-16}\\)",
+     "\\(1.9\\,\\%\\), \\(2.5\\,\\%\\)",
+     "\\(0.6\\)"
+    ],
+    [
+     "N400",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-16}\\)",
+     "\\(1.9\\,\\%\\), \\(2.1\\,\\%\\)",
+     "\\(0.7\\)"
+    ],
+    [
+     "N800",
+     "✓ OK",
+     "\\(2 \\times 10^{-14}\\)",
+     "\\(4 \\times 10^{-15}\\)",
+     "\\(6 \\times 10^{-15}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(2.2\\,\\%\\), \\(3.3\\,\\%\\)",
+     "\\(1.1\\)"
+    ],
+    [
+     "N1600",
+     "✓ OK",
+     "\\(4 \\times 10^{-14}\\)",
+     "\\(4 \\times 10^{-15}\\)",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(3 \\times 10^{-16}\\)",
+     "\\(2.8\\,\\%\\), \\(4.0\\,\\%\\)",
+     "\\(2.3\\)"
+    ],
+    [
+     "N3200",
+     "✓ OK",
+     "\\(3 \\times 10^{-14}\\)",
+     "\\(4 \\times 10^{-14}\\)",
+     "\\(8 \\times 10^{-14}\\)",
+     "\\(2 \\times 10^{-16}\\)",
+     "\\(3.5\\,\\%\\), \\(4.4\\,\\%\\)",
+     "\\(7.0\\)"
+    ],
+    [
+     "N6400",
+     "✓ OK",
+     "\\(2 \\times 10^{-14}\\)",
+     "\\(3 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-13}\\)",
+     "\\(8 \\times 10^{-16}\\)",
+     "\\(4.2\\,\\%\\), \\(4.9\\,\\%\\)",
+     "\\(24.0\\)"
+    ],
+    [
+     "N12800",
+     "✓ OK",
+     "\\(2 \\times 10^{-14}\\)",
+     "\\(5 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-13}\\)",
+     "\\(7 \\times 10^{-16}\\)",
+     "\\(5.3\\,\\%\\), \\(5.5\\,\\%\\)",
+     "\\(84.1\\)"
+    ],
+    [
+     "N400_spc7.2",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(3 \\times 10^{-15}\\)",
+     "\\(5 \\times 10^{-15}\\)",
+     "\\(7 \\times 10^{-16}\\)",
+     "\\(0.8\\,\\%\\), \\(0.9\\,\\%\\)",
+     "\\(1.4\\)"
+    ],
+    [
+     "N400_spc3.6",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(3 \\times 10^{-15}\\)",
+     "\\(6 \\times 10^{-16}\\)",
+     "\\(1.0\\,\\%\\), \\(1.2\\,\\%\\)",
+     "\\(0.9\\)"
+    ],
+    [
+     "N400_spc0.9",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-16}\\)",
+     "\\(8.7\\,\\%\\), \\(11.9\\,\\%\\)",
+     "\\(0.5\\)"
+    ],
+    [
+     "N400_Tadmor_vanLeer",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(3 \\times 10^{-16}\\)",
+     "\\(1.7\\,\\%\\), \\(2.0\\,\\%\\)",
+     "\\(0.6\\)"
+    ],
+    [
+     "N400_Kurganov_vanAlbada",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-16}\\)",
+     "\\(1.5\\,\\%\\), \\(2.8\\,\\%\\)",
+     "\\(0.6\\)"
+    ],
+    [
+     "N400_Kurganov_Minmod",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-16}\\)",
+     "\\(0.6\\,\\%\\), \\(2.0\\,\\%\\)",
+     "\\(0.6\\)"
+    ],
+    [
+     "N400_Kurganov_SuperBee",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(1 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(3 \\times 10^{-16}\\)",
+     "\\(6.5\\,\\%\\), \\(5.5\\,\\%\\)",
+     "\\(0.6\\)"
+    ],
+    [
+     "N400_Kurganov_upwind",
+     "✓ OK",
+     "\\(1 \\times 10^{-14}\\)",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(2 \\times 10^{-15}\\)",
+     "\\(3 \\times 10^{-16}\\)",
+     "\\(0.0\\,\\%\\), \\(0.2\\,\\%\\)",
+     "\\(0.6\\)"
+    ]
+   ],
+   "notes": [
+    "An explicit solver has no residuals to watch. The evidence that each step is right is physical: the total mass and the total energy of the air must not change (closed ends), and the total momentum must equal the push of the two end walls, \\((p_L - p_R)\\,t\\). All three are recorded after every step. Columns: the largest change during the run, relative (Figure 5). Limits: \\(1 \\times 10^{-11}\\).",
+    "Ends: the largest relative difference from the start state in the two end cells at the time of interest (limit \\(1 \\times 10^{-10}\\)). It confirms that no wave has reached an end.",
+    "Wiggles: the exact density and pressure only fall from left to right. The column is the simulation's total up-and-down above the exact one, so zero means no wiggle at all (limit for the grid study: \\(5\\,\\%\\)). It grows slowly with the number of cells, about like the number of cells to the power \\(0.18\\): the ripple behind the shock keeps its size and covers more cells.",
+    "Log checks (cfdlib.monitor): no crash, no NaN, Courant number and its trend. Density and pressure stayed positive in every run.",
+    "The grid of every run passed checkMesh."
+   ]
+  },
+  "tables": [
+   {
+    "title": "Wave positions at the time of interest and wave speeds, grid study",
+    "head": [
+     "Cells",
+     "front of the fan: \\(x\\) (m)",
+     "back of the fan: \\(x\\) (m)",
+     "border of the two gases: \\(x\\) (m)",
+     "shock: \\(x\\) (m)",
+     "border of the two gases: speed (m/s)",
+     "shock: speed (m/s)"
+    ],
+    "rows": [
+     [
+      "exact",
+      "\\(0.31292\\)",
+      "\\(0.48889\\)",
+      "\\(0.64664\\)",
+      "\\(0.77704\\)",
+      "\\(293.29\\)",
+      "\\(554.08\\)"
+     ],
+     [
+      "100",
+      "\\(0.30724\\)",
+      "\\(0.49890\\)",
+      "\\(0.64482\\)",
+      "\\(0.77888\\)",
+      "\\(295.38\\)",
+      "\\(558.92\\)"
+     ],
+     [
+      "200",
+      "\\(0.30948\\)",
+      "\\(0.49380\\)",
+      "\\(0.64582\\)",
+      "\\(0.77777\\)",
+      "\\(293.73\\)",
+      "\\(553.01\\)"
+     ],
+     [
+      "400",
+      "\\(0.31094\\)",
+      "\\(0.49136\\)",
+      "\\(0.64635\\)",
+      "\\(0.77736\\)",
+      "\\(293.78\\)",
+      "\\(553.77\\)"
+     ],
+     [
+      "800",
+      "\\(0.31179\\)",
+      "\\(0.49013\\)",
+      "\\(0.64656\\)",
+      "\\(0.77722\\)",
+      "\\(293.61\\)",
+      "\\(554.28\\)"
+     ],
+     [
+      "1600",
+      "\\(0.31228\\)",
+      "\\(0.48952\\)",
+      "\\(0.64666\\)",
+      "\\(0.77709\\)",
+      "\\(293.50\\)",
+      "\\(554.00\\)"
+     ],
+     [
+      "3200",
+      "\\(0.31256\\)",
+      "\\(0.48921\\)",
+      "\\(0.64668\\)",
+      "\\(0.77708\\)",
+      "\\(293.39\\)",
+      "\\(554.12\\)"
+     ],
+     [
+      "6400",
+      "\\(0.31272\\)",
+      "\\(0.48905\\)",
+      "\\(0.64667\\)",
+      "\\(0.77705\\)",
+      "\\(293.35\\)",
+      "\\(554.06\\)"
+     ],
+     [
+      "12800",
+      "\\(0.31281\\)",
+      "\\(0.48897\\)",
+      "\\(0.64667\\)",
+      "\\(0.77705\\)",
+      "\\(293.33\\)",
+      "\\(554.08\\)"
+     ]
+    ],
+    "note": "Positions: shock and border where the profile is half-way up the jump; the two ends of the fan from a straight line fitted to the velocity inside it. Speeds: slope of position against time over the written times from \\(t_{\\mathrm{end}}/2\\) on. Speeds of the two ends of the fan on the finest grid: \\(-374.20\\) and \\(-22.22\\,\\mathrm{m/s}\\) (exact \\(-374.17\\) and \\(-22.22\\))."
+   }
+  ]
+ },
+ "comparison": {
+  "kind": "Verification: every run is compared with the exact solution of the same equations, averaged over the run's own cells.",
+  "definitions": [
+   {
+    "name": "Mean error (the L1 norm)",
+    "latex": "e_q = \\frac{1}{N}\\sum_{i=1}^{N}\\frac{|q_i - \\bar q_i^{\\,\\mathrm{exact}}|}{q_{\\mathrm{ref}}},\\qquad q_{\\mathrm{ref}} = \\rho_L,\\ u^*,\\ p_L",
+    "meaning": "The mean absolute difference over the cells between the simulation and the exact solution averaged over the same cell. This is the measure to use with jumps: the largest difference never falls, because a cell inside a smeared jump is always wrong by a part of the jump."
+   },
+   {
+    "name": "Observed order",
+    "latex": "p = \\frac{\\ln(e_{\\mathrm{coarse}}/e_{\\mathrm{fine}})}{\\ln 2}",
+    "meaning": "\\(p = 1\\): halving the cells halves the error. \\(p = 2\\) would cut it by four."
+   },
+   {
+    "name": "Width of a jump",
+    "latex": "\\frac{|x_{90\\%} - x_{10\\%}|}{\\Delta x}",
+    "meaning": "Distance between the points where the profile has made 10 % and 90 % of the jump, in cells. The same rule applied to the exact cell averages gives \\(0.9\\) to \\(1.6\\) cells: that is the rule's own floor."
+   },
+   {
+    "name": "Wiggles",
+    "latex": "\\frac{\\sum_i |q_{i+1} - q_i|}{q_L - q_R} - 1,\\qquad q = \\rho,\\ p",
+    "meaning": "Zero for a profile that only falls from left to right, as the exact density and pressure do."
+   },
+   {
+    "name": "Ripple between the fan and the shock",
+    "latex": "\\frac{\\max q - \\min q}{\\mathrm{mean}\\ q},\\qquad q = p,\\ u",
+    "meaning": "Over the middle half of the stretch between the back of the fan and the shock, where the exact pressure and velocity are constant."
+   }
+  ],
+  "head": [
+   "Cells",
+   "\\(e_\\rho\\)",
+   "order",
+   "\\(e_u\\)",
+   "order",
+   "\\(e_p\\)",
+   "order"
+  ],
+  "rows": [
+   [
+    "100",
+    "\\(0.45\\,\\%\\)",
+    "–",
+    "\\(0.82\\,\\%\\)",
+    "–",
+    "\\(0.34\\,\\%\\)",
+    "–"
+   ],
+   [
+    "200",
+    "\\(0.23\\,\\%\\)",
+    "\\(1.00\\)",
+    "\\(0.34\\,\\%\\)",
+    "\\(1.28\\)",
+    "\\(0.16\\,\\%\\)",
+    "\\(1.09\\)"
+   ],
+   [
+    "400",
+    "\\(0.13\\,\\%\\)",
+    "\\(0.84\\)",
+    "\\(0.23\\,\\%\\)",
+    "\\(0.55\\)",
+    "\\(0.092\\,\\%\\)",
+    "\\(0.80\\)"
+   ],
+   [
+    "800",
+    "\\(0.073\\,\\%\\)",
+    "\\(0.81\\)",
+    "\\(0.11\\,\\%\\)",
+    "\\(1.05\\)",
+    "\\(0.053\\,\\%\\)",
+    "\\(0.80\\)"
+   ],
+   [
+    "1600",
+    "\\(0.043\\,\\%\\)",
+    "\\(0.76\\)",
+    "\\(0.063\\,\\%\\)",
+    "\\(0.81\\)",
+    "\\(0.034\\,\\%\\)",
+    "\\(0.65\\)"
+   ],
+   [
+    "3200",
+    "\\(0.025\\,\\%\\)",
+    "\\(0.81\\)",
+    "\\(0.033\\,\\%\\)",
+    "\\(0.94\\)",
+    "\\(0.019\\,\\%\\)",
+    "\\(0.82\\)"
+   ],
+   [
+    "6400",
+    "\\(0.014\\,\\%\\)",
+    "\\(0.83\\)",
+    "\\(0.023\\,\\%\\)",
+    "\\(0.55\\)",
+    "\\(0.012\\,\\%\\)",
+    "\\(0.67\\)"
+   ],
+   [
+    "12800",
+    "\\(0.0085\\,\\%\\)",
+    "\\(0.72\\)",
+    "\\(0.012\\,\\%\\)",
+    "\\(0.94\\)",
+    "\\(0.0068\\,\\%\\)",
+    "\\(0.81\\)"
+   ]
+  ],
+  "findings": [
+   "<b>Order of convergence.</b> Halving the cells cuts the mean error by about \\(1.76\\times\\), not by 2 or 4: orders \\(0.81\\) (density), \\(0.85\\) (velocity), \\(0.78\\) (pressure) over the eight grids (Figure 6). Second order is out of reach with jumps in the solution: a jump spread over a fixed number of cells leaves an error in proportion to the cell size. The surprise is that the order stays below 1.",
+   "<b>Where the error is.</b> Not at the shock. On the finest grid the expansion fan holds \\(81\\,\\%\\) of the pressure error, \\(56\\,\\%\\) of the velocity error and \\(51\\,\\%\\) of the density error, and its part falls with order \\(0.78\\) (pressure), steadily over all grids. The fan is smooth inside, but its two ends are corners, and the scheme rounds them. The limit for the pressure was sized on the assumption that the shock sets the pressure error (order 1 expected, 0.85 allowed); the fan sets it. The shock's own part does fall with order \\(0.94\\). The slowest part is the stretch around the border of the two gases, where the ripple is: order \\(0.54\\) for the pressure. It is \\(10\\,\\%\\) of the pressure error on the finest grid and would take over on still finer ones.",
+   "<b>The time step is not the cause.</b> In the time-step study the fan's part of the pressure error is \\(0.12\\,\\%\\), \\(0.068\\,\\%\\), \\(0.072\\,\\%\\), \\(0.08\\,\\%\\) at Courant numbers 0.39, 0.19, 0.10, 0.05: below the step of the grid study it does not fall, it rises a little. I first suspected the ripple behind the shock; the split by wave shows that the ripple is a small part of the error.",
+   "<b>The limiter is the cause, in part.</b> With the same grid and time step the density error in the fan is \\(0.058\\,\\%\\) (vanLeer), \\(0.082\\,\\%\\) (vanLeer, Tadmor flux), \\(0.059\\,\\%\\) (vanAlbada), \\(0.072\\,\\%\\) (Minmod), \\(0.11\\,\\%\\) (SuperBee), \\(0.41\\,\\%\\) (upwind). No combination that OpenFOAM offers here does clearly better than the tutorial's.",
+   "<b>Time-step error.</b> The error against the exact solution is lowest at the step used for the grid study and rises for smaller steps (Figure 7). So the step is not converged: at a quarter of it the density profile differs by \\(0.061\\,\\%\\) of \\(\\rho_L\\), while the total error is \\(0.13\\,\\%\\). Time error and space error partly cancel at this step. Because the step is halved with the cell size, both shrink together in the grid study.",
+   "<b>Wave positions.</b> On the finest grid the shock is \\(0.06\\) cells and the border of the two gases \\(0.35\\) cells from their exact places. The two ends of the fan, read from the straight-line fit, are \\(1.4\\) and \\(1.1\\) cells off; the back of the fan is about one cell too far right on every grid (\\(0.98\\) to \\(1.05\\) cells), so that error halves with the cell size."
+  ],
+  "tables": [
+   {
+    "title": "The rules, written before the production runs, and what was measured",
+    "head": [
+     "Rule",
+     "Kind",
+     "Measured",
+     "Limit",
+     "Where",
+     "Holds"
+    ],
+    "rows": [
+     [
+      "every grid passes checkMesh and every run ends without an error",
+      "FAIL",
+      "–",
+      "–",
+      "all runs",
+      "✓ yes"
+     ],
+     [
+      "total mass does not change during a run",
+      "FAIL",
+      "\\(3.6 \\times 10^{-14}\\)",
+      "\\(1 \\times 10^{-11}\\)",
+      "largest of all runs",
+      "✓ yes"
+     ],
+     [
+      "total energy does not change during a run",
+      "FAIL",
+      "\\(5.3 \\times 10^{-14}\\)",
+      "\\(1 \\times 10^{-11}\\)",
+      "largest of all runs",
+      "✓ yes"
+     ],
+     [
+      "total momentum equals the push of the end walls",
+      "FAIL",
+      "\\(1.2 \\times 10^{-13}\\)",
+      "\\(1 \\times 10^{-11}\\)",
+      "largest of all runs",
+      "✓ yes"
+     ],
+     [
+      "the two ends are still undisturbed at the time of interest",
+      "FAIL",
+      "\\(1.2 \\times 10^{-15}\\)",
+      "\\(1 \\times 10^{-10}\\)",
+      "largest of all runs",
+      "✓ yes"
+     ],
+     [
+      "mean density error on the finest grid",
+      "FAIL",
+      "\\(0.0085\\,\\%\\)",
+      "\\(0.015\\,\\%\\)",
+      "12800 cells",
+      "✓ yes"
+     ],
+     [
+      "mean velocity error on the finest grid",
+      "FAIL",
+      "\\(0.012\\,\\%\\)",
+      "\\(0.013\\,\\%\\)",
+      "12800 cells",
+      "✓ yes"
+     ],
+     [
+      "mean pressure error on the finest grid",
+      "FAIL",
+      "\\(0.0068\\,\\%\\)",
+      "\\(0.0055\\,\\%\\)",
+      "12800 cells",
+      "✗ no"
+     ],
+     [
+      "uniform states between the waves on the finest grid",
+      "FAIL",
+      "\\(0.0022\\,\\%\\)",
+      "\\(0.01\\,\\%\\)",
+      "largest of the four",
+      "✓ yes"
+     ],
+     [
+      "position of the shock and of the border of the two gases on the finest grid",
+      "FAIL",
+      "\\(2.7 \\times 10^{-5}\\) of \\(L\\)",
+      "\\(1 \\times 10^{-4}\\)",
+      "larger of the two",
+      "✓ yes"
+     ],
+     [
+      "position of the two ends of the fan on the finest grid",
+      "FAIL",
+      "\\(1.1 \\times 10^{-4}\\) of \\(L\\)",
+      "\\(3 \\times 10^{-4}\\)",
+      "larger of the two",
+      "✓ yes"
+     ],
+     [
+      "speed of the four waves on the finest grid",
+      "FAIL",
+      "\\(8.2 \\times 10^{-5}\\) of \\(S\\)",
+      "\\(3 \\times 10^{-4}\\)",
+      "largest of the four",
+      "✓ yes"
+     ],
+     [
+      "observed order of the density error at the last refinement",
+      "WARN",
+      "\\(0.72\\)",
+      "0.6 to 1.1",
+      "6400 to 12800 cells",
+      "✓ yes"
+     ],
+     [
+      "observed order of the velocity error at the last refinement",
+      "WARN",
+      "\\(0.94\\)",
+      "0.8 to 1.2",
+      "6400 to 12800 cells",
+      "✓ yes"
+     ],
+     [
+      "observed order of the pressure error at the last refinement",
+      "WARN",
+      "\\(0.81\\)",
+      "0.8 to 1.2",
+      "6400 to 12800 cells",
+      "✓ yes"
+     ],
+     [
+      "extra up-and-down of density and pressure (wiggles), every grid of the family",
+      "WARN",
+      "\\(5.5\\,\\%\\)",
+      "\\(5\\,\\%\\)",
+      "largest of the family",
+      "✗ no"
+     ],
+     [
+      "ripple of pressure and velocity between the fan and the shock, finest grid",
+      "WARN",
+      "\\(0.62\\,\\%\\)",
+      "\\(1\\,\\%\\)",
+      "larger of the two",
+      "✓ yes"
+     ],
+     [
+      "width of the shock on every grid",
+      "WARN",
+      "\\(2.20\\) cells",
+      "\\(3\\) cells",
+      "widest of the family",
+      "✓ yes"
+     ]
+    ],
+    "note": "The limits are in numerics.yaml (acceptance), with how each was sized from the pre-flight. A broken FAIL rule gives the verdict FAIL, a broken WARN rule the verdict WARN."
+   },
+   {
+    "title": "Where the error is: each wave's part of the mean error on the finest grid, and its order over the eight grids",
+    "head": [
+     "Quantity",
+     "Fan: part",
+     "Fan: order",
+     "Border: part",
+     "Border: order",
+     "Shock: part",
+     "Shock: order"
+    ],
+    "rows": [
+     [
+      "density",
+      "\\(51\\,\\%\\)",
+      "\\(0.80\\)",
+      "\\(44\\,\\%\\)",
+      "\\(0.80\\)",
+      "\\(5\\,\\%\\)",
+      "\\(0.95\\)"
+     ],
+     [
+      "velocity",
+      "\\(56\\,\\%\\)",
+      "\\(0.85\\)",
+      "\\(19\\,\\%\\)",
+      "\\(0.54\\)",
+      "\\(25\\,\\%\\)",
+      "\\(0.96\\)"
+     ],
+     [
+      "pressure",
+      "\\(81\\,\\%\\)",
+      "\\(0.78\\)",
+      "\\(10\\,\\%\\)",
+      "\\(0.54\\)",
+      "\\(9\\,\\%\\)",
+      "\\(0.94\\)"
+     ]
+    ],
+    "note": "The tube is split half-way between neighbouring waves. Order: slope of a straight-line fit of the error against the number of cells on logarithmic axes."
+   },
+   {
+    "title": "Time-step study, 400 cells",
+    "head": [
+     "Courant number",
+     "The solver prints",
+     "Steps",
+     "\\(e_\\rho\\)",
+     "\\(e_u\\)",
+     "\\(e_p\\)",
+     "Error in the fan (\\(p\\))",
+     "Ripple \\(p\\)",
+     "Wiggles \\(p\\)",
+     "Change of \\(\\rho\\) from the larger step"
+    ],
+    "rows": [
+     [
+      "\\(0.385\\)",
+      "\\(0.205\\)",
+      360,
+      "\\(0.17\\,\\%\\)",
+      "\\(0.37\\,\\%\\)",
+      "\\(0.18\\,\\%\\)",
+      "\\(0.12\\,\\%\\)",
+      "\\(3.06\\,\\%\\)",
+      "\\(11.9\\,\\%\\)",
+      "–"
+     ],
+     [
+      "\\(0.193\\)",
+      "\\(0.099\\)",
+      720,
+      "\\(0.13\\,\\%\\)",
+      "\\(0.23\\,\\%\\)",
+      "\\(0.092\\,\\%\\)",
+      "\\(0.068\\,\\%\\)",
+      "\\(0.61\\,\\%\\)",
+      "\\(2.1\\,\\%\\)",
+      "\\(0.12\\,\\%\\)"
+     ],
+     [
+      "\\(0.096\\)",
+      "\\(0.049\\)",
+      1440,
+      "\\(0.14\\,\\%\\)",
+      "\\(0.24\\,\\%\\)",
+      "\\(0.096\\,\\%\\)",
+      "\\(0.072\\,\\%\\)",
+      "\\(0.51\\,\\%\\)",
+      "\\(1.2\\,\\%\\)",
+      "\\(0.042\\,\\%\\)"
+     ],
+     [
+      "\\(0.048\\)",
+      "\\(0.025\\)",
+      2880,
+      "\\(0.15\\,\\%\\)",
+      "\\(0.26\\,\\%\\)",
+      "\\(0.1\\,\\%\\)",
+      "\\(0.08\\,\\%\\)",
+      "\\(0.33\\,\\%\\)",
+      "\\(0.9\\,\\%\\)",
+      "\\(0.019\\,\\%\\)"
+     ]
+    ],
+    "note": "The second row is the time step of the grid study; the first is the tutorial's limit. Last column: mean difference between the density profiles of two neighbouring rows. It falls by \\(2.8\\times\\) and \\(2.2\\times\\) per halving (orders \\(1.47\\) and \\(1.12\\)), heading for the factor 2 of a first-order time scheme."
+   },
+   {
+    "title": "Flux scheme and limiter, 400 cells, same time step",
+    "head": [
+     "Flux",
+     "Limiter",
+     "\\(e_\\rho\\)",
+     "\\(e_u\\)",
+     "\\(e_p\\)",
+     "Shock width (cells)",
+     "Border width (cells)",
+     "Ripple \\(p\\)",
+     "Wiggles \\(p\\)"
+    ],
+    "rows": [
+     [
+      "Kurganov",
+      "vanLeer (main)",
+      "\\(0.13\\,\\%\\)",
+      "\\(0.23\\,\\%\\)",
+      "\\(0.092\\,\\%\\)",
+      "\\(2.20\\)",
+      "\\(5.17\\)",
+      "\\(0.61\\,\\%\\)",
+      "\\(2.1\\,\\%\\)"
+     ],
+     [
+      "Tadmor",
+      "vanLeer",
+      "\\(0.16\\,\\%\\)",
+      "\\(0.27\\,\\%\\)",
+      "\\(0.12\\,\\%\\)",
+      "\\(2.20\\)",
+      "\\(6.13\\)",
+      "\\(0.47\\,\\%\\)",
+      "\\(2.0\\,\\%\\)"
+     ],
+     [
+      "Kurganov",
+      "vanAlbada",
+      "\\(0.14\\,\\%\\)",
+      "\\(0.27\\,\\%\\)",
+      "\\(0.1\\,\\%\\)",
+      "\\(2.41\\)",
+      "\\(6.16\\)",
+      "\\(1.40\\,\\%\\)",
+      "\\(2.8\\,\\%\\)"
+     ],
+     [
+      "Kurganov",
+      "Minmod",
+      "\\(0.18\\,\\%\\)",
+      "\\(0.3\\,\\%\\)",
+      "\\(0.12\\,\\%\\)",
+      "\\(2.57\\)",
+      "\\(8.34\\)",
+      "\\(1.13\\,\\%\\)",
+      "\\(2.0\\,\\%\\)"
+     ],
+     [
+      "Kurganov",
+      "SuperBee",
+      "\\(0.17\\,\\%\\)",
+      "\\(0.34\\,\\%\\)",
+      "\\(0.18\\,\\%\\)",
+      "\\(2.13\\)",
+      "\\(2.42\\)",
+      "\\(2.14\\,\\%\\)",
+      "\\(5.5\\,\\%\\)"
+     ],
+     [
+      "Kurganov",
+      "upwind",
+      "\\(0.75\\,\\%\\)",
+      "\\(1.2\\,\\%\\)",
+      "\\(0.6\\,\\%\\)",
+      "\\(6.43\\)",
+      "\\(21.26\\)",
+      "\\(0.06\\,\\%\\)",
+      "\\(0.2\\,\\%\\)"
+     ]
+    ],
+    "note": "upwind is the first-order scheme: no slope inside a cell. Minmod is the most cautious limiter, SuperBee the steepest; van Leer and van Albada lie between."
+   },
+   {
+    "title": "The reading rules applied to the exact solution: their own bias",
+    "head": [
+     "Cells",
+     "front of the fan (cells)",
+     "back of the fan (cells)",
+     "border of the two gases (cells)",
+     "shock (cells)",
+     "Shock width (cells)",
+     "Border width (cells)"
+    ],
+    "rows": [
+     [
+      "100",
+      "\\(+0.004\\)",
+      "\\(+0.004\\)",
+      "\\(+0.083\\)",
+      "\\(+0.111\\)",
+      "\\(1.49\\)",
+      "\\(1.55\\)"
+     ],
+     [
+      "800",
+      "\\(+0.000\\)",
+      "\\(+0.001\\)",
+      "\\(-0.085\\)",
+      "\\(+0.113\\)",
+      "\\(1.55\\)",
+      "\\(1.54\\)"
+     ],
+     [
+      "12800",
+      "\\(+0.000\\)",
+      "\\(+0.000\\)",
+      "\\(-0.016\\)",
+      "\\(-0.037\\)",
+      "\\(1.14\\)",
+      "\\(0.83\\)"
+     ]
+    ],
+    "note": "Each rule reads the exact cell averages on the same grid; the table shows what it returns minus the exact position, in cells. A jump that is exact but averaged over cells is read up to \\(0.11\\) cells off and about one and a half cells wide. The uniform states are read exactly (to \\(5 \\times 10^{-15}\\))."
+   }
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "theory",
+   "logged": "2026-11-15 08:44",
+   "status": "resolved",
+   "problem": "SymPy could not prove that the expansion fan satisfies the Euler equations. Four self-checks came back false although the formulas were right.",
+   "diagnosis": "The fan's density and pressure are powers of a base with the exponent 2/(gamma-1), kept symbolic. The base was written as an expression in the ray variable, whose sign SymPy does not know, so it refused to combine the powers and the residual did not reduce to zero.",
+   "fix": "The fan is written with the local speed of sound divided by the left one as the variable, declared positive. The three conservation laws then reduce to zero for any gamma. The entropy check compares logarithms.",
+   "lesson": "A symbolic proof with non-integer powers needs a base that is a single positive symbol. A check that fails this way says nothing about the physics.",
+   "guideline": "In the workflow's theory stage, add one line. When a solution has powers with a symbolic exponent (gas dynamics, similarity solutions), write it in a variable that is a positive symbol before asking SymPy to verify it.",
+   "resolved": "2026-11-15 08:46"
+  },
+  {
+   "id": 2,
+   "stage": "setup",
+   "logged": "2026-11-15 08:47",
+   "status": "resolved",
+   "problem": "OpenFOAM's universal gas constant is not the textbook value, and the tutorial's molar mass of air (28.96) does not give the gas constant of the problem. Typed from memory, the start densities would be wrong by a few hundredths of a per cent.",
+   "diagnosis": "The solver divides its own universal gas constant by the molar mass. The constant is built into the program as a product of two rounded numbers; a one-step run gave \\(8314.47006651\\ \\mathrm{J/(kmol\\,K)}\\), where textbooks give 8314.4626. With the tutorial's 28.96 the gas constant is 287.10, not 287.",
+   "fix": "run.py measures the constant with a 10-cell, one-step run (p W / (rho T) in an undisturbed cell) and sets the molar mass from it. The pre-flight checks that the solver's start densities are the given ones to 12 digits.",
+   "lesson": "For a compressible case the density is not an input. It follows from pressure, temperature and the solver's own constants, so it has to be checked in the solver's output before anything else.",
+   "guideline": "Add to the OpenFOAM primer, in a new section on compressible flow, that molWeight must be set from the solver's own universal gas constant, with the measured value for v2606 and the one-step check of the start density. A helper in cfdlib.foam that returns the constant would save every later case of the ladder this step.",
+   "resolved": "2026-11-15 08:50"
+  },
+  {
+   "id": 3,
+   "stage": "tooling",
+   "logged": "2026-11-15 08:50",
+   "status": "resolved",
+   "problem": "The pre-flight copy of a case does not run with the case's time step. monitor.preflight sets the end time with foamDictionary, which rewrites the whole controlDict with 6 digits, so a time step written with 16 digits (the time of interest divided by 180) ran as its 6-digit rounding.",
+   "diagnosis": "Seen in the total momentum, which is the wall pressure difference times the time. After one step it was 0.2500002 where 0.25 was expected, exactly the rounded time step. The function object also prints its time column with too few digits for a check at round-off level.",
+   "fix": "The analysis takes the time of each row as step number times the time step read from the case's own controlDict. The momentum check then holds to 15 digits in the pre-flight copy and in production.",
+   "lesson": "A pre-flight copy edited by foamDictionary is a slightly different case. With a fixed time step chosen to hit an end time exactly, the copy can end one step early or late.",
+   "guideline": "In cfdlib.monitor.preflight, change the end time without rewriting the file (replace the one entry in the text, or pass writePrecision high enough), and say in the workflow that printed times of function objects carry timePrecision digits only.",
+   "resolved": "2026-11-15 08:52"
+  },
+  {
+   "id": 4,
+   "stage": "preflight",
+   "logged": "2026-11-15 08:53",
+   "status": "resolved",
+   "problem": "The Courant number that rhoCentralFoam prints is half the usual one. The run was planned at 0.19 and the log says 0.097.",
+   "diagnosis": "The solver forms its Courant number from the face fluxes of its central scheme. In subsonic flow that is (|u| + c) dt / (2 dx), half of the usual (|u| + c) dt / dx (read in its source, centralCourantNo.H, and confirmed by the log). The tutorial's limit maxCo 0.2 is therefore a usual Courant number of about 0.4.",
+   "fix": "The time step is set from the exact solution's fastest signal with the usual definition, and the report states both numbers.",
+   "lesson": "A Courant limit copied from a rhoCentralFoam tutorial is twice as large as it looks.",
+   "guideline": "Add to the primer's compressible section that rhoCentralFoam's printed Courant number is half the usual one in subsonic flow, and that monitor.assess reports the solver's number.",
+   "resolved": "2026-11-15 08:55"
+  },
+  {
+   "id": 5,
+   "stage": "preflight",
+   "logged": "2026-11-15 08:55",
+   "status": "resolved",
+   "problem": "At the tutorial's time-step limit the solution rings behind the shock. On 400 cells, pressure and velocity between the fan and the shock ripple by 3 % (highest minus lowest value), and the pressure error is twice that of half the step.",
+   "diagnosis": "The solver's only time scheme is the explicit Euler step, which is first order and barely stable with a second-order reconstruction in space. The time-step study on 400 cells shows the ripple falling with the step (3.1 %, 0.6 %, 0.5 % and 0.3 % at usual Courant numbers 0.39, 0.19, 0.10, 0.05). The total variation above the exact one falls from 12 % to 2 %, 1 % and 0.9 %.",
+   "fix": "The main runs use a usual Courant number of 0.19 (0.097 as the solver prints it), half the tutorial's step, where the ripple is 0.6 %. A limit on the ripple and on the total variation is part of the acceptance rules.",
+   "lesson": "The time step of rhoCentralFoam is set by the ringing its Euler step makes, not by stability alone. The error against the exact solution is not a good guide here; it was lowest at 0.19 only because the time error and the space error partly cancel.",
+   "guideline": "Add to the primer that rhoCentralFoam needs a usual Courant number of about 0.2 or less (maxCo 0.1 in its own measure) for a clean shock, with these measured numbers, and that a total-variation check of a profile that should be monotone is a cheap detector. A tool for the ladder would be a solver with a multi-stage time scheme.",
+   "resolved": "2026-11-15 08:57"
+  },
+  {
+   "id": 6,
+   "stage": "setup",
+   "logged": "2026-11-15 08:48",
+   "status": "resolved",
+   "problem": "The workflow does not say what to compare a finite-volume result with when the solution has jumps. The exact value at a cell centre is the wrong reference in a cell that a jump passes through.",
+   "diagnosis": "The solver holds cell averages of density, momentum and energy. Next to a jump the exact cell average and the exact centre value differ by up to half the jump, and the error this adds is as large as the error being measured (a few cells times the jump).",
+   "fix": "The exact solution is integrated over each cell in closed form, and velocity and pressure are formed from the averaged conserved quantities as the solver forms them. Every reading rule (states, positions, widths) is also applied to these exact cell averages, which gives its bias (up to 0.11 cells for a jump's position, 1.3 to 1.6 cells for a jump's width).",
+   "lesson": "With jumps, compare cell averages with cell averages, and use the mean error (L1), not the largest one.",
+   "guideline": "Add to the workflow's analysis stage, for flows with shocks. Compare with exact cell averages of the conserved quantities, judge profiles by the L1 error, and measure each extraction rule on the exact solution. cases/shock_tube_sod/theory.py (Exact.cell_averages) and measure.py are the worked example.",
+   "resolved": "2026-11-15 08:50"
+  },
+  {
+   "id": 7,
+   "stage": "tooling",
+   "logged": "2026-11-15 08:51",
+   "status": "resolved",
+   "problem": "The decision check reported blockMeshDict's boundary list as undocumented although a pattern ending in a wildcard after the list's name was given.",
+   "diagnosis": "cfdlib.foamdict keeps a list (blockMesh boundary, the regions of setFieldsDict) as one setting. Its key is the list's name with nothing after it, so a pattern that expects sub-keys does not match.",
+   "fix": "The pattern names the list itself.",
+   "lesson": "A list in an OpenFOAM dictionary is one setting for the checker, whatever it holds.",
+   "guideline": "One line in report-contract.md under the settings patterns, saying that a list-valued entry is matched by its own name.",
+   "resolved": "2026-11-15 08:52"
+  },
+  {
+   "id": 8,
+   "stage": "analysis",
+   "logged": "2026-11-15 08:58",
+   "status": "resolved",
+   "problem": "The pressure error on the finest grid is above its limit (0.0068 % against 0.0055 % of the left pressure). The limit, written before the runs, assumed that pressure converges with an order of at least 0.85. The measured order is 0.78.",
+   "diagnosis": "My first explanation was the ripple behind the shock. The data did not support it. Split by wave, 81 % of the pressure error on the finest grid sits in the expansion fan, where it falls steadily with order 0.78. The time-step study shows the fan's part does not fall with a smaller step, and the scheme study shows it depends on the limiter (twice as large with SuperBee). The pre-flight had only two grids (100 and 400 cells), whose single order of 0.94 hid that the order between 200 and 400 cells was already 0.80.",
+   "fix": "The verdict stays FAIL, as the rule says. The report shows the split by wave, the time-step and scheme studies, and says that the limit rested on a wrong expectation.",
+   "lesson": "An order measured between two coarse grids is one number and hides its trend. With an exact solution, split the error by region before explaining it; the first explanation here was wrong.",
+   "guideline": "In the workflow's stage 2, where limits are sized from the coarse pre-flight error and the expected order, ask for three coarse levels when they are cheap, and say that for flows with jumps the L1 error of every quantity can converge with an order below 1 (0.8 here, set by the corners of the expansion fan). A helper in cfdlib.verification that projects the finest error from three coarse levels would make the limit a calculation.",
+   "resolved": "2026-11-15 09:03"
+  },
+  {
+   "id": 9,
+   "stage": "analysis",
+   "logged": "2026-11-15 08:59",
+   "status": "resolved",
+   "problem": "The wiggle measure (total variation above the exact one) grows with refinement, from 1.6 % on 100 cells to 5.5 % on 12800, and crosses its 5 % limit on the finest grid.",
+   "diagnosis": "The ripple behind the shock keeps its size (0.6 % of the pressure on 400 and on 12800 cells) but covers more cells on a finer grid, and the total variation counts every up and down. So the measure is not independent of the grid; the ripple's size is, and its own limit of 1 % holds.",
+   "fix": "Reported as a broken WARN rule, with both measures in the health table.",
+   "lesson": "Total variation is a good detector of wiggles and a poor measure of their size.",
+   "guideline": "Where the workflow or primer suggests a check for wiggles, recommend the ripple's size on a stretch that should be uniform as the rule, and the total variation only as a detector.",
+   "resolved": "2026-11-15 09:04"
+  },
+  {
+   "id": 10,
+   "stage": "analysis",
+   "logged": "2026-11-15 09:01",
+   "status": "open",
+   "problem": "Why the error in the expansion fan falls with order 0.78, not 1, is not established. The back of the fan, read from a straight-line fit of the velocity, is about one cell too far right on every grid and with every second-order limiter."
+  },
+  {
+   "id": 11,
+   "stage": "performance",
+   "logged": "2026-11-15 08:58",
+   "status": "resolved",
+   "problem": "What the runs cost. The finest grid (12800 cells, 23040 steps) took 84 seconds on one core, and all 16 runs together about two minutes of solver time.",
+   "diagnosis": "The solver is explicit, so a run costs cells times steps, about 0.3 microseconds per cell and step on the larger grids. Runs below 1000 cells are dominated by start-up (about half a second). The time step is set by the ripple of the Euler step, not by stability. At twice the step the run still holds together but ripples by 3 %.",
+   "fix": "Nothing to fix in one dimension. Recorded in the performance appendix.",
+   "lesson": "For this solver the lever on speed is the time scheme, not the work per step. With an error that falls like the cell size to the power 0.8, ten times less error needs about 17 times more cells.",
+   "guideline": "For the next steps of the ladder (two dimensions, chemistry), carry these two numbers into the cost estimate before choosing grids. A solver with a multi-stage time scheme would be the tool to compare against.",
+   "resolved": "2026-11-15 09:05"
+  },
+  {
+   "id": 12,
+   "stage": "report",
+   "logged": "2026-11-15 09:06",
+   "status": "resolved",
+   "problem": "In the summary table, an answer with eight numbers (four waves, each a position and a speed) wrapped in the middle of a number pair and could not be read. One theory card's equation was wider than its card.",
+   "diagnosis": "The answer columns are narrow and wrap at any space. The equation for the pressure between the waves was written on one line.",
+   "fix": "Each line of the answer is kept together with a no-wrap span and shorter wave names; the equation is split over two lines.",
+   "lesson": "An answer with several values per line needs lines that cannot break.",
+   "guideline": "A helper in cfdlib.report for an answer cell with several lines that do not wrap would save the next case the same trial.",
+   "resolved": "2026-11-15 09:09"
+  },
+  {
+   "id": 13,
+   "stage": "tooling",
+   "logged": "2026-11-15 09:05",
+   "status": "resolved",
+   "problem": "The report server's port 8765 was already taken by another session, and the preview tool started a second server on 8766.",
+   "diagnosis": "Several sessions share this checkout and one of them already serves the results folder.",
+   "fix": "Opened the report at port 8765, as the machine file advises. It worked at once.",
+   "lesson": "This went well only because the machine file says what to do.",
+   "guideline": "None needed; keep the line in dev-pc.md.",
+   "resolved": "2026-11-15 09:06"
+  },
+  {
+   "id": 14,
+   "stage": "tooling",
+   "logged": "2026-11-15 09:12",
+   "status": "resolved",
+   "problem": "In the theory cards' symbol tables a pressure of 10000 Pa and one of 30313 Pa were printed in computer e-notation (a 1, the letter e and +04), not as numbers.",
+   "diagnosis": "cfdlib.report.tex_num formats numbers between 0.001 and 100000 with Python's g format and 4 significant digits. A five-digit number then comes out in e-notation, inside math, where the typesetting check does not look. The template applies this to every value of a card's symbol table.",
+   "fix": "The case passes these values as a float that prints a five-digit number in full (theory.py, class _Shown). A workaround in the case, because the shared tools are not mine to change.",
+   "lesson": "Any case with pressures in pascal meets this; the earlier cases had no values in that range.",
+   "guideline": "In cfdlib.report.tex_num, write numbers from 10000 to 100000 without e-notation whatever the number of significant digits (or switch to the power-of-ten form), and add a test with 10000 and 30313.",
+   "resolved": "2026-11-15 09:14"
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "Top: the tube before the wall is removed. Bottom: the tube at the time of interest, with the three waves at their exact positions (to scale along the tube). The arrows show which way each wave moves; the two dotted lines are the front and the back of the expansion fan."
+  },
+  {
+   "key": "profiles",
+   "section": "simulation",
+   "caption": "Density, velocity and pressure along the tube at the time of interest. Black: exact solution. Dots: 100 cells (mean density error \\(0.45\\,\\%\\)). Blue line: 800 cells (\\(0.073\\,\\%\\)). On the finest grid (\\(0.0085\\,\\%\\)) the simulation cannot be told from the exact solution at this scale."
+  },
+  {
+   "key": "paths",
+   "section": "simulation",
+   "caption": "Where each wave is at the ten written times. Lines: exact (each wave leaves the wall position at a constant speed). Dots: read from the simulation on 400 cells with the rules of this report. The slope of the dots over the second half of the time gives the wave speeds; on this grid they differ from the exact speeds by at most \\(0.19\\,\\%\\) of the shock speed."
+  },
+  {
+   "key": "sharpness",
+   "section": "simulation",
+   "caption": "The two jumps on 100, 800 and 12800 cells, plotted against the distance from the exact position counted in cells. Left: the shock keeps the same shape in cells on every grid (\\(1.8\\) to \\(2.2\\) cells between 10 and 90 % of its height). Right: the border of the two gases is wider and widens a little with refinement (\\(4.4\\) to \\(6.3\\) cells). Just right of it the density on the finest grid dips \\(2.8\\,\\%\\) below the exact value. The dip is there at every written time, next to the border (\\(0.8\\,\\%\\) to \\(2.8\\,\\%\\)), so it travels with the gas; its origin was not traced further."
+  },
+  {
+   "key": "conservation",
+   "section": "convergence",
+   "caption": "Change of the total mass (solid) and total energy (dashed) since the first step, in parts in \\(10^{14}\\), on the coarsest and the finest grid. The largest change in any run is \\(5.3 \\times 10^{-14}\\): the last digits a computer carries."
+  },
+  {
+   "key": "convergence",
+   "section": "comparison",
+   "caption": "Left: mean error against the number of cells, with lines of order 1 and 2/3 for comparison. Fitted over the eight grids the orders are \\(0.81\\) (density), \\(0.85\\) (velocity), \\(0.78\\) (pressure). The green bar is the limit set for the pressure on the finest grid; the pressure error ends above it. Right: the density error split by wave. On the finest grid the fan holds \\(51\\,\\%\\) of it, the border of the two gases \\(44\\,\\%\\) and the shock \\(5\\,\\%\\); the shock's part jumps up and down because it depends on where the shock sits inside its cell."
+  },
+  {
+   "key": "timestep",
+   "section": "comparison",
+   "caption": "Time-step study on 400 cells. Left: pressure between the border of the two gases and the shock for four time steps; the exact value is the black line. The ripple is \\(3.1\\,\\%\\), \\(0.6\\,\\%\\), \\(0.5\\,\\%\\), \\(0.3\\,\\%\\) of the pressure at Courant numbers 0.39, 0.19, 0.10, 0.05. Right: mean error against the exact solution. It is lowest at the step used for the grid study (Courant 0.19) and rises again for smaller steps."
+  },
+  {
+   "key": "schemes",
+   "section": "comparison",
+   "caption": "Six ways of building the face values, same grid (400 cells) and time step. Left: density across the border of the two gases. Right: pressure behind the shock (the shock is at zero). Widths and errors are in the table below."
+  }
+ ],
+ "performance": {
+  "intro": "One core, one run at a time. The solver is explicit, so the cost of a run is cells times steps, and the steps grow with the cells: each refinement costs four times the one before.",
+  "head": [
+   "Run",
+   "Cells",
+   "Steps",
+   "Solver time (s)",
+   "Microseconds per cell and step",
+   "CPU busy"
+  ],
+  "rows": [
+   [
+    "N100",
+    100,
+    180,
+    "\\(0.4\\)",
+    "\\(22.27\\)",
+    "\\(64\\,\\%\\)"
+   ],
+   [
+    "N200",
+    200,
+    360,
+    "\\(0.6\\)",
+    "\\(8.35\\)",
+    "\\(59\\,\\%\\)"
+   ],
+   [
+    "N400",
+    400,
+    720,
+    "\\(0.7\\)",
+    "\\(2.46\\)",
+    "\\(66\\,\\%\\)"
+   ],
+   [
+    "N800",
+    800,
+    1440,
+    "\\(1.1\\)",
+    "\\(0.96\\)",
+    "\\(81\\,\\%\\)"
+   ],
+   [
+    "N1600",
+    1600,
+    2880,
+    "\\(2.3\\)",
+    "\\(0.50\\)",
+    "\\(92\\,\\%\\)"
+   ],
+   [
+    "N3200",
+    3200,
+    5760,
+    "\\(7.0\\)",
+    "\\(0.38\\)",
+    "\\(94\\,\\%\\)"
+   ],
+   [
+    "N6400",
+    6400,
+    11520,
+    "\\(24.0\\)",
+    "\\(0.33\\)",
+    "\\(96\\,\\%\\)"
+   ],
+   [
+    "N12800",
+    12800,
+    23040,
+    "\\(84.1\\)",
+    "\\(0.29\\)",
+    "\\(98\\,\\%\\)"
+   ]
+  ],
+  "notes": [
+   "On the larger grids a cell costs about \\(0.29\\) microseconds per step. The small runs are dominated by start-up and by writing the totals after every step (\\(22\\) microseconds per cell and step on 100 cells).",
+   "What limits speed is the time step, not the work per step: the Courant number of \\(0.19\\) is set by the ripple the Euler step makes: at twice the step the run still holds together but ripples by \\(3\\,\\%\\). A time scheme with several stages per step is the usual way to take larger steps without that ripple; OpenFOAM's solver does not offer one, and none was tested here.",
+   "All 16 production runs together took \\(126\\) seconds of solver time; the finest run \\(84\\) seconds.",
+   "In two and three dimensions the same order of convergence makes accuracy much dearer (cells times steps grows like the third and fourth power of the refinement). This is the number to carry to the next steps of the ladder."
+  ]
+ },
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.shock_tube_sod.run preflight",
+    "what": "Gas constant, short tests, time-step study, coarsest grid; writes preflight.json"
+   },
+   {
+    "cmd": "python -m cases.shock_tube_sod.run production",
+    "what": "Every other run, one at a time; writes runs/*.json and runs/*.npz"
+   },
+   {
+    "cmd": "python -m cases.shock_tube_sod.analyze",
+    "what": "Exact solution, comparison, figures and this report (checks the contract first)"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/shock_tube_sod/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/shock_tube_sod/numerics.yaml",
+    "what": "Runs, reading rules and the pass and fail limits"
+   },
+   {
+    "path": "cases/shock_tube_sod/decisions.yaml",
+    "what": "Every choice, with the OpenFOAM settings it controls"
+   },
+   {
+    "path": "cases/shock_tube_sod/insights.yaml",
+    "what": "Insights logged during the work"
+   },
+   {
+    "path": "cases/shock_tube_sod/template/",
+    "what": "The OpenFOAM case with {{ placeholders }}"
+   },
+   {
+    "path": "cases/shock_tube_sod/theory.py",
+    "what": "The exact solution, derived and checked with SymPy; exact cell averages"
+   },
+   {
+    "path": "cases/shock_tube_sod/measure.py",
+    "what": "The rules that read states, positions and widths from a profile"
+   },
+   {
+    "path": "cases/shock_tube_sod/run.py",
+    "what": "Builds, pre-flights and runs the cases"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod/N<cells>[_spc<steps per cell>][_<flux>_<limiter>]",
+    "what": "Production runs"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod/pf_N<cells>_preflight",
+    "what": "Pre-flight runs"
+   },
+   {
+    "path": "results/shock_tube_sod/",
+    "what": "gas_constant.json, preflight.json, runs/, results.json and this report"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "23 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "Runs were made one at a time on one core, so the solver times can be compared.",
+   "Sources cited from memory, not supplied with the problem: G. A. Sod, J. Comput. Phys. 27 (1978) 1–31; A. Kurganov, S. Noelle and G. Petrova, SIAM J. Sci. Comput. 23 (2001) 707–740; C. J. Greenshields, H. G. Weller, L. Gasparini and J. M. Reese, Int. J. Numer. Meth. Fluids 63 (2010) 1–21; J. W. Banks, T. Aslam and W. J. Rider, J. Comput. Phys. 227 (2008) 6985–7002."
+  ]
+ },
+ "data": {
+  "fails": [
+   "mean pressure error on the finest grid"
+  ],
+  "warns": [
+   "extra up-and-down of density and pressure (wiggles), every grid of the family"
+  ],
+  "order": {
+   "rho": [
+    0.9971243213656258,
+    0.837764800995923,
+    0.8052561455569179,
+    0.7567661598414163,
+    0.8069253568042815,
+    0.8290159038138544,
+    0.7158455110808716
+   ],
+   "u": [
+    1.2768517960468204,
+    0.5522502293947458,
+    1.0524476445557172,
+    0.8065934957195441,
+    0.942159482379465,
+    0.551173559420955,
+    0.9406697969409491
+   ],
+   "p": [
+    1.0856228040459963,
+    0.8011884696625767,
+    0.8031340583394467,
+    0.6526343760063581,
+    0.8192441754613266,
+    0.6740199787139753,
+    0.8077377797074242
+   ]
+  },
+  "overall": {
+   "rho": 0.8128945044967077,
+   "u": 0.8522421363362295,
+   "p": 0.7825458213084041
+  },
+  "wave_overall": {
+   "rho": {
+    "fan": 0.8005824298190111,
+    "contact": 0.8015057646994147,
+    "shock": 0.9510439187601321
+   },
+   "u": {
+    "fan": 0.847013300766724,
+    "contact": 0.5382198168767464,
+    "shock": 0.9631038406486687
+   },
+   "p": {
+    "fan": 0.7770540541730862,
+    "contact": 0.5421268357089639,
+    "shock": 0.9395233734598464
+   }
+  },
+  "share": {
+   "rho": {
+    "fan": 0.5093569292307455,
+    "contact": 0.4363471620184327,
+    "shock": 0.05429590875082183
+   },
+   "u": {
+    "fan": 0.5612032892725399,
+    "contact": 0.1858606205786957,
+    "shock": 0.2529360901487644
+   },
+   "p": {
+    "fan": 0.8091955818603036,
+    "contact": 0.10028981677957481,
+    "shock": 0.09051460136012139
+   }
+  },
+  "width_exp": {
+   "shock": 0.0029413205075659193,
+   "contact": 0.0813047427404821
+  },
+  "l1_limit": {
+   "rho": 0.00015225411176039708,
+   "u": 0.00013239000566514037,
+   "p": 5.532477821794561e-05
+  },
+  "ts_change": [
+   0.0011692847741737772,
+   0.00042107217592100604,
+   0.0001931846704122417
+  ],
+  "ts_order": [
+   1.4734868829568868,
+   1.1240869286421544
+  ],
+  "ts_main_vs_small": 0.0006093478196705672,
+  "exact": {
+   "p_star": 30313.017805064683,
+   "u_star": 293.2862701245426,
+   "rho_starL": 0.4263194281784952,
+   "rho_starR": 0.2655737117053071,
+   "speeds": {
+    "head": -374.16573867739413,
+    "tail": -22.22221452794298,
+    "contact": 293.2862701245426,
+    "shock": 554.0802928535006
+   },
+   "positions": {
+    "head": 0.3129171306613029,
+    "tail": 0.48888889273602854,
+    "contact": 0.6466431350622713,
+    "shock": 0.7770401464267503
+   }
+  },
+  "runs": {
+   "N100": {
+    "N": 100,
+    "steps": 180,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.0045458594998266455,
+     "u": 0.008184340227745612,
+     "p": 0.003420173642907113
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0023616038132360183,
+      "contact": 0.001706809977506666,
+      "shock": 0.0004774457090839612
+     },
+     "u": {
+      "fan": 0.004359692855077947,
+      "contact": 0.00043240340143198833,
+      "shock": 0.003392243971235675
+     },
+     "p": {
+      "fan": 0.0027312596859582505,
+      "contact": 0.00013037453811291563,
+      "shock": 0.0005585394188359451
+     }
+    },
+    "state": {
+     "p": 30301.43509647207,
+     "u": 293.8536747754868,
+     "rho_L": 0.42620342765963,
+     "rho_R": 0.2633601054820525
+    },
+    "state_err": {
+     "p": -0.00038210344701072874,
+     "u": 0.0019346444369974236,
+     "rho_L": -0.0002720976601062741,
+     "rho_R": -0.00833518577211767
+    },
+    "pos": {
+     "head": 0.3072405154409008,
+     "tail": 0.49890273163992405,
+     "contact": 0.6448210424667707,
+     "shock": 0.7788802254281455
+    },
+    "pos_err": {
+     "head": -0.0056766152204020814,
+     "tail": 0.010013838903895511,
+     "contact": -0.0018220925955005907,
+     "shock": 0.0018400790013951562
+    },
+    "speed": {
+     "head": -377.3879078399271,
+     "tail": -20.143375262917914,
+     "contact": 295.38351006557855,
+     "shock": 558.919294586519
+    },
+    "width": {
+     "shock": 2.146288857803336,
+     "contact": 4.422415479512043
+    },
+    "wiggle": {
+     "rho": 0.015853690237693785,
+     "p": 0.027595286559664478
+    },
+    "ripple": {
+     "p": 0.018049500380715636,
+     "u": 0.01666217819538546
+    },
+    "mass_drift": 1.7763568394002505e-15,
+    "energy_drift": 1.2699853290211068e-15,
+    "momentum_err": 6.315935428978669e-16,
+    "ends": 1.5160677450440622e-16,
+    "wall_time": 0.4009147250000069
+   },
+   "N200": {
+    "N": 200,
+    "steps": 360,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.0022774648275843143,
+     "u": 0.003377637084751015,
+     "p": 0.001611547563344528
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0010929054456399467,
+      "contact": 0.0009640123203270508,
+      "shock": 0.0002205470616173169
+     },
+     "u": {
+      "fan": 0.002071496770355416,
+      "contact": 0.00018803215705060118,
+      "shock": 0.0011181081573449973
+     },
+     "p": {
+      "fan": 0.0012777976015248172,
+      "contact": 6.442465646789731e-05,
+      "shock": 0.0002693253053518135
+     }
+    },
+    "state": {
+     "p": 30304.26545786662,
+     "u": 293.27609339223653,
+     "rho_L": 0.42627572498505345,
+     "rho_R": 0.2650427530197669
+    },
+    "state_err": {
+     "p": -0.0002887322949615134,
+     "u": -3.4698972787849947e-05,
+     "rho_L": -0.00010251278865824887,
+     "rho_R": -0.0019992893202072093
+    },
+    "pos": {
+     "head": 0.3094813239082132,
+     "tail": 0.49379855041020526,
+     "contact": 0.6458238768528856,
+     "shock": 0.7777657278494964
+    },
+    "pos_err": {
+     "head": -0.0034358067530896874,
+     "tail": 0.004909657674176726,
+     "contact": -0.0008192582093857759,
+     "shock": 0.0007255814227460355
+    },
+    "speed": {
+     "head": -376.481690736674,
+     "tail": -22.361126817596176,
+     "contact": 293.73239921628146,
+     "shock": 553.0102669635125
+    },
+    "width": {
+     "shock": 1.8375112363696158,
+     "contact": 4.709301679986556
+    },
+    "wiggle": {
+     "rho": 0.019330046700763548,
+     "p": 0.025414172786519806
+    },
+    "ripple": {
+     "p": 0.008328546965350783,
+     "u": 0.008004646335912836
+    },
+    "mass_drift": 1.3816108750890837e-15,
+    "energy_drift": 8.466568860140712e-16,
+    "momentum_err": 1.8947806286936005e-15,
+    "ends": 2.3430137877953676e-16,
+    "wall_time": 0.6010415089999999
+   },
+   "N400": {
+    "N": 400,
+    "steps": 720,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.0012742637958446643,
+     "u": 0.002303398608623419,
+     "p": 0.0009248288440459627
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.000578887100348552,
+      "contact": 0.000567706501683212,
+      "shock": 0.0001276701938129003
+     },
+     "u": {
+      "fan": 0.0010692705672984378,
+      "contact": 0.00013306140103027644,
+      "shock": 0.0011010666402947041
+     },
+     "p": {
+      "fan": 0.000682529665426492,
+      "contact": 4.342730533780732e-05,
+      "shock": 0.00019887187328166341
+     }
+    },
+    "state": {
+     "p": 30318.962537699266,
+     "u": 293.2945138117518,
+     "rho_L": 0.4264714136024586,
+     "rho_R": 0.2656092687779919
+    },
+    "state_err": {
+     "p": 0.00019611154101562,
+     "u": 2.8107988845560428e-05,
+     "rho_L": 0.0003565059763115386,
+     "rho_R": 0.0001338877724625931
+    },
+    "pos": {
+     "head": 0.3109355528841242,
+     "tail": 0.4913608110001652,
+     "contact": 0.6463528530565531,
+     "shock": 0.7773584058262991
+    },
+    "pos_err": {
+     "head": -0.001981577777178667,
+     "tail": 0.0024719182641366744,
+     "contact": -0.00029028200571823426,
+     "shock": 0.00031825939954877036
+    },
+    "speed": {
+     "head": -375.20357496647233,
+     "tail": -22.231936710897834,
+     "contact": 293.78162088540387,
+     "shock": 553.7677113117635
+    },
+    "width": {
+     "shock": 2.1960721441562474,
+     "contact": 5.169090126797427
+    },
+    "wiggle": {
+     "rho": 0.018545366974425326,
+     "p": 0.02080405258108642
+    },
+    "ripple": {
+     "p": 0.006099165446649606,
+     "u": 0.005852993267043554
+    },
+    "mass_drift": 1.046076805424592e-14,
+    "energy_drift": 1.4816495505246247e-15,
+    "momentum_err": 1.578983857244667e-15,
+    "ends": 2.3430137877953676e-16,
+    "wall_time": 0.7081881839999937
+   },
+   "N800": {
+    "N": 800,
+    "steps": 1440,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.0007292107966695445,
+     "u": 0.0011105824091937329,
+     "p": 0.0005300220337409401
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.00035176894923780844,
+      "contact": 0.0003264722633786123,
+      "shock": 5.0969584053123864e-05
+     },
+     "u": {
+      "fan": 0.0006126102335898625,
+      "contact": 0.00011651829795642545,
+      "shock": 0.0003814538776474447
+     },
+     "p": {
+      "fan": 0.0004251565959668964,
+      "contact": 3.686547278149642e-05,
+      "shock": 6.79999649925473e-05
+     }
+    },
+    "state": {
+     "p": 30313.616449600777,
+     "u": 293.27993192337834,
+     "rho_L": 0.4264470527365055,
+     "rho_R": 0.26557069101677194
+    },
+    "state_err": {
+     "p": 1.9748760745175176e-05,
+     "u": -2.1610971292940206e-05,
+     "rho_L": 0.00029936369204563995,
+     "rho_R": -1.1374200088343223e-05
+    },
+    "pos": {
+     "head": 0.31178543780051254,
+     "tail": 0.4901301089230353,
+     "contact": 0.6465645162044621,
+     "shock": 0.7772232696851271
+    },
+    "pos_err": {
+     "head": -0.0011316928607903454,
+     "tail": 0.0012412161870067884,
+     "contact": -7.861885780924283e-05,
+     "shock": 0.00018312325837677168
+    },
+    "speed": {
+     "head": -374.7289608440671,
+     "tail": -22.19571357922788,
+     "contact": 293.60959432458736,
+     "shock": 554.2833914138834
+    },
+    "width": {
+     "shock": 1.9665488339290607,
+     "contact": 5.587327011689426
+    },
+    "wiggle": {
+     "rho": 0.021865218544164566,
+     "p": 0.0329541377608491
+    },
+    "ripple": {
+     "p": 0.008739772759877648,
+     "u": 0.008248497646105678
+    },
+    "mass_drift": 1.5395092608135503e-14,
+    "energy_drift": 4.444948651573874e-15,
+    "momentum_err": 6.473833814703135e-15,
+    "ends": 1.2404190641269465e-15,
+    "wall_time": 1.1016041259999998
+   },
+   "N1600": {
+    "N": 1600,
+    "steps": 2880,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.0004315625756262713,
+     "u": 0.000634953547233927,
+     "p": 0.00033715639442469475
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0002125556210370634,
+      "contact": 0.00018292674229708464,
+      "shock": 3.6080212292123205e-05
+     },
+     "u": {
+      "fan": 0.00035360384065646905,
+      "contact": 9.046618597340402e-05,
+      "shock": 0.0001908835206040538
+     },
+     "p": {
+      "fan": 0.0002621012713351216,
+      "contact": 2.8718029453679816e-05,
+      "shock": 4.63370936358933e-05
+     }
+    },
+    "state": {
+     "p": 30313.689278260634,
+     "u": 293.2905954206239,
+     "rho_L": 0.42638850635755965,
+     "rho_R": 0.2655704575083069
+    },
+    "state_err": {
+     "p": 2.2151314668539257e-05,
+     "u": 1.4747693710459586e-05,
+     "rho_L": 0.00016203385184576646,
+     "rho_R": -1.2253460552669182e-05
+    },
+    "pos": {
+     "head": 0.31227783092359773,
+     "tail": 0.4895237594600371,
+     "contact": 0.6466596041927368,
+     "shock": 0.7770945493209467
+    },
+    "pos_err": {
+     "head": -0.0006392997377051568,
+     "tail": 0.000634866724008587,
+     "contact": 1.64691304654907e-05,
+     "shock": 5.440289419633704e-05
+    },
+    "speed": {
+     "head": -374.45553837455935,
+     "tail": -22.163110718939397,
+     "contact": 293.4955529656145,
+     "shock": 553.9951632034563
+    },
+    "width": {
+     "shock": 1.9144019549557358,
+     "contact": 6.0343280131657915
+    },
+    "wiggle": {
+     "rho": 0.02802263775920477,
+     "p": 0.039931117140115546
+    },
+    "ripple": {
+     "p": 0.007772120153661325,
+     "u": 0.007566749182148959
+    },
+    "mass_drift": 3.631662871662734e-14,
+    "energy_drift": 4.233284430070356e-15,
+    "momentum_err": 1.2316074086508404e-14,
+    "ends": 2.618662468712364e-16,
+    "wall_time": 2.3028947990000006
+   },
+   "N3200": {
+    "N": 3200,
+    "steps": 5760,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.000246680624773979,
+     "u": 0.0003304636450542124,
+     "p": 0.00019107960297054787
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.00012572724347979753,
+      "contact": 0.00010906917280655191,
+      "shock": 1.188420848762959e-05
+     },
+     "u": {
+      "fan": 0.00020268327138910308,
+      "contact": 6.249629347659218e-05,
+      "shock": 6.528408018851718e-05
+     },
+     "p": {
+      "fan": 0.0001578538066514156,
+      "contact": 1.9755194023288094e-05,
+      "shock": 1.3470602295844217e-05
+     }
+    },
+    "state": {
+     "p": 30313.280559223687,
+     "u": 293.28746240071666,
+     "rho_L": 0.42635374083453265,
+     "rho_R": 0.26557343270037026
+    },
+    "state_err": {
+     "p": 8.668030372138702e-06,
+     "u": 4.065230102767714e-06,
+     "rho_L": 8.048579015973445e-05,
+     "rho_R": -1.0505743773814302e-06
+    },
+    "pos": {
+     "head": 0.31256162522159214,
+     "tail": 0.4892093528052254,
+     "contact": 0.6466767299418403,
+     "shock": 0.7770846285108776
+    },
+    "pos_err": {
+     "head": -0.000355505439710746,
+     "tail": 0.00032046006919683734,
+     "contact": 3.359487956899887e-05,
+     "shock": 4.448208412721755e-05
+    },
+    "speed": {
+     "head": -374.30889592007566,
+     "tail": -22.20781565484384,
+     "contact": 293.3873257158657,
+     "shock": 554.1201643474417
+    },
+    "width": {
+     "shock": 1.8541729541468046,
+     "contact": 6.292837726036283
+    },
+    "wiggle": {
+     "rho": 0.03492503279759518,
+     "p": 0.04399624178378203
+    },
+    "ripple": {
+     "p": 0.0055065532569522685,
+     "u": 0.00524384898692235
+    },
+    "mass_drift": 3.3356033984293593e-14,
+    "energy_drift": 3.6406246098605064e-14,
+    "momentum_err": 7.752810739071316e-14,
+    "ends": 2.3430137877953676e-16,
+    "wall_time": 7.018881581000002
+   },
+   "N6400": {
+    "N": 6400,
+    "steps": 11520,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.00013885975215700657,
+     "u": 0.00022552978955929674,
+     "p": 0.00011976063744868229
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 7.348331891486805e-05,
+      "contact": 5.5228837719880776e-05,
+      "shock": 1.0147595522257729e-05
+     },
+     "u": {
+      "fan": 0.00011539794689109901,
+      "contact": 3.8594541316773534e-05,
+      "shock": 7.153730135142416e-05
+     },
+     "p": {
+      "fan": 9.345608016307813e-05,
+      "contact": 1.2150079650249086e-05,
+      "shock": 1.4154477635355079e-05
+     }
+    },
+    "state": {
+     "p": 30313.16470227585,
+     "u": 293.2869116295563,
+     "rho_L": 0.42633753006217917,
+     "rho_R": 0.26557331052559147
+    },
+    "state_err": {
+     "p": 4.846010783765564e-06,
+     "u": 2.1872998465788385e-06,
+     "rho_L": 4.246084622816504e-05,
+     "rho_R": -1.5106153129496036e-06
+    },
+    "pos": {
+     "head": 0.31272133824896253,
+     "tail": 0.489051055302475,
+     "contact": 0.646674746431214,
+     "shock": 0.777051395372656
+    },
+    "pos_err": {
+     "head": -0.0001957924123403565,
+     "tail": 0.00016216256644646654,
+     "contact": 3.161136894269667e-05,
+     "shock": 1.1248945905650842e-05
+    },
+    "speed": {
+     "head": -374.2374937787844,
+     "tail": -22.214525915689663,
+     "contact": 293.3450226186399,
+     "shock": 554.0577314195401
+    },
+    "width": {
+     "shock": 2.156624265965235,
+     "contact": 6.40973647787746
+    },
+    "wiggle": {
+     "rho": 0.042266146328099996,
+     "p": 0.04946548837959375
+    },
+    "ripple": {
+     "p": 0.005601251793599545,
+     "u": 0.00537419398007029
+    },
+    "mass_drift": 2.171102803711417e-14,
+    "energy_drift": 3.4924596548080435e-14,
+    "momentum_err": 1.0784459744981076e-13,
+    "ends": 7.855987406137064e-16,
+    "wall_time": 24.049568532000002
+   },
+   "N12800": {
+    "N": 12800,
+    "steps": 23040,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 8.454451063552304e-05,
+     "u": 0.00011749897816825391,
+     "p": 6.841649141859943e-05
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 4.3063332320626113e-05,
+      "contact": 3.689075728004768e-05,
+      "shock": 4.5904210348492445e-06
+     },
+     "u": {
+      "fan": 6.594081303418645e-05,
+      "contact": 2.183843299971429e-05,
+      "shock": 2.971973213435317e-05
+     },
+     "p": {
+      "fan": 5.536232258231404e-05,
+      "contact": 6.861477389072689e-06,
+      "shock": 6.192691447212694e-06
+     }
+    },
+    "state": {
+     "p": 30313.087543777092,
+     "u": 293.28654569176103,
+     "rho_L": 0.42632861243262754,
+     "rho_R": 0.2655736227774355
+    },
+    "state_err": {
+     "p": 2.3006192539920534e-06,
+     "u": 9.395844486892457e-07,
+     "rho_L": 2.154312828661631e-05,
+     "rho_R": -3.3485193617899256e-07
+    },
+    "pos": {
+     "head": 0.31281018601802824,
+     "tail": 0.4889709247894987,
+     "contact": 0.6466704978283152,
+     "shock": 0.7770451757416972
+    },
+    "pos_err": {
+     "head": -0.00010694464327465347,
+     "tail": 8.203205347018239e-05,
+     "contact": 2.7362766043870224e-05,
+     "shock": 5.0293149468361165e-06
+    },
+    "speed": {
+     "head": -374.20171518055326,
+     "tail": -22.21834160625929,
+     "contact": 293.33189028147814,
+     "shock": 554.0795808174378
+    },
+    "width": {
+     "shock": 2.117407567050123,
+     "contact": 6.343683072755369
+    },
+    "wiggle": {
+     "rho": 0.05276335250834818,
+     "p": 0.05517030193867112
+    },
+    "ripple": {
+     "p": 0.006154353760074108,
+     "u": 0.0059952807232930855
+    },
+    "mass_drift": 2.388213084082559e-14,
+    "energy_drift": 5.312771959738297e-14,
+    "momentum_err": 1.162132118932075e-13,
+    "ends": 6.753392682462342e-16,
+    "wall_time": 84.10513405900001
+   },
+   "N400_spc7.2": {
+    "N": 400,
+    "steps": 2880,
+    "courant": 0.04812736477548024,
+    "e": {
+     "rho": 0.0015055674963252142,
+     "u": 0.0025569279072761688,
+     "p": 0.001040996524716485
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0006726272094759307,
+      "contact": 0.0006861834775451703,
+      "shock": 0.00014675680930411288
+     },
+     "u": {
+      "fan": 0.001227398746335445,
+      "contact": 4.5347855483780466e-05,
+      "shock": 0.001284181305456943
+     },
+     "p": {
+      "fan": 0.0008034036378411245,
+      "contact": 1.5012055904418867e-05,
+      "shock": 0.00022258083097094177
+     }
+    },
+    "state": {
+     "p": 30316.32375663312,
+     "u": 293.29818266508244,
+     "rho_L": 0.42628925533800915,
+     "rho_R": 0.265603985167404
+    },
+    "state_err": {
+     "p": 0.00010906045678771292,
+     "u": 4.061745043415499e-05,
+     "rho_L": -7.07751945882018e-05,
+     "rho_R": 0.0001139926911535305
+    },
+    "pos": {
+     "head": 0.311753783594209,
+     "tail": 0.4914492893758886,
+     "contact": 0.6462558908189739,
+     "shock": 0.7774308778874883
+    },
+    "pos_err": {
+     "head": -0.0011633470670938673,
+     "tail": 0.002560396639860074,
+     "contact": -0.00038724424329739104,
+     "shock": 0.0003907314607379808
+    },
+    "speed": {
+     "head": -374.32705959003056,
+     "tail": -22.37127046900342,
+     "contact": 293.8545438835805,
+     "shock": 553.6609556898385
+    },
+    "width": {
+     "shock": 2.4089196978571263,
+     "contact": 6.395486533959406
+    },
+    "wiggle": {
+     "rho": 0.00836913205103329,
+     "p": 0.008890888173175737
+    },
+    "ripple": {
+     "p": 0.0032758104662201984,
+     "u": 0.002887713244869136
+    },
+    "mass_drift": 1.2631870857957336e-14,
+    "energy_drift": 2.9632991010492493e-15,
+    "momentum_err": 4.894849957458468e-15,
+    "ends": 6.787848767583677e-16,
+    "wall_time": 1.4238253869999653
+   },
+   "N400_spc3.6": {
+    "N": 400,
+    "steps": 1440,
+    "courant": 0.09625472955096048,
+    "e": {
+     "rho": 0.0013897385258570438,
+     "u": 0.0024027106185929735,
+     "p": 0.0009550574022435051
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0006121063492849265,
+      "contact": 0.0006419207145509016,
+      "shock": 0.00013571146202121602
+     },
+     "u": {
+      "fan": 0.0011331179220889877,
+      "contact": 6.931747808511062e-05,
+      "shock": 0.0012002752184188746
+     },
+     "p": {
+      "fan": 0.0007239356235582625,
+      "contact": 2.2801547810943798e-05,
+      "shock": 0.00020832023087429886
+     }
+    },
+    "state": {
+     "p": 30317.47721033592,
+     "u": 293.3012319141531,
+     "rho_L": 0.42634797924544293,
+     "rho_R": 0.26560277927158576
+    },
+    "state_err": {
+     "p": 0.0001471118877016675,
+     "u": 5.101428581744116e-05,
+     "rho_L": 6.697106690567445e-05,
+     "rho_R": 0.00010945197132672391
+    },
+    "pos": {
+     "head": 0.3114965215757935,
+     "tail": 0.4914147354319622,
+     "contact": 0.6462975602729943,
+     "shock": 0.7774021166340499
+    },
+    "pos_err": {
+     "head": -0.0014206090855093945,
+     "tail": 0.0025258426959336444,
+     "contact": -0.00034557478927699226,
+     "shock": 0.00036197020729955565
+    },
+    "speed": {
+     "head": -374.6282490279914,
+     "tail": -22.307042146518075,
+     "contact": 293.8567980863251,
+     "shock": 553.689297248925
+    },
+    "width": {
+     "shock": 2.3360289414753326,
+     "contact": 6.009163037475585
+    },
+    "wiggle": {
+     "rho": 0.010487437567362035,
+     "p": 0.012036742740235473
+    },
+    "ripple": {
+     "p": 0.005077770233550832,
+     "u": 0.004756513561485214
+    },
+    "mass_drift": 1.105288700071267e-14,
+    "energy_drift": 1.4816495505246247e-15,
+    "momentum_err": 3.0000693287648674e-15,
+    "ends": 5.650797958800611e-16,
+    "wall_time": 0.911313650000011
+   },
+   "N400_spc0.9": {
+    "N": 400,
+    "steps": 360,
+    "courant": 0.38501891820384193,
+    "e": {
+     "rho": 0.0017225570493749186,
+     "u": 0.0037323747671922074,
+     "p": 0.001788159218526867
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0009498670526037195,
+      "contact": 0.0005399983972592167,
+      "shock": 0.00023269159951198258
+     },
+     "u": {
+      "fan": 0.00156515024859964,
+      "contact": 0.0006311269523668273,
+      "shock": 0.0015360975662257392
+     },
+     "p": {
+      "fan": 0.0011924370027267515,
+      "contact": 0.00020927678585699167,
+      "shock": 0.0003864454299431235
+     }
+    },
+    "state": {
+     "p": 30318.89135823547,
+     "u": 293.2344975139222,
+     "rho_L": 0.4267467406437605,
+     "rho_R": 0.2658919462751446
+    },
+    "state_err": {
+     "p": 0.0001937633926307747,
+     "u": -0.00017652585850147506,
+     "rho_L": 0.001002329326371676,
+     "rho_R": 0.0011982909294525612
+    },
+    "pos": {
+     "head": 0.3095707000635857,
+     "tail": 0.4913596643984569,
+     "contact": 0.6463945903164429,
+     "shock": 0.777136811104508
+    },
+    "pos_err": {
+     "head": -0.003346430597717165,
+     "tail": 0.0024707716624283727,
+     "contact": -0.00024854474582847175,
+     "shock": 9.666467775770737e-05
+    },
+    "speed": {
+     "head": -376.4095179350693,
+     "tail": -22.012876018766402,
+     "contact": 293.54219718080867,
+     "shock": 553.4351793275019
+    },
+    "width": {
+     "shock": 1.7301124273530812,
+     "contact": 3.749651192658954
+    },
+    "wiggle": {
+     "rho": 0.08705137081211878,
+     "p": 0.11852300406210325
+    },
+    "ripple": {
+     "p": 0.030622804530100484,
+     "u": 0.029391313240458045
+    },
+    "mass_drift": 9.671276125623586e-15,
+    "energy_drift": 1.2699853290211068e-15,
+    "momentum_err": 1.7368822429691337e-15,
+    "ends": 1.6538920855026454e-16,
+    "wall_time": 0.507678621000025
+   },
+   "N400_Tadmor_vanLeer": {
+    "N": 400,
+    "steps": 720,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.001619150754441642,
+     "u": 0.0027286693324371555,
+     "p": 0.001160281868574522
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0008186014104175966,
+      "contact": 0.0006840938012734986,
+      "shock": 0.00011645554275054683
+     },
+     "u": {
+      "fan": 0.0015926813450722695,
+      "contact": 9.68295629802288e-05,
+      "shock": 0.0010391584243846569
+     },
+     "p": {
+      "fan": 0.0009429964752198045,
+      "contact": 3.206446665768953e-05,
+      "shock": 0.0001852209266970279
+     }
+    },
+    "state": {
+     "p": 30316.59746522203,
+     "u": 293.27763297386934,
+     "rho_L": 0.42642919936822377,
+     "rho_R": 0.26569433944048415
+    },
+    "state_err": {
+     "p": 0.00011808986424144408,
+     "u": -2.9449556808835986e-05,
+     "rho_L": 0.0002574857782051687,
+     "rho_R": 0.00045421564658076896
+    },
+    "pos": {
+     "head": 0.3103247101244313,
+     "tail": 0.49220339767807586,
+     "contact": 0.6458768252765479,
+     "shock": 0.777325913065106
+    },
+    "pos_err": {
+     "head": -0.002592420536871587,
+     "tail": 0.003314504942047325,
+     "contact": -0.0007663097857234513,
+     "shock": 0.00028576663835566674
+    },
+    "speed": {
+     "head": -375.2487038304476,
+     "tail": -22.229041207851807,
+     "contact": 293.54165862645004,
+     "shock": 553.7243411434199
+    },
+    "width": {
+     "shock": 2.196517290023659,
+     "contact": 6.132354799524232
+    },
+    "wiggle": {
+     "rho": 0.017316422820560007,
+     "p": 0.02005496728795575
+    },
+    "ripple": {
+     "p": 0.0046644348854622,
+     "u": 0.006014874129712933
+    },
+    "mass_drift": 1.0855514018557085e-14,
+    "energy_drift": 1.4816495505246247e-15,
+    "momentum_err": 1.4210854715202005e-15,
+    "ends": 2.894311149629571e-16,
+    "wall_time": 0.6044861170000217
+   },
+   "N400_Kurganov_vanAlbada": {
+    "N": 400,
+    "steps": 720,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.0014239323476144745,
+     "u": 0.002705063612534306,
+     "p": 0.000999263072271656
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0005915835183445879,
+      "contact": 0.0006752905470958113,
+      "shock": 0.00015705828217407516
+     },
+     "u": {
+      "fan": 0.0011211846214470441,
+      "contact": 0.00023805134712273114,
+      "shock": 0.0013458276439645305
+     },
+     "p": {
+      "fan": 0.0006876567410983049,
+      "contact": 7.425653513542548e-05,
+      "shock": 0.0002373497960379254
+     }
+    },
+    "state": {
+     "p": 30317.010502186833,
+     "u": 293.2929256913834,
+     "rho_L": 0.42643452016611927,
+     "rho_R": 0.2655557526069755
+    },
+    "state_err": {
+     "p": 0.00013171559320901416,
+     "u": 2.2693073350898985e-05,
+     "rho_L": 0.0002699665556313846,
+     "rho_R": -6.762378029157023e-05
+    },
+    "pos": {
+     "head": 0.3110159830561319,
+     "tail": 0.4914437439785908,
+     "contact": 0.6461883398692212,
+     "shock": 0.7774309498601965
+    },
+    "pos_err": {
+     "head": -0.0019011476051710163,
+     "tail": 0.0025548512425622727,
+     "contact": -0.00045479519305013927,
+     "shock": 0.00039080343344610746
+    },
+    "speed": {
+     "head": -375.2972042924874,
+     "tail": -22.17073171608696,
+     "contact": 293.8703609778228,
+     "shock": 553.7916235696375
+    },
+    "width": {
+     "shock": 2.408801808254202,
+     "contact": 6.155282945054853
+    },
+    "wiggle": {
+     "rho": 0.014770726365101572,
+     "p": 0.028083233736516
+    },
+    "ripple": {
+     "p": 0.01401162230694417,
+     "u": 0.013768206243941651
+    },
+    "mass_drift": 1.1842378929335004e-14,
+    "energy_drift": 1.4816495505246247e-15,
+    "momentum_err": 2.052679014418067e-15,
+    "ends": 2.480838128253917e-16,
+    "wall_time": 0.605410777000003
+   },
+   "N400_Kurganov_Minmod": {
+    "N": 400,
+    "steps": 720,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.0018025271607479121,
+     "u": 0.0030138925216096086,
+     "p": 0.0011683439934162697
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0007190696684178531,
+      "contact": 0.0009053220348515666,
+      "shock": 0.00017813545747849235
+     },
+     "u": {
+      "fan": 0.0013276053774253268,
+      "contact": 0.00016615102312304383,
+      "shock": 0.0015201361210612375
+     },
+     "p": {
+      "fan": 0.0008505339061353947,
+      "contact": 5.207145090564982e-05,
+      "shock": 0.0002657386363752255
+     }
+    },
+    "state": {
+     "p": 30316.788231919712,
+     "u": 293.31227257182525,
+     "rho_L": 0.4262758282871861,
+     "rho_R": 0.2655135511775816
+    },
+    "state_err": {
+     "p": 0.0001243830910955257,
+     "u": 8.865893132870006e-05,
+     "rho_L": -0.00010227047708200043,
+     "rho_R": -0.00022653043232023773
+    },
+    "pos": {
+     "head": 0.31147786642086495,
+     "tail": 0.4915544433678876,
+     "contact": 0.6460020534141598,
+     "shock": 0.7774523430871497
+    },
+    "pos_err": {
+     "head": -0.001439264240437943,
+     "tail": 0.0026655506318590816,
+     "contact": -0.0006410816481114967,
+     "shock": 0.00041219666039937763
+    },
+    "speed": {
+     "head": -375.1663996617176,
+     "tail": -22.189475360457138,
+     "contact": 293.67433789956465,
+     "shock": 553.7928777073105
+    },
+    "width": {
+     "shock": 2.5724466754924795,
+     "contact": 8.33602376302567
+    },
+    "wiggle": {
+     "rho": 0.006160542423188753,
+     "p": 0.019849969740979967
+    },
+    "ripple": {
+     "p": 0.011325765148848529,
+     "u": 0.010713919364787104
+    },
+    "mass_drift": 1.1447632965023837e-14,
+    "energy_drift": 1.4816495505246247e-15,
+    "momentum_err": 2.210577400142534e-15,
+    "ends": 2.480838128253917e-16,
+    "wall_time": 0.6036622340000122
+   },
+   "N400_Kurganov_SuperBee": {
+    "N": 400,
+    "steps": 720,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.001674465743823128,
+     "u": 0.0033835212720646586,
+     "p": 0.0018033140938313722
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.0011184899491381475,
+      "contact": 0.00040271682087858446,
+      "shock": 0.0001532589738063961
+     },
+     "u": {
+      "fan": 0.0017727332686530075,
+      "contact": 0.00022038831098231156,
+      "shock": 0.0013903996924293392
+     },
+     "p": {
+      "fan": 0.0014294514097709103,
+      "contact": 6.597062337062444e-05,
+      "shock": 0.0003078920606898376
+     }
+    },
+    "state": {
+     "p": 30314.352709445237,
+     "u": 293.254925593892,
+     "rho_L": 0.4267094243129983,
+     "rho_R": 0.2653142384450994
+    },
+    "state_err": {
+     "p": 4.4037330401591745e-05,
+     "u": -0.0001068735015701261,
+     "rho_L": 0.0009147979395858208,
+     "rho_R": -0.0009770291590291968
+    },
+    "pos": {
+     "head": 0.30923960611998214,
+     "tail": 0.4914738837058775,
+     "contact": 0.6466463413876368,
+     "shock": 0.7773706646748604
+    },
+    "pos_err": {
+     "head": -0.0036775245413207536,
+     "tail": 0.002584990969848988,
+     "contact": 3.206325365434637e-06,
+     "shock": 0.0003305182481100344
+    },
+    "speed": {
+     "head": -376.24581425694413,
+     "tail": -21.700406188549614,
+     "contact": 293.78200592747163,
+     "shock": 553.468402123576
+    },
+    "width": {
+     "shock": 2.130162651068224,
+     "contact": 2.4204832243239776
+    },
+    "wiggle": {
+     "rho": 0.06450356065276108,
+     "p": 0.055040867518948655
+    },
+    "ripple": {
+     "p": 0.021390518440100433,
+     "u": 0.019988291214031895
+    },
+    "mass_drift": 1.0066022089934753e-14,
+    "energy_drift": 1.4816495505246247e-15,
+    "momentum_err": 2.3684757858670005e-15,
+    "ends": 2.6186624687124693e-16,
+    "wall_time": 0.6073079079999957
+   },
+   "N400_Kurganov_upwind": {
+    "N": 400,
+    "steps": 720,
+    "courant": 0.19250945910192097,
+    "e": {
+     "rho": 0.007515372485258481,
+     "u": 0.012131068680320356,
+     "p": 0.0059634322023169135
+    },
+    "by_wave": {
+     "rho": {
+      "fan": 0.004070327561127736,
+      "contact": 0.0027904932099112943,
+      "shock": 0.0006545517142194504
+     },
+     "u": {
+      "fan": 0.00708372362677771,
+      "contact": 3.2164147082999e-05,
+      "shock": 0.0050151809064596445
+     },
+     "p": {
+      "fan": 0.005026304923686428,
+      "contact": 4.49046150285585e-06,
+      "shock": 0.000932636817127629
+     }
+    },
+    "state": {
+     "p": 30311.900994669657,
+     "u": 293.3548047518242,
+     "rho_L": 0.4230034617732819,
+     "rho_R": 0.26650456922435983
+    },
+    "state_err": {
+     "p": -3.684260017289276e-05,
+     "u": 0.00023367826680886772,
+     "rho_L": -0.007778126414227038,
+     "rho_R": 0.0035050815574910743
+    },
+    "pos": {
+     "head": 0.3123955971942157,
+     "tail": 0.49992120817329777,
+     "contact": 0.6434592535266961,
+     "shock": 0.7784950597346453
+    },
+    "pos_err": {
+     "head": -0.0005215334670871652,
+     "tail": 0.011032315437269236,
+     "contact": -0.0031838815355752503,
+     "shock": 0.001454913307894934
+    },
+    "speed": {
+     "head": -370.86790908738635,
+     "tail": -17.13041335367363,
+     "contact": 290.25193885816327,
+     "shock": 554.4840285775053
+    },
+    "width": {
+     "shock": 6.431084898080731,
+     "contact": 21.261292484650966
+    },
+    "wiggle": {
+     "rho": 0.00029243914442034225,
+     "p": 0.0016429017920287503
+    },
+    "ripple": {
+     "p": 0.0005663475591326146,
+     "u": 0.0002928062152437979
+    },
+    "mass_drift": 1.342136278657967e-14,
+    "energy_drift": 2.3283064365386957e-15,
+    "momentum_err": 2.210577400142534e-15,
+    "ends": 3.307784171005223e-16,
+    "wall_time": 0.6044875979999915
+   }
+  }
+ }
+}

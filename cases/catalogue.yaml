@@ -136,13 +136,13 @@ cases:
   # Prof. Frankel's challenge (2026-11-15). The plan in simple words: results/rde/plan.html (dev/rde/plan_page.py).
   # Steps 2 to 5 follow the validation sections of Cheng, Sheng and Wang, Energies 17 (2024) 769.
   - id: "18"
-    title: Shock tube (Sod)
-    status: in_progress
-    tier: rde
+    title: Shock tube, air released across a pressure jump (Sod's problem)
+    status: solved
     folder: shock_tube_sod
-    new: "Step 1 of 7. The first flow with changing density and shock waves; OpenFOAM's shock solver (rhoCentralFoam)"
-    reference: The exact solution of the shock-tube problem (Sod 1978) (confirm)
-    gpucfd: "no"
+    tests: "Step 1 of 7 to the detonation engine. Transient, the first flow with shock waves and changing density (OpenFOAM's rhoCentralFoam), exact solution (the Riemann problem)"
+    shows: "A flow with jumps: the exact solution averaged over each cell and compared by the mean error; every reading rule (wave positions, jump widths) measured on the exact solution first; the error split by wave before it is explained; OpenFOAM's own gas constant and Courant number for rhoCentralFoam; a time-step study that shows ringing"
+    headline: "On 12800 cells the mean errors are 0.0085 % (density), 0.012 % (velocity) and 0.0068 % (pressure), and mass and energy are kept to round-off; the pressure error falls with order 0.78 where the limit set before the runs assumed 0.85"
+    reports: [{path: results/shock_tube_sod/report.html}]
 
   - id: "19"
     title: A shock going round a corner (shock diffraction)

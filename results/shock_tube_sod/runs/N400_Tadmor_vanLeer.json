@@ -1,0 +1,93 @@
+{
+ "name": "N400_Tadmor_vanLeer",
+ "N": 400,
+ "spc": 1.8,
+ "flux": "Tadmor",
+ "limiter": "vanLeer",
+ "studies": [
+  "scheme"
+ ],
+ "steps": 720,
+ "dt": 6.944444444444445e-07,
+ "h": 0.0025,
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod/N400_Tadmor_vanLeer",
+ "wall_time": 0.6044861170000217,
+ "total_time": 2.20306658744812,
+ "steps_logged": 720,
+ "mesh_ok": true,
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "0.142",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.991\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Density and pressure stay positive",
+    "status": "ok",
+    "value": "lowest density \\(0.125\\), lowest pressure \\(10000\\)",
+    "meaning": "A negative density or pressure is not a gas; a scheme that overshoots at a jump can produce one."
+   }
+  ],
+  "steps": 720,
+  "last_time": 0.0005,
+  "wall_time": 0.27,
+  "est_full_runtime": null,
+  "est_kind": null,
+  "rho_min": 0.125,
+  "p_min": 10000.0,
+  "ends": 2.894311149629571e-16,
+  "mass_start": 1.509903313490213e-14,
+  "energy_start": 8.881784197001252e-16,
+  "mass_drift": 1.0855514018557085e-14,
+  "energy_drift": 1.4816495505246247e-15,
+  "momentum_err": 1.4210854715202005e-15
+ },
+ "errors": {
+  "rho": 0.001619150754441642,
+  "u": 0.0027286693324371555,
+  "p": 0.001160281868574522,
+  "wiggle_rho": 0.017316422820560007,
+  "wiggle_p": 0.02005496728795575
+ },
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod/N400_Tadmor_vanLeer",
+  "solver": "rhoCentralFoam",
+  "cells": 400,
+  "cores": 1,
+  "steps": 720,
+  "wall_s": 0.6044861170000217,
+  "cpu_s": 0.45613499999999996,
+  "solver_cpu_s": 0.27,
+  "peak_mem_mb": 184.19140625,
+  "us_per_cell_step": 2.0989101284722977,
+  "cpu_efficiency": 0.7545830866451206,
+  "write_share": 1.0,
+  "lin_iters": {},
+  "lin_solves_per_step": {},
+  "lin_iters_by_solve": {}
+ },
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod"
+}

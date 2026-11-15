@@ -1,0 +1,26 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+
+dimensions      [0 1 -1 0 0 0 0];
+
+// Air at rest at t = 0.
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    // Closed, frictionless ends: no flow through them, free to slide along them.
+    leftEnd
+    {
+        type            slip;
+    }
+    rightEnd
+    {
+        type            slip;
+    }
+    #includeEtc "caseDicts/setConstraintTypes"
+}

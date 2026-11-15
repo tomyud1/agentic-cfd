@@ -1,0 +1,93 @@
+{
+ "name": "N800",
+ "N": 800,
+ "spc": 1.8,
+ "flux": "Kurganov",
+ "limiter": "vanLeer",
+ "studies": [
+  "grid"
+ ],
+ "steps": 1440,
+ "dt": 3.4722222222222224e-07,
+ "h": 0.00125,
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod/N800",
+ "wall_time": 1.1016041259999998,
+ "total_time": 2.7114360332489014,
+ "steps_logged": 1440,
+ "mesh_ok": true,
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "0.099",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,0.999\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Density and pressure stay positive",
+    "status": "ok",
+    "value": "lowest density \\(0.125\\), lowest pressure \\(10000\\)",
+    "meaning": "A negative density or pressure is not a gas; a scheme that overshoots at a jump can produce one."
+   }
+  ],
+  "steps": 1440,
+  "last_time": 0.0005,
+  "wall_time": 0.7,
+  "est_full_runtime": null,
+  "est_kind": null,
+  "rho_min": 0.125,
+  "p_min": 9999.99999999999,
+  "ends": 1.2404190641269465e-15,
+  "mass_start": 2.2093438190040615e-14,
+  "energy_start": 4.218847493575595e-15,
+  "mass_drift": 1.5395092608135503e-14,
+  "energy_drift": 4.444948651573874e-15,
+  "momentum_err": 6.473833814703135e-15
+ },
+ "errors": {
+  "rho": 0.0007292107966695445,
+  "u": 0.0011105824091937329,
+  "p": 0.0005300220337409401,
+  "wiggle_rho": 0.021865218544164566,
+  "wiggle_p": 0.0329541377608491
+ },
+ "perf": {
+  "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod/N800",
+  "solver": "rhoCentralFoam",
+  "cells": 800,
+  "cores": 1,
+  "steps": 1440,
+  "wall_s": 1.1016041259999998,
+  "cpu_s": 0.8903049999999999,
+  "solver_cpu_s": 0.7,
+  "peak_mem_mb": 118.04296875,
+  "us_per_cell_step": 0.956253581597222,
+  "cpu_efficiency": 0.8081896018606598,
+  "write_share": 0.09223288439280941,
+  "lin_iters": {},
+  "lin_solves_per_step": {},
+  "lin_iters_by_solve": {}
+ },
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_tube_sod"
+}

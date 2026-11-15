@@ -1,0 +1,4 @@
+FAIL: fails ['mean pressure error on the finest grid']; warns ['extra up-and-down of density and pressure (wiggles), every grid of the family']
+finest: e {'rho': 8.454451063552304e-05, 'u': 0.00011749897816825391, 'p': 6.841649141859943e-05}, limits {'rho': 0.00015225411176039708, 'u': 0.00013239000566514037, 'p': 5.532477821794561e-05}; orders overall {'rho': 0.8128945044967077, 'u': 0.8522421363362295, 'p': 0.7825458213084041}; last [0.7158455110808716, 0.9406697969409491, 0.8077377797074242]
+Report: /mnt/d/Projects/Agentic CFD/results/shock_tube_sod/report.html
+exit 0

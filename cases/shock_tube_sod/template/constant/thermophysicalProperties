@@ -1,0 +1,40 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermophysicalProperties;
+}
+
+// Ideal gas with constant specific heats, no viscosity and no heat conduction (the Euler equations).
+thermoType
+{
+    type            hePsiThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          hConst;
+    equationOfState perfectGas;
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+
+mixture
+{
+    specie
+    {
+        // Chosen so that OpenFOAM's universal gas constant divided by it is the given R (run.py measures it).
+        molWeight       {{ mol_weight }};
+    }
+    thermodynamics
+    {
+        // Cp = gamma R / (gamma - 1). Tref 0: the internal energy is Cv T, with no offset.
+        Cp              {{ Cp }};
+        Hf              0;
+        Tref            0;
+    }
+    transport
+    {
+        mu              0;
+        Pr              1;
+    }
+}

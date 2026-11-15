@@ -1,0 +1,42 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     rhoCentralFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ end_time }};
+// Fixed time step: the time of interest divided by a whole number of steps ({{ steps }} here).
+deltaT          {{ dt }};
+adjustTimeStep  no;
+writeControl    timeStep;
+writeInterval   {{ write_every }};
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  15;
+writeCompression off;
+timeFormat      general;
+timePrecision   10;
+runTimeModifiable false;
+
+functions
+{
+    // Total mass, momentum and energy of the air in the tube after every time step: requested
+    // output (d) and the physical check of each step (closed ends: mass and energy cannot change).
+    conserved
+    {
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      all;
+        operation       volIntegrate;
+        fields          (rho rhoU rhoE);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+}
