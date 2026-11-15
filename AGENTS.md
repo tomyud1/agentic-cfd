@@ -28,6 +28,8 @@ with this workflow and these tools.
 6. **Leave your experience behind.** Log every problem, surprise and retry as an insight while you
    work (`cfdlib.insights`). Do not change the shared tools or the workflow yourself: say what
    should change in the insight. That log is how the next agent starts better off than you did.
+   The folder `dev/` belongs to the agent that develops the repository: you do not need it, and
+   its notes on the case you are solving are not for you.
 
 Developing this repository itself (its tools, gpucfd, the workflow)? Read [`CLAUDE.md`](CLAUDE.md),
 the project's direction and working rules, and [`dev/LOOP.md`](dev/LOOP.md), how a solved case turns

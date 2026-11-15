@@ -637,3 +637,37 @@ assert "no requirement entry with key ['drag']" in contract.check_expectations(h
 ok18 = dict(hide18, verdict="FAIL", expectations=hide18["expectations"] + [x18("requirement", False, key="drag")])
 assert contract.check_expectations(ok18) == [] and "at least one health" in contract.check_expectations(dict(new18, verdict="PASS", expectations=[x18("expectation", True)]))[0]
 print("verdict wording: FAIL only for a failed experiment; expectations checked: ok")
+
+# 19. What case 19 (a shock round a corner) and the trial of case 20 asked of the tools.
+with tempfile.TemporaryDirectory() as tmp19:
+    (Path(tmp19) / "system").mkdir()
+    (Path(tmp19) / "system" / "controlDict").write_text("endTime 0.00045;" + chr(10))
+    monitor.set_end_time(tmp19, "2.25e-05")                     # a string: it used to arrive with quotes and stop the solver
+    assert (Path(tmp19) / "system" / "controlDict").read_text() == "endTime 2.25e-05;" + chr(10)
+    f19 = Path(tmp19) / "T"
+    f19.write_text("dimensions [0 0 0 1 0 0 0];" + chr(10) + "internalField   uniform 2220.15;" + chr(10))
+    assert foam.read_internal_field(f19, uniform=True).tolist() == [2220.15]
+    f19.write_text("internalField   uniform (1 2 3);" + chr(10))
+    assert foam.read_internal_field(f19, uniform=True).shape == (1, 3)
+    try:
+        foam.read_internal_field(f19)
+        raise AssertionError("a uniform field was read as a list")
+    except ValueError as e19:
+        assert "uniform=True" in str(e19)
+# an order far above the method's is not plausible: the last change is small because the reading rule's resolution is reached
+v19 = [1.0, 1.023, 1.02965, 1.03027]
+assert verification.level_sequence(v19)["plausible"] and not verification.level_sequence(v19, p_max=2.5)["plausible"]
+assert verification.level_sequence(v19, p_max=2.5)["richardson"] is None and verification.level_sequence(v19, p_max=2.5)["last_change"] > 0
+# a line that leaves the axes is clipped in the picture: a legend outside the axes cannot cover it
+from cfdlib import plots as plots19  # noqa: E402
+fig19, ax19 = plots19.figure()
+ax19.plot([0, 1, 2, 3], [0, 1, -8, 3], label="line")
+ax19.set_ylim(-1, 4)
+ax19.legend(loc="upper center", bbox_to_anchor=(0.5, -0.25))
+assert not [i for i in plots19.check_layout(fig19) if "legend covers" in i], plots19.check_layout(fig19)
+ax19.plot([0, 3], [1.5, 1.5], label="flat")              # a line that does run under a legend in the middle
+ax19.legend(loc="center")
+assert [i for i in plots19.check_layout(fig19) if "legend covers" in i]
+import matplotlib.pyplot as plt19  # noqa: E402
+plt19.close(fig19)
+print("end time as a string, one-cell fields, order above the method's, clipped lines under a legend: ok")

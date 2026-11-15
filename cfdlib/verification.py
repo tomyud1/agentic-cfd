@@ -72,7 +72,7 @@ def richardson(f_med, f_fine, p, r=2.0):
     return f_fine + (f_fine - f_med) / (r ** p - 1)
 
 
-def level_sequence(values, r=2.0, p_min=0.5):
+def level_sequence(values, r=2.0, p_min=0.5, p_max=None):
     """Convergence of a sequence of solutions, coarse to fine with ratio r (yours OR a reference's).
 
     A benchmark that lists several mesh levels is still converging; its finest level is not the exact
@@ -80,6 +80,10 @@ def level_sequence(values, r=2.0, p_min=0.5):
     the simulation than its finest level). Returns the observed order and Richardson value from the
     last three levels, whether the changes are monotonic, and the last change (the finest level's
     uncertainty if nothing better is known).
+    p_max (optional, the method's formal order plus a margin): above it the order is not plausible either.
+    The last change is then small because the value has reached the resolution of the rule that reads it,
+    not because the method converges that fast (case 19: order 3.4 from a position read to a fraction of a
+    cell); the last change, not a Richardson value, measures what is left.
     plausible: False when the observed order is below p_min. The changes then barely shrink, the
     levels are not in the asymptotic range, and Richardson would blow up (it divides by r^p - 1), so
     no Richardson value is given. Found on a pressure probe less than one cell from a wall on the
@@ -91,7 +95,7 @@ def level_sequence(values, r=2.0, p_min=0.5):
     d1, d2 = f[-2] - f[-3], f[-1] - f[-2]
     mono = d1 * d2 > 0 and abs(d2) < abs(d1)
     p = order_three_grids(*f[-3:], r=r) if mono else None
-    ok = p is not None and p >= p_min
+    ok = p is not None and p >= p_min and (p_max is None or p <= p_max)
     return dict(order=p, richardson=richardson(f[-2], f[-1], p, r) if ok else None, monotonic=mono,
                 plausible=ok if mono else None, last_change=abs(d2))
 

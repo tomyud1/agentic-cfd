@@ -37,7 +37,17 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   the solver needs half its tutorials' time step; about 0.3 microseconds per cell and step on one
   core; ten times less error costs about 17 times more cells. Open: why the error in the
   expansion falls that slowly.
-- **Step 2 is next:** a shock going round a corner (case 19).
+- **Step 2 is done (2026-11-15):** a Mach 5 shock going round a sharp corner (case 19), with the
+  same OpenFOAM solver, solved by a fresh agent in about 50 minutes. It is the first problem with
+  a stated required accuracy, and all three requirements are met (flat part of the shock within
+  0.01 % in speed, mass and energy kept, the shock stays flat). Carried forward: in two
+  dimensions this flow needs about five time steps per cell (two in the tube), or the pressure
+  goes negative at the corner; 800 by 800 cells take 12 minutes on 8 cores, and 8 cores are only
+  2.3 times faster than one; starting a shock as a sharp jump leaves two weak waves of about 2 %.
+- **gpucfd has a shock solver now** ([`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md), built in
+  parallel on 2026-11-15, under review): it runs steps 1 and 2 on the GPU. It is the base of the
+  third detonation solver (step 4).
+- **Step 3 is next:** ignition of hydrogen and air in a closed box (case 20), chemistry alone.
 - **The solver gap.** No solver on the development PC handles a shock and burning together.
   Three ways are tried, all three (the student's decision), and compared on step 4 on the same
   grid: OpenFOAM's own burning solver (`rhoReactingFoam`), a published detonation solver (to be

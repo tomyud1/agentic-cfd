@@ -169,9 +169,13 @@ page = dict(
                     'One expectation was not met: the error falls more slowly with the grid than the agent had predicted. '
                     '<a href="../shock_tube_sod/brief.html">One-page report</a>'),
         dict(name="A shock going round a corner", what="A shock wave runs along a wall that suddenly ends and bends round the corner.",
-             new="shocks in two dimensions", answer="published experiments and simulations", where="this PC, minutes", status="next"),
+             new="shocks in two dimensions", answer="the exact jump across the flat part of the shock", where="this PC, minutes", status="done",
+             result='Solved on 2026-11-15 by a fresh agent in about 50 minutes. All three requirements are met: the flat part of the shock '
+                    'moves at the exact speed to within 0.01 %, mass and energy are kept, and the shock stays flat. '
+                    'In two dimensions the solver needs a smaller time step, or the run breaks at the corner. '
+                    '<a href="../shock_diffraction_corner/brief.html">One-page report</a>'),
         dict(name="Ignition in a closed box", what="Hot hydrogen and air at rest. How long until the mixture ignites?",
-             new="chemistry alone, with no flow", answer="an independent chemistry code", where="this PC, seconds", status="planned"),
+             new="chemistry alone, with no flow", answer="an independent chemistry code", where="this PC, seconds", status="next"),
         dict(name="Detonation in a straight tube", what="A detonation wave runs down a tube of hydrogen and air.",
              new="shock and burning together", answer="the wave's speed follows from the gas alone, with no simulation",
              where="this PC, hours (expected, not measured)", status="planned", mark="The three solvers are compared here"),

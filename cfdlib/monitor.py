@@ -154,8 +154,10 @@ def assess_arrays(arr, flags, end_time=None, courant_limit=1.0, residual_targets
             f"Fluid should not cross more than about one cell per time step (limit used: {courant_limit})."
             + (" rhoCentralFoam prints its own Courant number: in subsonic flow it is half the usual "
                "(|u| + c) dt / dx, in supersonic flow |u| dt / dx without the speed of sound (its source, "
-               "centralCourantNo.H). A limit copied from its tutorials (maxCo 0.2) is a usual Courant number of "
-               "about 0.4, where case 18 found the solution ringing behind the shock." if central else ""))
+               "centralCourantNo.H). In two or three dimensions it adds the directions, so it can be larger than "
+               "the usual number along one direction (case 19). Judge the time step by a time-step study and "
+               "keep the printed number near the tutorials' 0.2: at twice that, case 18 found ringing behind "
+               "the shock and case 19 a negative pressure in a strong expansion." if central else ""))
         tr, _ = _trend(co)
         speed = _speed_trend(arr["time"], arr["co"]) if tr is not None and tr > 5 else None
         if speed is not None and speed <= 5:
@@ -225,6 +227,7 @@ def set_end_time(case_dir, end_time):
     only when the file has no plain `endTime <value>;` line is foamDictionary used."""
     path = Path(case_dir) / "system" / "controlDict"
     text = path.read_text()
+    end_time = float(end_time)                 # a string and a number give the same file (case 19: a quoted string stopped the solver)
     new, n = re.subn(r"^(\s*endTime\s+)[^;]+;", lambda m: f"{m.group(1)}{end_time!r};", text, flags=re.M)
     if n == 1:
         path.write_text(new)
@@ -268,7 +271,11 @@ def preflight(case_dir, solver, end_time_short, end_time_full, timeout=600, cour
         a["checks"].append(dict(name="Settings the solver ignores", status="warn", value="ignored", meaning=w))
         if a["status"] == "ok":
             a["status"] = "warn"
-    a.update(case=str(pf), end_time_short=end_time_short, timed_out=timed_out)
+    steps = parse_log(pf / f"log.{solver.split()[0]}")["steps"]
+    ex = [s["exec"] for s in steps if s["exec"] is not None]
+    late = len(ex) // 2                        # the second half of the short run: start-up (mesh, first steps) left out
+    a.update(case=str(pf), end_time_short=end_time_short, timed_out=timed_out,
+             s_per_step=(ex[-1] - ex[late]) / (len(ex) - 1 - late) if len(ex) - 1 > late else None)
     return a
 
 

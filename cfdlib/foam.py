@@ -281,13 +281,21 @@ def time_dirs(case_dir):
     return sorted(dirs, key=lambda d: float(d.name))
 
 
-def read_internal_field(path):
-    """internalField of an ASCII OpenFOAM field file as a numpy array: (n,) scalars or (n, 3) vectors."""
+def read_internal_field(path, uniform=False):
+    """internalField of an ASCII OpenFOAM field file as a numpy array: (n,) scalars or (n, 3) vectors.
+
+    A field written as `uniform <value>` is refused, because in a flow case it means the field was never
+    computed. uniform=True reads it as one value, shape (1,) or (1, 3): a one-cell case (chemFoam) writes
+    every field that way."""
     text = Path(path).read_text()
     i = text.index("internalField")
     m = re.match(r"internalField\s+uniform\s+([^;]+);", text[i:])
+    if m and uniform:
+        vals = np.array(m.group(1).replace("(", " ").replace(")", " ").split(), dtype=float)
+        return vals if vals.size == 1 else vals.reshape(1, -1)
     if m:
-        raise ValueError(f"{path}: internalField is uniform ({m.group(1).strip()}), expected a list")
+        raise ValueError(f"{path}: internalField is uniform ({m.group(1).strip()}), expected a list "
+                         "(a one-cell case: read_internal_field(path, uniform=True))")
     m = re.match(r"internalField\s+nonuniform\s+List<(\w+)>\s*(\d+)\s*\(", text[i:])
     if not m:
         raise ValueError(f"{path}: cannot parse internalField header")

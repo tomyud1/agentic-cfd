@@ -185,7 +185,11 @@ def check_layout(fig):
             for ln in ax.lines:
                 if ln.get_visible() and len(ln.get_xdata()) and not str(ln.get_label()).startswith("_"):
                     path = ln.get_transform().transform_path(ln.get_path())
-                    if _hits(path, lb, False) or any(lb.contains(x, y) for x, y in path.vertices):
+                    box = ax.get_window_extent(renderer)        # the picture clips a line at the axes: test what is drawn
+                    if ln.get_clip_on() and not (lb.x1 > box.x0 and lb.x0 < box.x1 and lb.y1 > box.y0 and lb.y0 < box.y1):
+                        continue                                # the legend lies wholly outside the axes box
+                    inside = [(x, y) for x, y in path.vertices if not ln.get_clip_on() or box.contains(x, y)]
+                    if (_hits(path, lb, False) and inside) or any(lb.contains(x, y) for x, y in inside):
                         issues.append(f"legend covers data line {ln.get_label()!r} (move it outside or to an empty corner)")
                         break
     return issues

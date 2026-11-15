@@ -76,6 +76,15 @@ The worked example is `cases/shock_tube_sod/`.
   coarse grids.
 - Cost: about 0.3 microseconds per cell and step on one core. A fixed time step that divides the
   end time: `monitor.preflight` keeps its digits.
+- **In two dimensions (case 19, a Mach 5 shock round a corner, `cases/shock_diffraction_corner/`):**
+  the printed Courant number adds the directions. A strong expansion (flow round a corner) can stop
+  the solver with a negative pressure at a step where a shock tube only rings: run the grid below
+  the finest in full at 1.5 times the planned step to measure the margin. A shock that starts as a
+  sharp jump leaves two start-up waves behind, at \((u - c)\,t\) and \(u\,t\), about 2 % high and
+  a few cells wide on any grid. Parallel speed-up on 640 thousand cells: 2.0 on 4 cores, 2.3 on 8,
+  less on 16; `monitor.preflight` returns `s_per_step` without the start-up.
+- **A problem with no length of its own** (equal cells, time step in proportion to the cell size):
+  the method has none either, so an earlier snapshot of a fine run is a coarser run, cell for cell.
 
 ## Turbulence models (RANS; measured in case 7, a flat plate with Spalart-Allmaras)
 - **A model name covers several published variants,** and a solver's default may be another one

@@ -39,6 +39,7 @@ A case's entry in cases/briefs.yaml (from_case):
                   time); or data: {list or files, label, cells, wall, cores} takes them from results.json's data
                   (list) or from run records (files: JSON paths under the repository root); or
                   pick: a ready table; or text: one sentence when nothing was recorded. Optional title, note.
+                  In data, cores is a number, or the key of each run that holds its number of cores.
   pick            {file, table, columns[], head[], rows[] (optional)}: columns (by number) of the table with
                   that title in a report or study JSON under results/, with new headings; rows keeps the
                   rows whose first cell is listed.
@@ -234,7 +235,8 @@ def from_case(folder, s):
         for r in source:
             label = d["label"].format(**r)
             cells = [f"{int(eval(d['cells'], {}, dict(r))):,}"] if "cells" in d else []            # noqa: S307  (our own spec file)
-            rows.append([label] + cells + [f"{seconds(r[d['wall']])} on {d.get('cores', 1)} core",
+            cores = int(r[d["cores"]]) if isinstance(d.get("cores"), str) else int(d.get("cores", 1))   # a key of the run, or a number
+            rows.append([label] + cells + [f"{seconds(r[d['wall']])} on {cores} core{'s' if cores != 1 else ''}",
                                            gpu_time(mine.pop(label)) if label in mine else no_gpu])
         if mine:
             raise ValueError(f"{folder}: gpucfd runs {list(mine)} match no row of the speed table")

@@ -331,7 +331,8 @@ case, if you want to see the full set of files once.
 - A coarse-mesh match can be luck (error cancellation). Report differences honestly, where and why.
   Show an integral (a bulk velocity, a drag) next to the profile it is made of: case 17's bulk
   velocity was 0.3 % off while its profile was 2 % off, with opposite signs near the wall and in the core.
-- An explanation is a claim: check it against the data (sign, size, scaling) before writing it. In
+- An explanation is a claim, and so is the name of a flow feature: check it against the data (sign,
+  size, scaling, the property the name implies, on two grids) before writing it. In
   case 3 the first explanation of an error had the wrong sign and a third of the size. If it needs
   a sensitivity, measure that with a variant that changes one thing only (case 7: a closed top
   boundary changed the stream's speed and its pressure gradient together, and still fitted the data
@@ -379,7 +380,8 @@ re-rendering to avoid a cached copy.
   final review found a decision, reproducibility commands and a limitation still describing the old
   plan; no automatic check catches this.
 - Render a draft report from partial results while the finest run is still going; layout problems
-  show up early.
+  show up early. A sentence of the draft that states a trend is checked again when the finest run
+  is in, or built from the numbers so that it cannot go stale (case 19).
 - Fix what you find, re-render, look again. Log what you found as insights (stage "report").
 - Without a browser: run analyze with `CFD_FIG_PNG_DIR=<dir>` to get PNGs of every figure and look at them.
 

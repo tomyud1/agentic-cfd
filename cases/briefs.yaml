@@ -221,3 +221,32 @@ shock_tube_sod:
     - "gpucfd has no column: a solver for a gas with changing density is not built yet."
     - Why the error in the expansion falls slowly is not explained. Only one solver was run, and a second one on the same grids would tell.
     - "One dimension and no friction. The time step is not converged: the full report says how much error is left."
+
+shock_diffraction_corner:
+  goal: The first flow with shocks in two dimensions. Step 2 of 7 on the way to a rotating detonation engine.
+  story: "Solved with OpenFOAM's shock solver by a fresh agent. gpucfd's new shock solver has run the same problem on the same grids. Its numbers are in gpucfd's own record and join this page once they are checked."
+  requirements:
+    - A square chamber of still air, 1 m by 1 m. A flat shock wave five times faster than sound enters through the upper half of the left side.
+    - Below the opening the left side is a wall, so the shock has to bend round a sharp corner into the lower half. No friction and no heat conduction.
+    - "Asked for at 0.45 ms: the speed of the flat part of the shock and the gas behind it, whether mass and energy are kept, whether the flat part stays flat, and the pattern round the corner."
+    - "Reference: the exact jump across a shock for the flat part. The pattern round the corner has no exact solution."
+    - "Required: the flat part's speed within 0.5 % and the gas behind it within 1 %; mass and energy within 0.01 % of what flowed in; the flat part straight to within one cell."
+  gpucfd: being checked
+  accuracy:
+    note: "On the finest grid (800 by 800 cells). The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes."
+    rows: {a: "Flat part: shock speed, pressure, density, velocity", b: Mass and energy against what flowed in, c: Flat part stays straight, d: Same picture at two times}
+  speed:
+    data:
+      files: [results/shock_diffraction_corner/runs/N100.json, results/shock_diffraction_corner/runs/N200.json, results/shock_diffraction_corner/runs/N400.json, results/shock_diffraction_corner/runs/N800.json]
+      label: "{N} by {N} cells, {steps} steps"
+      wall: wall_time
+      cores: cores
+    note: Cells and time step are halved together, so each level costs about eight times the one before. Sixteen cores were slower than eight.
+  meaning:
+    - All three requirements are met with a wide margin. A strong shock on a grid of squares stayed flat, which some other methods are known to get wrong.
+    - "The solver keeps mass and energy to the last digit, and the shock moves at the exact speed."
+    - "For the detonation engine: this flow needs about five time steps per cell, against two in the tube. With half as many, the gas round the corner got a negative pressure and the run broke. Eight cores gave only 2.3 times the speed of one."
+  limits:
+    - "gpucfd's column is empty on this page until its record is checked. Its own tests show the same accuracy on the flat part in a fraction of the time."
+    - The pattern round the corner is checked only against itself (two times, two grids), not against an experiment.
+    - "The start is not clean: the shock is put in as a sharp jump, and two weak waves from that start stay in the flow at about 2 % of the pressure."

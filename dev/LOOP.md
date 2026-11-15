@@ -46,6 +46,9 @@ Insights are gathered all the way through, from every agent.
    - Write `cases/<name>/problem.yaml`: physical inputs only, no numerical choices. State the
      accuracy the answer needs (`required_accuracy`: a list of `{key, text}`, the key of a
      requested output): only a missed requirement, or a broken run, makes the experiment FAIL.
+     Say what each per cent is a per cent of (case 19: "0.01 % of the inflow" had two readings).
+     A trial script of yours on the case belongs outside the solver agent's view, or says so at
+     its top; the agent of case 19 found it and chose not to open it.
      `python -m cfdlib.contract --problem cases/<name>/problem.yaml` says whether the report will
      accept it as written (the solver agent may not change it).
    - Put the reference data in `cases/<name>/reference/`, transcribed from the original source,

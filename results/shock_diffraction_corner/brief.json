@@ -1,0 +1,104 @@
+{
+ "title": "A strong shock wave going round a sharp corner (shock diffraction)",
+ "date": "2026-11-15",
+ "verdict": "PASS",
+ "outcome": {
+  "css": "PASS",
+  "mark": "✓",
+  "label": "Completed, as expected",
+  "short": "AS EXPECTED",
+  "note": ""
+ },
+ "goal": "The first flow with shocks in two dimensions. Step 2 of 7 on the way to a rotating detonation engine.",
+ "story": "Solved with OpenFOAM's shock solver by a fresh agent. gpucfd's new shock solver has run the same problem on the same grids. Its numbers are in gpucfd's own record and join this page once they are checked.",
+ "problem": {
+  "requirements": [
+   "A square chamber of still air, 1 m by 1 m. A flat shock wave five times faster than sound enters through the upper half of the left side.",
+   "Below the opening the left side is a wall, so the shock has to bend round a sharp corner into the lower half. No friction and no heat conduction.",
+   "Asked for at 0.45 ms: the speed of the flat part of the shock and the gas behind it, whether mass and energy are kept, whether the flat part stays flat, and the pattern round the corner.",
+   "Reference: the exact jump across a shock for the flat part. The pattern round the corner has no exact solution.",
+   "Required: the flat part's speed within 0.5 % and the gas behind it within 1 %; mass and energy within 0.01 % of what flowed in; the flat part straight to within one cell."
+  ]
+ },
+ "results": {
+  "headline": "<b>Completed, as expected.</b> The three requirements are met: on 800 cells per side the flat part of the shock moves at the exact speed to within \\(0.006\\,\\%\\), the state behind it is within \\(0.036\\,\\%\\), mass and energy match the exact inflow to \\(3 \\times 10^{-9}\\) of it, and the flat part is straight to \\(6 \\times 10^{-5}\\) cells on every grid.",
+  "meaning": [
+   "All three requirements are met with a wide margin. A strong shock on a grid of squares stayed flat, which some other methods are known to get wrong.",
+   "The solver keeps mass and energy to the last digit, and the shock moves at the exact speed.",
+   "For the detonation engine: this flow needs about five time steps per cell, against two in the tube. With half as many, the gas round the corner got a negative pressure and the run broke. Eight cores gave only 2.3 times the speed of one."
+  ],
+  "limits": [
+   "gpucfd's column is empty on this page until its record is checked. Its own tests show the same accuracy on the flat part in a fraction of the time.",
+   "The pattern round the corner is checked only against itself (two times, two grids), not against an experiment.",
+   "The start is not clean: the shock is put in as a sharp jump, and two weak waves from that start stay in the flow at about 2 % of the pressure."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy",
+  "head": [
+   "Requirement",
+   "OpenFOAM: difference from the reference",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Flat part: shock speed, pressure, density, velocity",
+    "<span style='white-space:nowrap'>\\(+0.006\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.020\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.036\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(+0.009\\,\\%\\)</span>",
+    "<span class=\"wait\">being checked</span>"
+   ],
+   [
+    "Mass and energy against what flowed in",
+    "<span style='white-space:nowrap'>mass \\(3 \\times 10^{-9}\\)</span><br><span style='white-space:nowrap'>energy \\(1 \\times 10^{-12}\\)</span>",
+    "<span class=\"wait\">being checked</span>"
+   ],
+   [
+    "Flat part stays straight",
+    "<span style='white-space:nowrap'>\\(6 \\times 10^{-5}\\) cells</span><br><span style='white-space:nowrap'>ripple \\(1.2\\,\\%\\)</span>",
+    "<span class=\"wait\">being checked</span>"
+   ],
+   [
+    "Same picture at two times",
+    "<span style='white-space:nowrap'>step face \\(3.2\\,\\%\\)</span><br><span style='white-space:nowrap'>line \\(0.6\\,\\%\\)</span>",
+    "<span class=\"wait\">being checked</span>"
+   ]
+  ],
+  "note": "On the finest grid (800 by 800 cells). The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "Run",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "100 by 100 cells, 510 steps",
+    "3.3 s on 1 core",
+    "<span class=\"wait\">being checked</span>"
+   ],
+   [
+    "200 by 200 cells, 1020 steps",
+    "21 s on 1 core",
+    "<span class=\"wait\">being checked</span>"
+   ],
+   [
+    "400 by 400 cells, 2040 steps",
+    "187 s on 1 core",
+    "<span class=\"wait\">being checked</span>"
+   ],
+   [
+    "800 by 800 cells, 4080 steps",
+    "742 s on 8 cores",
+    "<span class=\"wait\">being checked</span>"
+   ]
+  ],
+  "note": "Cells and time step are halved together, so each level costs about eight times the one before. Sixteen cores were slower than eight."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  }
+ ]
+}
