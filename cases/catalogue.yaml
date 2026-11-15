@@ -14,7 +14,8 @@
 #   id        case number (solved and tiered cases)
 #   title     short name
 #   status    solved | in_progress | planned
-#   tier      planned cases: next | harder | turbulence | later | catalogue
+#   tier      planned cases: rde | next | harder | turbulence | later | catalogue
+#             (rde: the ladder to the rotating detonation engine; its entries name their `folder` in advance)
 #   group     catalogue cases: the physics heading they are listed under
 #   new       what is new for the agent
 #   reference candidate reference; confirm it from the original source before solving
@@ -131,7 +132,73 @@ cases:
     # headline: read from the study's JSON (summary.plain), written by its script from the numbers
     reports: [{path: results/turbulent_channel_re180/optimize_study.html, verdict_from: results/turbulent_channel_re180/optimize_study.json}]
 
-  # ---------------------------------------------------------------- tier 1: next
+  # ---------------------------------------------------------------- now: the ladder to a rotating detonation engine
+  # Prof. Frankel's challenge (2026-11-15). The plan in simple words: results/rde/plan.html (dev/rde/plan_page.py).
+  # Steps 2 to 5 follow the validation sections of Cheng, Sheng and Wang, Energies 17 (2024) 769.
+  - id: "18"
+    title: Shock tube (Sod)
+    status: planned
+    tier: rde
+    folder: shock_tube_sod
+    new: "Step 1 of 7. The first flow with changing density and shock waves; OpenFOAM's shock solver (rhoCentralFoam)"
+    reference: The exact solution of the shock-tube problem (Sod 1978) (confirm)
+    gpucfd: "no"
+
+  - id: "19"
+    title: A shock going round a corner (shock diffraction)
+    status: planned
+    tier: rde
+    folder: shock_diffraction_corner
+    new: "Step 2 of 7. Shock waves in two dimensions"
+    reference: The test in Cheng et al. (2024), section 4.2, and the experiment or simulation it cites (confirm)
+    gpucfd: "no"
+
+  - id: "20"
+    title: Ignition of hydrogen and air in a closed box
+    status: planned
+    tier: rde
+    folder: h2_air_ignition_box
+    new: "Step 3 of 7. Chemistry alone, with no flow: the time until the mixture ignites"
+    reference: An independent chemistry code (Cantera) with the same reaction mechanism, as in Cheng et al. (2024), section 4.3 (confirm)
+    gpucfd: "no"
+
+  - id: "21"
+    title: Detonation in a straight tube, hydrogen and air
+    status: planned
+    tier: rde
+    folder: detonation_tube_h2_air
+    new: "Step 4 of 7. Shock and burning together. Three solvers are compared here: OpenFOAM's own burning solver, a published detonation solver, and a new one in gpucfd"
+    reference: The Chapman-Jouguet speed, which follows from the gas's thermodynamics alone; both papers on the plan page (confirm)
+    gpucfd: "no"
+
+  - id: "22"
+    title: Detonation cells in two dimensions
+    status: planned
+    tier: rde
+    folder: detonation_cells_h2_air
+    new: "Step 5 of 7. The fine structure of a detonation front; the cost of very small cells"
+    reference: Published cell patterns cited by both papers on the plan page (confirm)
+    gpucfd: "no"
+
+  - id: "23"
+    title: Rotating detonation engine, flat (unwrapped) 2D version
+    status: planned
+    tier: rde
+    folder: rde_unwrapped_2d
+    new: "Step 6 of 7. Injection, an open end, a wave that runs for many turns; probably needs the lab's machines"
+    reference: Cheng et al. (2024), section 4.7; Kwak et al., arXiv 2508.16105 (confirm; the final set-up is fixed with Prof. Frankel)
+    gpucfd: "no"
+
+  - id: "24"
+    title: A blind engine case from Prof. Frankel's lab
+    status: planned
+    tier: rde
+    folder: rde_blind_lab
+    new: "Step 7 of 7. The agent does not see the answer and must judge its own result"
+    reference: A result of the lab that is not published; the lab compares after we report
+    gpucfd: "no"
+
+  # ---------------------------------------------------------------- tier 1: one new capability each (behind the ladder)
   - id: "8"
     title: Differentially heated square cavity (buoyancy)
     status: planned
@@ -234,12 +301,6 @@ cases:
     tier: later
     new: Unsteady turbulence; expensive, so it waits for lab hardware
     luminary: re3900_cylinder_fwh
-    gpucfd: "no"
-
-  - title: A problem with no benchmark at all, from Prof. Frankel
-    status: planned
-    tier: later
-    new: The real test of the workflow, where the agent has to judge its own answer without a reference
     gpucfd: "no"
 
   # ---------------------------------------------------------------- catalogue: candidates not yet ordered

@@ -13,9 +13,33 @@ Nothing is waiting to be committed.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
+## 2026-11-15
+
+### A new target: the rotating detonation engine, commit hash to be filled in
+Prof. Frankel proposed a challenge from his lab's own research: a rotating detonation engine, in
+which a burning shock wave runs round a ring-shaped chamber. The student decided to work on it
+now and to push the other parts of the plan back.
+- **A plan page, in simple words:** `results/rde/plan.html` (built by `dev/rde/plan_page.py`).
+  It shows the engine, the flat two-dimensional problem with its sketch and requirements, why it
+  is hard for us, and a ladder of seven steps, each with an answer that can be checked: shock
+  tube, a shock round a corner, ignition in a closed box, a detonation in a tube, detonation
+  cells, the flat engine, and a blind case from the lab.
+- **Why a ladder.** Every case so far had constant density and no burning. No solver on the
+  development PC handles a shock and burning together.
+- **Three ways to get such a solver, all to be tried** (the student's decision) and compared on
+  the detonation in a tube: OpenFOAM's own burning solver, a published detonation solver, and a
+  new solver in gpucfd.
+- **The case list and the roadmap follow.** The seven steps are cases 18 to 24 in
+  `cases/catalogue.yaml`, each with its folder name fixed in advance; the roadmap puts the engine
+  first and lists what is pushed back (case 8, cheaper methods, the workflow diet).
+- **Every case is easier to find.** The table of solved cases (`cases/README.md`) has a new
+  "Files" column with links to each case's problem folder and results folder.
+- **Open.** Nothing is run yet. The set-up numbers on the page are from one paper, and the final
+  problem is fixed with the supervisor.
+
 ## 2026-11-14
 
-### One-page progress reports for every case, commit hash to be filled in
+### One-page progress reports for every case (`6ecfd9a`)
 A new kind of report, asked for by the student: one page per case, in simple words, to show
 first. The long reports stay and are linked from it.
 - **What a page holds, in this order.** The goal of the case in one line. The problem: its

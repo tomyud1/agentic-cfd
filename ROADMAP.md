@@ -5,8 +5,9 @@ engineers get, with tools that are better and faster than what exists. Solving v
 and learning from each one ([`dev/LOOP.md`](dev/LOOP.md)) is the method, not the goal. History is in
 [`CHANGELOG.md`](CHANGELOG.md); the cases are in [`cases/BACKLOG.md`](cases/BACKLOG.md).
 
-Agreed with the student on 2026-11-13. The meeting with Prof. Frankel in the week of 2026-11-16 may
-change the order.
+Agreed with the student on 2026-11-13. On 2026-11-15 the student put Prof. Frankel's challenge, a
+rotating detonation engine, first and pushed the other parts back. The meeting with Prof. Frankel
+on 2026-11-17 may change the order again.
 
 ## Where the project stands
 
@@ -16,7 +17,35 @@ change the order.
 | Tools | OpenFOAM runs with live stop and monitoring, verification maths, report contract. gpucfd: 47-235× faster than OpenFOAM on a periodic box; runs a turbulent channel without a model, 2-9× faster per step than OpenFOAM on 8 cores (case 17, verdict FAIL on the agent's own grids; a finer grid meets all ten limits in 1.7 GPU hours; on the same grid OpenFOAM meets 1 limit of 10 and gpucfd 5) | gpucfd's grids are rows and columns of cells (stretched per direction, also around bodies), so on bodies it still needs about 30× more cells than OpenFOAM's body-fitted grid for the same accuracy, and its drag on case 4 stops 0.3 % short of the converged benchmark. No meshing beyond `blockMesh` |
 | Agent | Claude at high effort (case 7: Fable 5.2), on one PC | Never tried with another agent or on another machine |
 
-## Now: until the meeting (development PC)
+## Now: the rotating detonation engine (decided 2026-11-15)
+
+Prof. Frankel proposed a problem from his lab's research: a rotating detonation engine, in which a
+burning shock wave runs round a ring-shaped chamber. The plan in simple words, with sketches:
+[the plan page](https://tomyud1.github.io/agentic-cfd/results/rde/plan.html)
+(`results/rde/plan.html`, built by `dev/rde/plan_page.py`).
+
+- **Why a ladder.** Every case so far had constant density and no burning. The engine needs shock
+  waves and burning together, so it is reached in seven steps that each add one difficulty and
+  each have a checkable answer: cases 18 to 24 in [`cases/BACKLOG.md`](cases/BACKLOG.md) (shock
+  tube, a shock round a corner, ignition in a closed box, a detonation in a tube, detonation
+  cells, the flat engine, a blind case from the lab). Each step is one turn of the loop and ends
+  in a one-page report.
+- **Step 1 is next:** the shock tube (case 18), with OpenFOAM's `rhoCentralFoam`. It is the first
+  time the workflow, the checks and the report tools see a shock.
+- **The solver gap.** No solver on the development PC handles a shock and burning together.
+  Three ways are tried, all three (the student's decision), and compared on step 4 on the same
+  grid: OpenFOAM's own burning solver (`rhoReactingFoam`), a published detonation solver (to be
+  found; a download needs the student's OK), and a new solver in gpucfd. Each gets a tuning
+  budget fixed before its runs. The report shows all three, whatever the outcome.
+- **Hardware.** Steps 1 to 4 fit the development PC. Steps 5 to 7 probably need the lab's
+  machines; their cost is measured on steps 4 and 5 first.
+- **Open, for the meeting.** Whether this flat engine or the lab's own set-up is the target; full
+  hydrogen chemistry or a one-reaction model first; which published solver the lab trusts; a lab
+  result to keep hidden for step 7; access to the lab's GPUs.
+- **Pushed back:** case 8 (buoyancy cavity), the cheaper-methods candidates (section 5), the
+  workflow diet (section 4) and gpucfd's turbulence-model direction.
+
+## Before the detonation engine (development PC): done, or pushed back
 
 ### 1. Ready for an outside tester
 
@@ -235,8 +264,8 @@ its answer so far):
   file of each case's headline numbers, with a test that the numbers quoted by hand in README,
   ROADMAP and the design notes still match it; and replaying an old case with a fresh agent after
   large workflow changes.
-- **A blind case** (the agent does not see the reference and must give an uncertainty band), once
-  the capabilities above exist. Then Prof. Frankel's problem with no published answer.
+- **A blind case** (the agent does not see the reference and must give an uncertainty band): now
+  the last step of the detonation-engine ladder (case 24).
 
 ## Decided
 

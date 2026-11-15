@@ -31,8 +31,10 @@ CATALOGUE = ROOT / "cases" / "catalogue.yaml"
 LUMINARY = "https://luminary.ai/verification-and-validation/{}/"
 PAGES = "https://tomyud1.github.io/agentic-cfd/"
 VERDICT_MD = {"PASS": "✅ PASS", "WARN": "⚠️ WARN", "FAIL": "❌ FAIL"}
+RDE_PLAN = "results/rde/plan.html"
 TIERS = [
-    ("next", "Tier 1: next (each adds one new capability)"),
+    ("rde", "Now: the ladder to a rotating detonation engine"),
+    ("next", "Tier 1: one new capability each (waiting behind the ladder)"),
     ("harder", "Tier 2: harder versions of what works"),
     ("turbulence", "Tier 3: turbulence beyond the flat plate"),
     ("later", "Later: real geometry and more physics"),
@@ -51,7 +53,7 @@ def load(path: Path = CATALOGUE) -> list[dict]:
                     raise ValueError(f"solved case {c.get('title')}: missing '{key}'")
             headline(c)
         elif c.get("tier") not in [t for t, _ in TIERS] + ["catalogue"]:
-            raise ValueError(f"{c.get('title')}: tier must be one of next, harder, turbulence, later, catalogue")
+            raise ValueError(f"{c.get('title')}: tier must be one of rde, next, harder, turbulence, later, catalogue")
     return cases
 
 
@@ -91,15 +93,16 @@ def brief_of(report: dict) -> str | None:
 
 
 def solved_table(cases: list[dict]) -> str:
-    rows = ["| # | Case | What it tests | Verdict | Headline | Report |", "|---|---|---|---|---|---|"]
+    rows = ["| # | Case | What it tests | Verdict | Headline | Report | Files |", "|---|---|---|---|---|---|---|"]
     for c in cases:
         if c["status"] != "solved":
             continue
+        files = f"[problem]({c['folder']}/) · [results](../results/{c['folder']}/)"     # links from cases/README.md
         for r in c["reports"]:
             b = brief_of(r)
             links = (f"[one page]({PAGES}{b}) · [full report]({PAGES}{r['path']})" if b else f"[view]({PAGES}{r['path']})")
             rows.append(f"| {c['id']} | {cell(c['title'])} | {cell(c['tests'])} | "
-                        f"{VERDICT_MD[verdict(r)]} | {cell(headline(c))} | {links} |")
+                        f"{VERDICT_MD[verdict(r)]} | {cell(headline(c))} | {links} | {files} |")
     return "\n".join(rows)
 
 
@@ -130,8 +133,16 @@ def backlog(cases: list[dict]) -> str:
         if not rows:
             continue
         out += [f"## {heading}", ""]
+        if tier == "rde":
+            out += [f"The challenge from Prof. Frankel's lab, reached in steps that each have a checkable answer. The plan in "
+                    f"simple words: [the plan page]({PAGES}{RDE_PLAN}). Each step gets its own folder, `cases/<folder>/` for the "
+                    "problem and `results/<folder>/` for its reports, created when the step is prepared.", ""]
         if tier == "later":
             out += [f"- **{c['title']}.** {cell(c.get('new'))} {source(c)}".rstrip() for c in rows]
+        elif tier == "rde":
+            out += ["| # | Case | Folder | New for the agent | Candidate reference | gpucfd |", "|---|---|---|---|---|---|"]
+            out += [f"| {cell(c.get('id'))} | **{cell(c['title'])}** | `{cell(c.get('folder'))}` | {cell(c.get('new'))} | "
+                    f"{cell(c.get('reference'))} {source(c)} | {GPU[c.get('gpucfd', 'no')]} |" for c in rows]
         else:
             out += ["| # | Case | New for the agent | Candidate reference | gpucfd |", "|---|---|---|---|---|"]
             out += [f"| {cell(c.get('id'))} | **{cell(c['title'])}** | {cell(c.get('new'))} | "

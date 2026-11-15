@@ -1,0 +1,133 @@
+{% include "_head.html.j2" %}
+<style>
+  main.plan { max-width: 1120px; }
+  .plan section { padding-top: 20px; padding-bottom: 20px; }
+  .plan h2 { margin-bottom: 10px; }
+  .plan .side { display: grid; grid-template-columns: 1.2fr 1fr; gap: 26px; align-items: center; }
+  .plan .side figure { margin: 0; }
+  .plan .small { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; }
+  .plan .tagline { display: inline-block; font-size: 13px; font-weight: 700; padding: 4px 12px; border-radius: 999px;
+                   background: var(--accent-tint); color: var(--accent-ink); letter-spacing: .03em; }
+
+  ol.ladder { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
+  ol.ladder li { display: grid; grid-template-columns: 46px 1fr; gap: 14px; align-items: start; border: 1px solid var(--line);
+                 border-radius: 12px; padding: 12px 16px; background: var(--surface); }
+  ol.ladder li.next { border-color: var(--accent); background: var(--accent-tint); }
+  ol.ladder li.final { border-style: dashed; }
+  ol.ladder .n { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--ink);
+                 color: #fff; font-weight: 700; font-size: 17px; }
+  ol.ladder li.next .n { background: var(--accent); }
+  ol.ladder .name { font-weight: 650; font-size: 17px; }
+  ol.ladder .what { color: var(--ink2); font-size: 15px; margin: 1px 0 8px; }
+  ol.ladder .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-size: 13.5px; }
+  ol.ladder .facts div { background: var(--tint); border-radius: 8px; padding: 6px 10px; }
+  ol.ladder li.next .facts div { background: #fff; }
+  ol.ladder .facts .lbl { margin-bottom: 0; }
+  ol.ladder .badge { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-left: 10px;
+                     padding: 2px 10px; border-radius: 999px; background: var(--accent); color: #fff; vertical-align: 2px; }
+  ol.ladder .badge.mark { background: var(--warn-tint); color: var(--warn-ink); }
+
+  .ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 12px; }
+  .way { border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
+  .way .name { font-weight: 650; font-size: 16px; display: flex; align-items: center; }
+  .way .have { color: var(--accent-ink); font-weight: 600; font-size: 14px; margin: 6px 0; }
+  .way p { margin: 6px 0 0; font-size: 14.5px; }
+  .way .risk { color: var(--warn-ink); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .two .callout { margin: 0; }
+  @media (max-width: 900px) { .plan .side, .ways, .two, ol.ladder .facts { grid-template-columns: 1fr; } }
+  @media print { .plan section { break-inside: avoid; } body { font-size: 12px; } }
+</style>
+<body>
+<main class="plan">
+<header>
+  <div class="kicker">Agentic CFD plan · {{ r.date }}</div>
+  <h1>{{ r.title }}</h1>
+  <span class="tagline">A plan: nothing on this page is a result yet</span>
+</header>
+
+<section id="goal">
+  <h2>Goal</h2>
+  <p class="headline">{{ r.goal }}</p>
+  <p class="lead" style="margin-bottom: 0">{{ r.story }}</p>
+</section>
+
+<section id="engine">
+  <h2>What is this engine?</h2>
+  <div class="side">
+    <figure style="--w: 720px">{{ engine_svg }}</figure>
+    <ul class="points">{% for x in r.engine %}<li>{{ x }}</li>{% endfor %}</ul>
+  </div>
+</section>
+
+<section id="problem">
+  <h2>The problem</h2>
+  <div class="side">
+    <figure style="--w: 720px">{{ problem_svg }}</figure>
+    <ul class="points">{% for x in r.requirements %}<li>{{ x }}</li>{% endfor %}</ul>
+  </div>
+  <p class="small">{{ r.problem_note }}</p>
+</section>
+
+<section id="hard">
+  <h2>Why it is hard for us</h2>
+  <div class="table-wrap"><table class="full">
+    <tr>{% for h in r.hard.head %}<th>{{ h }}</th>{% endfor %}</tr>
+    {% for row in r.hard.rows %}<tr><td style="font-weight: 600; width: 38%">{{ row[0] }}</td><td>{{ row[1] }}</td></tr>{% endfor %}
+  </table></div>
+</section>
+
+<section id="steps">
+  <h2>The steps: a ladder of seven problems</h2>
+  <p class="lead" style="margin-bottom: 0">Each step adds one new difficulty, and each has an answer we can check. {{ r.loop }}</p>
+  <ol class="ladder">
+    {% for s in r.steps %}
+    <li class="{{ 'next' if s.status == 'next' else '' }} {{ 'final' if loop.last else '' }}">
+      <div class="n">{{ loop.index }}</div>
+      <div>
+        <div class="name">{{ s.name }}{% if s.status == 'next' %}<span class="badge">next</span>{% endif %}{% if s.get('mark') %}<span class="badge mark">{{ s.mark }}</span>{% endif %}</div>
+        <div class="what">{{ s.what }}</div>
+        <div class="facts">
+          <div><div class="lbl">What is new</div>{{ s.new }}</div>
+          <div><div class="lbl">How we know the answer</div>{{ s.answer }}</div>
+          <div><div class="lbl">Where it runs</div>{{ s.where }}</div>
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+
+<section id="ways">
+  <h2>Three ways to get a detonation solver</h2>
+  <p class="lead" style="margin-bottom: 0">Step 4 needs a solver that handles a shock and burning together. We do not have one. We try all three ways below, and all three results go into the report.</p>
+  <div class="ways">
+    {% for w in r.ways %}
+    <div class="way">
+      <div class="name"><span class="letter">{{ w.letter }}</span>{{ w.name }}</div>
+      <div class="have">{{ w.have }}</div>
+      <p>{{ w.idea }}</p>
+      <p class="risk"><b>Risk:</b> {{ w.risk }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="small">{{ r.ways_note }}</p>
+</section>
+
+<section id="rules">
+  <div class="two">
+    <div class="callout good"><span class="tag">How we keep ourselves honest</span><ul class="points">{% for x in r.rules %}<li>{{ x }}</li>{% endfor %}</ul></div>
+    <div class="callout info"><span class="tag">Open questions for Prof. Frankel</span><ul class="points">{% for x in r.questions %}<li>{{ x }}</li>{% endfor %}</ul></div>
+  </div>
+</section>
+
+<section id="words">
+  <h2>Words used on this page</h2>
+  <div class="defs">
+    {% for w in r.words %}<div class="def"><div class="name">{{ w.name }}</div><div class="meaning">{{ w.meaning }}</div></div>{% endfor %}
+  </div>
+  <p class="small">Sources of the set-up and of the validation steps: {% for l in r.sources %}<a href="{{ l.href }}">{{ l.text }}</a>{{ " · " if not loop.last else "" }}{% endfor %}. This page: <code>dev/rde/plan_page.py</code>.</p>
+</section>
+</main>
+</body>
+</html>

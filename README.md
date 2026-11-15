@@ -94,7 +94,7 @@ workflow/                     WORKFLOW.md (the stages), references/ (primer, con
 cfdlib/                       shared tools: run OpenFOAM and gpucfd, verification, plots, report, contract
 gpucfd/                       the GPU solver: CUDA source, Python wrapper, verification ladder, DESIGN.md
 cases/                        one folder per problem; catalogue.yaml (every case), README.md (solved), BACKLOG.md (next)
-results/                      one report per case, with the extracted run data
+results/                      one folder per case, named as in cases/: its reports and the extracted run data
 dev/                          LOOP.md (how a solved case improves the project), review script, old experiments
 setup/, tests/                install, re-render all reports, GPU setup, benchmark data; tool tests
 index.html                    the report gallery served by GitHub Pages (generated from cases/catalogue.yaml)
@@ -102,9 +102,10 @@ index.html                    the report gallery served by GitHub Pages (generat
 
 ## Roadmap
 
-The ordered plan is in [ROADMAP.md](ROADMAP.md). In short:
-more problem types (buoyancy next, then harder turbulent flows); a shorter workflow that offers its
-records to the agent instead of prescribing them; then a second machine and a second agent.
+The ordered plan is in [ROADMAP.md](ROADMAP.md). In short: a rotating detonation engine, a
+challenge from the supervisor's lab, reached in seven steps that each have a checkable answer
+([the plan page](https://tomyud1.github.io/agentic-cfd/results/rde/plan.html)); then more problem
+types, a shorter workflow, a second machine and a second agent.
 
 ## Background papers
 
