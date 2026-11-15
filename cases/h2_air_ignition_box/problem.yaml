@@ -1,0 +1,48 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: h2_air_ignition_box
+title: Ignition of a hot hydrogen, oxygen and nitrogen mixture at constant pressure
+description: >
+  A uniform mixture of hydrogen, oxygen and nitrogen at rest is suddenly at 1000 K. Nothing flows
+  and no heat is exchanged; the pressure is held constant. After a short delay the mixture ignites
+  and burns. Find the temperature against time, the ignition time and the final temperature, and
+  compare them with a reference calculation made with the same reaction scheme by an independent
+  program.
+setup:
+  - 'A closed, well-mixed parcel of gas: every property is the same everywhere, so there is no flow and only time matters.'
+  - 'Start: temperature \(T_0\), pressure \(p\), mixture of hydrogen, oxygen and nitrogen in the mole ratio \(1 : 1 : 3.76\).'
+  - 'The pressure stays at \(p\) (the parcel is free to expand) and no heat is exchanged with the surroundings.'
+  - 'The gases are ideal gases whose heat capacities change with temperature.'
+  - 'Reaction scheme and thermodynamic data: the hydrogen scheme that ships with OpenFOAM, files `chem.inp` and `therm.dat` in `$FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/` (10 species, 27 reaction lines; argon is listed and absent here). Use these files as they are.'
+  - 'Ignition time: the time at which the temperature first reaches \(T_{\mathrm{ign}}\), the criterion of the reference.'
+  - 'Reference: the calculation of the program CHEMKIN II (SENKIN) for exactly these conditions, shipped with OpenFOAM in the same folder (`senk.out`).'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  T_0:    {value: 1000.0,   unit: K,  symbol: '\(T_0\)',  label: "Temperature at the start"}
+  p:      {value: 202650.0, unit: Pa, symbol: '\(p\)',    label: "Pressure, held constant (2 atm)"}
+  x_H2:   {value: 1.0,      unit: "-", symbol: '\(n_{\mathrm{H_2}}\)', label: "Hydrogen, moles per mole of oxygen"}
+  x_O2:   {value: 1.0,      unit: "-", symbol: '\(n_{\mathrm{O_2}}\)', label: "Oxygen (the unit of the mole ratio)"}
+  x_N2:   {value: 3.76,     unit: "-", symbol: '\(n_{\mathrm{N_2}}\)', label: "Nitrogen, moles per mole of oxygen"}
+  T_ign:  {value: 1200.0,   unit: K,  symbol: '\(T_{\mathrm{ign}}\)', label: "Temperature that defines the ignition time"}
+  t_end:  {value: 0.001,    unit: s,  symbol: '\(t_{\mathrm{end}}\)', label: "Duration of interest"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: history,   text: 'Temperature against time up to \(t_{\mathrm{end}}\), compared with the reference'}
+  - {key: ignition,  text: 'Ignition time, compared with the reference'}
+  - {key: final,     text: 'Temperature at \(t_{\mathrm{end}}\), compared with the reference'}
+  - {key: species,   text: 'How the amounts of hydrogen, oxygen, water and the short-lived species OH, H and O change in time'}
+  - {key: conserved, text: 'Do the numbers of hydrogen, oxygen and nitrogen atoms stay constant, and does the energy balance of a parcel at constant pressure hold?'}
+  - {key: cost,      text: 'How the answers depend on the accuracy settings of the chemistry solver and on the time step, and what one such parcel costs per time step'}
+
+required_accuracy:   # what the answer needs; only a miss of these, or a run that breaks, makes the experiment fail
+  - {key: ignition,  text: 'Ignition time within 1 % of the reference'}
+  - {key: final,     text: 'Temperature at the end within 0.1 % of the reference'}
+  - {key: conserved, text: 'The number of atoms of each element constant within 0.001 %'}
+
+reference:
+  file: reference/senkin_h2.yaml
+  description: >
+    The temperature history, the ignition time (first reach of 1200 K) and the final temperature of
+    the CHEMKIN II (SENKIN) calculation for these conditions, read by code from the file shipped
+    with OpenFOAM (setup/parse_senkin_h2.py). The file also records what the source says, and
+    does not say, about its own accuracy: five printed digits, the spacing of its printed points,
+    and no stated integration tolerances.

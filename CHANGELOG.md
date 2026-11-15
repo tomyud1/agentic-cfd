@@ -12,14 +12,35 @@ moves to a dated entry when it is committed.
 - **gpucfd: a solver for gas with shocks** (`gpucfd/src/gcfdc.cu`, `gpucfd/euler.py`, notes in
   `gpucfd/COMPRESSIBLE.md`), built by a separate session on 2026-11-15. It has run the shock tube
   and the corner on the GPU; its tests and records are being reviewed and are not committed yet.
-- **Case 20 (ignition of hydrogen and air)** is prepared (`cases/h2_air_ignition_box/`) and not
-  yet with a solver agent.
+- **Case 20 (ignition of hydrogen and air)** is with a fresh solver agent, launched on 2026-11-15
+  right after the commit that prepared it (Fable 5.2, high effort).
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### What case 19's 13 insights led to, commit hash to be filled in
+### Case 20 prepared: ignition of hydrogen and air, step 3 of the ladder, commit hash to be filled in
+- **Purpose.** Chemistry alone, with no flow: can the workflow and OpenFOAM's chemistry solver
+  get the time until a hot mixture ignites, and what does the chemistry of one cell cost per
+  time step? The engine will pay that cost in every cell.
+- **The problem** (`cases/h2_air_ignition_box/problem.yaml`): hydrogen, oxygen and nitrogen
+  (1 : 1 : 3.76 by moles) at rest, suddenly at 1000 K, pressure held at 2 atm, no heat exchange.
+  Asked for: temperature against time, the ignition time, the final temperature, the species,
+  whether atoms and energy are kept, and how the answer depends on the solver's accuracy
+  settings. **Required:** ignition time within 1 %, final temperature within 0.1 %, atoms of
+  each element constant within 0.001 %.
+- **Reference** (`reference/senkin_h2.yaml`, written by `setup/parse_senkin_h2.py`): the output
+  of an independent chemistry program (CHEMKIN II, SENKIN) for the same reaction scheme and
+  conditions, which ships with OpenFOAM. Ignition at 0.21777 ms, final temperature 2220.5 K.
+  The file records what the source does not say: its integration tolerances.
+- **Checked before the solve** (`dev/agent_checks/case20_toolgap.py`): OpenFOAM's own example,
+  untouched, gives the ignition time 0.56 % early and the final temperature 0.016 % low, so the
+  requirements can be met and still ask for care. One tool gap found and fixed (a field with one
+  value for all cells could not be read).
+- **Not as planned:** the plan named the program Cantera as the reference. It would need a
+  download; the SENKIN output is already on the PC and plays the same role.
+
+### What case 19's 13 insights led to (`607f3c2`)
 - **Tools, each with a test** (`tests/test_tools.py`, check 19):
   - `monitor.set_end_time` takes the end time as text or as a number (it stopped the agent's
     first pre-flight with an unreadable dictionary).
@@ -46,7 +67,7 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 - **The plan page and the roadmap** show step 2 as done and step 3 as next.
 - **Verified:** tool tests pass; all ten reports rebuild and pass their contract.
 
-### Case 19 solved: a shock going round a corner, completed as expected, commit hash to be filled in
+### Case 19 solved: a shock going round a corner, completed as expected (`4ed4bc6`)
 A fresh agent (Fable 5.2, high effort) solved step 2 of the ladder in about 50 minutes with no
 human help: `results/shock_diffraction_corner/report.html`, one page: `brief.html`.
 - **All three requirements of the problem are met.** On 800 by 800 cells the flat part of the

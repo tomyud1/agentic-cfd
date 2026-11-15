@@ -155,11 +155,11 @@ cases:
 
   - id: "20"
     title: Ignition of hydrogen and air in a closed box
-    status: planned
+    status: in_progress
     tier: rde
     folder: h2_air_ignition_box
     new: "Step 3 of 7. Chemistry alone, with no flow: the time until the mixture ignites"
-    reference: An independent chemistry code (Cantera) with the same reaction mechanism, as in Cheng et al. (2024), section 4.3 (confirm)
+    reference: An independent chemistry program (CHEMKIN II, SENKIN) with the same reaction scheme; its output for these conditions ships with OpenFOAM
     gpucfd: "no"
 
   - id: "21"
