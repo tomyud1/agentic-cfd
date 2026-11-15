@@ -1,0 +1,47 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSchemes;
+}
+
+// How the flux through a face is built from the two values reconstructed on its two sides.
+fluxScheme          {{ flux }};
+
+ddtSchemes
+{
+    default         Euler;
+}
+
+// Each cell value is extended to the cell's faces with a slope; the limiter decides how steep the
+// slope may be, so that no new maximum or minimum appears next to a jump.
+interpolationSchemes
+{
+    default         linear;
+    reconstruct(rho) {{ limiter }};
+    reconstruct(U)  {{ limiter_vector }};
+    reconstruct(T)  {{ limiter }};
+}
+
+// Read by the solver's viscous terms, which are multiplied by a viscosity of zero here.
+gradSchemes
+{
+    default         Gauss linear;
+}
+
+divSchemes
+{
+    default         none;
+    div(tauMC)      Gauss linear;
+}
+
+laplacianSchemes
+{
+    default         Gauss linear corrected;
+}
+
+snGradSchemes
+{
+    default         corrected;
+}

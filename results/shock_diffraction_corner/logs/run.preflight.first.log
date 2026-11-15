@@ -1,0 +1,63 @@
+preflight N100: warn; 0.35 s for 51 steps; projected 3.103999999926559 s
+   ok   Solver finished without errors: no errors
+   ok   No NaN values: none
+   ok   Max Courant number: 0.232 (as rhoCentralFoam counts it)
+   ok   Courant number trend: \(\times\,1.41\) (late vs early)
+   ok   Density, pressure and temperature stay positive: lowest density \(0.7917\,\mathrm{kg/m^3}\), pressure \(1e+05\,\mathrm{Pa}\), temperature \(300\,\mathrm{K}\) at the written times
+   ok   Cells are in rows and columns as the analysis assumes: largest difference \(0\,\mathrm{m}\)
+   ok   Start state as given: density in an undisturbed cell: \(1.16144018583\,\mathrm{kg/m^3}\)
+   ok   Totals recorded after every step: 51 rows for 51 steps
+   ok   The opening delivers the exact mass flow: largest relative difference from \(\rho_2 u_2 (H - H_s)\): \(6.7 \times 10^{-16}\)
+   ok   Mass and energy equal the start plus the exact inflow, after every step: mass \(4.3 \times 10^{-11}\), energy \(4.3 \times 10^{-14}\) of the inflow so far
+   warn The solver's own Courant number is the expected one: printed \(0.232\); expected for the state behind the shock \(0.162\); the usual Courant number along \(x\) is \(0.200\)
+   output files: ['# Time                 \tvolIntegrate(rho)\tvolIntegrate(rhoE)', '# Time                 \tsum(phi)'] | first rows: [[8.823529411764706e-07, 1.165088824551571, 260228.4793873447, 4135.123883783784], [1.7647058823529412e-06, 1.168737463272556, 270456.9587746884, 4135.123883783784], [2.647058823529412e-06, 1.172386101993539, 280685.4381620329, 4135.123883783784]]
+   decisions: cover every setting
+preflight N800 on 1 core(s): ok; 34.8 s for 82 steps; full run projected 1729 s; 0.662 microseconds per cell and step
+preflight N800 on 8 core(s): ok; 15.0 s for 82 steps; full run projected 745 s; 0.285 microseconds per cell and step
+preflight N800 on 16 core(s): ok; 18.7 s for 82 steps; full run projected 929 s; 0.356 microseconds per cell and step
+N100: 510 steps on 1 core(s), solver 3.3 s, health ok; balance vs inflow: mass 4.3e-11, energy 4.3e-14; lows {'rho': 0.25808748308967, 'p': 61411.6800878809, 'T': 299.99999999999994}; far walls 0.0e+00 / 0.0e+00; wall shock d = 0.3272 m (level behind 5.277e+05 Pa); flat part: 9 rows, x = 0.79811 m, deviation 0.000 cells (from a line 0.000, tilt 0.000); behind it (5 x 67 cells): p -1.87e-03 ripple 1.92e-02, rho -3.51e-03 ripple 2.85e-02, u +8.07e-04 ripple 8.27e-03, |v|/u2 1.3e-07, p along the shock 3.2e-07
+N200: 1020 steps on 1 core(s), solver 20.7 s, health ok; balance vs inflow: mass 1.1e-10, energy 1.2e-13; lows {'rho': 0.156050842889743, 'p': 33928.4177725932, 'T': 299.99999999999994}; far walls 0.0e+00 / 0.0e+00; wall shock d = 0.3348 m (level behind 5.19e+05 Pa); flat part: 24 rows, x = 0.79634 m, deviation 0.000 cells (from a line 0.000, tilt 0.000); behind it (17 x 147 cells): p -8.73e-04 ripple 1.63e-02, rho -1.54e-03 ripple 2.56e-02, u +3.71e-04 ripple 7.02e-03, |v|/u2 5.8e-07, p along the shock 1.5e-07
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/mnt/d/Projects/Agentic CFD/cases/shock_diffraction_corner/run.py", line 367, in <module>
+    do_preflight()
+  File "/mnt/d/Projects/Agentic CFD/cases/shock_diffraction_corner/run.py", line 345, in do_preflight
+    do_one(sp_all[n], fl, numerics)
+  File "/mnt/d/Projects/Agentic CFD/cases/shock_diffraction_corner/run.py", line 227, in do_one
+    wall = foam.run(solver_cmd(solver, ranks), case, log_name=solver, timeout=3600)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/d/Projects/Agentic CFD/cfdlib/foam.py", line 98, in run
+    raise RuntimeError(f"'{cmd}' failed in {case_dir} (exit {p.returncode}):\n{tail}")
+RuntimeError: 'rhoCentralFoam' failed in /home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_diffraction_corner/N200_spc2.55 (exit -8):
+    sum(inlet) of phi = -4135.12388378379
+
+Mean and max Courant Numbers = 0.119895766519845 0.599202006333191
+Time = 0.0002047058824
+
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+diagonal:  Solving for rhoUx, Initial residual = 0, Final residual = 0, No Iterations 0
+diagonal:  Solving for rhoUy, Initial residual = 0, Final residual = 0, No Iterations 0
+diagonal:  Solving for rhoE, Initial residual = 0, Final residual = 0, No Iterations 0
+ExecutionTime = 4.6 s  ClockTime = 5 s
+
+volFieldValue conserved write:
+    volIntegrate(region0) of rho = 2.00792436909923
+    volIntegrate(region0) of rhoE = 2623007.21786393
+
+surfaceFieldValue inflow write:
+    sum(inlet) of phi = -4135.12388378379
+
+[stack trace]
+=============
+#1  Foam::sigFpe::sigHandler(int) in <platforms>/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#2  ? in /lib/x86_64-linux-gnu/libc.so.6
+#3  ? in /lib/x86_64-linux-gnu/libm.so.6
+#4  Foam::sqrt(Foam::Field<double>&, Foam::UList<double> const&) in <platforms>/linux64GccDPInt32Opt/lib/libOpenFOAM.so
+#5  ? in <platforms>/linux64GccDPInt32Opt/bin/rhoCentralFoam
+#6  ? in <platforms>/linux64GccDPInt32Opt/bin/rhoCentralFoam
+#7  ? in /lib/x86_64-linux-gnu/libc.so.6
+#8  __libc_start_main in /lib/x86_64-linux-gnu/libc.so.6
+#9  ? in <platforms>/linux64GccDPInt32Opt/bin/rhoCentralFoam
+=============
+exit 1

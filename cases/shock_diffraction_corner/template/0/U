@@ -1,0 +1,32 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+
+dimensions      [0 1 -1 0 0 0 0];
+
+// Still air in the chamber at t = 0.
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    // The duct: air in the state behind the flat shock, from t = 0 on. It enters faster than sound,
+    // so nothing inside the chamber can change it and every quantity is prescribed.
+    inlet
+    {
+        type            fixedValue;
+        value           uniform ({{ u2 }} 0 0);
+    }
+    // Frictionless walls (step face, floor, right side, top): no flow through them, free to slide along them.
+    walls
+    {
+        type            slip;
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
+}

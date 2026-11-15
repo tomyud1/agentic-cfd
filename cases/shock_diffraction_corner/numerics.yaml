@@ -1,0 +1,71 @@
+# Numerical choices (made by the agent, not given by the user).
+solver: rhoCentralFoam        # OpenFOAM's density-based solver for flows with shocks (explicit, central fluxes)
+depth: 1.0                    # thickness of the one layer of cells: 1 m, so volume integrals are per metre of depth
+# Equal square cells, N x N. The time step is the time of interest divided by a whole number of steps,
+# steps = steps_per_cell x N, so the time step is in fixed proportion to the cell size on every grid.
+# With the fastest signal behind the flat shock (u2 + c2 = 2265 m/s) 5.1 steps per cell is a Courant
+# number of 0.2 along x: that signal crosses a fifth of a cell per step (case 18 found ringing at 0.4).
+main: {flux: Kurganov, limiter: vanLeer, steps_per_cell: 5.1}
+snapshots: 10                 # fields written at 10 equally spaced times up to t_end
+runs:
+  family: [100, 200, 400, 800]                              # cells per side, ratio 2
+  timestep: {cells: 200, steps_per_cell: [2.55, 3.4, 5.1, 10.2]}  # same grid, four time steps (3.4 added when 2.55 stopped with an error)
+  stress: [[400, 3.4]]        # a finer grid at 1.5 times the main time step: does the main step have a margin there?
+  schemes:                    # same grid and time step, other ways of building the face values
+    cells: 200
+    variants: [[Tadmor, vanLeer], [Kurganov, Minmod], [Kurganov, vanAlbada], [Kurganov, upwind]]
+parallel: {from_cells: 800, ranks: 8}   # runs with at least this many cells per side use MPI. Pre-flight timing on 800 cells:
+                              # 0.377, 0.185, 0.165 and 0.200 s per step on 1, 4, 8 and 16 cores, so 8 it is
+preflight:
+  fraction: 0.1               # short test on the coarsest grid: the first 10 % of the time of interest
+  fraction_finest: 0.02       # on the finest grid: 2 % (about 80 steps), on 1, 8 and 16 cores
+  ranks_tested: [1, 8, 16]
+# How outputs are read from the fields (every rule is fixed before the production runs).
+extraction:
+  front_level: 0.5            # shock position in a row of cells: where the pressure crosses p0 + 0.5 (p2 - p0), coming from
+                              # the still air, by straight-line interpolation between the two cell centres
+  low_level: 2.0              # the whole front, bent part included (for the map): where the pressure crosses 2 p0
+  margin_cells: 6             # cells kept clear of the shock, of the inlet and of the exact edge of the corner's signal
+  speed_from: 0.5             # shock speed: straight-line fit of position against time over the snapshots from t_end/2 on
+  wall_start: 1.5             # shock on the step face: coming up from the floor, the first cell above 1.5 p0 starts the front;
+                              # the first local maximum of pressure behind it is the level behind the shock; the position is
+                              # where the pressure crosses the middle between p0 and that level
+# Rules for the outcome. Written at 10:09 on 2026-11-15, after the pre-flight (100 and 200 cells in full, the
+# time-step study on 200 cells, the stress run on 400 cells at 1.5 times the main step, short tests on 800 cells)
+# and BEFORE the production runs (400 and 800 cells, the four scheme variants). "family" = the four grids at the
+# main time step; "finest" = 800 cells. A missed requirement or health rule gives FAIL, a missed expectation WARN.
+acceptance:
+  # ---- requirements: the problem's required_accuracy, with the exact quantity each one is checked on ----
+  req_flat_speed: 0.005       # finest: |speed / W - 1|; speed = slope of the flat part's mean position over the snapshots from t_end/2 on
+  req_flat_state: 0.01        # finest, at t_end: |mean / exact - 1| of p, rho and u over the uniform region behind the flat part
+  req_conserved: 1.0e-4       # family, EVERY step (so every written time too): |total - (start + exact inflow)| / (exact inflow
+                              # up to that time), for mass and for energy. The stricter of the two readings of "0.01 % of the inflow"
+  req_straight_cells: 1.0     # family, every written time: largest distance of the shock position in a row of the flat part
+                              # from the mean over those rows (a vertical straight line), in cells
+  # ---- health: what a sound run must do ----
+  # every run of the family ends at t_end without a solver error and on a grid that passes checkMesh;
+  # density, pressure and temperature are positive at every written time
+  # ---- expectations: my own limits and predictions, each sized from the pre-flight ----
+  exp_balance_total: 1.0e-11  # family, every step: |total - (start + exact inflow)| / total. Pre-flight: at most 2e-12 (round-off)
+  exp_inflow_rate: 1.0e-12    # family, every step: |mass flow through the opening / exact - 1|. Pre-flight: 2e-15
+  exp_far_walls: 1.0e-6       # family, at t_end: |p / p0 - 1| in the cells along the floor and the right side (pre-flight: exactly 0).
+                              # No wave may have arrived there, or the flow has a length of its own
+  exp_discrete_similarity: 1.0e-7   # each pair of grids: density at t_end/2 on the finer grid against t_end on the coarser, cell for
+                              # cell, largest difference / rho0. Pre-flight (200 against 100): 9e-10
+  exp_top_cells: 0.5          # family: |shock position in the top row - W t_end| in cells. Pre-flight: +0.29, +0.22; the rule's own
+                              # bias on the exact shock is -0.01 to +0.14 cells
+  exp_along_shock: 1.0e-4     # family, at t_end: largest change of pressure ALONG the shock (within one column of cells) just behind
+                              # the flat part, / p2. Pre-flight: at most 8e-7. An instability of the shock would show here first
+  exp_v_behind: 1.0e-3        # family, at t_end: largest |v| / u2 in the uniform region. Pre-flight: at most 3e-5
+  exp_ripple_p: 0.02          # family, at t_end: (highest - lowest pressure) / p2 in the uniform region. Pre-flight: 1.9 %, 1.6 %
+                              # (1.3 % on 400 cells at the larger step): two waves left by the start of the shock, about 5 cells wide
+  exp_wall_shock_change: 0.005   # |d(800) - d(400)| / d(800), d = distance the bent shock has run down the step face.
+                              # Pre-flight: 2.3 % from 100 to 200 cells, 0.3 % from 200 to 400 (the latter at another time step)
+  exp_field_order: 0.6        # the mean change of the density field from one grid to the next falls with at least this order at
+                              # each refinement (case 18: mean errors of a flow with jumps fell with order 0.8). Pre-flight has
+                              # one value only: 1.18 % from 100 to 200 cells
+  exp_two_times_wall: 0.5     # density along the step face at the two times: the mean difference on the finest grid is at most
+                              # this fraction of the difference on 200 cells (10.0 %). No rule for the line y = H_s: the layer that
+                              # leaves the corner lies along it, and without viscosity that layer has no grid-converged shape
+  exp_finest_minutes: 15      # solver time of the finest run (projected 11.2 min on 8 cores)
+  # scheme variants (200 cells): each runs to t_end, stays positive and keeps the flat part straight to within one cell

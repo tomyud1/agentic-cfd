@@ -1,0 +1,110 @@
+# Every modelling and numerical choice for this case. Written by the agent WHILE setting up the case.
+# `settings`: the OpenFOAM settings (path patterns, * = wildcard) this decision controls.
+
+- area: Physical model
+  kind: physics
+  choice: 'The Euler equations in two dimensions: an ideal gas with a constant ratio of specific heats, no viscosity, no heat conduction, no turbulence model'
+  settings: [constant/thermophysicalProperties/thermoType/*, constant/thermophysicalProperties/mixture/thermodynamics/*,
+             constant/thermophysicalProperties/mixture/transport/*, constant/turbulenceProperties/simulationType]
+  why: 'This is the problem as stated. The viscosity is set to zero (<code>mu 0</code>); the solver then skips its viscous and heat-conduction steps. The specific heat is \(c_p = \gamma R/(\gamma - 1)\), so that the gas has exactly the given \(\gamma\). <code>Tref 0</code> makes the internal energy \(c_v T\) with no offset, so the solver''s total energy is the physical one, \(p/(\gamma-1) + \tfrac12\rho(u^2 + v^2)\) per unit volume, and the energy balance can be checked against the exact inflow.'
+  affects: 'Defines the equations solved. Without viscosity the layer that leaves the corner is a sheet with no thickness, and it rolls up in ever finer detail as the cells get smaller: that part of the picture has no grid-converged limit (see Comparison).'
+  alternatives: 'A viscous gas (the Navier-Stokes equations): not the problem given; real air at \(1793\,\mathrm{K}\) behind the shock would also need specific heats that change with temperature.'
+
+- area: Physical model
+  kind: physics
+  choice: 'The molar mass is set so that OpenFOAM''s gas constant is exactly the given \(R\) (<code>cfdlib.foam.mol_weight</code>)'
+  settings: [constant/thermophysicalProperties/mixture/specie/*]
+  why: 'OpenFOAM takes the molar mass and divides its own universal gas constant by it. That constant is built into the program from two rounded numbers, so its digits are not the textbook ones (case 18). The pre-flight checks that the density of an undisturbed cell is the given \(p_0/(R T_0)\) to 12 digits.'
+  affects: 'The densities and \(\gamma\). With a textbook molar mass every comparison with the exact shock state would carry an offset in the fifth digit.'
+  alternatives: 'A rounded molar mass (28.96 or 28.97).'
+
+- area: Solver
+  kind: solver
+  choice: '<code>rhoCentralFoam</code>, starting from OpenFOAM''s tutorial of a supersonic stream meeting a step (<code>compressible/rhoCentralFoam/forwardStep</code>) and from case 18'
+  settings: [system/controlDict/application]
+  why: 'A flow with shocks needs a method that keeps mass, momentum and energy exactly (so that a captured shock moves at the right speed). <code>rhoCentralFoam</code> is OpenFOAM''s solver built for that: it advances density, momentum and energy directly, with fluxes that need no knowledge of the wave pattern. Its fluxes add a little smearing along a shock, which is what keeps a strong grid-aligned shock from breaking up into the instability this test is known for. gpucfd does not apply: it solves flows of constant density (<code>cfdlib.gpu.check_fit</code>: "needs compressible flow").'
+  affects: 'Which equations are advanced and how. The flat shock and the conservation totals are the same for any conservative method; the sharpness of the waves is not.'
+  alternatives: '<code>rhoPimpleFoam</code> or <code>sonicFoam</code> (pressure-based, implicit: built for lower speeds, they smear shocks more). A solver that splits each face into its waves (Roe''s and similar): sharper, but it is the kind that shows the instability on this test, and standard OpenFOAM has none.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Only the chamber is computed. The duct is replaced by its opening, the upper half of the left side, where the state behind the flat shock is prescribed (velocity, pressure, temperature); every other side is a frictionless wall: no flow through it (<code>slip</code>), zero gradient for pressure and temperature. One layer of cells with <code>empty</code> front and back (two-dimensional)'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/boundary, '0/*/boundaryField/*']
+  why: 'The gas behind the shock moves faster than sound (\(M_2 = 1.67\), Theory), so nothing inside the chamber can travel back through the opening: the state there stays the one behind the shock, and all of it may be prescribed. This is the problem statement''s own description of the inflow. The chamber is cut into two blocks at the height of the corner only so that the left side can carry two different conditions. The layer of cells is \(1\,\mathrm{m}\) thick, so every volume integral is the value per metre of depth.'
+  affects: 'Sets the problem. With the exact flux prescribed at the opening and no flux through the walls, the mass and energy in the chamber must equal the start plus the exact inflow after every step: the physical check of this case.'
+  alternatives: 'Including a length of duct with the shock placed inside it at the start: the same flow, more cells, and the inflow would no longer be exact after the first disturbance reached the duct''s inlet (none does here).'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'Start state: still air at \(p_0\), \(T_0\) in every cell. The shock enters as the jump between the prescribed state at the opening and the first cells'
+  settings: ['0/*/internalField']
+  why: 'Given: the shock arrives at \(x = 0\) at \(t = 0\). On the grid that is a jump across the faces of the opening, which lie on cell faces, so the start state is exact: no cell holds a mixture.'
+  affects: 'Defines the initial-value problem. A captured shock that starts as a sharp jump needs a few steps to take its numerical shape, and leaves a small blip of density behind that drifts with the gas (reported in Comparison).'
+  alternatives: 'Starting with the shock already a few cells inside the chamber, or already smeared: no longer the exact start state.'
+
+- area: Mesh
+  kind: accuracy
+  choice: 'Equal square cells, 100 to 800 per side (cell size \(10\) to \(1.25\,\mathrm{mm}\)), refinement ratio 2, four levels; the corner lies on cell faces on every level'
+  settings: [system/blockMeshDict/blocks]
+  why: 'Ratio 2 gives the observed order directly and makes the similarity check exact on the grid (the picture at half the time on one grid is the picture at the full time on the next coarser one). Equal square cells keep the flat shock parallel to the cell faces, which is the hard case for the stability test, and the waves cross the whole chamber, so there is no fixed place to cluster cells. The finest level is the largest whose run fits the time budget of this machine (a level costs 8 times the one before).'
+  affects: 'The size of the discretisation error: how many cells each wave is smeared over, in metres.'
+  alternatives: 'Cells that follow the waves (adaptive refinement): fewer cells for the same sharpness, a different tool. A fifth level (1600 per side): about 8 times the cost of the finest run made.'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Central-upwind fluxes of Kurganov, Noelle and Petrova (<code>Kurganov</code>); face values reconstructed with the van Leer limiter for density, velocity and temperature'
+  settings: [system/fvSchemes/fluxScheme, system/fvSchemes/interpolationSchemes/*]
+  why: 'The choice of the tutorial and of case 18. Each cell value is extended to its faces with a slope (second order where the flow is smooth); the limiter flattens the slope next to a jump so that no new peak appears. The flux then mixes the two face values with the local wave speeds. Four other combinations are run on one grid to show how much this choice matters.'
+  affects: 'How many cells a jump is smeared over, whether the solution wiggles next to it, and whether density and pressure stay positive in the expansion at the corner.'
+  alternatives: '<code>Tadmor</code> flux (more smearing); limiters <code>Minmod</code> (more smearing), <code>vanAlbada</code>; <code>upwind</code> (first order). All four were run on the 200-cell grid.'
+
+- area: Time stepping
+  kind: accuracy
+  choice: 'Explicit Euler steps of fixed size: the time of interest divided by 5.1 steps per cell along a side (510 steps on 100 cells, 4080 on 800), a Courant number of 0.2 along \(x\) on every grid'
+  settings: [system/controlDict/deltaT, system/controlDict/adjustTimeStep, system/controlDict/endTime,
+             system/controlDict/startTime, system/fvSchemes/ddtSchemes/*]
+  why: 'The solver is explicit: a cell is updated from its neighbours'' old values, which is only stable if no signal crosses a cell in one step. The fastest signal behind the flat shock is \(u_2 + c_2 = 2265\,\mathrm{m/s}\) (Theory); with 5.1 steps per cell it crosses 0.2 of a cell per step. Case 18 found the solution ringing behind the shock at twice this step. A fixed step in fixed proportion to the cell size ends every run exactly at the time of interest, writes the snapshots at exact times, and makes the method itself free of any length scale, like the flow. The solver prints its own Courant number, which adds both directions: 0.28 at this step. The time-step study ran the 200-cell grid at 2, 1.5, 1 and 0.5 times this step. Twice the step stopped with a negative pressure in the expansion at the corner; the other three gave the same answers. Because the lowest pressure falls as the grid is refined, the 400-cell grid was also run at 1.5 times the step, and stayed healthy: the step keeps a measured margin of 1.5 one level below the finest grid.'
+  affects: 'The time error, any ringing behind the shock, the stripes in the expansion fan, and whether the pressure stays positive at the corner. Euler steps are first order in time, the only choice this solver has.'
+  alternatives: 'The tutorial''s adjustable step with a limit on the solver''s own Courant number (it would shorten the step by itself where the corner needs it, but the output times are then not exact and the method is no longer free of a length scale). Half the step (twice the cost; tested, same answers). A larger step (fails at twice this one).'
+
+- area: Discretisation
+  kind: solver
+  choice: 'Schemes for gradients, the viscous stress and diffusion: the tutorial''s central schemes, kept because the solver reads them'
+  settings: [system/fvSchemes/gradSchemes/*, system/fvSchemes/divSchemes/*, system/fvSchemes/laplacianSchemes/*,
+             system/fvSchemes/snGradSchemes/*]
+  why: 'The solver forms the viscous stress on every step even when the viscosity is zero, so it asks for these schemes. Everything they produce is multiplied by zero.'
+  affects: 'Nothing in the answer.'
+  alternatives: 'None needed.'
+
+- area: Algorithm and linear solvers
+  kind: solver
+  choice: 'No iteration: density, momentum and energy are advanced explicitly (<code>diagonal</code> solver). The finest grid runs on several cores (MPI, the chamber cut into parts of equal cell count); the other grids on one core'
+  settings: [system/fvSolution/solvers/*]
+  why: 'With explicit steps each cell''s new value is a formula of old values. There is no system of equations to solve and so no iteration error. Cutting the chamber into parts changes only which core updates a cell, not the formula. The finest grid runs on 8 cores, the fastest of 1, 4, 8 and 16 in the pre-flight''s timing test (0.377, 0.185, 0.165 and 0.200 seconds per step).'
+  affects: 'Run time only. The finest run on one core was projected at 26 minutes, above this machine''s limit of about 15 minutes per run; on 8 cores at 11.'
+  alternatives: 'One core for every run (the finest then takes several times longer).'
+
+- area: Stopping
+  kind: accuracy
+  choice: 'Every run ends at the time of interest, \(t_{\mathrm{end}}\). The physical check is made on every step: the mass and the energy in the chamber must equal what was there at the start plus the exact inflow rate times the time'
+  settings: []
+  why: 'The problem asks for the flow at given times, so there is nothing to wait for and no steady state to judge. What must hold instead is conservation, step by step: the walls let nothing through, and the opening delivers the exact flux of the state behind the shock. A leak at a wall, a wrong inflow or a non-conservative update would show at once. The limit was written down before the runs.'
+  affects: 'Whether a run counts as healthy.'
+  alternatives: 'Residuals: an explicit solver has none.'
+
+- area: Outputs
+  kind: output
+  choice: 'Fields written at 10 equally spaced times with 15 digits; the mass and energy in the chamber and the mass flow through the opening recorded after every step'
+  settings: [system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision,
+             system/controlDict/timePrecision, system/controlDict/functions/*]
+  why: 'The snapshots give the shock''s speed as the slope of position against time, the two times of the similarity check (\(t_{\mathrm{end}}/2\) is the fifth snapshot), and the flow at \(t_{\mathrm{end}}\). The totals after every step answer the conservation request at every written time and at every step between. 15 digits, because the similarity check on the grid compares two runs to round-off.'
+  affects: 'What is measured and how precisely; not the solution.'
+  alternatives: 'Fewer snapshots (the shock speed would rest on fewer points).'
+
+- area: Outputs
+  kind: output
+  choice: 'Each output is read from the fields by a fixed rule (<code>numerics.yaml</code>, <code>extraction</code>; <code>measure.py</code>): the shock''s position in a row of cells is where the pressure crosses the middle between \(p_0\) and \(p_2\); the flat part is the rows above the exact height the corner''s signal has reached on the shock, plus 6 cells; the state behind it is read in the cells above the highest point the signal has reached anywhere, 6 cells clear of the shock and of the opening'
+  settings: []
+  why: 'Which part of the shock is still flat, and where the flow behind it is still uniform, is known exactly (Theory). Using the exact region, with a margin for the few cells over which the method smears the signal''s edge, keeps the reading free of judgement. The position rule is also applied to the exact shock averaged over the cells, to show the rule''s own bias (a fraction of a cell).'
+  affects: 'The reported numbers for requests (a), (c) and (e); not the solution.'
+  alternatives: 'The steepest pressure gradient as the shock position (noisier on a shock two cells wide); a narrower or wider margin.'

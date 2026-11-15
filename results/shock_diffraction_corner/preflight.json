@@ -1,0 +1,283 @@
+{
+ "short": [
+  {
+   "status": "ok",
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "Max Courant number",
+     "status": "ok",
+     "value": "0.232 (as rhoCentralFoam counts it)",
+     "meaning": "Fluid should not cross more than about one cell per time step (limit used: 0.5). rhoCentralFoam prints its own Courant number: in subsonic flow it is half the usual (|u| + c) dt / dx, in supersonic flow |u| dt / dx without the speed of sound (its source, centralCourantNo.H). A limit copied from its tutorials (maxCo 0.2) is a usual Courant number of about 0.4, where case 18 found the solution ringing behind the shock."
+    },
+    {
+     "name": "Courant number trend",
+     "status": "ok",
+     "value": "\\(\\times\\,1.41\\) (late vs early)",
+     "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+    },
+    {
+     "name": "Density, pressure and temperature stay positive",
+     "status": "ok",
+     "value": "lowest density \\(0.7917\\,\\mathrm{kg/m^3}\\), pressure \\(100.0\\,\\mathrm{kPa}\\), temperature \\(300.0\\,\\mathrm{K}\\) at the written times",
+     "meaning": "The gas expands strongly round the corner. A scheme that overshoots there produces a negative density or pressure, which is not a gas."
+    },
+    {
+     "name": "Cells are in rows and columns as the analysis assumes",
+     "status": "ok",
+     "value": "largest difference \\(0\\,\\mathrm{m}\\)",
+     "meaning": "The analysis places cell number i + N j at ((i + 1/2) h, (j + 1/2) h). OpenFOAM's own cell centres must agree."
+    },
+    {
+     "name": "Start state as given",
+     "status": "ok",
+     "value": "density in an undisturbed cell: \\(1.16144018583\\,\\mathrm{kg/m^3}\\)",
+     "meaning": "The solver forms the density from pressure, temperature and its own gas constant. A cell that no wave has reached must hold the given density."
+    },
+    {
+     "name": "Totals recorded after every step",
+     "status": "ok",
+     "value": "51 rows for 51 steps",
+     "meaning": "Mass and energy of the chamber and the mass flow through the opening are needed after every step for the conservation check."
+    },
+    {
+     "name": "The opening delivers the exact mass flow",
+     "status": "ok",
+     "value": "largest relative difference from \\(\\rho_2 u_2 (H - H_s)\\): \\(6.7 \\times 10^{-16}\\)",
+     "meaning": "The air enters faster than sound, so the face flux at the opening must be the flux of the state behind the shock, from the first step on."
+    },
+    {
+     "name": "Mass and energy equal the start plus the exact inflow, after every step",
+     "status": "ok",
+     "value": "mass \\(4.3 \\times 10^{-11}\\), energy \\(4.3 \\times 10^{-14}\\) of the inflow so far",
+     "meaning": "The physical check of every step: the walls let nothing through, so the chamber's mass and energy may change only by what the duct brings in."
+    },
+    {
+     "name": "The solver's own Courant number, against the usual one",
+     "status": "ok",
+     "value": "largest printed \\(0.232\\); in the uniform state behind the shock it is \\(0.162\\); the usual Courant number along \\(x\\) there is \\(0.200\\)",
+     "meaning": "rhoCentralFoam prints its own measure: half the sum over a cell's faces of the larger one-sided flux speed. In two dimensions it adds both directions, so it can be above the usual number along one direction; the largest value is found where the gas turns round the corner."
+    }
+   ],
+   "steps": 51,
+   "last_time": 4.5e-05,
+   "wall_time": 0.34,
+   "est_full_runtime": 2.9103999999314554,
+   "est_kind": "fixed run length",
+   "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_diffraction_corner/pf_N100_preflight",
+   "end_time_short": 4.5e-05,
+   "timed_out": false,
+   "N": 100,
+   "name": "N100",
+   "n_steps": 51,
+   "headers": [
+    "# Time                 \tvolIntegrate(rho)\tvolIntegrate(rhoE)",
+    "# Time                 \tsum(phi)"
+   ],
+   "first_rows": [
+    [
+     8.823529411764706e-07,
+     1.165088824551571,
+     260228.4793873447,
+     4135.123883783784
+    ],
+    [
+     1.7647058823529412e-06,
+     1.168737463272556,
+     270456.9587746884,
+     4135.123883783784
+    ],
+    [
+     2.647058823529412e-06,
+     1.172386101993539,
+     280685.4381620329,
+     4135.123883783784
+    ]
+   ],
+   "balance": {
+    "mass_vs_inflow": 4.259978455897425e-11,
+    "energy_vs_inflow": 4.26805823543197e-14,
+    "mass_vs_total": 1.336021980990076e-13,
+    "energy_vs_total": 6.062705878613274e-15,
+    "inflow_rate": 6.661338147750939e-16
+   },
+   "flat": {
+    "rows": 40,
+    "y_from": 0.5947689162963472,
+    "ok": true,
+    "x_mean": 0.08134137940092809,
+    "dev_mean_cells": 1.1102230246251565e-14,
+    "dev_line_cells": 9.71445146547012e-15,
+    "tilt_cells": 9.523451061915451e-17,
+    "x_top": 0.08134137940092798,
+    "region_rows": 40,
+    "region_cols": 0,
+    "t": 4.5e-05
+   }
+  }
+ ],
+ "timing": [
+  {
+   "ranks": 1,
+   "status": "ok",
+   "steps": 82,
+   "wall_short": 34.75455126700001,
+   "n_short": 82,
+   "projected": 1539.1799999999998,
+   "us_per_cell_step": 0.589453125,
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "Max Courant number",
+     "status": "ok",
+     "value": "0.252 (as rhoCentralFoam counts it)",
+     "meaning": "Fluid should not cross more than about one cell per time step (limit used: 0.5). rhoCentralFoam prints its own Courant number: in subsonic flow it is half the usual (|u| + c) dt / dx, in supersonic flow |u| dt / dx without the speed of sound (its source, centralCourantNo.H). A limit copied from its tutorials (maxCo 0.2) is a usual Courant number of about 0.4, where case 18 found the solution ringing behind the shock."
+    },
+    {
+     "name": "Courant number trend",
+     "status": "ok",
+     "value": "\\(\\times\\,1.42\\) (late vs early)",
+     "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+    }
+   ],
+   "N": 800,
+   "s_per_step": 0.37725
+  },
+  {
+   "ranks": 4,
+   "status": "ok",
+   "steps": 82,
+   "wall_short": 16.937446185,
+   "n_short": 82,
+   "s_per_step": 0.18450000000000003,
+   "projected": 752.7600000000001,
+   "us_per_cell_step": 0.28828125000000004,
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "Max Courant number",
+     "status": "ok",
+     "value": "0.252 (as rhoCentralFoam counts it)",
+     "meaning": "Fluid should not cross more than about one cell per time step (limit used: 0.5). rhoCentralFoam prints its own Courant number: in subsonic flow it is half the usual (|u| + c) dt / dx, in supersonic flow |u| dt / dx without the speed of sound (its source, centralCourantNo.H). A limit copied from its tutorials (maxCo 0.2) is a usual Courant number of about 0.4, where case 18 found the solution ringing behind the shock."
+    },
+    {
+     "name": "Courant number trend",
+     "status": "ok",
+     "value": "\\(\\times\\,1.42\\) (late vs early)",
+     "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+    }
+   ],
+   "N": 800
+  },
+  {
+   "ranks": 8,
+   "status": "ok",
+   "steps": 82,
+   "wall_short": 14.963930270999981,
+   "n_short": 82,
+   "projected": 672.1800000000001,
+   "us_per_cell_step": 0.257421875,
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "Max Courant number",
+     "status": "ok",
+     "value": "0.252 (as rhoCentralFoam counts it)",
+     "meaning": "Fluid should not cross more than about one cell per time step (limit used: 0.5). rhoCentralFoam prints its own Courant number: in subsonic flow it is half the usual (|u| + c) dt / dx, in supersonic flow |u| dt / dx without the speed of sound (its source, centralCourantNo.H). A limit copied from its tutorials (maxCo 0.2) is a usual Courant number of about 0.4, where case 18 found the solution ringing behind the shock."
+    },
+    {
+     "name": "Courant number trend",
+     "status": "ok",
+     "value": "\\(\\times\\,1.42\\) (late vs early)",
+     "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+    }
+   ],
+   "N": 800,
+   "s_per_step": 0.16475
+  },
+  {
+   "ranks": 16,
+   "status": "ok",
+   "steps": 82,
+   "wall_short": 18.66615245,
+   "n_short": 82,
+   "projected": 816.0,
+   "us_per_cell_step": 0.3125,
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "Max Courant number",
+     "status": "ok",
+     "value": "0.252 (as rhoCentralFoam counts it)",
+     "meaning": "Fluid should not cross more than about one cell per time step (limit used: 0.5). rhoCentralFoam prints its own Courant number: in subsonic flow it is half the usual (|u| + c) dt / dx, in supersonic flow |u| dt / dx without the speed of sound (its source, centralCourantNo.H). A limit copied from its tutorials (maxCo 0.2) is a usual Courant number of about 0.4, where case 18 found the solution ringing behind the shock."
+    },
+    {
+     "name": "Courant number trend",
+     "status": "ok",
+     "value": "\\(\\times\\,1.42\\) (late vs early)",
+     "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+    }
+   ],
+   "N": 800,
+   "s_per_step": 0.2
+  }
+ ],
+ "decisions": [],
+ "mol_weight": 28.970278977370906,
+ "gas_constant": 8314.47006650545
+}

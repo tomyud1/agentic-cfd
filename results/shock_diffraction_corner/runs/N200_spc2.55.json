@@ -1,0 +1,30 @@
+{
+ "name": "N200_spc2.55",
+ "N": 200,
+ "spc": 2.55,
+ "flux": "Kurganov",
+ "limiter": "vanLeer",
+ "studies": [
+  "time step"
+ ],
+ "crashed": true,
+ "steps": 510,
+ "dt": 8.823529411764706e-07,
+ "h": 0.005,
+ "cores": 1,
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/shock_diffraction_corner/N200_spc2.55",
+ "steps_done": 232,
+ "t_stop": 0.00020470588235294119,
+ "co_max": 0.627784868958564,
+ "co_last": 0.599202006333191,
+ "fpe": true,
+ "total_time": 7.036938190460205,
+ "balance": {
+  "mass_vs_inflow": 5.4101726389897295e-11,
+  "energy_vs_inflow": 8.251579255168476e-14,
+  "mass_vs_total": 1.6942712831732398e-13,
+  "energy_vs_total": 3.297729421846586e-14,
+  "inflow_rate": 1.7763568394002505e-15
+ },
+ "snapshots": 4
+}

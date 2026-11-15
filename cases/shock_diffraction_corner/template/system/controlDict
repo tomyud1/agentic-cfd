@@ -1,0 +1,55 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     rhoCentralFoam;
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ end_time }};
+// Fixed time step: the time of interest divided by a whole number of steps ({{ steps }} here).
+deltaT          {{ dt }};
+adjustTimeStep  no;
+writeControl    timeStep;
+writeInterval   {{ write_every }};
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  15;
+writeCompression off;
+timeFormat      general;
+timePrecision   10;
+runTimeModifiable false;
+
+functions
+{
+    // Mass and energy of the air in the chamber after every time step: requested output (b)
+    // and the physical check of each step (they may change only by what the duct brings in).
+    conserved
+    {
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      all;
+        operation       volIntegrate;
+        fields          (rho rhoE);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    // Mass flow through the duct's opening, as the solver's own face flux (negative: into the chamber).
+    inflow
+    {
+        type            surfaceFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      patch;
+        name            inlet;
+        operation       sum;
+        fields          (phi);
+        writeFields     false;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+}

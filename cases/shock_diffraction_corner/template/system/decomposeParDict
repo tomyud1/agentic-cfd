@@ -1,0 +1,11 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      decomposeParDict;
+}
+
+// Only used by the runs made on several cores: the chamber is cut into {{ ranks }} parts of equal cell count.
+numberOfSubdomains {{ ranks }};
+method          scotch;

@@ -1,0 +1,21 @@
+PASS: missed []
+   ok   [requirement] Flat part of the shock on the finest grid: speed within 0.5 % of the exact value; pressure | expected speed within \(0.5\,\%\); pressure, density and velocity within \(1\,\ | found 800 cells per side: speed \(+0.006\,\%\); pressure \(-0.020\,\%\), density \(-0.036\,\%\), velocity \(+0.009\,\%\)
+   ok   [requirement] Mass and energy in the chamber within 0.01 % of the inflow, at every written time | expected within \(0.01\,\%\) of the inflow so far, after every step of every gr | found largest difference over every step of the 4 grids: mass \(3 \times 10^{-9}\), energy \(1 \times 10^{-12}\) of the inflow so far
+   ok   [requirement] The flat part of the shock straight to within one cell on every grid | expected largest deviation from a straight line at most \(1\) cell, every grid, | found largest deviation \(6 \times 10^{-5}\) cells (\(8 \times 10^{-8}\), \(2 \times 10^{-6}\), \(2 \times 10^{-5}\), \(6 \times 10^{-5}\) on 100, 200, 400,
+   ok   [health] Every run of the grid study ends at the time of interest without a solver error, on a grid | expected 4 runs finished | found 4 of 4 finished; solver log checks: ok, ok, ok, ok; checkMesh: OK on every grid
+   ok   [health] Density, pressure and temperature stay positive at every written time | expected all positive | found lowest pressure \(61.4\), \(33.9\), \(23.0\), \(23.2\) kPa and lowest density \(0.258\), \(0.156\), \(0.137\), \(0.131\) \(\mathrm{kg/m^3}\) on 100, 2
+   ok   [expectation] Mass and energy balance to round-off: the difference from (start + exact inflow), as a fra | expected at most \(1 \times 10^{-11}\) | found at most \(2 \times 10^{-12}\)
+   ok   [expectation] The mass flow through the opening is the exact one at every step | expected within \(1 \times 10^{-12}\) (relative) | found within \(4 \times 10^{-15}\)
+   ok   [expectation] No wave has reached the floor or the right side at the time of interest (the flow still ha | expected pressure there within \(1 \times 10^{-6}\) of \(p_0\) | found largest difference exactly zero on every grid
+   ok   [expectation] The method has no length of its own either: the density at half the time on a grid equals  | expected largest difference at most \(1 \times 10^{-7}\) of \(\rho_0\), every p | found \(9 \times 10^{-10}\), \(2 \times 10^{-11}\), \(4 \times 10^{-9}\) for the pairs 200/100, 400/200, 800/400
+   ok   [expectation] The shock on the top wall is where the exact flat shock is | expected within \(0.5\) cells on every grid | found \(+0.29\), \(+0.22\), \(+0.23\), \(+0.25\) cells
+   ok   [expectation] No change of pressure along the shock just behind its flat part (where an instability of t | expected at most \(1 \times 10^{-4}\) of \(p_2\) | found at most \(3 \times 10^{-7}\)
+   ok   [expectation] No sideways velocity in the uniform region behind the flat part | expected \(|v|/u_2\) at most \(0.001\) | found at most \(2 \times 10^{-4}\)
+   ok   [expectation] Ripple of the pressure behind the flat part (highest minus lowest in the uniform region) a | expected at most \(2\,\%\) of \(p_2\) on every grid | found \(1.92\,\%\), \(1.63\,\%\), \(1.39\,\%\), \(1.21\,\%\)
+   ok   [expectation] The distance the bent shock has run down the step face has settled with the grid | expected change from 400 to 800 cells at most \(0.5\,\%\) | found change from 400 to 800 cells: \(0.06\,\%\)
+   ok   [expectation] The change of the density field from one grid to the next falls with refinement | expected order at least \(0.6\) at each refinement | found orders \(0.64\), \(0.79\) (changes \(1.18\,\%\), \(0.75\,\%\), \(0.44\,\%\))
+   ok   [expectation] The same picture at two times, density along the step face: the difference shrinks with th | expected on 800 cells at most \(0.5\) of the difference on 200 cells | found \(3.2\,\%\) against \(10.0\,\%\): a factor \(0.32\)
+   ok   [expectation] Solver time of the finest run | expected at most 15 minutes | found \(12.4\) minutes on 8 cores
+   ok   [expectation] Each of the four other schemes on 200 cells runs to the end, stays positive and keeps the  | expected 4 of 4 | found 4 of 4
+Report: /mnt/d/Projects/Agentic CFD/results/shock_diffraction_corner/report.html
+exit 0

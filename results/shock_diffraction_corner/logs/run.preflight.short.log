@@ -1,0 +1,15 @@
+preflight N100: ok; 0.34 s for 51 steps; projected 2.9103999999314554 s
+   ok   Solver finished without errors: no errors
+   ok   No NaN values: none
+   ok   Max Courant number: 0.232 (as rhoCentralFoam counts it)
+   ok   Courant number trend: \(\times\,1.41\) (late vs early)
+   ok   Density, pressure and temperature stay positive: lowest density \(0.7917\,\mathrm{kg/m^3}\), pressure \(100.0\,\mathrm{kPa}\), temperature \(300.0\,\mathrm{K}\) at the written times
+   ok   Cells are in rows and columns as the analysis assumes: largest difference \(0\,\mathrm{m}\)
+   ok   Start state as given: density in an undisturbed cell: \(1.16144018583\,\mathrm{kg/m^3}\)
+   ok   Totals recorded after every step: 51 rows for 51 steps
+   ok   The opening delivers the exact mass flow: largest relative difference from \(\rho_2 u_2 (H - H_s)\): \(6.7 \times 10^{-16}\)
+   ok   Mass and energy equal the start plus the exact inflow, after every step: mass \(4.3 \times 10^{-11}\), energy \(4.3 \times 10^{-14}\) of the inflow so far
+   ok   The solver's own Courant number, against the usual one: largest printed \(0.232\); in the uniform state behind the shock it is \(0.162\); the usual Courant number along \(x\) there is \(0.200\)
+   output files: ['# Time                 \tvolIntegrate(rho)\tvolIntegrate(rhoE)', '# Time                 \tsum(phi)'] | first rows: [[8.823529411764706e-07, 1.165088824551571, 260228.4793873447, 4135.123883783784], [1.7647058823529412e-06, 1.168737463272556, 270456.9587746884, 4135.123883783784], [2.647058823529412e-06, 1.172386101993539, 280685.4381620329, 4135.123883783784]]
+   decisions: cover every setting
+exit 0

@@ -1,0 +1,17 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+// Explicit time stepping: each cell's new value follows directly from the old ones, so the
+// "linear system" is a diagonal one and there is nothing to iterate.
+solvers
+{
+    "(rho|rhoU|rhoE)"
+    {
+        solver          diagonal;
+    }
+}

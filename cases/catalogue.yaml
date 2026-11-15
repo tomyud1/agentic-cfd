@@ -145,13 +145,13 @@ cases:
     reports: [{path: results/shock_tube_sod/report.html}]
 
   - id: "19"
-    title: A shock going round a corner (shock diffraction)
-    status: in_progress
-    tier: rde
+    title: A strong shock going round a sharp corner (shock diffraction)
+    status: solved
     folder: shock_diffraction_corner
-    new: "Step 2 of 7. Shock waves in two dimensions"
-    reference: The test in Cheng et al. (2024), section 4.2, and the experiment or simulation it cites (confirm)
-    gpucfd: "no"
+    tests: "Step 2 of 7 to the detonation engine. Transient, shock waves in two dimensions (OpenFOAM's rhoCentralFoam), the first problem with a stated required accuracy; checked against the exact state behind a flat shock, the exact inflow, and the flow's own similarity in time"
+    shows: "A problem without a published answer: what can still be checked exactly (the flat part of a shock, conservation against a known inflow, similarity in time); expectations of three kinds written before the runs; start-up waves of a shock found by theory and marked in the figure; a time-step margin measured by a stress run; a flow feature's name tested against the data"
+    headline: "On 800 x 800 cells the flat part of the shock moves within 0.006 % of the exact speed with the exact state behind it to 0.04 %, mass and energy match the exact inflow to round-off, and the shock stays straight; all three requirements and every expectation of the agent are met"
+    reports: [{path: results/shock_diffraction_corner/report.html}]
 
   - id: "20"
     title: Ignition of hydrogen and air in a closed box

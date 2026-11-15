@@ -1,0 +1,131 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling | performance
+
+- id: 1
+  stage: intake
+  logged: 2026-11-15 09:50
+  status: resolved
+  problem: 'The required accuracy for conservation reads "within 0.01 % of the inflow". It does not say whether the difference is measured against the inflow so far or against the total in the chamber.'
+  diagnosis: 'The two readings differ by a large factor early in the run: after the first step the inflow is a few millionths of the mass in the chamber.'
+  fix: 'Took the stricter reading and wrote it down before the runs: the difference between the chamber''s total and (start + exact inflow), divided by the exact inflow up to that time, at every step. The report gives the other reading too.'
+  lesson: 'A relative limit needs its reference quantity named. When it is not, the stricter reading is safe, and both numbers belong in the report.'
+  guideline: 'When writing <code>required_accuracy</code>, name what each per cent is a per cent of ("of the inflow up to that time"). <code>cfdlib.contract --problem</code> could warn when an item gives a per cent with no "of".'
+- id: 2
+  stage: theory
+  logged: 2026-11-15 09:52
+  status: resolved
+  problem: 'Request (d) asks how much the flow at two times differs when both are scaled by the time. On a grid of equal cells with a time step in fixed proportion to the cell size, that comparison is not independent of the grid study.'
+  diagnosis: 'The method has no length scale either: after a given number of steps its answer depends only on the cell count from the corner. So the flow at half the time on a grid is, cell for cell, the flow at the full time on the grid with cells twice as large (as long as no far wall has been reached).'
+  fix: 'Stated as a prediction in the theory section and tested by comparing the two runs directly (the part of the fine grid''s fifth snapshot round the corner against the whole coarse grid at the end). The similarity difference of request (d) is then reported as what it is: the change from one grid level to the next.'
+  lesson: 'For a self-similar flow on a uniform grid, a similarity check at two times measures the grid error, not a separate property of the flow. It is still a useful test: it comes for free from one run, and it fails if a far boundary or a start-up error has put a length scale into the answer.'
+  guideline: 'Add to the workflow, stage 1: "For a self-similar problem, ask whether the numerical method is self-similar too (equal cells, time step in proportion to the cell size). If so, an earlier snapshot of a fine run is a coarser run, and can serve as one level of the grid study at no cost."'
+- id: 3
+  stage: setup
+  logged: 2026-11-15 09:56
+  status: resolved
+  problem: 'I patched run.py with a small Python script passed through a shell heredoc. The script held LaTeX backslashes and failed.'
+  diagnosis: 'The machine file and the workflow both warn about this: a heredoc and a normal Python string each change a backslash sequence. The patch script''s own asserts stopped it before anything was written.'
+  fix: 'Made the five changes with the file-editing tool.'
+  lesson: 'The warning is right even for a three-line fix; a patch script that asserts each match once at least fails safely.'
+  guideline: 'None needed: the rule exists (workflow, stage 2). I broke it out of habit.'
+- id: 4
+  stage: tooling
+  logged: 2026-11-15 09:59
+  status: resolved
+  problem: 'The first pre-flight stopped with "Invalid first character found" in <code>system/controlDict</code> at the <code>endTime</code> line.'
+  diagnosis: '<code>monitor.preflight</code> was given the short end time as a string (<code>repr(...)</code>), as the worked example of case 18 does. <code>monitor.set_end_time</code> writes the argument with <code>!r</code>, so a string arrives in the file with quotes round it. The solver''s failure is caught by <code>preflight</code> as a finding, so the error only surfaced at my next command on that case.'
+  fix: 'Passed the end time as a number.'
+  lesson: 'A helper that accepts a number or a string in one version and only a number in the next breaks the worked examples silently.'
+  guideline: 'In <code>cfdlib.monitor.set_end_time</code>, write <code>float(end_time)</code> with <code>repr</code>, so that a string and a number give the same file. Update <code>cases/shock_tube_sod/run.py</code>, which still passes a string and would fail the same way if run again.'
+- id: 5
+  stage: preflight
+  logged: 2026-11-15 10:02
+  status: resolved
+  resolved: 2026-11-15 10:09
+  problem: 'The time-step study''s largest step (2.55 steps per cell, a Courant number of 0.4 along \(x\)) stopped with a floating-point exception at \(t = 0.205\,\mathrm{ms}\) on the 200-cell grid: the square root of a negative number. The planned step is only half of that, and finer grids reach lower pressures at the corner.'
+  diagnosis: 'The gas that turns round the corner expands to a very low pressure (Theory: far below \(p_0\) if it followed the wall). There the pressure is a small difference of two large numbers, total energy minus kinetic energy, and one explicit Euler step that is too long makes it negative. The solver''s own Courant number, which adds both directions, had reached 0.63; its tutorials use a limit of 0.2. In the pre-flight the lowest pressure fell with the cell size (61 and 34 kPa on 100 and 200 cells, 18 kPa on 400 cells at the larger step), so the margin looked set to shrink with refinement. (The production runs later gave 23 kPa on both 400 and 800 cells at the main step: it stopped falling.) The short test on the finest grid could not show this: after 2 % of the time the corner flow has hardly formed.'
+  fix: 'Added a step between the two (a Courant number of 0.3) to the study, and a stress run: the 400-cell grid at 1.5 times the main step. Both ran to the end, healthy, with the same answers as the main step. The main step (0.2) was kept, with a measured margin of 1.5 on the grid next to the finest. <code>run.py</code> now records a run that the solver stops as a result (when, at what Courant number), not as an error of the script.'
+  lesson: 'In a flow with a strong expansion the largest stable time step is set by positivity at the lowest pressure, not by the shock, and it gets smaller as the grid gets finer. A short pre-flight on the finest grid does not see it. A full run at a larger step on the grid one level below the finest does, at an eighth of the cost.'
+  guideline: 'Add to the primer, "Compressible flow with shocks": "A strong expansion (flow round a corner, a wake behind a step) can stop <code>rhoCentralFoam</code> with a negative pressure well below the step at which a shock tube rings. Measure the margin: run the grid below the finest in full at 1.5 times the planned step. In two dimensions the solver''s printed Courant number adds both directions; keep it near the tutorials'' 0.2 to 0.3." A helper in <code>cfdlib.monitor</code> that records the lowest pressure and density per step (a <code>fieldMinMax</code> function object and its reader) would show the margin shrinking while a run is still going.'
+- id: 6
+  stage: performance
+  logged: 2026-11-15 10:02
+  status: resolved
+  resolved: 2026-11-15 10:09
+  problem: 'On the finest grid (640 thousand cells) 8 cores are only 2.3 times faster than one, and 16 are slower than 8.'
+  diagnosis: 'Measured after start-up on the same 82 steps: 0.377, 0.185, 0.165 and 0.200 seconds per step on 1, 4, 8 and 16 cores. Four cores already give a factor 2.0, eight add little. The solver builds many temporary fields over all faces on every step, so the work is moving memory, and the memory of this PC is shared by all cores. The first projection I printed used the wall time of the whole short run, start-up included, and was 10 % too high.'
+  fix: 'Ran the finest grid on 8 cores. The timing test now takes the seconds per step from the second half of the short run.'
+  lesson: 'For this explicit solver on this PC, cores beyond four buy almost nothing; the cost of a finer answer has to come down by other means (a solver that keeps its data on a GPU, or cells only where the waves are).'
+  guideline: 'In the primer''s "Parallel runs", add the measured scaling of <code>rhoCentralFoam</code> next to the incompressible ones. In <code>monitor.preflight</code>, return the seconds per step after start-up next to the projection, so that a timing test of a short run does not count the start-up.'
+- id: 7
+  stage: preflight
+  logged: 2026-11-15 10:00
+  status: resolved
+  resolved: 2026-11-15 10:10
+  problem: 'The solver printed a largest Courant number of 0.28 where I had set a Courant number of 0.2, and my own pre-flight check of it gave a warning.'
+  diagnosis: 'Two things. The solver''s number is half the sum, over the faces of a cell, of the larger one-sided flux speed. In two dimensions that adds both directions: behind this shock it is \((u_2 + c_2/2)\,\Delta t/h\), and more where the gas turns round the corner. So here it is larger than the usual Courant number along one direction, the opposite of case 18''s one-dimensional finding (half). And my check compared the largest value in the field with the value of one uniform state, which cannot agree.'
+  fix: 'The check now reports the three numbers side by side and warns only above 0.5. The time step was then judged by the time-step study, not by this number.'
+  lesson: 'The printed Courant number of <code>rhoCentralFoam</code> has no fixed relation to the usual one: half of it in a one-dimensional subsonic flow, well above it in a two-dimensional supersonic one. A time step chosen as "the usual Courant number 0.2" sat at 0.28 in the solver''s measure, above its tutorials'' limit of 0.2.'
+  guideline: 'Extend the note that <code>monitor.assess</code> prints for this solver: "in two or three dimensions the number adds the directions". In the primer, give the rule of thumb in the solver''s own measure (keep the printed number at 0.2 to 0.3), not in the usual one.'
+- id: 8
+  stage: analysis
+  logged: 2026-11-15 10:04
+  status: resolved
+  resolved: 2026-11-15 10:22
+  problem: 'The pressure behind the flat shock, which should be uniform, ripples by 1.4 to 1.9 % on every grid, and the density by 2 to 3 %.'
+  diagnosis: 'Two thin waves, not noise. The shock starts as a sharp jump at the opening; while the method spreads it over two to three cells it sends off a sound wave and leaves a spot of wrong density in the gas. Theory says where they must be: at \((u_2 - c_2)\,t\) and at \(u_2 t\). That is where they are, on every grid and at every time step. Their height does not fall with the cell size or the time step; their width is a fixed number of cells. Along the shock the pressure is uniform to one part in a million, so this is no instability of the shock.'
+  fix: 'Reported as what it is, with the predicted positions drawn in the figure. The rule for the ripple (2 %) was sized from the pre-flight, where the waves were already there.'
+  lesson: 'A captured shock that starts sharp leaves start-up waves that refinement does not remove. A check of "uniform behind the shock" must either expect them or separate the direction along the shock (where an instability shows) from the direction along the flow (where the start-up waves are).'
+  guideline: 'Add to the primer, "Compressible flow with shocks": "A shock that starts as a sharp jump leaves two start-up waves behind, at \((u - c)\,t\) and \(u\,t\) from its start, about 2 % high and a few cells wide on any grid. Measure transverse uniformity separately." A helper <code>verification.startup_waves(u, c, t)</code> could return their positions for marking in figures.'
+- id: 9
+  stage: tooling
+  logged: 2026-11-15 10:17
+  status: resolved
+  resolved: 2026-11-15 10:18
+  problem: '<code>plots.to_svg</code> refused a figure: "legend covers data line", though the legend was below the axes and no line was drawn there.'
+  diagnosis: 'The line held points outside the axis limits (I had only narrowed the limits). The picture clips them; the layout check tests the whole path.'
+  fix: 'Plotted only the points inside the limits.'
+  lesson: 'The layout check sees data that the reader does not.'
+  guideline: 'In <code>cfdlib.plots.check_layout</code>, clip each line to the axes box before testing it against the legend and the texts.'
+- id: 10
+  stage: analysis
+  logged: 2026-11-15 10:12
+  status: resolved
+  resolved: 2026-11-15 10:22
+  problem: 'I had named the line inside the bent shock "the contact surface" from memory of the literature, and meant to describe it as a jump in density.'
+  diagnosis: 'Measured where it crosses \(y = 0.6\,\mathrm{m}\): the density ratio across eight cells is 1.21, 1.13 and 1.08 on 100, 200 and 400 cells per side, and the pressure ratio goes to 1. A true jump would keep its ratio. So on these grids it is a steep but smooth change: the border between gas that crossed the flat shock and gas that crossed the weaker bent shock, where the shock''s strength changes smoothly.'
+  fix: 'The report calls it the inner border, gives the measured ratios, and says what the literature calls it.'
+  lesson: 'A name from the literature is a claim about the flow. Measure the property the name implies (here: a jump that keeps its size under refinement) before using it.'
+  guideline: 'Workflow, stage 5, next to "An explanation is a claim": "So is the name of a flow feature. Check the property it implies against the data, on at least two grids."'
+- id: 11
+  stage: intake
+  logged: 2026-11-15 09:49
+  status: resolved
+  resolved: 2026-11-15 09:49
+  problem: 'The repository holds a file of the developing agent about this case (<code>dev/agent_checks/case19_toolgap.py</code>), and the shared notes folder holds hand-over notes of other sessions. A solver agent can read them.'
+  diagnosis: 'They are in the same checkout. Nothing in <code>AGENTS.md</code> says whether a solver agent should stay away from <code>dev/</code>.'
+  fix: 'I did not open the file under <code>dev/</code>. I read the hand-over note of case 18 in the shared folder, which describes the solved case that the workflow itself points to.'
+  lesson: 'If a case is meant to test the workflow on a fresh agent, what the fresh agent may read should be stated.'
+  guideline: 'One line in <code>AGENTS.md</code>: "The folder <code>dev/</code> belongs to the developing agent; a solver agent does not need it and should not read its notes on the case being solved."'
+- id: 12
+  stage: analysis
+  logged: 2026-11-15 10:29
+  status: resolved
+  resolved: 2026-11-15 10:31
+  problem: 'Two things I had written before the finest run turned out wrong when it arrived: that the density along the line \(y = H_s\) would not settle with the grid, and that the lowest pressure falls with every refinement. The draft report, written from three grids, said both.'
+  diagnosis: 'Along the line the two-times difference is 1.4, 0.9 and 0.6 % on 200, 400 and 800 cells: it falls. The layer from the corner starts on that line but leaves it at once, downwards; I had not looked where it goes. The lowest pressure is 61, 34, 23 and 23 kPa: it stopped falling. Both statements were extrapolations from two or three points, written as facts.'
+  fix: 'The report now gives the measured values and says what I had expected. The sentences are built from the numbers, not typed. The rule file keeps my wrong reason for having no rule on that line, as written before the runs.'
+  lesson: 'Text drafted from partial results is a prediction. After the last run, read every sentence of the draft against the final numbers; a search for the superseded numbers does not find a superseded claim.'
+  guideline: 'Workflow, stage 7, where it says to render a draft from partial results: "Mark every sentence of the draft that states a trend. After the finest run, check each against the final data, or build it from the data so that it cannot go stale."'
+- id: 13
+  stage: tooling
+  logged: 2026-11-15 10:30
+  status: resolved
+  resolved: 2026-11-15 10:31
+  problem: '<code>verification.level_sequence</code> called the convergence of the wall-shock distance plausible with an observed order of 3.4, and gave a Richardson value for it.'
+  diagnosis: 'The changes are +2.3 %, +0.65 % and +0.06 %: the last one is small because the value is already within the reading rule''s resolution (a fraction of a cell), not because the method is of third order. The function only rejects orders that are too low.'
+  fix: 'The report gives the changes and says that the last change, not the extrapolated value, is the measure of what is left.'
+  lesson: 'An observed order far above the method''s formal order is as much a warning as one far below it.'
+  guideline: 'Give <code>level_sequence</code> an optional <code>p_max</code> (the formal order plus a margin) and return <code>plausible: False</code> above it, as it does below <code>p_min</code>.'

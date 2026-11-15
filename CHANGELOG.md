@@ -9,14 +9,68 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Case 19 (a shock going round a corner) is with a fresh solver agent, launched on 2026-11-15 right
-after the commit that prepared it (Fable 5.2, high effort). Its report and review are not in yet.
+- **gpucfd: a solver for gas with shocks** (`gpucfd/src/gcfdc.cu`, `gpucfd/euler.py`, notes in
+  `gpucfd/COMPRESSIBLE.md`), built by a separate session on 2026-11-15. It has run the shock tube
+  and the corner on the GPU; its tests and records are being reviewed and are not committed yet.
+- **Case 20 (ignition of hydrogen and air)** is prepared (`cases/h2_air_ignition_box/`) and not
+  yet with a solver agent.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### Case 19 prepared: a shock going round a corner, step 2 of the ladder, commit hash to be filled in
+### What case 19's 13 insights led to, commit hash to be filled in
+- **Tools, each with a test** (`tests/test_tools.py`, check 19):
+  - `monitor.set_end_time` takes the end time as text or as a number (it stopped the agent's
+    first pre-flight with an unreadable dictionary).
+  - `monitor.preflight` returns the measured seconds per step, so the cost of the full run can
+    be estimated before it starts.
+  - `monitor.assess` says that the shock solver's printed Courant number adds the directions in
+    two and three dimensions.
+  - `verification.level_sequence(p_max=...)`: an order of convergence above what the method can
+    have is no longer called healthy convergence.
+  - `plots.to_svg`: a line that runs under the legend outside the drawn area no longer stops a
+    figure.
+  - `foam.read_internal_field(uniform=True)`: reads a field that has one value for all cells
+    (found while preparing case 20).
+  - `cfdlib.brief`: the speed table takes each run's own number of cores.
+- **Guidance, in the most specific place:** the OpenFOAM notes on flows with shocks gained the
+  two-dimensional findings (negative pressure in a strong expansion and the stress run that
+  finds it, weak parallel speed-up, the Courant number, start-up waves of a shock set as a
+  jump) and a note on problems with no length of their own. One line each in the workflow: the
+  name of a flow feature is a claim to check, and so is a trend sentence of a draft.
+  `AGENTS.md` says that `dev/` belongs to the developing agent. `dev/LOOP.md`: say what each per
+  cent is a per cent of; keep trial scripts out of the solver agent's view.
+- **Nothing new:** a helper for the start-up waves (two formulas, now in the notes); the note on
+  patching a script through the shell.
+- **The plan page and the roadmap** show step 2 as done and step 3 as next.
+- **Verified:** tool tests pass; all ten reports rebuild and pass their contract.
+
+### Case 19 solved: a shock going round a corner, completed as expected, commit hash to be filled in
+A fresh agent (Fable 5.2, high effort) solved step 2 of the ladder in about 50 minutes with no
+human help: `results/shock_diffraction_corner/report.html`, one page: `brief.html`.
+- **All three requirements of the problem are met.** On 800 by 800 cells the flat part of the
+  shock moves at the exact speed to within 0.006 %, the gas behind it is within 0.04 % (allowed:
+  0.5 % and 1 %). Mass and energy match what flowed in to round-off. The flat part is straight
+  to a ten-thousandth of a cell (allowed: one cell).
+- **What step 2 taught for the engine.** With the time step of step 1 the run broke: the gas
+  that expands round the corner got a negative pressure. About five steps per cell were
+  needed, against two in the tube. Eight cores are only 2.3 times faster than one, and sixteen
+  are slower. The finest run took 12 minutes on 8 cores. A shock put in as a sharp jump leaves
+  two weak waves (about 2 % in pressure) that travel with the flow.
+- **Review by the dev agent** (`dev/agent_checks/case19_review.py`): speed, state, straightness
+  and mass were recomputed from the raw fields with code written from scratch and agree with the
+  agent's (speed +0.04 % with a simpler measure, state within 0.002 %). The agent's rules were
+  last edited at 08:08 UTC and the production data was first read at 08:11 (from its
+  transcript). The problem file is unchanged and shared files are untouched.
+- **Not done.** The agent reached the usage limit before it had looked through the lower
+  sections of its own report in a browser, and the dev agent's browser returned blank pictures,
+  so those sections were checked by structure only (eight figures drawn, no formula errors, no
+  overflow), not by eye.
+- **Open.** The pattern round the corner has no reference; it is checked against itself (two
+  times, two grids). The density there still changes by 0.4 % between the two finest grids.
+
+### Case 19 prepared: a shock going round a corner, step 2 of the ladder (`83a6314`)
 - **Purpose.** Shock waves in two dimensions, and whether the method keeps a strong shock flat
   and free of numerical instability, which a detonation front will need.
 - **The problem** (`cases/shock_diffraction_corner/problem.yaml`): a flat shock of Mach number
