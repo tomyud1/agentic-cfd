@@ -61,6 +61,13 @@ def check_problem_file(path):
         e.append("setup: a list of short statements (geometry, boundary conditions, definitions)")
     if "quantities_of_interest" in p and not p["quantities_of_interest"]:
         e.append("quantities_of_interest: list the requested outputs")
+    ra = p.get("required_accuracy")                 # the accuracy the answer needs: only a miss of it makes a FAIL
+    if ra is not None:
+        keys = {q.get("key") for q in p.get("quantities_of_interest") or [] if isinstance(q, dict)}
+        if not isinstance(ra, list) or any(not isinstance(q, dict) or not q.get("key") or not q.get("text") for q in ra):
+            e.append("required_accuracy: a list of {key, text}; key is the key of a requested output")
+        else:
+            e += [f"required_accuracy: key '{q['key']}' is not a key of quantities_of_interest" for q in ra if q["key"] not in keys]
     ref = (p.get("reference") or {}).get("file") if isinstance(p.get("reference"), dict) else None
     if ref and not (path.parent / ref).exists():
         e.append(f"reference.file: {ref} not found next to the problem statement")
@@ -94,6 +101,47 @@ def check_decisions(decisions, e=None):
     return e
 
 
+# Reports from before the wording of 2026-11-15 have no `expectations` list and keep the verdict of their day
+# (cfdlib.report.outcome shows it in today's words). The one such report dated on that day is named.
+WORDING_SINCE = "2026-11-15"
+BEFORE_WORDING = {"Shock tube, air at rest released across a pressure jump (Sod's problem)"}
+
+
+def check_expectations(r):
+    """The list behind the verdict: every rule written before the runs, with what was expected and what was found."""
+    from .report import EXPECTATION_KINDS, verdict_from
+    xs = r.get("expectations")
+    if xs is None:
+        if str(r.get("date", "")) >= WORDING_SINCE and r.get("title") not in BEFORE_WORDING:
+            return ["expectations: list every rule written before the runs as {kind, text, expected, found, met}; "
+                    "kind is requirement (given with the problem), health (of the run) or expectation (your own). "
+                    "The verdict is report.verdict_from(expectations): FAIL only for a missed requirement or health check"]
+        return []
+    e = []
+    if not isinstance(xs, list) or not xs:
+        return ["expectations: a non-empty list"]
+    for i, x in enumerate(xs):
+        _req(x, ["kind", "text", "expected", "found", "met"], f"expectations[{i}]", e)
+        if x.get("kind") not in EXPECTATION_KINDS:
+            e.append(f"expectations[{i}].kind must be one of {sorted(EXPECTATION_KINDS)}")
+        if not isinstance(x.get("met"), bool):
+            e.append(f"expectations[{i}].met must be true or false")
+    if e:
+        return e
+    if r["verdict"] != verdict_from(xs):
+        e.append(f"verdict {r['verdict']} does not follow from expectations (report.verdict_from gives {verdict_from(xs)}): "
+                 "FAIL for a missed requirement or health check, WARN if only your own expectations are missed, else PASS")
+    if not any(x["kind"] == "health" for x in xs):
+        e.append("expectations: at least one health check of the run (it finished, it converged or reached its stop rule, "
+                 "what must be conserved is conserved)")
+    required = {q.get("key") for q in r["problem"].get("required_accuracy", [])}
+    met = {x.get("key") for x in xs if x["kind"] == "requirement"}
+    if required - met:
+        e.append(f"expectations: no requirement entry with key {sorted(required - met)} (each item of the problem's "
+                 "required_accuracy needs one, with the same key)")
+    return e
+
+
 def check(results, case_dir=None, figures=None):
     """Return a list of contract violations (empty list = report is acceptable)."""
     e = []
@@ -104,6 +152,7 @@ def check(results, case_dir=None, figures=None):
         return e
     if r["verdict"] not in VERDICTS:
         e.append(f"verdict must be one of {sorted(VERDICTS)}")
+    e += check_expectations(r)
     if r["comparison_type"] not in COMPARISON_TYPES:
         e.append(f"comparison_type must be one of {sorted(COMPARISON_TYPES)}")
 

@@ -230,9 +230,11 @@
 
 <!-- ============================== SUMMARY ============================== -->
 <section id="summary" class="summary WARN">
-  <h2>Summary <span class="verdict">⚠ WARN</span>
+  <h2>Summary <span class="verdict">✓ Completed, with differences from what was expected</span>
       <span class="ctype">Benchmark</span></h2>
+  <p class="lead" style="font-size: 14px; margin: 4px 0 0">This report was written before the wording changed on 15 November 2026. Where its text says WARN, a check that the agent set for itself before the runs was not fully met.</p>
   <p class="headline"><b>Benchmark comparison passed with caveats.</b> On the finest mesh (256×256 cells) the velocity profiles match Ghia et al. (1982) to within \(0.0092\,U\) and the vortex strength to \(0.077\,\%\).</p>
+  
   <h4>Answers to the request</h4>
   <div class="table-wrap"><table class="answers full">
     <tr><th class="">Requested</th><th class="">Benchmark (Ghia et al. 1982)</th><th class="">Simulation (256×256 mesh)</th><th class="num">Difference</th></tr>
@@ -264,6 +266,7 @@
     <h4>What we want to find</h4>
     <ol><li><span class="letter">a</span><span>Horizontal velocity \(u\) along the vertical centreline \(x = L/2\), compared with Ghia Table I</span></li><li><span class="letter">b</span><span>Vertical velocity \(v\) along the horizontal centreline \(y = L/2\), compared with Ghia Table II</span></li><li><span class="letter">c</span><span>Strongest return flow: minimum of \(u\) on the vertical centreline, and where it occurs</span></li><li><span class="letter">d</span><span>Centre of the primary vortex \((x, y)\) and its strength (minimum stream function)</span></li></ol>
   </div>
+  
   
   <h4>Setup</h4>
   <ul class="points"><li>Square cavity of side \(L\), completely filled with an incompressible Newtonian fluid.</li><li>The top wall (the lid) slides to the right at constant speed \(U\); the other three walls are stationary. All walls are no-slip.</li><li>The cavity is very long in the third direction, so the flow is two-dimensional.</li><li>Positions are scaled by \(L\), velocities by \(U\) and the stream function by \(U L\), as in the benchmark.</li></ul>

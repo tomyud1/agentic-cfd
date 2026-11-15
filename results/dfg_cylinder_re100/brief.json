@@ -2,6 +2,13 @@
  "title": "Flow past a cylinder in a channel at Re = 100 (DFG benchmark 2D-2)",
  "date": "2026-11-11",
  "verdict": "WARN",
+ "outcome": {
+  "css": "WARN",
+  "mark": "✓",
+  "label": "Completed, with differences from what was expected",
+  "short": "DIFFERENCES",
+  "note": "This report was written before the wording changed on 15 November 2026. Where its text says WARN, a check that the agent set for itself before the runs was not fully met."
+ },
  "goal": "The first flow that never settles, vortices shed from a cylinder, against a benchmark. It is also the first case solved with both tools.",
  "story": "Solved first with OpenFOAM on a grid fitted to the cylinder. gpucfd works on a box of cells with the cylinder cut out of it. It was extended for this case (cells clustered near the cylinder, an implicit time scheme) and then run on the same problem.",
  "problem": {
@@ -13,7 +20,7 @@
   ]
  },
  "results": {
-  "headline": "<b>Benchmark comparison passed with caveats.</b> On the finest mesh (M4, 214,912 cells) the mean drag is \\(3.1964\\) (reference \\(3.1884\\)), the lift amplitude \\(2.0147\\) (\\(2.0080\\)) and the Strouhal number \\(0.3015\\) (\\(0.3019\\)).",
+  "headline": "On the finest mesh (M4, 214,912 cells) the mean drag is \\(3.1964\\) (reference \\(3.1884\\)), the lift amplitude \\(2.0147\\) (\\(2.0080\\)) and the Strouhal number \\(0.3015\\) (\\(0.3019\\)).",
   "meaning": [
    "Both tools reach the benchmark's drag within the benchmark's own uncertainty.",
    "For a flow around a body, OpenFOAM's fitted grid is the cheaper way to a given accuracy: it needs far fewer cells.",

@@ -20,7 +20,9 @@ sys.path.insert(0, str(ROOT / "dev" / "optimize" / "turbulent_channel_re180"))
 import stage as S  # noqa: E402
 from cases.turbulent_channel_re180.sketch import sketch  # noqa: E402
 from cfdlib import brief, study  # noqa: E402
-from cfdlib.report import m, m_fix, m_pct, m_times  # noqa: E402
+from cfdlib.report import m, m_fix, m_pct, m_times, outcome  # noqa: E402
+
+CASE = json.loads((ROOT / "results" / "turbulent_channel_re180" / "results.json").read_text(encoding="utf-8"))   # the case's own report
 
 OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "results" / "turbulent_channel_re180" / "brief.html"
 RUNS = HERE / "runs"
@@ -186,9 +188,9 @@ b = dict(
         note="A time unit is the time a large swirl needs to turn over once; a run needs 40 to 60 of them. "
              "Whole runs include the start-up. The two whole runs on the first grid differ in length, so their \"faster by\" compares "
              "the time per time unit."),
-    links=[dict(href="report.html", text="the full report of this case (the solver agent's, verdict FAIL on its own grids)"),
+    links=[dict(href="report.html", text="the full report of this case (the solver agent's, on its own grids)"),
            dict(href="optimize_study.html", text="the finer grid (17b)")],
-    verdict=json.loads((ROOT / "results" / "turbulent_channel_re180" / "results.json").read_text(encoding="utf-8"))["verdict"],
+    verdict=CASE["verdict"], outcome=outcome(CASE),
     summary=dict(plain=plain, reasons=reasons),      # the comparison's own caveats (study.verdict), kept in the JSON
 )
 

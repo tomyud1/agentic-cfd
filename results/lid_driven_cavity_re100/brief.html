@@ -232,7 +232,8 @@
 <header>
   <div class="kicker">Agentic CFD progress report · 2026-11-11</div>
   <h1>Lid-driven cavity flow at Re = 100</h1>
-  <div class="WARN" style="margin-top: 8px"><span class="verdict">Verdict of the case: WARN</span></div>
+  <div class="WARN" style="margin-top: 8px"><span class="verdict">✓ Completed, with differences from what was expected</span></div>
+  
 </header>
 
 <section id="goal">
@@ -2218,7 +2219,7 @@ L 108 36
 
 <section id="results">
   <h2>Results</h2>
-  <p class="headline"><b>Benchmark comparison passed with caveats.</b> On the finest mesh (256×256 cells) the velocity profiles match Ghia et al. (1982) to within \(0.0092\,U\) and the vortex strength to \(0.077\,\%\). gpucfd on the same four grids: on the finest its centre-line velocities differ from OpenFOAM's by at most \(4.5 \times 10^{-5}\,U\), and it reaches the steady flow there in 19 s.</p>
+  <p class="headline">On the finest mesh (256×256 cells) the velocity profiles match Ghia et al. (1982) to within \(0.0092\,U\) and the vortex strength to \(0.077\,\%\). gpucfd on the same four grids: on the finest its centre-line velocities differ from OpenFOAM's by at most \(4.5 \times 10^{-5}\,U\), and it reaches the steady flow there in 19 s.</p>
   <div class="two">
     <div><h4>Accuracy: difference from the reference</h4><div class="table-wrap"><table class="full">
     <tr><th class="">Requirement</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
@@ -2248,7 +2249,7 @@ L 108 36
   <p class="small">Time to reach the steady flow from rest. gpucfd's times run from creating the solver to the final field; starting the GPU library adds 0.09 s once.</p></div>
   </div>
   <div class="two" style="margin-top: 14px">
-    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>Both tools agree with the benchmark about as closely as the benchmark's own grid allows.</li><li>The two tools agree with each other far more closely than either agrees with the benchmark, and the gap between them shrinks four times with each finer grid.</li><li>On the two finest grids gpucfd reaches the steady flow many times faster than OpenFOAM's first runs did.</li><li>By the case's own rules both tools get the same verdict, WARN, for the same reason: the benchmark differs from both along the horizontal centre line by more than the pass limit.</li></ul></div>
+    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>Both tools agree with the benchmark about as closely as the benchmark's own grid allows.</li><li>The two tools agree with each other far more closely than either agrees with the benchmark, and the gap between them shrinks four times with each finer grid.</li><li>On the two finest grids gpucfd reaches the steady flow many times faster than OpenFOAM's first runs did.</li><li>By the case's own rules both tools differ from what was expected in the same one place: the benchmark differs from both along the horizontal centre line by more than the limit set before the runs.</li></ul></div>
     <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>The speed table overstates the gap. OpenFOAM's times are the solver agent's first, untuned runs on one core, with a very strict stop. It was not run again.</li><li>The tools stop by different rules: OpenFOAM when its equations are satisfied to a set level, gpucfd when the flow no longer changes from one time unit to the next.</li><li>A flow in a plain box suits gpucfd. A flow around a body does not suit it as well (see the cylinder cases).</li><li>The benchmark is itself a computed solution from 1982 on a coarser grid, not an experiment.</li></ul></div>
   </div>
   <p class="small">Details: <a href="report.html">the full report of this case</a></p>

@@ -66,7 +66,7 @@ import yaml
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 from .contract import _req, lint
-from .report import TEMPLATES, keep_run_record
+from .report import TEMPLATES, keep_run_record, outcome
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = ROOT / "cases" / "briefs.yaml"
@@ -253,12 +253,15 @@ def from_case(folder, s):
     links = s.get("links") or ([dict(href="report.html", text="the full report of this case")] +
                                [dict(href=p.name, text="its study report") for p in sorted((ROOT / "results" / folder).glob("*_study.html"))])
     sentences = re.split(r"(?:(?<=[.!?])|(?<=[.!?]</b>))\s+(?=[A-Z<])", short(res["summary"]["headline"]))
+    shown = outcome(res)
+    if shown["note"] and sentences[0].startswith("<b>"):          # a report from before 2026-11-15 opens with its old verdict word
+        sentences = sentences[1:]
     headline = " ".join(sentences[:int(s.get("sentences", 2))])
     if s.get("also"):                                             # the plain headline of a study of the same case, added
         headline += " " + json.loads((ROOT / s["also"]).read_text(encoding="utf-8"))["summary"]["plain"].rstrip(".") + "."
     if rec and rec.get("plain"):                                  # gpucfd's result in one sentence, written by its script
         headline += " " + rec["plain"].rstrip(".") + "."
-    b = dict(title=res["title"], date=res["date"], verdict=res["verdict"], goal=s["goal"], story=s["story"],
+    b = dict(title=res["title"], date=res["date"], verdict=res["verdict"], outcome=shown, goal=s["goal"], story=s["story"],
              problem=dict(requirements=list(s["requirements"])),
              results=dict(headline=headline, meaning=list(s["meaning"]), limits=list(s["limits"])),
              accuracy=accuracy, speed=speed, links=links)

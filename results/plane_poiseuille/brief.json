@@ -2,6 +2,13 @@
  "title": "Pressure-driven laminar flow between two parallel plates",
  "date": "2026-11-11",
  "verdict": "PASS",
+ "outcome": {
+  "css": "PASS",
+  "mark": "✓",
+  "label": "Completed, as expected",
+  "short": "AS EXPECTED",
+  "note": ""
+ },
  "goal": "The first case of the project. It checks that the workflow and OpenFOAM reproduce a flow whose exact solution is known.",
  "story": "Solved with OpenFOAM by an agent that followed the workflow. gpucfd did not exist yet. It was run later on the same problem, with the same cells across the gap and the outputs formed in the same way.",
  "problem": {

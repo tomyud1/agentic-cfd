@@ -174,6 +174,9 @@ case, if you want to see the full set of files once.
   quantity, a monitored value that must stop changing) and its tolerance BEFORE seeing results.
   Normalised residuals alone are not enough. Transient problems: a per-step balance (change of a
   conserved quantity = boundary fluxes) is a strong check; it must use the solver's own time scheme.
+- Each rule has a kind. `requirement`: given with the problem; copy `required_accuracy` into the
+  report's problem block. `health`: what any sound run must do. `expectation`: a limit or prediction
+  of your own. Write them all down before the runs that they judge.
 - Pass/fail tolerances must discriminate: size them from the coarse pre-flight error and the expected
   order (what the finest mesh should reach), not from round numbers. A tolerance 100x looser than what
   is achieved proves nothing (case 3). Make the observed order of accuracy a rule of its own. A limit
@@ -347,8 +350,13 @@ case, if you want to see the full set of files once.
   text, lines, arrows or shapes, or whose legend covers data, or that are wider than the column.
   Fix the layout (labels away from lines, `annotate` with a leader line, legend outside); `allow=`
   only for overlaps that are truly intended, and log an insight if you need it.
-- Verdict: PASS only if every check you defined passes; WARN if results are usable with caveats;
-  FAIL otherwise. Never soften a failed check.
+- Outcome. List every rule you wrote before the runs in `expectations`, with what was expected and
+  what was found, and take the verdict from `report.verdict_from(expectations)`. FAIL is kept for an
+  experiment that failed: a requirement of the problem is missed (`required_accuracy` in
+  `problem.yaml`), an asked output could not be delivered, or the run is not healthy (your physical
+  convergence check, conservation). A limit or prediction of your own that a result misses is a
+  difference from what was expected: it gives WARN, shown as "completed, with differences". Never
+  drop or change a rule after the runs, and never file a requirement as your own expectation.
 
 ### 7. Visual review (mandatory)
 The contract checks structure; only looking catches what a reader will see. Open the report in the

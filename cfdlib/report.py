@@ -213,6 +213,47 @@ def keep_run_record(d, old_json):
     return d
 
 
+# ---- what the verdict means, and its words ----------------------------------------------------------------
+# Since 2026-11-15 FAIL is kept for an experiment that failed. A limit or prediction that the agent wrote for
+# itself before the runs is an expectation: a missed one is reported as "expected, found", not as a failure.
+EXPECTATION_KINDS = {
+    "requirement": "Required by the problem",           # problem.yaml, required_accuracy: a miss is a FAIL
+    "health": "Health of the run",                      # the run did what a run must (converged, conserved, delivered): a miss is a FAIL
+    "expectation": "The agent's own expectation",       # a limit or prediction written before the runs: a miss is a difference, noted
+}
+LEGACY_NOTE = {
+    "WARN": "This report was written before the wording changed on 15 November 2026. Where its text says WARN, a check "
+            "that the agent set for itself before the runs was not fully met.",
+    "FAIL": "This report was written before the wording changed on 15 November 2026. Where its text says FAIL or FAILED, "
+            "a result missed a limit that the agent set for itself before the runs. The experiment itself did not fail.",
+}
+
+
+def verdict_from(expectations):
+    """The verdict from the list of expectations (report-contract.md): FAIL if a requirement of the problem or a
+    health check of the run is not met, WARN if only the agent's own expectations are missed, else PASS."""
+    missed = {x["kind"] for x in expectations if not x["met"]}
+    return "FAIL" if missed & {"requirement", "health"} else "WARN" if missed else "PASS"
+
+
+def outcome(results):
+    """How a verdict is shown to a reader: dict(css, mark, label, short, note).
+
+    PASS: completed, as expected. WARN: completed, with differences from what was expected. FAIL: the
+    experiment failed. A case report without an `expectations` list is from before 2026-11-15, when FAIL meant
+    a missed limit of the agent's own: it is shown as differences, with a note that its text uses the old word.
+    A study report (cfdlib.study, key `question`) keeps its own meanings: caveats, or not a valid comparison."""
+    v = results["verdict"]
+    study = "question" in results
+    legacy = not study and "expectations" not in results
+    if v == "PASS":
+        return dict(css="PASS", mark="✓", label="Completed, as expected", short="AS EXPECTED", note="")
+    if v == "FAIL" and not legacy:
+        return dict(css="FAIL", mark="✗", label="Not a valid comparison" if study else "Failed", short="FAILED", note="")
+    return dict(css="WARN", mark="✓", label="Usable, with caveats" if study else "Completed, with differences from what was expected",
+                short="CAVEATS" if study else "DIFFERENCES", note=LEGACY_NOTE[v] if legacy else "")
+
+
 def render(results, figures, out_path, case_dir=None):
     """Check the contract, then write results.json and report.html next to out_path.
 
@@ -230,6 +271,13 @@ def render(results, figures, out_path, case_dir=None):
         if "reproducibility" in kept:
             results["reproducibility"] = kept["reproducibility"]
     results = kept
+    given = Path(out_path).resolve().parents[2] / "cases" / Path(out_path).resolve().parent.name / "problem.yaml"
+    if given.exists():                       # the accuracy required by the problem reaches the report unchanged
+        import yaml
+        need = (yaml.safe_load(given.read_text(encoding="utf-8")) or {}).get("required_accuracy")
+        if need and results.get("problem", {}).get("required_accuracy") != need:
+            raise ValueError(f"Report contract violated:\n  - problem.required_accuracy must be the list of {given} "
+                             "as given (key and text of each item)")
     errors = check(results, case_dir=case_dir, figures=figures)
     if errors:
         raise ValueError("Report contract violated:\n  - " + "\n  - ".join(errors))
@@ -253,6 +301,8 @@ def render(results, figures, out_path, case_dir=None):
     insights = sorted(results["insights"], key=lambda it: str(it.get("logged", "")))
     html = env.get_template("report.html.j2").render(
         r=results, figs=numbered, decision_groups=list(groups.items()), decision_kinds=DECISION_KINDS,
-        insights=insights, assumption_legend=ASSUMPTION_LEGEND, check_legend=CHECK_LEGEND)
+        insights=insights, assumption_legend=ASSUMPTION_LEGEND, check_legend=CHECK_LEGEND, outcome=outcome(results),
+        expectations=sorted(results.get("expectations", []), key=lambda x: (x["met"], list(EXPECTATION_KINDS).index(x["kind"]))),
+        expectation_kinds=EXPECTATION_KINDS)
     out_path.write_text(html, encoding="utf-8")
     return out_path

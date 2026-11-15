@@ -44,10 +44,22 @@
 </header>
 
 <!-- ============================== SUMMARY ============================== -->
-<section id="summary" class="summary {{ r.verdict }}">
-  <h2>Summary <span class="verdict">{{ {'PASS': '✓', 'WARN': '⚠', 'FAIL': '✗'}[r.verdict] }} {{ r.verdict }}</span>
+<section id="summary" class="summary {{ outcome.css }}">
+  <h2>Summary <span class="verdict">{{ outcome.mark }} {{ outcome.label }}</span>
       <span class="ctype">{{ r.comparison_type | capitalize }}</span></h2>
+  {% if outcome.note %}<p class="lead" style="font-size: 14px; margin: 4px 0 0">{{ outcome.note }}</p>{% endif %}
   <p class="headline">{{ r.summary.headline }}</p>
+  {% if expectations %}
+  <h4>Expected before the runs, and found</h4>
+  <div class="table-wrap"><table class="full">
+    <tr><th>What</th><th>Expected</th><th>Found</th><th>Met</th><th>Kind</th></tr>
+    {% for x in expectations %}
+    <tr><td>{{ x.text }}</td><td>{{ x.expected }}</td><td>{{ x.found }}</td>
+        <td class="status {{ 'ok' if x.met else ('fail' if x.kind != 'expectation' else 'warn') }}">{{ 'yes' if x.met else 'no' }}</td>
+        <td class="nw">{{ expectation_kinds[x.kind] }}</td></tr>
+    {% endfor %}
+  </table></div>
+  {% endif %}
   <h4>Answers to the request</h4>
   <div class="table-wrap"><table class="answers full">
     <tr>{% for h in r.summary.answer_columns %}<th class="{{ 'num' if loop.last else '' }}">{{ h }}</th>{% endfor %}</tr>
@@ -69,6 +81,10 @@
     <h4>What we want to find</h4>
     <ol>{% for w in r.problem.wanted %}<li><span class="letter">{{ w.letter }}</span><span>{{ w.text }}</span></li>{% endfor %}</ol>
   </div>
+  {% if r.problem.required_accuracy is defined and r.problem.required_accuracy %}
+  <h4>Required accuracy (given with the problem)</h4>
+  <ul class="points">{% for q in r.problem.required_accuracy %}<li>{{ q.text }}</li>{% endfor %}</ul>
+  {% endif %}
   {% if r.problem.setup is defined and r.problem.setup %}
   <h4>Setup</h4>
   <ul class="points">{% for s in r.problem.setup %}<li>{{ s }}</li>{% endfor %}</ul>

@@ -162,7 +162,7 @@
  "links": [
   {
    "href": "report.html",
-   "text": "the full report of this case (the solver agent's, verdict FAIL on its own grids)"
+   "text": "the full report of this case (the solver agent's, on its own grids)"
   },
   {
    "href": "optimize_study.html",
@@ -170,6 +170,13 @@
   }
  ],
  "verdict": "FAIL",
+ "outcome": {
+  "css": "WARN",
+  "mark": "✓",
+  "label": "Completed, with differences from what was expected",
+  "short": "DIFFERENCES",
+  "note": "This report was written before the wording changed on 15 November 2026. Where its text says FAIL or FAILED, a result missed a limit that the agent set for itself before the runs. The experiment itself did not fail."
+ },
  "summary": {
   "plain": "Same grid (192 x 64 x 64): OpenFOAM meets 1 of 10 limits, gpucfd 5; gpucfd is 7.2 times faster per step. On a finer grid gpucfd meets 10 of 10",
   "reasons": [

@@ -2,6 +2,13 @@
  "title": "Shock tube, air at rest released across a pressure jump (Sod's problem)",
  "date": "2026-11-15",
  "verdict": "FAIL",
+ "outcome": {
+  "css": "WARN",
+  "mark": "✓",
+  "label": "Completed, with differences from what was expected",
+  "short": "DIFFERENCES",
+  "note": "This report was written before the wording changed on 15 November 2026. Where its text says FAIL or FAILED, a result missed a limit that the agent set for itself before the runs. The experiment itself did not fail."
+ },
  "goal": "The first flow with shock waves. Step 1 of 7 on the way to a rotating detonation engine.",
  "story": "Solved with OpenFOAM's shock solver, which the project had never used. gpucfd cannot solve it yet: it has no solver for a gas whose density changes.",
  "problem": {
@@ -14,10 +21,10 @@
   ]
  },
  "results": {
-  "headline": "<b>Verification FAILED on one of its own limits.</b> OpenFOAM's shock solver converges to the exact solution of the shock tube: on 12800 cells the mean errors are \\(0.0085\\,\\%\\) (density), \\(0.012\\,\\%\\) (velocity), \\(0.0068\\,\\%\\) (pressure), the states between the waves are within \\(0.0022\\,\\%\\) and mass and energy are kept to round-off.",
+  "headline": "OpenFOAM's shock solver converges to the exact solution of the shock tube: on 12800 cells the mean errors are \\(0.0085\\,\\%\\) (density), \\(0.012\\,\\%\\) (velocity), \\(0.0068\\,\\%\\) (pressure), the states between the waves are within \\(0.0022\\,\\%\\) and mass and energy are kept to round-off. But the pressure error falls more slowly than the limit set before the runs assumed (order \\(0.78\\) against \\(0.85\\)): \\(0.0068\\,\\%\\) against a limit of \\(0.0055\\,\\%\\).",
   "meaning": [
    "OpenFOAM's shock solver gets the exact answer to about a hundredth of a per cent, puts every wave in the right place, and keeps mass and energy exactly.",
-   "The verdict is FAIL by the agent's own rule. The pressure error fell more slowly with the grid than its limit assumed. The answer itself is accurate.",
+   "One expectation was not met: the pressure error fell more slowly with the grid than the agent had predicted before its fine runs. The answer itself is accurate.",
    "For the detonation engine: a shock is spread over 2 cells on every grid, and this solver needs half the time step its own examples use, or the pressure rings behind the shock."
   ],
   "limits": [

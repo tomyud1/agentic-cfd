@@ -612,3 +612,28 @@ try:
 except ValueError:
     pass
 print("shock-flow tools (number format, answer lines, pre-flight end time, mean error, cell averages, projection): ok")
+
+# 18. The verdict's meaning since 2026-11-15: FAIL only when the experiment failed; a missed expectation of the
+# agent's own is a difference, shown as "expected, found".
+x18 = lambda kind, met, **k: dict(kind=kind, text="t", expected="e", found="f", met=met, **k)   # noqa: E731
+assert report17.verdict_from([x18("health", True), x18("expectation", True)]) == "PASS"
+assert report17.verdict_from([x18("health", True), x18("expectation", False)]) == "WARN"
+assert report17.verdict_from([x18("health", True), x18("requirement", False), x18("expectation", True)]) == "FAIL"
+assert report17.verdict_from([x18("health", False)]) == "FAIL"
+old18 = dict(verdict="FAIL", date="2026-11-11", title="an old case")                    # a report from before the wording
+o18 = report17.outcome(old18)
+assert o18["css"] == "WARN" and o18["short"] == "DIFFERENCES" and "did not fail" in o18["note"]
+assert report17.outcome(dict(old18, verdict="PASS"))["short"] == "AS EXPECTED" and report17.outcome(dict(old18, verdict="WARN"))["note"]
+new18 = dict(verdict="FAIL", date="2026-11-16", title="a new case", expectations=[x18("health", False)], problem={})
+assert report17.outcome(new18)["css"] == "FAIL" and report17.outcome(new18)["label"] == "Failed" and not report17.outcome(new18)["note"]
+assert report17.outcome(dict(verdict="FAIL", question="q"))["label"] == "Not a valid comparison"      # a study keeps its meaning
+assert contract.check_expectations(old18) == [] and contract.check_expectations(new18) == []
+assert "expectations" in contract.check_expectations(dict(verdict="PASS", date="2026-11-16", title="a new case", problem={}))[0]
+soft18 = dict(new18, verdict="FAIL", expectations=[x18("health", True), x18("expectation", False)])
+assert "does not follow" in contract.check_expectations(soft18)[0]                           # a missed expectation is not a FAIL
+hide18 = dict(new18, verdict="WARN", expectations=[x18("health", True), x18("expectation", False)],
+              problem=dict(required_accuracy=[dict(key="drag", text="within 1 %")]))
+assert "no requirement entry with key ['drag']" in contract.check_expectations(hide18)[0]     # a requirement cannot be left out
+ok18 = dict(hide18, verdict="FAIL", expectations=hide18["expectations"] + [x18("requirement", False, key="drag")])
+assert contract.check_expectations(ok18) == [] and "at least one health" in contract.check_expectations(dict(new18, verdict="PASS", expectations=[x18("expectation", True)]))[0]
+print("verdict wording: FAIL only for a failed experiment; expectations checked: ok")

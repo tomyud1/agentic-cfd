@@ -28,7 +28,8 @@
 <header>
   <div class="kicker">Agentic CFD progress report · {{ r.date }}</div>
   <h1>{{ r.title }}</h1>
-  {% if r.get('verdict') %}<div class="{{ r.verdict }}" style="margin-top: 8px"><span class="verdict">Verdict of the case: {{ r.verdict }}</span></div>{% endif %}
+  {% if r.get('outcome') %}<div class="{{ r.outcome.css }}" style="margin-top: 8px"><span class="verdict">{{ r.outcome.mark }} {{ r.outcome.label }}</span></div>
+  {% elif r.get('verdict') %}<div class="{{ r.verdict }}" style="margin-top: 8px"><span class="verdict">Verdict of the case: {{ r.verdict }}</span></div>{% endif %}
 </header>
 
 <section id="goal">

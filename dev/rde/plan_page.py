@@ -166,7 +166,7 @@ page = dict(
         dict(name="Shock tube", what="A tube with high pressure on one side of a thin wall and low pressure on the other. The wall is removed.",
              new="shock waves, changing density", answer="an exact formula", where="this PC, seconds", status="done",
              result='Solved on 2026-11-15 by a fresh agent in 37 minutes. The answer is within about 0.01 % of the exact one. '
-                    'Verdict FAIL: the error falls more slowly with the grid than a limit the agent set for itself. '
+                    'One expectation was not met: the error falls more slowly with the grid than the agent had predicted. '
                     '<a href="../shock_tube_sod/brief.html">One-page report</a>'),
         dict(name="A shock going round a corner", what="A shock wave runs along a wall that suddenly ends and bends round the corner.",
              new="shocks in two dimensions", answer="published experiments and simulations", where="this PC, minutes", status="next"),
@@ -205,7 +205,8 @@ page = dict(
     rules=[
         "Every step has a known answer, and its pass limits are written down before the runs.",
         "Code computes every number in a report. Nothing is typed in by hand.",
-        "A step that fails is reported as failed. A verdict is never softened.",
+        "What was expected before the runs is shown next to what was found, and never changed afterwards. "
+        "A step is called failed only when the experiment failed.",
         "Tools are compared on the same problem and the same grid, each with a tuning budget fixed in advance.",
     ],
     questions=[

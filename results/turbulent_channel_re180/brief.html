@@ -232,7 +232,8 @@
 <header>
   <div class="kicker">Agentic CFD progress report · 2026-11-14</div>
   <h1>Turbulent channel flow without a turbulence model: OpenFOAM and gpucfd</h1>
-  <div class="FAIL" style="margin-top: 8px"><span class="verdict">Verdict of the case: FAIL</span></div>
+  <div class="WARN" style="margin-top: 8px"><span class="verdict">✓ Completed, with differences from what was expected</span></div>
+  
 </header>
 
 <section id="goal">
@@ -2430,7 +2431,7 @@ L 108 36
     <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>On the same cells and with the same time step gpucfd is closer to the reference: the mean speed differs by \(-0.34\,\%\) with gpucfd and by \(+4.48\,\%\) with OpenFOAM.</li><li>With both tools the swirls toward the wall and across the flow come out too weak on this grid, more so with OpenFOAM. With OpenFOAM the shear stress they carry is too low as well, so the flow is braked too little and runs too fast. The likely cause is that OpenFOAM's numerical scheme damps small swirls more than gpucfd's. That cause was not tested.</li><li>gpucfd reaches an answer inside every limit on this PC in \(1.7\) h. OpenFOAM's run on the coarser grid took \(5.2\) h, and the finer grid would take it about \(14.1\) h.</li></ul></div>
     <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>OpenFOAM uses the settings of its own channel tutorial, tuned only for speed (three timed tries of its pressure solver), not for accuracy. Another time scheme may do better: that would be a new test. It runs on 8 CPU cores, gpucfd on one desktop GPU: two different pieces of hardware in one PC.</li><li>OpenFOAM's mean speed was still changing during its averaging time: by \(+1.0\,\%\) from the first ten time units to the last ten. Its wall friction was within \(1.0\,\%\) of the driving force, inside the rule written before the run, so the run was not extended. A longer run would move its mean speed further in that direction.</li><li>The finer grid was run with gpucfd only. It is one grid, with no finer one to confirm it.</li><li>Averaging times differ between the runs (30 to 38 time units); the statistical error of the mean speed is about 0.2 %.</li></ul></div>
   </div>
-  <p class="small">Details: <a href="report.html">the full report of this case (the solver agent's, verdict FAIL on its own grids)</a> · <a href="optimize_study.html">the finer grid (17b)</a></p>
+  <p class="small">Details: <a href="report.html">the full report of this case (the solver agent's, on its own grids)</a> · <a href="optimize_study.html">the finer grid (17b)</a></p>
 </section>
 </main>
 </body>

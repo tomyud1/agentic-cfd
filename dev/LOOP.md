@@ -43,7 +43,9 @@ Insights are gathered all the way through, from every agent.
    Write the case's purpose in one line (what it adds: a new kind of problem for OpenFOAM, for
    gpucfd, or for both). The case ends in a one-page progress report (step 9).
 2. **Prepare.**
-   - Write `cases/<name>/problem.yaml`: physical inputs only, no numerical choices.
+   - Write `cases/<name>/problem.yaml`: physical inputs only, no numerical choices. State the
+     accuracy the answer needs (`required_accuracy`: a list of `{key, text}`, the key of a
+     requested output): only a missed requirement, or a broken run, makes the experiment FAIL.
      `python -m cfdlib.contract --problem cases/<name>/problem.yaml` says whether the report will
      accept it as written (the solver agent may not change it).
    - Put the reference data in `cases/<name>/reference/`, transcribed from the original source,
@@ -84,7 +86,9 @@ Insights are gathered all the way through, from every agent.
      error claimed (case 17: the scatter was three times the tool's error).
    - Is each explanation checked against the data (sign, size, scaling)?
    - Is the verdict fair? Never soften it. If the review finds the verdict wrong, say so in the
-     changelog; do not edit the report.
+     changelog; do not edit the report. Check the kinds in the report's `expectations`: every item
+     of the problem's `required_accuracy` is there as a requirement, and nothing that the problem
+     requires is filed as the agent's own expectation.
    - Open the report in a browser and look at every section.
    - Note the cost: wall-clock minutes, tokens, how often a human had to step in, and where the
      time went (case 6: about 40 of 96 minutes went to tool problems).

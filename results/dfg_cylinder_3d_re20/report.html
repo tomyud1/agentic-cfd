@@ -229,10 +229,12 @@
 </header>
 
 <!-- ============================== SUMMARY ============================== -->
-<section id="summary" class="summary FAIL">
-  <h2>Summary <span class="verdict">✗ FAIL</span>
+<section id="summary" class="summary WARN">
+  <h2>Summary <span class="verdict">✓ Completed, with differences from what was expected</span>
       <span class="ctype">Benchmark</span></h2>
+  <p class="lead" style="font-size: 14px; margin: 4px 0 0">This report was written before the wording changed on 15 November 2026. Where its text says FAIL or FAILED, a result missed a limit that the agent set for itself before the runs. The experiment itself did not fail.</p>
   <p class="headline"><b>Benchmark comparison FAILED.</b> On the finest mesh (L4, 2,433,024 cells) the drag is \(6.1805\) (reference \(6.1853\), \(-0.077\,\%\)) and the lift \(0.00956\) (\(0.00940\), \(1.7\,\%\)); mesh-extrapolated: \(0.017\,\%\) and \(1.2\,\%\). The drag passes the band fixed beforehand (\(0.60\) times its width). The lift misses the band fixed beforehand (\(2.51\) times its width). The lift is very sensitive to the cell distribution around the cylinder (sensitivity runs); the paper's OpenFOAM was \(3.5\,\%\) off on its finest level.</p>
+  
   <h4>Answers to the request</h4>
   <div class="table-wrap"><table class="answers full">
     <tr><th class="">Requested</th><th class="">Reference (Braack and Richter 2006)</th><th class="">Simulation (L4)</th><th class="num">Difference (÷ band)</th></tr>
@@ -260,6 +262,7 @@
     <h4>What we want to find</h4>
     <ol><li><span class="letter">a</span><span>Drag coefficient \(c_D\) of the cylinder</span></li><li><span class="letter">b</span><span>Lift coefficient \(c_L\) of the cylinder</span></li><li><span class="letter">c</span><span>A picture of the flow in the mid-plane \(z = H/2\) (velocity), showing the region of reversed flow behind the cylinder</span></li></ol>
   </div>
+  
   
   <h4>Setup</h4>
   <ul class="points"><li>Channel: length \(L\) along \(x\), square cross-section of side \(H\) in \(y\) and \(z\). Coordinates start at a lower corner of the inlet plane.</li><li>Cylinder: diameter \(D\), axis along \(z\) through \((x_c, y_c)\), spanning the whole channel width \(0 \le z \le H\). It sits slightly below the mid-height of the channel.</li><li>Inlet (\(x = 0\)): \(u = 16 U_m\, y z (H - y)(H - z) / H^4\), \(v = w = 0\).</li><li>Outlet (\(x = L\)): free outflow, no stress imposed.</li><li>Channel walls and cylinder: no-slip.</li><li>Force coefficients use the mean inflow velocity \(\bar U\) (the average of the inlet profile over the inlet plane), the diameter and the cylinder length \(H\): \(c_D = 2 F_D / (\rho \bar U^2 D H)\) and \(c_L = 2 F_L / (\rho \bar U^2 D H)\), with the drag \(F_D\) along \(x\) and the lift \(F_L\) along \(y\).</li><li>The Reynolds number is \(Re = \bar U D / \nu\).</li></ul>

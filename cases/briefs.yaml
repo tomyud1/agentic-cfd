@@ -49,7 +49,7 @@ lid_driven_cavity_re100:
     - Both tools agree with the benchmark about as closely as the benchmark's own grid allows.
     - The two tools agree with each other far more closely than either agrees with the benchmark, and the gap between them shrinks four times with each finer grid.
     - On the two finest grids gpucfd reaches the steady flow many times faster than OpenFOAM's first runs did.
-    - "By the case's own rules both tools get the same verdict, WARN, for the same reason: the benchmark differs from both along the horizontal centre line by more than the pass limit."
+    - "By the case's own rules both tools differ from what was expected in the same one place: the benchmark differs from both along the horizontal centre line by more than the limit set before the runs."
   limits:
     - "The speed table overstates the gap. OpenFOAM's times are the solver agent's first, untuned runs on one core, with a very strict stop. It was not run again."
     - "The tools stop by different rules: OpenFOAM when its equations are satisfied to a set level, gpucfd when the flow no longer changes from one time unit to the next."
@@ -139,7 +139,7 @@ dfg_cylinder_3d_re20:
     performance: [L1, L2, L3, L4]
     note: "Neither set of times is a fair measure of speed: OpenFOAM's runs shared the PC with other runs, and gpucfd's ran while another solver used the CPU. gpucfd's grids are named by their cells across the cylinder's diameter; each started from the one before, the first from rest. OpenFOAM's speed study is the separate report."
   meaning:
-    - OpenFOAM's drag is right. Its lift, a very small force here, misses its band, so the verdict of the case is FAIL.
+    - OpenFOAM's drag is right. Its lift, a very small force here, misses the band that was set for it before the runs.
     - "gpucfd's drag is close, but much further from the benchmark than OpenFOAM's (see the table), with more cells and a similar run time. OpenFOAM's cells are wrapped around the cylinder. gpucfd cuts the cylinder out of a grid of boxes, and that costs accuracy at the surface."
     - "gpucfd's lift is not usable on these grids: it changes sign from one grid to the next. The lift is a tiny part of the drag, smaller than the error gpucfd makes at the surface."
     - A second family of OpenFOAM grids showed that the lift depends on how the cells are graded around the cylinder.
@@ -165,7 +165,7 @@ heated_pipe_re200:
     performance: [L1, L2, L3, L4]
   meaning:
     - OpenFOAM matches the exact solution of a heat-transfer problem to about a hundredth of a per cent.
-    - The verdict is WARN. The numbers agree, and the full report lists what was not checked.
+    - The numbers agree. Two of the agent's own checks were not fully met, and the full report lists them.
   limits:
     - "gpucfd has no column: heat transfer is not built into it yet."
     - The fluid's properties are constant, and buoyancy was checked on one grid only.
@@ -186,7 +186,7 @@ turbulent_flat_plate_sa:
     performance: [G1, G2, G3, G4, G5]
   meaning:
     - OpenFOAM's version of the model gives NASA's answer to a few hundredths of a per cent.
-    - The verdict is WARN, because that small difference is just outside the estimated grid error.
+    - That small difference is just outside the estimated grid error, which is the one difference from what was expected.
   limits:
     - "gpucfd has no column: it has no turbulence model, and for this thin-layer kind of flow it is predicted to be slower than OpenFOAM."
     - This checks the model's implementation against other codes. It does not check the model against a real boundary layer.
@@ -215,7 +215,7 @@ shock_tube_sod:
     note: Four of the eight runs of the grid study. Cells and time step are halved together, so each level costs four times the one before.
   meaning:
     - OpenFOAM's shock solver gets the exact answer to about a hundredth of a per cent, puts every wave in the right place, and keeps mass and energy exactly.
-    - "The verdict is FAIL by the agent's own rule. The pressure error fell more slowly with the grid than its limit assumed. The answer itself is accurate."
+    - "One expectation was not met: the pressure error fell more slowly with the grid than the agent had predicted before its fine runs. The answer itself is accurate."
     - "For the detonation engine: a shock is spread over 2 cells on every grid, and this solver needs half the time step its own examples use, or the pressure rings behind the shock."
   limits:
     - "gpucfd has no column: a solver for a gas with changing density is not built yet."

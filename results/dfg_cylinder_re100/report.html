@@ -230,9 +230,11 @@
 
 <!-- ============================== SUMMARY ============================== -->
 <section id="summary" class="summary WARN">
-  <h2>Summary <span class="verdict">⚠ WARN</span>
+  <h2>Summary <span class="verdict">✓ Completed, with differences from what was expected</span>
       <span class="ctype">Benchmark</span></h2>
+  <p class="lead" style="font-size: 14px; margin: 4px 0 0">This report was written before the wording changed on 15 November 2026. Where its text says WARN, a check that the agent set for itself before the runs was not fully met.</p>
   <p class="headline"><b>Benchmark comparison passed with caveats.</b> On the finest mesh (M4, 214,912 cells) the mean drag is \(3.1964\) (reference \(3.1884\)), the lift amplitude \(2.0147\) (\(2.0080\)) and the Strouhal number \(0.3015\) (\(0.3019\)).</p>
+  
   <h4>Answers to the request</h4>
   <div class="table-wrap"><table class="answers full">
     <tr><th class="">Requested</th><th class="">Reference (FeatFlow level 6, \(\Delta t = 1/200\,\mathrm{s}\))</th><th class="">Simulation (M4, last cycle)</th><th class="num">Difference (÷ band)</th></tr>
@@ -264,6 +266,7 @@
     <h4>What we want to find</h4>
     <ol><li><span class="letter">a</span><span>Drag coefficient over one shedding cycle of the fully developed flow: maximum, minimum, mean and amplitude</span></li><li><span class="letter">b</span><span>Lift coefficient over one shedding cycle: maximum, minimum, mean and amplitude</span></li><li><span class="letter">c</span><span>Shedding frequency \(f\) and Strouhal number \(St\)</span></li><li><span class="letter">d</span><span>A picture of the flow (vorticity or velocity) at the moment of maximum lift, showing the vortex street</span></li></ol>
   </div>
+  
   
   <h4>Setup</h4>
   <ul class="points"><li>Channel of height \(H\) and length \(L\). A cylinder of diameter \(D\) is centred at \((x_c, y_c)\), slightly below the centreline.</li><li>Coordinates: \(x\) along the channel from the inlet, \(y\) across it from the lower wall.</li><li>Inlet (\(x = 0\)): parabolic velocity profile \(u = 4 U_m\, y (H - y) / H^2\), \(v = 0\).</li><li>Outlet (\(x = L\)): free outflow, no stress imposed.</li><li>Channel walls and cylinder: no-slip (the fluid sticks to them).</li><li>Force coefficients use the mean inflow velocity \(\bar U = \tfrac{2}{3} U_m\) and the diameter: \(c = 2F / (\rho \bar U^2 D)\) per unit depth, with the drag \(F_D\) along \(x\) and the lift \(F_L\) along \(y\).</li><li>Strouhal number: \(St = f D / \bar U\), where \(f\) is the frequency of the lift.</li></ul>

@@ -2,6 +2,13 @@
  "title": "Impulsively started flat plate (Stokes' first problem)",
  "date": "2026-11-11",
  "verdict": "PASS",
+ "outcome": {
+  "css": "PASS",
+  "mark": "✓",
+  "label": "Completed, as expected",
+  "short": "AS EXPECTED",
+  "note": ""
+ },
  "goal": "The first flow that changes in time, checked against an exact solution.",
  "story": "Solved first with OpenFOAM. gpucfd was then run on the same problem, with the same cells and the same time steps, and its outputs were formed by the case's own code. Nothing was tuned.",
  "problem": {

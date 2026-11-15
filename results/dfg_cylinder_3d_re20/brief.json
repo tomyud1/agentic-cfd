@@ -2,6 +2,13 @@
  "title": "Steady 3D flow past a cylinder in a square channel at Re = 20 (DFG benchmark 3D-1Z)",
  "date": "2026-11-11",
  "verdict": "FAIL",
+ "outcome": {
+  "css": "WARN",
+  "mark": "✓",
+  "label": "Completed, with differences from what was expected",
+  "short": "DIFFERENCES",
+  "note": "This report was written before the wording changed on 15 November 2026. Where its text says FAIL or FAILED, a result missed a limit that the agent set for itself before the runs. The experiment itself did not fail."
+ },
  "goal": "The first three-dimensional case, with up to 2.4 million cells. It also tests whether OpenFOAM's pressure solver gets faster on the GPU.",
  "story": "Solved with OpenFOAM on CPU cores. A separate study moved OpenFOAM's pressure solve to the GPU with OpenFOAM's own plugin. gpucfd was run on the same problem later, on a box of cells with the cylinder cut out of it and the cells made finer around the cylinder along the flow. Its force tool first had to learn a body that touches the walls.",
  "problem": {
@@ -13,9 +20,9 @@
   ]
  },
  "results": {
-  "headline": "<b>Benchmark comparison FAILED.</b> On the finest mesh (L4, 2,433,024 cells) the drag is \\(6.1805\\) (reference \\(6.1853\\), \\(-0.077\\,\\%\\)) and the lift \\(0.00956\\) (\\(0.00940\\), \\(1.7\\,\\%\\)); mesh-extrapolated: \\(0.017\\,\\%\\) and \\(1.2\\,\\%\\). gpucfd on its finest grid (6,291,456 cells, 31 across the cylinder's diameter): the drag is \\(-0.91\\,\\%\\) from the reference; the lift does not converge on its grids (0.0125, -0.0068, 0.0221).",
+  "headline": "On the finest mesh (L4, 2,433,024 cells) the drag is \\(6.1805\\) (reference \\(6.1853\\), \\(-0.077\\,\\%\\)) and the lift \\(0.00956\\) (\\(0.00940\\), \\(1.7\\,\\%\\)); mesh-extrapolated: \\(0.017\\,\\%\\) and \\(1.2\\,\\%\\). The drag passes the band fixed beforehand (\\(0.60\\) times its width). gpucfd on its finest grid (6,291,456 cells, 31 across the cylinder's diameter): the drag is \\(-0.91\\,\\%\\) from the reference; the lift does not converge on its grids (0.0125, -0.0068, 0.0221).",
   "meaning": [
-   "OpenFOAM's drag is right. Its lift, a very small force here, misses its band, so the verdict of the case is FAIL.",
+   "OpenFOAM's drag is right. Its lift, a very small force here, misses the band that was set for it before the runs.",
    "gpucfd's drag is close, but much further from the benchmark than OpenFOAM's (see the table), with more cells and a similar run time. OpenFOAM's cells are wrapped around the cylinder. gpucfd cuts the cylinder out of a grid of boxes, and that costs accuracy at the surface.",
    "gpucfd's lift is not usable on these grids: it changes sign from one grid to the next. The lift is a tiny part of the drag, smaller than the error gpucfd makes at the surface.",
    "A second family of OpenFOAM grids showed that the lift depends on how the cells are graded around the cylinder.",

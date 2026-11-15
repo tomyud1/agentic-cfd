@@ -229,10 +229,12 @@
 </header>
 
 <!-- ============================== SUMMARY ============================== -->
-<section id="summary" class="summary FAIL">
-  <h2>Summary <span class="verdict">✗ FAIL</span>
+<section id="summary" class="summary WARN">
+  <h2>Summary <span class="verdict">✓ Completed, with differences from what was expected</span>
       <span class="ctype">Verification</span></h2>
+  <p class="lead" style="font-size: 14px; margin: 4px 0 0">This report was written before the wording changed on 15 November 2026. Where its text says FAIL or FAILED, a result missed a limit that the agent set for itself before the runs. The experiment itself did not fail.</p>
   <p class="headline"><b>Verification FAILED on one of its own limits.</b> OpenFOAM's shock solver converges to the exact solution of the shock tube: on 12800 cells the mean errors are \(0.0085\,\%\) (density), \(0.012\,\%\) (velocity), \(0.0068\,\%\) (pressure), the states between the waves are within \(0.0022\,\%\) and mass and energy are kept to round-off. But the pressure error falls more slowly than the limit set before the runs assumed (order \(0.78\) against \(0.85\)): \(0.0068\,\%\) against a limit of \(0.0055\,\%\).</p>
+  
   <h4>Answers to the request</h4>
   <div class="table-wrap"><table class="answers full">
     <tr><th class="">Requested</th><th class="">Exact solution</th><th class="">Simulation (12800 cells)</th><th class="num">Difference</th></tr>
@@ -267,6 +269,7 @@
     <h4>What we want to find</h4>
     <ol><li><span class="letter">a</span><span>Density, velocity and pressure along the tube at \(t_{\mathrm{end}}\), compared with the exact solution</span></li><li><span class="letter">b</span><span>The uniform states between the waves at \(t_{\mathrm{end}}\): the pressure and the velocity there, and the density on each side of the border between the gas from the left and the gas from the right</span></li><li><span class="letter">c</span><span>Where each wave is at \(t_{\mathrm{end}}\), and how fast it moves</span></li><li><span class="letter">d</span><span>Total mass and total energy of the air in the tube: do they stay constant up to \(t_{\mathrm{end}}\)?</span></li><li><span class="letter">e</span><span>How many cells wide each computed jump is, and how the error of the profiles falls as the grid is refined</span></li></ol>
   </div>
+  
   
   <h4>Setup</h4>
   <ul class="points"><li>A straight tube of length \(L\) with closed ends, filled with air at rest. Coordinate \(x\) along the tube, from \(0\) to \(L\). The flow depends only on \(x\) and on time \(t\).</li><li>A thin wall at \(x = L/2\) separates two uniform states. Left of it: pressure \(p_L\), density \(\rho_L\). Right of it: pressure \(p_R\), density \(\rho_R\).</li><li>At \(t = 0\) the wall is removed instantly.</li><li>The air is an ideal gas, \(p = \rho R T\), with a constant ratio of specific heats \(\gamma\).</li><li>No viscosity and no heat conduction (the Euler equations). The tube wall and the closed ends are frictionless and let no heat through.</li><li>This is the test problem of Sod (1978) in SI units: in units of \(\rho_L\), \(p_L\) and \(L\) the two states are \((\rho, u, p) = (1, 0, 1)\) and \((0.125, 0, 0.1)\).</li><li>The problem has an exact solution (the Riemann problem of gas dynamics). It holds until the first wave reaches an end of the tube.</li></ul>

@@ -2,6 +2,13 @@
  "title": "Turbulent boundary layer on a flat plate with the Spalart-Allmaras model (NASA TMR case 2DZP)",
  "date": "2026-11-13",
  "verdict": "WARN",
+ "outcome": {
+  "css": "WARN",
+  "mark": "✓",
+  "label": "Completed, with differences from what was expected",
+  "short": "DIFFERENCES",
+  "note": "This report was written before the wording changed on 15 November 2026. Where its text says WARN, a check that the agent set for itself before the runs was not fully met."
+ },
  "goal": "The first turbulent flow, computed with a turbulence model.",
  "story": "Solved with OpenFOAM on the grids NASA publishes for this test. gpucfd has no turbulence model, so it cannot run this case. For turbulence computed without a model, see the turbulent channel (case 17).",
  "problem": {
@@ -13,10 +20,10 @@
   ]
  },
  "results": {
-  "headline": "<b>WARN.</b> OpenFOAM's Spalart-Allmaras model, set to NASA's standard form, gives a grid-converged skin friction at \\(x_1\\) of \\(0.0027286\\), \\(-0.028\\,\\%\\) from NASA's incompressible reference (\\(0.0027294\\); combined grid uncertainty \\(0.024\\,\\%\\)).",
+  "headline": "OpenFOAM's Spalart-Allmaras model, set to NASA's standard form, gives a grid-converged skin friction at \\(x_1\\) of \\(0.0027286\\), \\(-0.028\\,\\%\\) from NASA's incompressible reference (\\(0.0027294\\); combined grid uncertainty \\(0.024\\,\\%\\)).",
   "meaning": [
    "OpenFOAM's version of the model gives NASA's answer to a few hundredths of a per cent.",
-   "The verdict is WARN, because that small difference is just outside the estimated grid error."
+   "That small difference is just outside the estimated grid error, which is the one difference from what was expected."
   ],
   "limits": [
    "gpucfd has no column: it has no turbulence model, and for this thin-layer kind of flow it is predicted to be slower than OpenFOAM.",

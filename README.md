@@ -31,9 +31,9 @@ solves is used to improve it ([how it works](#how-it-works)).
 Each case is given to a **fresh agent** that has never seen it, with only the problem statement, the
 tools and the guidelines. So far that covers laminar flow, steady and unsteady, in 2D and 3D, heat
 transfer, and a first turbulent flow with a turbulence model (RANS), each checked against an exact
-solution or a published benchmark (Ghia et al., FeatFlow, NASA's Turbulence Modeling Resource). Every report ends in a verdict, PASS, WARN or FAIL, set by accuracy rules the agent fixed
-before seeing its results. Verdicts are never softened: the failures are listed in
-[cases/README.md](cases/README.md) next to the passes.
+solution or a published benchmark (Ghia et al., FeatFlow, NASA's Turbulence Modeling Resource). Before its runs the agent writes down what it
+expects, and every report shows each expectation next to what was found. Nothing written before
+the runs is changed afterwards; the differences are listed in [cases/README.md](cases/README.md).
 
 ## GPU solver (gpucfd)
 
@@ -57,7 +57,7 @@ GPU.
   [study report](https://tomyud1.github.io/agentic-cfd/results/dfg_cylinder_re100/gpu_study.html)).
 - **Not yet:** turbulence models, heat transfer. A turbulent flow computed without a model runs
   (a channel, 2 to 9 times OpenFOAM's speed per step). The agent's own grids did not resolve its
-  profiles (case 17, verdict FAIL); a follow-up stage found a grid that meets every limit of the
+  profiles (case 17); a follow-up stage found a grid that meets every limit of the
   case in 1.7 GPU hours, without a grid study at that level. OpenFOAM's
   body-fitted grid is still the cheaper way to a given accuracy for bodies at Re 100 (case 4: drag
   within 0.25% at 13 thousand cells in under 3 minutes; gpucfd needs 459 thousand cells).

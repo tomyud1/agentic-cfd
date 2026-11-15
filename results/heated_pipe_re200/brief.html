@@ -232,7 +232,8 @@
 <header>
   <div class="kicker">Agentic CFD progress report · 2026-11-13</div>
   <h1>Laminar water flow in a tube heated with a uniform wall heat flux</h1>
-  <div class="WARN" style="margin-top: 8px"><span class="verdict">Verdict of the case: WARN</span></div>
+  <div class="WARN" style="margin-top: 8px"><span class="verdict">✓ Completed, with differences from what was expected</span></div>
+  
 </header>
 
 <section id="goal">
@@ -1980,7 +1981,7 @@ z
 
 <section id="results">
   <h2>Results</h2>
-  <p class="headline"><b>WARN.</b> The simulated local Nusselt number matches the exact solution to \(0.005\,\%\) (RMS, finest mesh), the fully developed value to \(+0.011\,\%\) and the 5 % entrance length \(60.1\,D\) to \(-0.067\,\%\).</p>
+  <p class="headline">The simulated local Nusselt number matches the exact solution to \(0.005\,\%\) (RMS, finest mesh), the fully developed value to \(+0.011\,\%\) and the 5 % entrance length \(60.1\,D\) to \(-0.067\,\%\).</p>
   <div class="two">
     <div><h4>Accuracy</h4><div class="table-wrap"><table class="full">
     <tr><th class="">Requirement</th><th class="num">OpenFOAM: difference from the reference</th><th class="num">gpucfd</th></tr>
@@ -2010,7 +2011,7 @@ z
   </div>
   </div>
   <div class="two" style="margin-top: 14px">
-    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>OpenFOAM matches the exact solution of a heat-transfer problem to about a hundredth of a per cent.</li><li>The verdict is WARN. The numbers agree, and the full report lists what was not checked.</li></ul></div>
+    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>OpenFOAM matches the exact solution of a heat-transfer problem to about a hundredth of a per cent.</li><li>The numbers agree. Two of the agent's own checks were not fully met, and the full report lists them.</li></ul></div>
     <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>gpucfd has no column: heat transfer is not built into it yet.</li><li>The fluid's properties are constant, and buoyancy was checked on one grid only.</li></ul></div>
   </div>
   <p class="small">Details: <a href="report.html">the full report of this case</a></p>

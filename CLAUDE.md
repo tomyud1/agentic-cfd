@@ -107,6 +107,11 @@ enthusiastic about all of it: the workflow, the reports and gpucfd. Measure ever
   student can follow, check and present the work.
 - **Be honest.** Report failures, fair comparisons and limits in full. The supervisor is a CFD
   expert, and one overstated claim costs more trust than a FAIL verdict.
+- **FAIL means the experiment failed** (decided 2026-11-15): a requirement stated by the problem is
+  missed, an asked output could not be delivered, or the run broke. A limit or prediction that an
+  agent wrote for itself before its runs is an expectation; a missed one is shown as "expected,
+  found", clearly and never dropped. So every problem states its required accuracy
+  (`required_accuracy` in `problem.yaml`): without one, nothing but a broken run can fail.
 
 ## Where things are
 

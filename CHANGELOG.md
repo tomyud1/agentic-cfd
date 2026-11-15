@@ -15,6 +15,29 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
+### FAIL now means that the experiment failed, commit hash to be filled in
+The student's decision, after case 18 was labelled FAIL with an answer within 0.01 % of the exact
+one: a gallery of WARN and FAIL chips reads as a failing project when only an agent's own
+prediction was missed.
+- **The new meaning.** Before its runs the agent writes down every rule: what the problem
+  requires, what any sound run must do, and its own limits and predictions. The report shows
+  each as "expected, found, met or not". **Failed** is kept for a missed requirement of the
+  problem, an output that could not be delivered, or a broken run. A missed limit of the agent's
+  own gives **completed, with differences from what was expected**.
+- **What keeps it honest.** Rules are still written before the runs and never changed after.
+  The report tool computes the verdict from the list (`report.verdict_from`), refuses a report
+  whose verdict does not follow from it, and refuses one that leaves out a requirement of the
+  problem. A problem now states the accuracy it needs (`required_accuracy` in `problem.yaml`):
+  without one, only a broken run can fail.
+- **Old reports are not rewritten.** Their numbers, rules and text stay. Each shows the new
+  words at its top with a note that its text uses the old ones. The case table and the gallery
+  show "As expected", "Differences" or "Failed". Today: three as expected, seven with
+  differences (two of them studies with caveats), none failed.
+- **Verified:** tool test 18; all nine reports rebuilt and pass their contract.
+- **Open.** None of the nine solved problems stated a required accuracy, so none of them could
+  have failed under the new meaning. How an engineer sets that number is the question for the
+  supervisor. Until then the dev agent sets it when it writes a problem.
+
 ### Case 18 solved: the shock tube, verdict FAIL on one of its own limits (`8a40087`)
 A fresh agent (Fable 5.2, high effort) solved step 1 of the detonation-engine ladder in 37 minutes
 with no human help: `results/shock_tube_sod/report.html`, one page: `brief.html`.
@@ -36,7 +59,7 @@ with no human help: `results/shock_tube_sod/report.html`, one page: `brief.html`
 - **Open.** Why the error in the expansion falls with order 0.78 is not explained (the agent's
   insight 10). A second solver on the same grids would tell; it is a question for the supervisor.
 
-### What case 18's 14 insights led to, commit hash to be filled in
+### What case 18's 14 insights led to (`f555e95`)
 - **Tools, each with a test** (`tests/test_tools.py`, checks 15 to 17):
   - `foam.gas_constant()` and `foam.mol_weight(R)`: OpenFOAM's own gas constant is not the
     textbook value, so a typed molar mass gives a density wrong in the fifth digit. The helper

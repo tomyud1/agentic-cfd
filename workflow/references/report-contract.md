@@ -15,7 +15,8 @@ characters anywhere (a TAB where `\times` was) fail. Insight text is checked whe
 | Key | Content |
 |---|---|
 | `title`, `date` | Problem title; ISO date |
-| `verdict` | `PASS` / `WARN` / `FAIL` (rule-based in code; list the rules in findings when not PASS) |
+| `verdict` | `report.verdict_from(expectations)`. `FAIL`: the experiment failed (a missed requirement or health check). `WARN`: completed, with differences from what was expected (only your own expectations missed). `PASS`: completed, as expected. The page shows these words, not the three codes |
+| `expectations[]` | Every rule written before the runs: `kind` (`requirement`: an item of the problem's `required_accuracy`, with its `key`; `health`: the run finished, converged or reached its stop rule, conserved what it must; `expectation`: your own limit or prediction), `text`, `expected`, `found`, `met` (true/false). At least one health check. Shown in the summary as "Expected before the runs, and found" |
 | `comparison_type` | `verification` (exact solution), `benchmark` (trusted reference simulation), `validation` (experiment), `consistency` (no reference: physical checks only) |
 | `summary.headline` | One sentence: verdict and the most important number |
 | `summary.answer_columns` | 4 column titles, e.g. `["Requested", "Reference (Ghia 1982)", "Simulation (finest mesh)", "Difference"]` |

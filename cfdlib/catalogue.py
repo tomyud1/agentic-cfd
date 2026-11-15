@@ -30,7 +30,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOGUE = ROOT / "cases" / "catalogue.yaml"
 LUMINARY = "https://luminary.ai/verification-and-validation/{}/"
 PAGES = "https://tomyud1.github.io/agentic-cfd/"
-VERDICT_MD = {"PASS": "✅ PASS", "WARN": "⚠️ WARN", "FAIL": "❌ FAIL"}
+VERDICT_MD = {"PASS": "✅", "WARN": "🔶", "FAIL": "❌"}        # by the css class of cfdlib.report.outcome
 RDE_PLAN = "results/rde/plan.html"
 TIERS = [
     ("rde", "Now: the ladder to a rotating detonation engine"),
@@ -57,14 +57,15 @@ def load(path: Path = CATALOGUE) -> list[dict]:
     return cases
 
 
-def verdict(report: dict) -> str:
-    """The verdict written by the report's own analysis (its JSON file)."""
+def verdict(report: dict) -> dict:
+    """How the verdict written by the report's own analysis (its JSON file) is shown: cfdlib.report.outcome
+    (css PASS / WARN / FAIL, its words, and a note for a report from before the wording of 2026-11-15)."""
+    from .report import outcome
     src = report.get("verdict_from") or str(Path(report["path"]).with_name("results.json"))
     data = json.loads((ROOT / src).read_text(encoding="utf-8"))
-    v = data.get("verdict")
-    if v not in VERDICT_MD:
+    if data.get("verdict") not in VERDICT_MD:
         raise ValueError(f"{src}: no PASS/WARN/FAIL verdict")
-    return v
+    return outcome(data)
 
 
 def headline(c: dict) -> str:
@@ -93,7 +94,7 @@ def brief_of(report: dict) -> str | None:
 
 
 def solved_table(cases: list[dict]) -> str:
-    rows = ["| # | Case | What it tests | Verdict | Headline | Report | Files |", "|---|---|---|---|---|---|---|"]
+    rows = ["| # | Case | What it tests | Outcome | Headline | Report | Files |", "|---|---|---|---|---|---|---|"]
     for c in cases:
         if c["status"] != "solved":
             continue
@@ -101,8 +102,9 @@ def solved_table(cases: list[dict]) -> str:
         for r in c["reports"]:
             b = brief_of(r)
             links = (f"[one page]({PAGES}{b}) · [full report]({PAGES}{r['path']})" if b else f"[view]({PAGES}{r['path']})")
+            o = verdict(r)
             rows.append(f"| {c['id']} | {cell(c['title'])} | {cell(c['tests'])} | "
-                        f"{VERDICT_MD[verdict(r)]} | {cell(headline(c))} | {links} | {files} |")
+                        f"{VERDICT_MD[o['css']]} {o['short'].capitalize()} | {cell(headline(c))} | {links} | {files} |")
     return "\n".join(rows)
 
 
@@ -178,7 +180,7 @@ def cards(cases: list[dict]) -> str:
             v = verdict(r)
             out.append(                                           # a case's card opens its one-page report, which links on
                 f'  <a class="card" href="{html.escape(brief_of(r) or r["path"])}"><div class="row"><span class="t">'
-                f'{html.escape(c["id"], False)}. {html.escape(c["title"], False)}</span><span class="v {v.lower()}">{v}</span></div>\n'
+                f'{html.escape(c["id"], False)}. {html.escape(c["title"], False)}</span><span class="v {v['css'].lower()}">{v['short']}</span></div>\n'
                 f'    <div class="d">{html.escape(c["tests"], False)}. {html.escape(headline(c), False)}.</div></a>')
     return "\n".join(out)
 

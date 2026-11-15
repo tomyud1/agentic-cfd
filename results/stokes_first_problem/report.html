@@ -230,9 +230,11 @@
 
 <!-- ============================== SUMMARY ============================== -->
 <section id="summary" class="summary PASS">
-  <h2>Summary <span class="verdict">✓ PASS</span>
+  <h2>Summary <span class="verdict">✓ Completed, as expected</span>
       <span class="ctype">Verification</span></h2>
+  
   <p class="headline"><b>Verification passed.</b> OpenFOAM reproduces the exact solution of Stokes' first problem: on the finest run the velocity differs by at most \(0.00205\,\%\) of \(U\), and the wall shear stress at 20 s, \(0.002519\ \mathrm{Pa}\), by \(1.95 \times 10^{-4}\,\%\).</p>
+  
   <h4>Answers to the request</h4>
   <div class="table-wrap"><table class="answers full">
     <tr><th class="">Requested</th><th class="">Theory (exact)</th><th class="">Simulation (finest run)</th><th class="num">Difference</th></tr>
@@ -264,6 +266,7 @@
     <h4>What we want to find</h4>
     <ol><li><span class="letter">a</span><span>Velocity profiles \(u(y)\) at \(t = 1\), 5 and 20 s, compared with the exact solution</span></li><li><span class="letter">b</span><span>Wall shear stress on the plate as a function of time for \(0 < t \le 20\) s, and its value at \(t = 20\) s</span></li><li><span class="letter">c</span><span>Penetration depth at \(t = 1\), 5 and 20 s: the distance from the plate where \(u\) has fallen to 1 % of \(U\)</span></li><li><span class="letter">d</span><span>Total \(x\)-momentum given to the water per unit plate area by \(t = 20\) s</span></li></ol>
   </div>
+  
   
   <h4>Setup</h4>
   <ul class="points"><li>A very large flat plate lies at \(y = 0\) under a very deep layer of water, initially at rest.</li><li>At \(t = 0\) the plate starts moving in the \(x\) direction at constant speed \(U\), and keeps that speed.</li><li>The plate is so large and the water so deep that the flow depends only on the distance \(y\) from the plate and on time \(t\).</li><li>Far above the plate the water stays at rest.</li></ul>
