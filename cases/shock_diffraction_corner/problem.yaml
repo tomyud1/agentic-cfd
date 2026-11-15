@@ -1,0 +1,41 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: shock_diffraction_corner
+title: A strong shock wave going round a sharp corner (shock diffraction)
+description: >
+  A flat shock wave runs along a duct into still air. At the point where it enters a large chamber,
+  the lower wall of the duct ends in a sharp right-angled corner. Find how the shock bends round the
+  corner in the first 0.45 milliseconds, check the part of the flow that can be known exactly, and
+  show that the computed flow is sound.
+setup:
+  - 'Two-dimensional. The chamber is the rectangle \(0 \le x \le L\), \(0 \le y \le H\), filled with air at rest at pressure \(p_0\) and temperature \(T_0\).'
+  - 'The duct joins the chamber through the upper part of the left side, \(x = 0\), \(H_s \le y \le H\). Its lower wall ends in the corner at \((0, H_s)\). Below the corner the left side, \(x = 0\), \(0 \le y < H_s\), is a wall (the step face).'
+  - 'At \(t = 0\) a flat shock wave arrives through the duct at \(x = 0\). It moves in the \(+x\) direction with shock Mach number \(M_s\): its speed is \(M_s\) times the speed of sound of the still air. From then on the air entering through the duct is in the uniform state behind that shock.'
+  - 'All other sides (the top \(y = H\), the floor \(y = 0\), the right side \(x = L\), the step face) are walls.'
+  - 'The air is an ideal gas, \(p = \rho R T\), with a constant ratio of specific heats \(\gamma\). No viscosity and no heat conduction (the Euler equations); the walls are frictionless and let no heat through.'
+  - 'The state behind a flat shock follows exactly from the conservation laws across it (the shock jump conditions). Until a signal from the corner arrives, the shock stays flat and that state holds behind it.'
+  - 'The problem has no length of its own until a wave reaches the top, the floor or the right side: the flow at two different times is then the same picture, stretched in proportion to the time (self-similar about the corner).'
+  - 'This is the shock-diffraction test used to check that a method keeps a strong shock flat and free of numerical instability (Quirk 1994; section 4.2 of Cheng, Sheng and Wang, Energies 17 (2024) 769). The geometry and the air state are chosen here.'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  L:      {value: 1.0,      unit: m,        symbol: '\(L\)',     label: "Length of the chamber"}
+  H:      {value: 1.0,      unit: m,        symbol: '\(H\)',     label: "Height of the chamber"}
+  H_s:    {value: 0.5,      unit: m,        symbol: '\(H_s\)',   label: "Height of the corner above the floor"}
+  p_0:    {value: 100000.0, unit: Pa,       symbol: '\(p_0\)',   label: "Pressure of the still air"}
+  T_0:    {value: 300.0,    unit: K,        symbol: '\(T_0\)',   label: "Temperature of the still air"}
+  M_s:    {value: 5.09,     unit: "-",      symbol: '\(M_s\)',   label: "Shock Mach number of the incoming shock"}
+  gamma:  {value: 1.4,      unit: "-",      symbol: '\(\gamma\)', label: "Ratio of specific heats of the air"}
+  R:      {value: 287.0,    unit: J/(kg K), symbol: '\(R\)',     label: "Specific gas constant of the air"}
+  t_end:  {value: 0.00045,  unit: s,        symbol: '\(t_{\mathrm{end}}\)', label: "Time of interest"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: flat_part,   text: 'The part of the shock that no signal from the corner has reached: its speed, and the pressure, density and velocity behind it, compared with the exact values'}
+  - {key: conserved,   text: 'Mass and energy in the chamber up to \(t_{\mathrm{end}}\), compared with what was there at the start plus what the exact inflow brings in'}
+  - {key: stable,      text: 'Is the flat part of the shock straight and free of numerical instability? Give its largest deviation from a straight line in cells, and the ripple of the pressure behind it'}
+  - {key: similar,     text: 'The same picture at two times: the density at \(t_{\mathrm{end}}/2\) and at \(t_{\mathrm{end}}\) along the step face and along the line \(y = H_s\), plotted against distance divided by time, and how much the two differ'}
+  - {key: pattern,     text: 'The flow at \(t_{\mathrm{end}}\): a map of the density with each wave named, how far the bent shock has run down the step face, and how far along the top wall the shock is'}
+  - {key: grid,        text: 'How these answers change as the grid is refined, and what a finer answer would cost'}
+
+required_accuracy:   # what the answer needs; only a miss of these, or a run that breaks, makes the experiment fail
+  - {key: flat_part, text: 'Flat part of the shock on the finest grid: speed within 0.5 % of the exact value; pressure, density and velocity behind it within 1 %'}
+  - {key: conserved, text: 'Mass and energy in the chamber within 0.01 % of the inflow, at every written time'}
+  - {key: stable,    text: 'The flat part of the shock straight to within one cell on every grid'}

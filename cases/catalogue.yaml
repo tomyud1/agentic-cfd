@@ -146,7 +146,7 @@ cases:
 
   - id: "19"
     title: A shock going round a corner (shock diffraction)
-    status: planned
+    status: in_progress
     tier: rde
     folder: shock_diffraction_corner
     new: "Step 2 of 7. Shock waves in two dimensions"

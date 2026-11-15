@@ -9,13 +9,30 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing is waiting to be committed.
+Case 19 (a shock going round a corner) is with a fresh solver agent, launched on 2026-11-15 right
+after the commit that prepared it (Fable 5.2, high effort). Its report and review are not in yet.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### FAIL now means that the experiment failed, commit hash to be filled in
+### Case 19 prepared: a shock going round a corner, step 2 of the ladder, commit hash to be filled in
+- **Purpose.** Shock waves in two dimensions, and whether the method keeps a strong shock flat
+  and free of numerical instability, which a detonation front will need.
+- **The problem** (`cases/shock_diffraction_corner/problem.yaml`): a flat shock of Mach number
+  5.09 enters a 1 m by 1 m chamber of still air past a sharp corner. It is the first problem that
+  states its **required accuracy**: the flat part of the shock within 0.5 % in speed and 1 % in
+  the state behind it, mass and energy within 0.01 % of the inflow, the shock straight to one
+  cell. Only a miss of these, or a broken run, makes the experiment fail.
+- **Checked before the solve** (`dev/agent_checks/case19_toolgap.py`): a coarse trial of the
+  problem as written. Part of the shock (0.3 m of 0.5 m) is still flat at the time of interest
+  and no wave has reached the floor or the far wall, so the exact checks exist. The tools read
+  and judge the two-dimensional run; no gap found.
+- **Its reference is internal:** the exact state behind a flat shock, exact inflow, and the fact
+  that the flow at two times is one picture stretched in time. The paper's own test shows only a
+  picture, so there are no published numbers to compare with.
+
+### FAIL now means that the experiment failed (`c099e64`)
 The student's decision, after case 18 was labelled FAIL with an answer within 0.01 % of the exact
 one: a gallery of WARN and FAIL chips reads as a failing project when only an agent's own
 prediction was missed.
