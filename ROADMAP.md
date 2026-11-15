@@ -50,7 +50,18 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   order:** the chemistry of every cell on the GPU, tested on step 3's ignition problem and timed
   against OpenFOAM's chemistry on the CPU; then several gases with heat capacities that change
   with temperature, and a guard against negative pressure; then the two together on step 4.
-- **Step 3 is next:** ignition of hydrogen and air in a closed box (case 20), chemistry alone.
+- **Step 3 is done (2026-11-15):** ignition of hydrogen and air in one cell (case 20), with
+  OpenFOAM's `chemFoam` and the full hydrogen scheme, solved by a fresh agent in about 35
+  minutes. Ignition time within 0.03 % of the reference, final temperature within 0.002 %
+  (required: 1 % and 0.1 %). Carried forward: in OpenFOAM the time step is a first-order
+  accuracy setting of the chemistry; the chemistry of one cell costs about 100 microseconds per
+  step on one core (the flow: 0.3), and far more while it ignites; at a flow solver's small
+  steps a simple explicit chemistry solver is three times cheaper; OpenFOAM reads the scheme
+  with slightly different constants than the reference program. The agent's independent
+  chemistry solution is now a tool, `cfdlib.chem`: the reference for chemistry in gpucfd and
+  the base for the theory of step 4.
+- **Step 4 is next:** a detonation in a straight tube (case 21). Before it, chemistry on the GPU
+  in gpucfd (see above).
 - **The solver gap.** No solver on the development PC handles a shock and burning together.
   Three ways are tried, all three (the student's decision), and compared on step 4 on the same
   grid: OpenFOAM's own burning solver (`rhoReactingFoam`), a published detonation solver (to be

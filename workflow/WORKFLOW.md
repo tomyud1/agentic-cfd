@@ -349,7 +349,9 @@ case, if you want to see the full set of files once.
 - Figures (`cfdlib.plots`): `plots.figure()` for one panel, `plots.wide(n)` for 2-3 panels,
   `plots.sketch()` for the problem sketch (required). `to_svg()` refuses figures whose text overlaps
   text, lines, arrows or shapes, or whose legend covers data, or that are wider than the column.
-  Fix the layout (labels away from lines, `annotate` with a leader line, legend outside); `allow=`
+  Fix the layout (labels away from lines, `annotate` with a leader line, legend outside; a coloured
+  region with a label inside: a filled area, not a patch; a log axis shorter than two decades: set
+  the ticks yourself); `allow=`
   only for overlaps that are truly intended, and log an insight if you need it.
 - Outcome. List every rule you wrote before the runs in `expectations`, with what was expected and
   what was found, and take the verdict from `report.verdict_from(expectations)`. FAIL is kept for an

@@ -175,10 +175,14 @@ page = dict(
                     'In two dimensions the solver needs a smaller time step, or the run breaks at the corner. '
                     '<a href="../shock_diffraction_corner/brief.html">One-page report</a>'),
         dict(name="Ignition in a closed box", what="Hot hydrogen and air at rest. How long until the mixture ignites?",
-             new="chemistry alone, with no flow", answer="an independent chemistry code", where="this PC, seconds", status="next"),
+             new="chemistry alone, with no flow", answer="an independent chemistry code", where="this PC, seconds", status="done",
+             result='Solved on 2026-11-15 by a fresh agent in about 35 minutes. The ignition time is within 0.03 % of the reference and the '
+                    'final temperature within 0.002 %. The chemistry of one cell costs several hundred times more than its flow, '
+                    'which is why the next tool to build is chemistry on the GPU. '
+                    '<a href="../h2_air_ignition_box/brief.html">One-page report</a>'),
         dict(name="Detonation in a straight tube", what="A detonation wave runs down a tube of hydrogen and air.",
              new="shock and burning together", answer="the wave's speed follows from the gas alone, with no simulation",
-             where="this PC, hours (expected, not measured)", status="planned", mark="The three solvers are compared here"),
+             where="this PC, hours (expected, not measured)", status="next", mark="The three solvers are compared here"),
         dict(name="Detonation cells", what="In two dimensions a detonation front is not flat: it wrinkles into a regular pattern of cells.",
              new="the fine structure of the wave", answer="published cell patterns", where="this PC or the lab: to be measured", status="planned"),
         dict(name="The flat engine", what="The problem of this page.",

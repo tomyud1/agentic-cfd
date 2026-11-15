@@ -88,6 +88,37 @@ The worked example is `cases/shock_tube_sod/`.
 - **A problem with no length of its own** (equal cells, time step in proportion to the cell size):
   the method has none either, so an earlier snapshot of a fine run is a coarser run, cell for cell.
 
+## Chemistry (measured in case 20, ignition of hydrogen in one cell with `chemFoam`)
+`chemFoam` solves one well-mixed cell: tutorial `$FOAM_TUTORIALS/combustion/chemFoam/h2`. Worked
+example: `cases/h2_air_ignition_box/`. `cfdlib.chem` gives an independent second answer.
+- **The time step is an accuracy setting of first order,** in `chemFoam` and in every solver that
+  calls the chemistry library once per step: inside a step the chemistry runs with the density
+  frozen. No tolerance of the chemistry solver removes that error. Study it with fixed steps and
+  tight tolerances first, the tolerances after. With `adjustTimeStep on` the step follows the
+  chemistry solver's last sub-step, so the tolerance then sets the step as well (the tutorial as
+  shipped: 47 steps, ignition time 0.56 % early).
+- **Constants that are not in the scheme's files:** OpenFOAM reads CHEMKIN files with 1.987316
+  cal/(mol K) and a standard pressure of 1 bar (CHEMKIN: 1.987216 and 1 atm). Here that was worth
+  -0.006 % on the ignition time and +0.09 K on the final temperature. `cfdlib.chem` solves a parcel
+  with either set (`openfoam_conventions()`, `standard_conventions()`) and gives the equilibrium.
+- **Count atoms with the solver's own atomic masses** (`chem.openfoam_conventions().weights`;
+  OpenFOAM's hydrogen is 1.00797). With 1.00794 the atoms seem to change by 3e-5 while the solver
+  keeps them to round-off. `chem.parcel_health` checks atoms, the sum of mass fractions and the
+  temperature bounds: a chemistry log has no residuals for `monitor.assess` to judge.
+- **Output:** `chemFoam.out` holds 6 digits unless `writePrecision` is raised (12 or more when
+  runs differ after the sixth digit), and species are written only at write times; a
+  `volFieldValue` function object over the one cell gives the state after every step (the
+  case's `run.py`).
+- **Harmless at start-up:** "Sum of mass fractions is different from one", off by the number of
+  species minus one. The solver writes its own start files with every species at 1 and replaces
+  them right after. Compare the first state with the start state computed by hand.
+- **The cost sits in the event.** A short test from the start projected the run time 90 times too
+  low, because the ignition takes most of the solver time. Project from a coarse level run in
+  full. Measured on one core with tight tolerances: about 100 µs per step where little reacts, up
+  to 12 ms per step in the rise. At steps of 0.1 µs and less (a flow solver's steps) the chemistry
+  is not stiff inside a step: the explicit `RKF45` gave the same answer to nine digits in under a
+  third of the time.
+
 ## Turbulence models (RANS; measured in case 7, a flat plate with Spalart-Allmaras)
 - **A model name covers several published variants,** and a solver's default may be another one
   than the benchmark's. Set `printCoeffs on` in the model's dictionary and compare the coefficients

@@ -92,7 +92,8 @@ def run(cmd, case_dir, log_name=None, timeout=None, watch=None, watch_every=10.0
     # Performance record for cfdlib.perf (CPU time includes all processes of the run, e.g. MPI ranks).
     (case_dir / f"perf.{name}.json").write_text(json.dumps(dict(
         cmd=cmd, wall_s=wall, cpu_s=(ru.ru_utime + ru.ru_stime) if ru else None,
-        peak_mem_mb=ru.ru_maxrss / 1024 if ru else None, exit=p.returncode)))
+        peak_mem_mb=ru.ru_maxrss / 1024 if ru else None, exit=p.returncode,
+        load_1min=os.getloadavg()[0] if hasattr(os, "getloadavg") else None)))   # other jobs on the machine: a time taken under load is an upper bound
     if p.returncode != 0:
         tail = "\n".join(log.read_text(errors="replace").splitlines()[-30:])
         raise RuntimeError(f"'{cmd}' failed in {case_dir} (exit {p.returncode}):\n{tail}")

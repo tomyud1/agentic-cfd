@@ -671,3 +671,30 @@ assert [i for i in plots19.check_layout(fig19) if "legend covers" in i]
 import matplotlib.pyplot as plt19  # noqa: E402
 plt19.close(fig19)
 print("end time as a string, one-cell fields, order above the method's, clipped lines under a legend: ok")
+
+# 20. Chemistry without flow (case 20): cfdlib.chem against the reference program and against OpenFOAM's own runs,
+# the health check, and the trap of counting atoms with other atomic masses than the solver's.
+import json as json20  # noqa: E402
+import yaml as yaml20  # noqa: E402
+from cfdlib import chem as chem20  # noqa: E402
+ROOT20 = Path(__file__).resolve().parents[1]
+ref20 = yaml20.safe_load((ROOT20 / "cases/h2_air_ignition_box/reference/senkin_h2.yaml").read_text(encoding="utf-8"))
+of20 = chem20.openfoam_conventions()
+mech20 = chem20.build(of20)
+assert len(mech20.species) == 10 and len(mech20.reactions) == 27
+par20 = chem20.Parcel(mech20, 202650.0, 1000.0, dict(H2=1.0, O2=1.0, N2=3.76))
+sol20 = par20.solve(1.0e-3, T_ign=1200.0)
+assert abs(sol20["t_ign"] / ref20["ignition"]["time_s"] - 1) < 5e-4 and abs(sol20["T"][-1] - ref20["final"]["T_K"]) < 0.2
+runs20 = [json20.loads((ROOT20 / f"results/h2_air_ignition_box/runs/S{n}.json").read_text()) for n in (40000, 80000)]
+zero20 = 2 * runs20[1]["t_ign"] - runs20[0]["t_ign"]             # OpenFOAM's ignition time at a time step of zero (first order)
+assert abs(sol20["t_ign"] / zero20 - 1) < 1e-5, (sol20["t_ign"], zero20)
+Y20 = sol20["sigma"] * mech20.W
+T_burnt20 = par20.complete_combustion()[0]
+h20 = chem20.parcel_health(sol20["T"], Y20, mech20, 1000.0, T_burnt20)
+assert h20["ok"] and h20["atoms_change"] < 1e-9, h20
+assert abs(chem20.crossing_time(sol20["t"], sol20["T"], 1200.0) / sol20["t_ign"] - 1) < 1e-3
+typed20 = chem20.Conventions("typed", of20.R, of20.R_cal, of20.p_std, dict(of20.weights, H=1.00794))
+bad20 = chem20.parcel_health(sol20["T"], Y20, chem20.Mechanism(*chem20.scheme_files(), typed20), 1000.0, T_burnt20)
+assert not bad20["ok"] and bad20["atoms_change"] > 1e-6          # other atomic masses: the atoms seem to change
+print(f"chemistry: ignition {1e6 * sol20['t_ign']:.3f} us (reference {1e6 * ref20['ignition']['time_s']:.2f}, OpenFOAM at a step of zero "
+      f"{1e6 * zero20:.3f}); atoms kept to {h20['atoms_change']:.0e}, with other atomic masses {bad20['atoms_change']:.0e}: ok")

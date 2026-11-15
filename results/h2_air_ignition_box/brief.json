@@ -1,0 +1,106 @@
+{
+ "title": "Ignition of a hot hydrogen, oxygen and nitrogen mixture at constant pressure",
+ "date": "2026-11-15",
+ "verdict": "WARN",
+ "outcome": {
+  "css": "WARN",
+  "mark": "✓",
+  "label": "Completed, with differences from what was expected",
+  "short": "DIFFERENCES",
+  "note": ""
+ },
+ "goal": "The first case with burning. Chemistry alone, with no flow. Step 3 of 7 on the way to a rotating detonation engine.",
+ "story": "Solved with OpenFOAM's chemistry solver by a fresh agent, which also wrote an independent solution of its own to check both OpenFOAM and the reference. gpucfd cannot solve it yet: it has no chemistry. That is the next thing to build.",
+ "problem": {
+  "requirements": [
+   "A parcel of hydrogen, oxygen and nitrogen at rest, suddenly at 1000 K. The pressure is held at 2 atmospheres and no heat is exchanged.",
+   "After a short delay the mixture ignites and burns. Nothing flows, so only time matters.",
+   "The full hydrogen reaction scheme: 10 species and 27 reactions.",
+   "Asked for: temperature against time, the ignition time, the final temperature, the species, whether atoms and energy are kept, and what the chemistry costs.",
+   "Reference: an independent chemistry program (CHEMKIN II) with the same reaction scheme.",
+   "Required: ignition time within 1 %, final temperature within 0.1 %, the atoms of each element constant within 0.001 %."
+  ]
+ },
+ "results": {
+  "headline": "Completed, with one difference from what was expected. OpenFOAM ignites the mixture at \\(217.709\\,\\mathrm{\\mu s}\\), \\(0.028\\,\\%\\) before the reference (required: within \\(1\\,\\%\\)), and ends at \\(2220.54\\,\\mathrm{K}\\), \\(0.0016\\,\\%\\) above it (required: \\(0.1\\,\\%\\)).",
+  "meaning": [
+   "All three requirements are met with a wide margin. OpenFOAM agrees with the agent's independent solution about forty times more closely than either agrees with the reference, so what is left is mostly the reference's own accuracy.",
+   "One prediction of the agent was wrong: it expected OpenFOAM's shipped example to miss the 1 %. It is inside, at 0.56 %.",
+   "For the detonation engine: in OpenFOAM the time step is an accuracy setting of the chemistry, not only of the flow. Halving the step halves the error, and no setting of the chemistry solver removes it.",
+   "For the detonation engine: the chemistry of one cell costs about 100 microseconds per time step on one core, and far more while the cell ignites. The flow part cost 0.3 microseconds per cell in step 1. This is why chemistry on the GPU matters."
+  ],
+  "limits": [
+   "gpucfd has no column: it has no chemistry yet.",
+   "One cell only. The cost per cell in a real flow depends on how many cells are igniting at the same time.",
+   "The reference states no accuracy of its own. The agent's independent solution suggests it is good to about 0.03 %."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy",
+  "head": [
+   "Requirement",
+   "OpenFOAM: difference from the reference",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Ignition time",
+    "\\(-0.028\\,\\%\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Temperature at the end",
+    "<span style='white-space:nowrap'>\\(+0.0016\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(+0.036\\,\\mathrm{K}\\)</span>",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Atoms and energy kept",
+    "<span style='white-space:nowrap'>atoms \\(9 \\times 10^{-13}\\)</span><br><span style='white-space:nowrap'>energy \\(3 \\times 10^{-8}\\)</span>",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Temperature against time",
+    "<span style='white-space:nowrap'>rise: \\(-0.07\\,\\mathrm{\\mu s}\\)</span><br><span style='white-space:nowrap'>flat parts: \\(0.15\\,\\mathrm{K}\\)</span>",
+    "<span class=\"wait\">cannot yet</span>"
+   ]
+  ],
+  "note": "With the smallest time step. The first three rows are the problem's requirements."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "Run",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "2500 time steps",
+    "4.4 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "10000 time steps",
+    "4.9 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "40000 time steps",
+    "7.8 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "80000 time steps",
+    "11 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ]
+  ],
+  "note": "One cell, with very tight tolerances of the chemistry solver. Looser settings and a simpler chemistry solver gave the same answer in under a third of the time."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  }
+ ]
+}
