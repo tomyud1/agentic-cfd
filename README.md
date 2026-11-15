@@ -49,7 +49,10 @@ GPU.
   bit-identical results.
 - **Gas with shock waves** (a second solver, first version): on a shock tube and on a Mach 5
   shock going round a corner it matches or beats OpenFOAM's accuracy in 20 to 70 times less
-  time ([`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md)). No burning yet.
+  time ([`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md)).
+- **Burning on the GPU** (a chemistry kernel, not yet joined to the flow): the full hydrogen
+  scheme in a million cells at once, in agreement with OpenFOAM on the ignition problem
+  ([`gpucfd/CHEMISTRY.md`](gpucfd/CHEMISTRY.md)).
 - **What it handles:** incompressible laminar flow in a box with walls, inflow and outflow, and
   bodies of any shape inside the flow, on uniform grids or with cells clustered toward walls and
   around bodies. On the DFG cylinder benchmark at Re 100 (case 4), with cells clustered around the

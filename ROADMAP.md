@@ -46,10 +46,21 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   2.3 times faster than one; starting a shock as a sharp jump leaves two weak waves of about 2 %.
 - **gpucfd has a shock solver now** ([`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md), built and
   reviewed on 2026-11-15): it runs steps 1 and 2 on the GPU, as accurate as OpenFOAM or better
-  and 20 to 70 times faster. It is the base of the third detonation solver. **Next for it, in
-  order:** the chemistry of every cell on the GPU, tested on step 3's ignition problem and timed
-  against OpenFOAM's chemistry on the CPU; then several gases with heat capacities that change
-  with temperature, and a guard against negative pressure; then the two together on step 4.
+  and 20 to 70 times faster. It is the base of the third detonation solver.
+- **gpucfd has chemistry on the GPU now** ([`gpucfd/CHEMISTRY.md`](gpucfd/CHEMISTRY.md), built
+  and reviewed on 2026-11-15): a kernel that burns many cells at once, each by itself. It is not
+  yet joined to the flow solver. On step 3's ignition problem it meets the three requirements
+  and, with the same constants, agrees with OpenFOAM to one part in ten million. With a million
+  cells it advances about 200 million cells times steps per second at a flow solver's time
+  step; for one cell it is slower than OpenFOAM on one core. A fair ratio of the two tools'
+  chemistry cost needs OpenFOAM timed on a mesh of many cells; case 21 asks for that number.
+  At the state behind a detonation's shock (28 atm, 1540 K) the kernel's answer is right, but
+  hot gas needs about ten small steps of chemistry per flow step, burnt gas included, so there
+  it runs at 16 to 19 million and chemistry would be most of a run's time.
+  **Next for gpucfd, in order:** join the two: the flow carries each species, heat capacities
+  change with temperature, and a guard stops negative pressure; choose the chemistry method
+  again at detonation states (the implicit one, or a cheaper rule for burnt gas); then step 4
+  on the GPU.
 - **Step 3 is done (2026-11-15):** ignition of hydrogen and air in one cell (case 20), with
   OpenFOAM's `chemFoam` and the full hydrogen scheme, solved by a fresh agent in about 35
   minutes. Ignition time within 0.03 % of the reference, final temperature within 0.002 %
@@ -60,8 +71,7 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   with slightly different constants than the reference program. The agent's independent
   chemistry solution is now a tool, `cfdlib.chem`: the reference for chemistry in gpucfd and
   the base for the theory of step 4.
-- **Step 4 is next:** a detonation in a straight tube (case 21). Before it, chemistry on the GPU
-  in gpucfd (see above).
+- **Step 4 is next:** a detonation in a straight tube (case 21).
   - **Its reference is ready** (`cfdlib.chem.cj_detonation`): a detonation that runs freely has one
     speed, fixed by the gas alone. For hydrogen and air at 1 atm and 300 K: 1978 m/s, with 15.6 atm
     and 2969 K behind the wave. An independent program (Cantera) gives the same from the same
@@ -74,10 +84,10 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
     microseconds per cell and step on one core, so 0.12 m of tube takes 11 minutes.
   - **The problem is written** (`cases/detonation_tube_h2_air/problem.yaml`; required: speed
     within 2 % of theory, flame within 1 mm of the shock). It waits for a fresh agent.
-- **The solver gap.** No solver on the development PC handles a shock and burning together.
-  Three ways are tried, all three (the student's decision), and compared on step 4 on the same
-  grid: OpenFOAM's own burning solver (`rhoReactingFoam`), a published detonation solver (to be
-  found; a download needs the student's OK), and a new solver in gpucfd. Each gets a tuning
+- **Three solvers for shock and burning together.** Three ways are tried, all three (the
+  student's decision), and compared on step 4 on the same grid: OpenFOAM's own burning solver
+  (`reactingFoam`, which the trial above showed can do it), a published detonation solver (to
+  be found; lowest priority), and gpucfd once its two parts are joined. Each gets a tuning
   budget fixed before its runs. The report shows all three, whatever the outcome.
 - **Hardware.** Steps 1 to 4 fit the development PC. Steps 5 to 7 probably need the lab's
   machines; their cost is measured on steps 4 and 5 first.

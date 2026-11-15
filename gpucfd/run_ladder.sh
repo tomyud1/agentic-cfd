@@ -1,6 +1,6 @@
 #!/bin/bash
-# Run the verification ladders (inside WSL, from anywhere): bash gpucfd/run_ladder.sh [incompressible|compressible]
-# With no argument both are run. Prints one summary line per test file; details and JSON results in
+# Run the verification ladders (inside WSL, from anywhere): bash gpucfd/run_ladder.sh [incompressible|compressible|chemistry]
+# With no argument all are run. Prints one summary line per test file; details and JSON results in
 # gpucfd/tests/results/.
 cd "$(dirname "$0")/.." || exit 1
 PY="${PY:-$HOME/venvs/cfd/bin/python}"
@@ -26,5 +26,15 @@ if [ "$WHAT" = all ] || [ "$WHAT" = compressible ]; then
   one test_euler_sod
   one test_euler_corner 400
   one test_euler_speed
+fi
+if [ "$WHAT" = all ] || [ "$WHAT" = chemistry ]; then
+  # The chemistry kernel (gpucfd/CHEMISTRY.md), about a quarter of an hour. Needs OpenFOAM's hydrogen scheme
+  # ($FOAM_TUTORIALS) for the reaction data. The tuning budget is not rerun here:
+  # python -m gpucfd.tests.test_chem_batch tune  (about 15 minutes, record test_chem_tune.json).
+  one test_chem_rates
+  one test_chem_parcel
+  one test_chem_batch
+  one test_chem_speed
+  one test_chem_precision
 fi
 exit $fails

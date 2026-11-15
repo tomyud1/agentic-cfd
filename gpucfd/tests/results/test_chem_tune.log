@@ -1,0 +1,53 @@
+step 1e-08 s: reference run (Dormand-Prince, 1e-10) 36.3 s, ignition times 9.5 to 223.1 us
+  bs23  rtol 1e-03 atol 1e-10:   10.82 s,     1.00 sub-steps and      4.0 rate evaluations per cell and step; ignition time 1.3e-07, final temperature 6.0e-11; within the rule
+  bs23  rtol 1e-03 atol 1e-14:   10.99 s,     1.00 sub-steps and      4.0 rate evaluations per cell and step; ignition time 1.3e-07, final temperature 6.0e-11; within the rule
+  bs23  rtol 1e-04 atol 1e-10:   11.12 s,     1.00 sub-steps and      4.0 rate evaluations per cell and step; ignition time 1.3e-07, final temperature 6.0e-11; within the rule
+  bs23  rtol 1e-04 atol 1e-14:   11.02 s,     1.00 sub-steps and      4.0 rate evaluations per cell and step; ignition time 1.3e-07, final temperature 6.0e-11; within the rule
+  bs23  rtol 1e-06 atol 1e-10:   10.79 s,     1.00 sub-steps and      4.0 rate evaluations per cell and step; ignition time 1.3e-07, final temperature 6.0e-11; within the rule
+  bs23  rtol 1e-06 atol 1e-14:   10.76 s,     1.00 sub-steps and      4.0 rate evaluations per cell and step; ignition time 1.3e-07, final temperature 5.8e-11; within the rule
+  bs23  rtol 1e-08 atol 1e-10:   15.86 s,     1.01 sub-steps and      4.0 rate evaluations per cell and step; ignition time 8.6e-08, final temperature 3.9e-11; within the rule
+  bs23  rtol 1e-08 atol 1e-14:   19.73 s,     1.04 sub-steps and      4.2 rate evaluations per cell and step; ignition time 1.9e-08, final temperature 2.5e-11; within the rule
+  dp45  rtol 1e-03 atol 1e-10:   18.65 s,     1.00 sub-steps and      7.0 rate evaluations per cell and step; ignition time 9.6e-12, final temperature 4.9e-15; within the rule
+  dp45  rtol 1e-03 atol 1e-14:   18.79 s,     1.00 sub-steps and      7.0 rate evaluations per cell and step; ignition time 9.6e-12, final temperature 4.9e-15; within the rule
+  dp45  rtol 1e-04 atol 1e-10:   18.65 s,     1.00 sub-steps and      7.0 rate evaluations per cell and step; ignition time 9.6e-12, final temperature 4.9e-15; within the rule
+  dp45  rtol 1e-04 atol 1e-14:   18.79 s,     1.00 sub-steps and      7.0 rate evaluations per cell and step; ignition time 9.6e-12, final temperature 4.9e-15; within the rule
+  dp45  rtol 1e-06 atol 1e-10:   18.48 s,     1.00 sub-steps and      7.0 rate evaluations per cell and step; ignition time 9.6e-12, final temperature 4.9e-15; within the rule
+  dp45  rtol 1e-06 atol 1e-14:   18.41 s,     1.00 sub-steps and      7.0 rate evaluations per cell and step; ignition time 9.6e-12, final temperature 4.9e-15; within the rule
+  dp45  rtol 1e-08 atol 1e-10:   18.42 s,     1.00 sub-steps and      7.0 rate evaluations per cell and step; ignition time 9.6e-12, final temperature 4.9e-15; within the rule
+  dp45  rtol 1e-08 atol 1e-14:   26.02 s,     1.01 sub-steps and      7.1 rate evaluations per cell and step; ignition time 7.1e-13, final temperature 4.7e-15; within the rule
+  ros34 rtol 1e-03 atol 1e-10:   27.72 s,     1.00 sub-steps and     11.0 rate evaluations per cell and step; ignition time 4.7e-09, final temperature 5.7e-10; within the rule
+  ros34 rtol 1e-03 atol 1e-14:   27.96 s,     1.00 sub-steps and     11.0 rate evaluations per cell and step; ignition time 4.7e-09, final temperature 5.7e-10; within the rule
+  ros34 rtol 1e-04 atol 1e-10:   28.07 s,     1.00 sub-steps and     11.0 rate evaluations per cell and step; ignition time 4.7e-09, final temperature 5.7e-10; within the rule
+  ros34 rtol 1e-04 atol 1e-14:   27.83 s,     1.00 sub-steps and     11.0 rate evaluations per cell and step; ignition time 4.7e-09, final temperature 5.7e-10; within the rule
+  ros34 rtol 1e-06 atol 1e-10:   27.82 s,     1.00 sub-steps and     11.0 rate evaluations per cell and step; ignition time 4.7e-09, final temperature 5.7e-10; within the rule
+  ros34 rtol 1e-06 atol 1e-14:   27.79 s,     1.00 sub-steps and     11.0 rate evaluations per cell and step; ignition time 4.7e-09, final temperature 5.7e-10; within the rule
+  ros34 rtol 1e-08 atol 1e-10:   42.08 s,     1.01 sub-steps and     11.1 rate evaluations per cell and step; ignition time 4.7e-09, final temperature 5.7e-10; within the rule
+  ros34 rtol 1e-08 atol 1e-14:   68.09 s,     1.05 sub-steps and     11.5 rate evaluations per cell and step; ignition time 4.7e-09, final temperature 5.7e-10; within the rule
+step 1e-06 s: reference run (Dormand-Prince, 1e-10) 25.3 s, ignition times 9.5 to 223.2 us
+  bs23  rtol 1e-03 atol 1e-10:    3.26 s,    13.79 sub-steps and     47.7 rate evaluations per cell and step; ignition time 1.0e-03, final temperature 8.9e-07; within the rule
+  bs23  rtol 1e-03 atol 1e-14:    3.23 s,    13.82 sub-steps and     47.8 rate evaluations per cell and step; ignition time 9.9e-04, final temperature 9.2e-07; within the rule
+  bs23  rtol 1e-04 atol 1e-10:    3.25 s,    13.85 sub-steps and     47.8 rate evaluations per cell and step; ignition time 1.5e-04, final temperature 5.3e-07; within the rule
+  bs23  rtol 1e-04 atol 1e-14:    3.25 s,    13.93 sub-steps and     48.0 rate evaluations per cell and step; ignition time 1.2e-04, final temperature 5.7e-07; within the rule
+  bs23  rtol 1e-06 atol 1e-10:    4.10 s,    14.56 sub-steps and     51.1 rate evaluations per cell and step; ignition time 5.6e-05, final temperature 2.6e-07; within the rule
+  bs23  rtol 1e-06 atol 1e-14:    4.11 s,    15.11 sub-steps and     53.1 rate evaluations per cell and step; ignition time 1.5e-06, final temperature 5.7e-08; within the rule
+  bs23  rtol 1e-08 atol 1e-10:    5.73 s,    16.98 sub-steps and     58.3 rate evaluations per cell and step; ignition time 5.3e-05, final temperature 2.4e-07; within the rule
+  bs23  rtol 1e-08 atol 1e-14:    9.72 s,    24.98 sub-steps and     83.5 rate evaluations per cell and step; ignition time 3.2e-08, final temperature 2.3e-09; within the rule
+  dp45  rtol 1e-03 atol 1e-10:    4.89 s,    10.60 sub-steps and     72.0 rate evaluations per cell and step; ignition time 2.6e-06, final temperature 6.0e-09; within the rule
+  dp45  rtol 1e-03 atol 1e-14:    4.85 s,    10.61 sub-steps and     72.1 rate evaluations per cell and step; ignition time 2.6e-06, final temperature 7.5e-09; within the rule
+  dp45  rtol 1e-04 atol 1e-10:    4.90 s,    10.63 sub-steps and     72.1 rate evaluations per cell and step; ignition time 1.5e-06, final temperature 8.2e-10; within the rule
+  dp45  rtol 1e-04 atol 1e-14:    4.80 s,    10.64 sub-steps and     72.2 rate evaluations per cell and step; ignition time 1.4e-06, final temperature 7.8e-10; within the rule
+  dp45  rtol 1e-06 atol 1e-10:    5.46 s,    10.96 sub-steps and     73.3 rate evaluations per cell and step; ignition time 2.7e-07, final temperature 2.1e-10; within the rule
+  dp45  rtol 1e-06 atol 1e-14:    5.53 s,    11.06 sub-steps and     74.0 rate evaluations per cell and step; ignition time 8.0e-08, final temperature 5.6e-11; within the rule
+  dp45  rtol 1e-08 atol 1e-10:    7.16 s,    11.51 sub-steps and     75.6 rate evaluations per cell and step; ignition time 2.3e-07, final temperature 1.9e-10; within the rule
+  dp45  rtol 1e-08 atol 1e-14:   10.82 s,    14.77 sub-steps and     91.7 rate evaluations per cell and step; ignition time 1.0e-09, final temperature 4.3e-12; within the rule
+  ros34 rtol 1e-03 atol 1e-10:    2.38 s,     4.08 sub-steps and     52.0 rate evaluations per cell and step; ignition time 2.4e-04, final temperature 5.7e-06; within the rule
+  ros34 rtol 1e-03 atol 1e-14:    2.33 s,     4.11 sub-steps and     52.4 rate evaluations per cell and step; ignition time 2.0e-04, final temperature 5.5e-06; within the rule
+  ros34 rtol 1e-04 atol 1e-10:    2.55 s,     5.29 sub-steps and     65.8 rate evaluations per cell and step; ignition time 3.9e-05, final temperature 4.4e-06; within the rule
+  ros34 rtol 1e-04 atol 1e-14:    2.57 s,     5.38 sub-steps and     67.0 rate evaluations per cell and step; ignition time 1.7e-05, final temperature 1.6e-07; within the rule
+  ros34 rtol 1e-06 atol 1e-10:   10.93 s,     7.29 sub-steps and     85.0 rate evaluations per cell and step; ignition time 3.7e-05, final temperature 4.2e-06; within the rule
+  ros34 rtol 1e-06 atol 1e-14:   11.81 s,     7.57 sub-steps and     86.7 rate evaluations per cell and step; ignition time 1.4e-07, final temperature 3.8e-09; within the rule
+  ros34 rtol 1e-08 atol 1e-10:   23.58 s,    14.29 sub-steps and    157.2 rate evaluations per cell and step; ignition time 3.7e-05, final temperature 4.2e-06; within the rule
+  ros34 rtol 1e-08 atol 1e-14:   48.86 s,    25.96 sub-steps and    285.6 rate evaluations per cell and step; ignition time 7.8e-09, final temperature 8.7e-10; within the rule
+step 1e-08 s: chosen bs23 rtol 1e-06 atol 1e-14 (10.76 s)
+step 1e-06 s: chosen ros34 rtol 1e-03 atol 1e-14 (2.33 s)
+record: /mnt/d/Projects/Agentic CFD/gpucfd/tests/results/test_chem_tune.json

@@ -11,7 +11,7 @@ those of the CHEMKIN-II manual (Kee, Rupley and Miller, Sandia report SAND89-800
 and the equations are integrated with SciPy. What it gives:
   - theory before a run: the start state, bounds on the final temperature, the equilibrium the mixture is
     heading for (`Parcel.complete_combustion`, `Parcel.equilibrium`);
-  - a second solution with stated tolerances (`Parcel.solve`);
+  - a second solution with stated tolerances (`Parcel.solve`; at constant volume `VolumeParcel.solve`);
   - what a difference of conventions between two programs is worth: `Conventions` (the constant that converts
     activation energies, the standard pressure of the thermodynamic data, the atomic weights);
   - the health of a reacting history: `parcel_health` (atoms, sum of mass fractions, temperature bounds).
@@ -308,7 +308,9 @@ class Parcel:
 
     def solve(self, t_end, T_ign=None, rtol=1e-10, atol=1e-20, method="Radau", t_eval=None):
         """Integrate to t_end. Returns dict(t, T, sigma (rows = times), t_ign, steps, sol). With t_eval the
-        values at those times come from the integrator's own interpolation."""
+        values at those times come from the integrator's own interpolation. At the default tolerances the
+        ignition time of case 20 is good to about 3e-7 of its value, not to 1e-10: gpucfd's kernel and
+        OpenFOAM taken to a step of zero agree with each other to 1e-7 and differ from this by 3e-7."""
         events = None
         if T_ign is not None:
             def ev(t, y):
@@ -363,6 +365,44 @@ class Parcel:
         out = np.zeros(len(m.species))
         out[act] = sig(x.x)
         return float(x.x[-1]), out
+
+
+class VolumeParcel(Parcel):
+    """A closed, well-mixed parcel at constant volume without heat exchange: what one cell of a flow solver is
+    during the chemistry part of a time step (density and internal energy do not change). The start state is
+    given as for Parcel (pressure, temperature, moles); the pressure then follows the gas. Added for the
+    constant-volume mode of gpucfd's chemistry kernel (gpucfd/CHEMISTRY.md, rung 2)."""
+
+    def __init__(self, mech, p, T0, moles):
+        super().__init__(mech, p, T0, moles)
+        self.p0, self.v0 = p, 1.0 / self.rho0
+        self.u0 = self.h0 - float(self.sigma0.sum()) * mech.conv.R * T0      # internal energy, J/kg, constant in time
+
+    def volume(self, sigma, T):
+        return self.v0
+
+    def pressure(self, sigma, T):
+        """Pressure of the mixture sigma (mol/kg; one state or rows of states) at temperature T."""
+        return np.asarray(sigma).sum(axis=-1) * self.mech.conv.R * T / self.v0
+
+    def energy(self, sigma, T):
+        return float(sigma @ self.mech.h(T)) - float(sigma.sum()) * self.mech.conv.R * T
+
+    def rhs(self, t, y):
+        sigma, T = y[:-1], y[-1]
+        R = self.mech.conv.R
+        w = self.mech.omega(sigma / self.v0, T)
+        return np.append(self.v0 * w, -self.v0 * ((self.mech.h(T) - R * T) @ w) / (sigma @ (self.mech.cp(T) - R)))
+
+    def complete_combustion(self):
+        """All hydrogen burnt to water at constant volume: (temperature, moles per kg). An upper bound."""
+        m = self.mech
+        s = super().complete_combustion()[1]
+        T = brentq(lambda T: s @ (m.h(T) - m.conv.R * T) - self.u0, self.T0, 6000.0, xtol=1e-10)
+        return float(T), s
+
+    def equilibrium(self, guess_sigma, guess_T):
+        raise NotImplementedError("the equilibrium solver is for a given enthalpy and pressure (Parcel), not for a given energy and volume")
 
 
 def build(conv=None, folder=None):

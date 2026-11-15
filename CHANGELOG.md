@@ -9,14 +9,56 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing is running. Two things wait for the student: the session that builds chemistry on the GPU
-in gpucfd (proposed, not started), and a fresh solver agent for case 21, whose problem is ready.
+Nothing is running. A fresh solver agent for case 21 waits for the student's go; its problem is
+ready.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### Case 21 prepared: a detonation in a tube, step 4 of the ladder, commit hash to be filled in
+### gpucfd: the chemistry of many cells on the GPU (stage 1), commit hash to be filled in
+- **Purpose.** Prof. Frankel named chemistry on the GPU as the key to speed in the lab's own code.
+  This is the second half of the third detonation solver: the shock solver exists, the burning
+  was missing.
+- **What it is** (`gpucfd/CHEMISTRY.md`, `gpucfd/src/gcfdk.cu`, `gpucfd/chemistry.py`): a GPU
+  kernel that burns many cells at once, each by itself, with the full hydrogen scheme read from
+  OpenFOAM's files. It works at constant pressure (the ignition problem) and at constant volume
+  (what a cell of a flow solver needs). It is **not yet joined to the flow solver**. Built by a
+  separate session; reviewed by the developing agent.
+- **Verified** by five tests (`bash gpucfd/run_ladder.sh chemistry`, rerun in the review on a
+  fresh build: all pass):
+  - reaction rates equal those of `cfdlib.chem` to round-off;
+  - step 3's ignition problem: ignition at 217.72 microseconds (0.022 % from the reference,
+    required 1 %), end temperature 0.0023 % off (required 0.1 %), atoms kept to 1e-14 (required
+    1e-5). With OpenFOAM's constants it agrees with OpenFOAM to one part in ten million;
+  - constant volume against a new reference in the tools (`cfdlib.chem.VolumeParcel`);
+  - every cell gives exactly the same numbers alone and among thousands of others;
+  - the precision was chosen by measurement: the stored state in 16 digits, the rates in 7.
+    Seven digits everywhere lose atoms at 0.011 %, outside the requirement, so that is not offered.
+- **Speed.** A million cells: about 200 million cells times steps per second at a flow solver's
+  time step. One parcel alone is slower than OpenFOAM on one core (15 s against 11 s for 80 000
+  steps); there is no gain below about 10 000 cells. **No fair ratio to OpenFOAM yet:** its
+  chemistry was timed on one cell only, at a tighter tolerance.
+- **Expected, found.** An implicit method was expected to win clearly at large steps. It does not
+  on this scheme at 2 atm; the simple explicit method is the default.
+- **Review check at detonation conditions** (`dev/agent_checks/chem_kernel_review.py`, rules
+  written first): behind a shock of the theoretical detonation speed (28 atm, 1540 K) the kernel
+  matches the reference (time to 2000 K within 0.005 %, end state to 1e-7). **But the cost is ten
+  times higher there:** hot gas needs about ten small chemistry steps per flow step, also after it
+  has burnt, so a million cells advance at 16 to 19 million per second (expected 50 to 200). In a
+  detonation the chemistry would take most of the time with the default method.
+- **The ignition page now shows gpucfd next to OpenFOAM** (`results/h2_air_ignition_box/brief.html`).
+  A mistake caught in review: the 4096-parcel run had landed in the one-parcel row.
+- **Answers to the session's insights.** The energy blip at the start of case 20 comes from a small
+  step in the heat-capacity data at 1000 K, not from the solver (now in the primer); the fastest
+  reactions act in about 1e-8 s at 2 atm (primer); `cfdlib.chem`'s own ignition time is good to
+  3e-7 (noted in the tool). Not acted on: a fit check for reacting runs (waits for the joined
+  solver); the tests need an OpenFOAM installation for the scheme files (stated, left).
+- **Open.** Join it to the shock solver (species in the flow, heat capacities that change with
+  temperature, a guard against negative pressure); choose the chemistry method again at detonation
+  states; time OpenFOAM's chemistry on a mesh (case 21 asks for it); only one scheme tested.
+
+### Case 21 prepared: a detonation in a tube, step 4 of the ladder (`9d32263`)
 - **Purpose.** Shock and burning together for the first time: does a detonation run at the speed
   the theory fixes? Later the three solvers are compared on this problem.
 - **The problem** (`cases/detonation_tube_h2_air/problem.yaml`): a closed tube 0.12 m long with

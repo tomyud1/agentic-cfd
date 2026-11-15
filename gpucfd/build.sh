@@ -1,8 +1,9 @@
 #!/bin/bash
-# Compile the CUDA sources (inside WSL/Linux):  bash gpucfd/build.sh [incompressible|compressible]
+# Compile the CUDA sources (inside WSL/Linux):  bash gpucfd/build.sh [incompressible|compressible|chemistry]
 #   build/libgcfd.so   the incompressible solver (src/gcfd.cu)
 #   build/libgcfdc.so  the compressible solver for gas with shocks (src/gcfdc.cu)
-# With no argument both are built; with one, only that library (the other file is not touched).
+#   build/libgcfdk.so  the chemistry of many independent cells (src/gcfdk.cu)
+# With no argument all are built; with one, only that library (the other files are not touched).
 # ARCH defaults to the RTX 4070 (compute capability 8.9); e.g. ARCH=sm_80 for an A100.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -19,5 +20,9 @@ if [ "$WHAT" = all ] || [ "$WHAT" = compressible ]; then
   # (1e-10 with WENO5 in mixed precision). Without fusing they are identical (COMPRESSIBLE.md, rung 3).
   "$NVCC" -O3 -std=c++17 -arch="$ARCH" --fmad=false -lineinfo -Xcompiler -fPIC -shared src/gcfdc.cu -o build/libgcfdc.so.new
   mv build/libgcfdc.so.new build/libgcfdc.so
+fi
+if [ "$WHAT" = all ] || [ "$WHAT" = chemistry ]; then
+  "$NVCC" -O3 -std=c++17 -arch="$ARCH" -lineinfo -Xcompiler -fPIC -shared src/gcfdk.cu -o build/libgcfdk.so.new
+  mv build/libgcfdk.so.new build/libgcfdk.so
 fi
 echo "BUILD_OK $ARCH"

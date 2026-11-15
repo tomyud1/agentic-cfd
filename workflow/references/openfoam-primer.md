@@ -117,7 +117,12 @@ example: `cases/h2_air_ignition_box/`. `cfdlib.chem` gives an independent second
   full. Measured on one core with tight tolerances: about 100 µs per step where little reacts, up
   to 12 ms per step in the rise. At steps of 0.1 µs and less (a flow solver's steps) the chemistry
   is not stiff inside a step: the explicit `RKF45` gave the same answer to nine digits in under a
-  third of the time.
+  third of the time. The fastest reactions of the hydrogen scheme act in about 1e-8 s at 2 atm
+  (measured with gpucfd's kernel, `gpucfd/CHEMISTRY.md`); at higher pressure they are faster.
+- **The thermodynamic data has a small step at 1000 K,** where its two temperature ranges meet
+  (for the hydrogen-air mixture of case 20: 0.058 J/kg). A parcel that starts at exactly 1000 K
+  shows an energy "error" of that size (3e-8 of the heat released) in its first microseconds. It
+  belongs to the data, not to the solver.
 
 ## Turbulence models (RANS; measured in case 7, a flat plate with Spalart-Allmaras)
 - **A model name covers several published variants,** and a solver's default may be another one

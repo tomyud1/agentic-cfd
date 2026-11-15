@@ -260,7 +260,7 @@ shock_diffraction_corner:
 
 h2_air_ignition_box:
   goal: The first case with burning. Chemistry alone, with no flow. Step 3 of 7 on the way to a rotating detonation engine.
-  story: "Solved with OpenFOAM's chemistry solver by a fresh agent, which also wrote an independent solution of its own to check both OpenFOAM and the reference. gpucfd cannot solve it yet: it has no chemistry. That is the next thing to build."
+  story: "Solved with OpenFOAM's chemistry solver by a fresh agent, which also wrote an independent solution of its own to check both OpenFOAM and the reference. gpucfd had no chemistry. A chemistry kernel for the GPU was built the same day and run on the same parcel. It is not yet joined to gpucfd's flow solver."
   requirements:
     - A parcel of hydrogen, oxygen and nitrogen at rest, suddenly at 1000 K. The pressure is held at 2 atmospheres and no heat is exchanged.
     - After a short delay the mixture ignites and burns. Nothing flows, so only time matters.
@@ -268,7 +268,8 @@ h2_air_ignition_box:
     - "Asked for: temperature against time, the ignition time, the final temperature, the species, whether atoms and energy are kept, and what the chemistry costs."
     - "Reference: an independent chemistry program (CHEMKIN II) with the same reaction scheme."
     - "Required: ignition time within 1 %, final temperature within 0.1 %, the atoms of each element constant within 0.001 %."
-  gpucfd: cannot yet
+  gpucfd: not run
+  record: dev/compare/h2_air_ignition_box/gpucfd.json
   accuracy:
     note: "With the smallest time step. The first three rows are the problem's requirements."
     rows: {b: Ignition time, c: Temperature at the end, e: Atoms and energy kept, a: Temperature against time}
@@ -277,13 +278,16 @@ h2_air_ignition_box:
       files: [results/h2_air_ignition_box/runs/S2500.json, results/h2_air_ignition_box/runs/S10000.json, results/h2_air_ignition_box/runs/S40000.json, results/h2_air_ignition_box/runs/S80000.json]
       label: "{steps} time steps"
       wall: wall_time
-    note: One cell, with very tight tolerances of the chemistry solver. Looser settings and a simpler chemistry solver gave the same answer in under a third of the time.
+    note: "One cell, with the same very tight tolerance in both tools. Looser settings and a simpler chemistry solver gave OpenFOAM the same answer in under a third of the time. One cell is the wrong job for a GPU: one of its thousands of threads works alone. The last row is what it is for."
   meaning:
     - "All three requirements are met with a wide margin. OpenFOAM agrees with the agent's independent solution about forty times more closely than either agrees with the reference, so what is left is mostly the reference's own accuracy."
     - "One prediction of the agent was wrong: it expected OpenFOAM's shipped example to miss the 1 %. It is inside, at 0.56 %."
     - "For the detonation engine: in OpenFOAM the time step is an accuracy setting of the chemistry, not only of the flow. Halving the step halves the error, and no setting of the chemistry solver removes it."
     - "For the detonation engine: the chemistry of one cell costs about 100 microseconds per time step on one core, and far more while the cell ignites. The flow part cost 0.3 microseconds per cell in step 1. This is why chemistry on the GPU matters."
+    - "gpucfd's new chemistry kernel meets the same three requirements. With the same constants it agrees with OpenFOAM to one part in ten million. With a million cells it advances about 200 million cells times steps per second, at the time step a flow solver with shock waves takes."
   limits:
-    - "gpucfd has no column: it has no chemistry yet."
+    - "gpucfd is worse for few cells: slower than OpenFOAM for one cell, and no gain below about 10 000 cells."
+    - "There is no fair ratio of the two tools' chemistry cost yet. OpenFOAM's chemistry was timed on one cell only; gpucfd's speed is for a million cells at a looser tolerance and in mixed precision."
+    - "gpucfd's kernel is chemistry alone, tested with this one reaction scheme. It is not yet joined to the flow solver."
     - "One cell only. The cost per cell in a real flow depends on how many cells are igniting at the same time."
     - "The reference states no accuracy of its own. The agent's independent solution suggests it is good to about 0.03 %."

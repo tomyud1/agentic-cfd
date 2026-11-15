@@ -1,0 +1,421 @@
+{
+ "tool": "gpucfd",
+ "case": "h2_air_ignition_box",
+ "date": "2026-11-15",
+ "device": "NVIDIA GeForce RTX 4070",
+ "startup_s": 0.26442827699997906,
+ "plain": "gpucfd's new chemistry kernel solves the same parcel: ignition at 217.72 microseconds (-0.022 % from the reference) and \\(2220.45\\,\\mathrm{K}\\) at the end. For one parcel the GPU is slower than OpenFOAM on one core (15 s against 11 s for 80000 steps); its gain is in numbers: 4096 parcels take 6 s, and a million cells before ignition advance at about 199 million cells x steps per second (OpenFOAM's chemistry on a mesh of many cells was not timed, so there is no fair ratio yet)",
+ "busy_cpu": false,
+ "busy_processes": [],
+ "answers": {
+  "a": {
+   "value": {
+    "shift": {
+     "1100": -5.2442672464418335e-08,
+     "1200": -4.716030375600893e-08,
+     "1400": -5.412001397186073e-08,
+     "1600": -4.761204537426971e-08,
+     "1800": -5.362938119385743e-08,
+     "2000": -5.085061900418977e-08,
+     "2200": 1.7036118316309662e-07
+    },
+    "dT_flat_max": 0.11245668520768959
+   },
+   "diff": "<span style='white-space:nowrap'>rise: \\(-0.05\\,\\mathrm{\\mu s}\\)</span><br><span style='white-space:nowrap'>flat parts: \\(0.11\\,\\mathrm{K}\\)</span>"
+  },
+  "b": {
+   "value": 0.00021772225146094988,
+   "diff": "\\(-0.022\\,\\%\\)"
+  },
+  "c": {
+   "value": 2220.449814463582,
+   "diff": "<span style='white-space:nowrap'>\\(-0.0023\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.050\\,\\mathrm{K}\\)</span>"
+  },
+  "e": {
+   "value": {
+    "atoms": 1.1213252548714081e-14,
+    "energy": 8.005213945062418e-10
+   },
+   "diff": "<span style='white-space:nowrap'>atoms \\(1 \\times 10^{-14}\\)</span><br><span style='white-space:nowrap'>energy \\(8 \\times 10^{-10}\\)</span>"
+  }
+ },
+ "runs": [
+  {
+   "steps": 2500,
+   "cells": 1,
+   "wall_s": 1.8611099440001908,
+   "gpu_s": 1.8583630770000164,
+   "substeps": 10593,
+   "t_ign": 0.00021771700248470098,
+   "T_end": 2220.449814417583,
+   "openfoam": {
+    "wall_s": 4.419894968999984,
+    "t_ign": 0.000217671104642196,
+    "T_end": 2220.5386840812
+   },
+   "precision": "double",
+   "rtol": 1e-08,
+   "atol": 1e-14
+  },
+  {
+   "steps": 10000,
+   "cells": 1,
+   "wall_s": 2.624479299000086,
+   "gpu_s": 2.6228388640000486,
+   "substeps": 13845,
+   "t_ign": 0.00021772198765040765,
+   "T_end": 2220.449814446337,
+   "openfoam": {
+    "wall_s": 4.86316518000001,
+    "t_ign": 0.00021770107537104645,
+    "T_end": 2220.5366589896
+   },
+   "precision": "double",
+   "rtol": 1e-08,
+   "atol": 1e-14
+  },
+  {
+   "steps": 40000,
+   "cells": 1,
+   "wall_s": 7.713512630999958,
+   "gpu_s": 7.7112766750000885,
+   "substeps": 41369,
+   "t_ign": 0.00021772224626414463,
+   "T_end": 2220.44981446165,
+   "openfoam": {
+    "wall_s": 7.810433616999944,
+    "t_ign": 0.00021770765529747447,
+    "T_end": 2220.5361563318
+   },
+   "precision": "double",
+   "rtol": 1e-08,
+   "atol": 1e-14
+  },
+  {
+   "steps": 80000,
+   "cells": 1,
+   "wall_s": 15.31505257899994,
+   "gpu_s": 15.312962749999947,
+   "substeps": 80856,
+   "t_ign": 0.00021772225146094988,
+   "T_end": 2220.449814463582,
+   "openfoam": {
+    "wall_s": 11.011208486999998,
+    "t_ign": 0.000217708768691795,
+    "T_end": 2220.5360727131
+   },
+   "precision": "double",
+   "rtol": 1e-08,
+   "atol": 1e-14
+  },
+  {
+   "label": "4096 parcels at once, 80000 time steps (gpucfd's default setting)",
+   "cells": 4096,
+   "time_steps": 80000,
+   "wall_s": 5.735921640000015,
+   "gpu_s": 5.733232209000038,
+   "t_ign": 0.0002177229632588099,
+   "T_end": 2220.44970703125,
+   "identical": true,
+   "precision": "mixed",
+   "method": "bs23",
+   "rtol": 1e-06,
+   "atol": 1e-14
+  }
+ ],
+ "requirements_met": {
+  "ignition": true,
+  "final": true,
+  "conserved": true
+ },
+ "like_for_like": {
+  "t_ign": 0.00021772225146094988,
+  "T_end": 2220.449814463582,
+  "d_ref_t": -0.00021926132639993323,
+  "d_ref_T": -2.2601007168776555e-05,
+  "levels": {
+   "1100": 0.0002145615573275356,
+   "1200": 0.00021772225146094988,
+   "1400": 0.00022047587998602814,
+   "1600": 0.00022314777257001034,
+   "1800": 0.00022928103728547282,
+   "2000": 0.00024993460392645035,
+   "2200": 0.0005224403611831631
+  },
+  "shift": {
+   "1100": -5.2442672464418335e-08,
+   "1200": -4.716030375600893e-08,
+   "1400": -5.412001397186073e-08,
+   "1600": -4.761204537426971e-08,
+   "1800": -5.362938119385743e-08,
+   "2000": -5.085061900418977e-08,
+   "2200": 1.7036118316309662e-07
+  },
+  "shift_worst": -5.412001397186073e-08,
+  "dT_flat_max": 0.11245668520768959,
+  "atoms": 1.1213252548714081e-14,
+  "energy": 8.005213945062418e-10,
+  "energy_away_from_joint": 5.235398322354688e-16,
+  "data_jump": 3.23721037035814e-08,
+  "Y_min": 0.0,
+  "sumY": 2.6645352591003757e-15,
+  "substeps": 80856,
+  "rejected": 429,
+  "status": 0,
+  "steps": 80000,
+  "wall_s": 14.902296191000005,
+  "gpu_s": 14.899371136000147,
+  "precision": "double",
+  "setting": {
+   "precision": "double",
+   "method": "bs23",
+   "rtol": 1e-08,
+   "atol": 1e-14
+  }
+ },
+ "like_for_like_openfoam_constants": {
+  "t_ign": 0.00021770991126557156,
+  "T_end": 2220.5359886226506,
+  "d_ref_t": -0.0002759275126438254,
+  "d_ref_T": 1.6207440959536967e-05,
+  "levels": {
+   "1100": 0.0002145494103398657,
+   "1200": 0.00021770991126557156,
+   "1400": 0.00022046339431029623,
+   "1600": 0.0002231352426240841,
+   "1800": 0.00022926846517578917,
+   "2000": 0.00024992132748540686,
+   "2200": 0.0005221429887565813
+  },
+  "shift": {
+   "1100": -6.458966013431016e-08,
+   "1200": -5.950049913433205e-08,
+   "1400": -6.660568970377778e-08,
+   "1600": -6.014199130049513e-08,
+   "1800": -6.620149087751301e-08,
+   "2000": -6.41270600476823e-08,
+   "2200": -1.270112434186791e-07
+  },
+  "shift_worst": -6.660568970377778e-08,
+  "dT_flat_max": 0.1387210060038342,
+  "atoms": 6.8833827526759706e-15,
+  "energy": 8.005250620172811e-10,
+  "energy_away_from_joint": 5.235393632327502e-16,
+  "data_jump": 3.23721037035814e-08,
+  "Y_min": 0.0,
+  "sumY": 1.5543122344752192e-15,
+  "substeps": 80856,
+  "rejected": 429,
+  "status": 0,
+  "steps": 80000,
+  "wall_s": 15.21033982799986,
+  "gpu_s": 15.208077584999847,
+  "precision": "double",
+  "setting": {
+   "precision": "double",
+   "method": "bs23",
+   "rtol": 1e-08,
+   "atol": 1e-14
+  }
+ },
+ "default_setting": {
+  "t_ign": 0.0002177222514600495,
+  "T_end": 2220.449814463452,
+  "d_ref_t": -0.0002192613305345148,
+  "d_ref_T": -2.2601007227063263e-05,
+  "levels": {
+   "1100": 0.0002145615573275356,
+   "1200": 0.0002177222514600495,
+   "1400": 0.00022047587998041997,
+   "1600": 0.00022314777258591398,
+   "1800": 0.00022928103729675197,
+   "2000": 0.0002499346039377269,
+   "2200": 0.0005224403611944175
+  },
+  "shift": {
+   "1100": -5.2442672464418335e-08,
+   "1200": -4.716030465638462e-08,
+   "1400": -5.412001958003199e-08,
+   "1600": -4.7612029470623035e-08,
+   "1800": -5.362936991471249e-08,
+   "2000": -5.085060772761982e-08,
+   "2200": 1.7036119441744043e-07
+  },
+  "shift_worst": -5.412001958003199e-08,
+  "dT_flat_max": 0.11245666863806036,
+  "atoms": 1.021405182655144e-14,
+  "energy": 8.005213945062418e-10,
+  "energy_away_from_joint": 5.889823112649024e-16,
+  "data_jump": 3.23721037035814e-08,
+  "Y_min": 0.0,
+  "sumY": 1.6653345369377348e-15,
+  "substeps": 80000,
+  "rejected": 0,
+  "status": 0,
+  "steps": 80000,
+  "wall_s": 14.883996101999855,
+  "gpu_s": 14.881575719999848,
+  "precision": "double",
+  "setting": {
+   "precision": "mixed",
+   "method": "bs23",
+   "rtol": 1e-06,
+   "atol": 1e-14
+  }
+ },
+ "default": {
+  "precision": "mixed",
+  "method": "bs23",
+  "rtol": 1e-06,
+  "atol": 1e-14
+ },
+ "reference": {
+  "t_ign": 0.00021777,
+  "T_end": 2220.5
+ },
+ "openfoam": {
+  "finest": {
+   "steps": 80000,
+   "t_ign": 0.000217708768691795,
+   "T_end": 2220.5360727131,
+   "d_ref_t": -0.0002811742122652561,
+   "d_ref_T": 1.624531101107607e-05,
+   "atoms": 8.657519146026971e-13,
+   "energy": 3.23721610114163e-08,
+   "wall_s": 11.011208486999998
+  },
+  "step_to_zero": {
+   "t_ign": 0.0002177098933533922,
+   "T_end": 2220.535989267441
+  },
+  "cost": {
+   "S80000": {
+    "steps": 80000,
+    "dt": 1.25e-08,
+    "solver": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "us_per_step": 132.25165314566433,
+    "phase_us": [
+     102.11752913168776,
+     659.7222222222222,
+     104.8228510482285
+    ],
+    "cell_steps_per_s": [
+     9792.638036809816,
+     1515.7894736842106,
+     9539.904610492847
+    ],
+    "wall_s": 11.011208486999998
+   },
+   "S10000": {
+    "steps": 10000,
+    "dt": 1e-07,
+    "solver": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "us_per_step": 443.04430443044316,
+    "phase_us": [
+     155.31062124248496,
+     4512.922465208748,
+     246.63378216237834
+    ],
+    "cell_steps_per_s": [
+     6438.709677419355,
+     221.58590308370043,
+     4054.5945945945946
+    ],
+    "wall_s": 4.86316518000001
+   },
+   "S2500": {
+    "steps": 2500,
+    "dt": 4e-07,
+    "solver": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "us_per_step": 1616.6466586634654,
+    "phase_us": [
+     480.9619238476954,
+     18809.52380952381,
+     762.6666666666665
+    ],
+    "cell_steps_per_s": [
+     2079.1666666666665,
+     53.164556962025316,
+     1311.1888111888115
+    ],
+    "wall_s": 4.419894968999984
+   },
+   "S10000_RKF45": {
+    "steps": 10000,
+    "dt": 1e-07,
+    "solver": "RKF45",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "us_per_step": 103.01030103010301,
+    "phase_us": [
+     95.19038076152304,
+     198.80715705765402,
+     98.65351286495134
+    ],
+    "cell_steps_per_s": [
+     10505.263157894737,
+     5030.000000000001,
+     10136.486486486487
+    ],
+    "wall_s": 1.4068236250000155
+   },
+   "S10000_rel0.1_abs1e-12": {
+    "steps": 10000,
+    "dt": 1e-07,
+    "solver": "seulex",
+    "rel": 0.1,
+    "abs": 1e-12,
+    "us_per_step": 123.01230123012301,
+    "phase_us": [
+     100.20040080160321,
+     99.40357852882707,
+     130.6492467670977
+    ],
+    "cell_steps_per_s": [
+     9980.0,
+     10059.999999999996,
+     7654.081632653062
+    ],
+    "wall_s": 1.6132810459999973
+   }
+  }
+ },
+ "against_openfoam": {
+  "same_constants_vs_step_to_zero": {
+   "t_ign": 8.227544956440624e-08,
+   "T_end_K": -6.447903615480755e-07
+  },
+  "phases_at_flow_step": {
+   "slow start": {
+    "gpucfd_cell_steps_per_s": 198919030.22752312,
+    "openfoam_cell_steps_per_s": 9792.638036809816,
+    "openfoam_us_per_step": 102.11752913168776,
+    "ratio": 20313.11986410617
+   },
+   "rise": {
+    "gpucfd_cell_steps_per_s": 197086444.29031453,
+    "openfoam_cell_steps_per_s": 1515.7894736842106,
+    "openfoam_us_per_step": 659.7222222222222,
+    "ratio": 130022.30699708249
+   },
+   "burnt gas": {
+    "gpucfd_cell_steps_per_s": 200072061.95533687,
+    "openfoam_cell_steps_per_s": 9539.904610492847,
+    "openfoam_us_per_step": 104.8228510482285,
+    "ratio": 20972.12394925622
+   }
+  },
+  "what_each_side_is_given": {
+   "openfoam": "chemFoam as the solver agent of case 20 ran it: one cell on one core of the Ryzen 7 7800X3D, the chemistry solver seulex (implicit) with relative tolerance 1e-8 and absolute tolerance 1e-16 kmol/m3, 2500 to 80000 equal steps, a log line and two output rows written at every step. Its times are read from results/h2_air_ignition_box/runs/ and are not rerun. Its looser and its explicit runs (RKF45; tolerance 0.1) are quoted next to it. OpenFOAM's constants.\n",
+   "gpucfd": "The kernel on the RTX 4070. For the one-page report: the same single parcel in the same numbers of steps, double precision with tolerance 1e-8 (OpenFOAM's), where the GPU has one cell to work on and the time is all launch overhead. For the throughput: batches of cells in the chosen precision and tolerance. CHEMKIN's constants for the main answer; OpenFOAM's for the direct comparison of numbers.\n",
+   "limits_to_state": "One cell on one core against a batch on a GPU is not like for like: OpenFOAM's 100 microseconds per step include its per-step overhead for a single cell and its output, and a flow solver would spread cells over 8 cores. OpenFOAM was not tuned for speed. Tolerances mean different things in the two codes. gpucfd's batch numbers are for cells that all do the same work, and for a mixed population measured separately.\n"
+  }
+ },
+ "speed_record": "gpucfd/tests/results/test_chem_speed.json"
+}

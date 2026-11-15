@@ -1,0 +1,24 @@
+constant pressure, CHEMKIN's constants: ignition 217.7223 us (cfdlib.chem 217.7222), final 2220.4498 K (cfdlib.chem 2220.4498); 101345 sub-steps, 1 rejected, 32.3 s
+PASS  rung 2: status and health of the run (CHEMKIN's constants): temperature inside its bounds: 1000.0000 to 2220.4498 K, bounds 1000.0000 to 2253.6301; no negative mass fraction: lowest 0.00e+00; mass fractions add up to one: off by at most 3.0e-15; atoms of each element kept: largest relative change 1.3e-14
+PASS  rung 2: the kernel's own record of the ignition time equals the reading of the history (CHEMKIN): 2.177222528774e-04 and 2.177222528774e-04
+PASS  rung 2: constant pressure against cfdlib.chem, CHEMKIN's constants (ignition time within 1e-6, final temperature within 1e-3 K): ignition time +3.4e-07, final temperature -9.1e-07 K (expected within 1e-7 and 1e-5 K)
+PASS  rung 2: atoms within 1e-12 at every step, energy within 1e-10 of the heat released, and on the data's joint within its jump (CHEMKIN): atoms 1.3e-14; enthalpy rebuilt by cfdlib.chem: 5.9e-16 of the heat released (1.7789e+06 J/kg) away from the data's joint at 1000 K, 8.0e-10 on it (660 steps; the data's own jump there is 3.2e-08); lowest mass fraction 0.0e+00, sum off by 3.0e-15
+PASS  rung 2, REQUIRED: ignition time within 1 % of the reference: 217.722 us against 217.77 us: -0.022 % (expected -0.022 %)
+PASS  rung 2, REQUIRED: temperature at 1 ms within 0.1 % of the reference: 2220.450 K against 2220.5 K: -0.0023 % (expected -0.002 %)
+PASS  rung 2, REQUIRED: atoms of each element constant within 0.001 %: largest change 1.3e-14
+PASS  rung 2: the answer does not depend on the step (1e-6 s against 1e-8 s; ignition time by the same reading within 1e-6): ignition time read at steps of 1e-6 s: kernel 217.69034 us, cfdlib.chem read the same way 217.69026 us (+3.8e-07); final temperature differs by +6.4e-12 K; largest difference of the temperature at the common times 2.1e-10 K
+constant pressure, OpenFOAM's constants: ignition 217.7099 us (cfdlib.chem 217.7098), final 2220.5360 K (cfdlib.chem 2220.5360); 101345 sub-steps, 1 rejected, 31.8 s
+PASS  rung 2: status and health of the run (OpenFOAM's constants): temperature inside its bounds: 1000.0000 to 2220.5360 K, bounds 1000.0000 to 2253.6301; no negative mass fraction: lowest 0.00e+00; mass fractions add up to one: off by at most 2.0e-15; atoms of each element kept: largest relative change 1.7e-14
+PASS  rung 2: the kernel's own record of the ignition time equals the reading of the history (OpenFOAM): 2.177099150998e-04 and 2.177099150999e-04
+PASS  rung 2: constant pressure against cfdlib.chem, OpenFOAM's constants (ignition time within 1e-6, final temperature within 1e-3 K): ignition time +3.6e-07, final temperature -9.2e-07 K (expected within 1e-7 and 1e-5 K)
+PASS  rung 2: atoms within 1e-12 at every step, energy within 1e-10 of the heat released, and on the data's joint within its jump (OpenFOAM): atoms 1.7e-14; enthalpy rebuilt by cfdlib.chem: 5.2e-16 of the heat released (1.7789e+06 J/kg) away from the data's joint at 1000 K, 8.0e-10 on it (660 steps; the data's own jump there is 3.2e-08); lowest mass fraction 0.0e+00, sum off by 2.0e-15
+      recorded: OpenFOAM extrapolated to a step of zero 217.7099 us, 2220.5360 K; gpucfd differs by +1.0e-07 and -6.4e-07 K
+constant volume: ignition 214.1823 us (cfdlib.chem 214.1822), final 2477.0407 K (2477.0407), final pressure 460486.47 Pa (460486.47), 2.2723 times the start; cfdlib.chem's own energy drift 3.3e-08
+PASS  rung 2: constant volume, status and health: temperature inside its bounds: 1000.0000 to 2477.0407 K, bounds 1000.0000 to 2558.0044; no negative mass fraction: lowest 0.00e+00; mass fractions add up to one: off by at most 2.7e-15; atoms of each element kept: largest relative change 1.6e-14
+PASS  rung 2: constant volume against cfdlib.chem (ignition time within 1e-6, final temperature within 1e-3 K, final pressure within 1e-8): ignition time +3.6e-07, final temperature +1.6e-11 K, final pressure +1.1e-15
+PASS  rung 2: constant volume, atoms within 1e-12, internal energy within 1e-10 of the heat released, and on the data's joint within its jump: atoms 1.6e-14; internal energy rebuilt by cfdlib.chem: 6.7e-16 of the heat released (1.7491e+06 J/kg) away from the data's joint at 1000 K, 8.4e-10 on it (682 steps; the data's own jump there is 3.3e-08); lowest mass fraction 0.0e+00, sum off by 2.7e-15
+PASS  rung 2: order of bs23 with fixed sub-steps is 3 (within 0.4, last refinement): errors 1.24e-08, 1.57e-09, 1.97e-10, 2.46e-11; orders 2.99, 2.99, 3.00
+PASS  rung 2: order of dp45 with fixed sub-steps is 5 (within 0.4, last refinement): errors 1.40e-09, 2.74e-11, 6.54e-13, 1.81e-14; orders 5.68, 5.39, 5.18
+PASS  rung 2: order of ros34 with fixed sub-steps is 4 (within 0.4, last refinement): errors 2.26e-09, 1.86e-10, 1.34e-11, 8.49e-13; orders 3.60, 3.80, 3.98
+
+0 failed

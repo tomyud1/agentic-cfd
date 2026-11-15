@@ -1,0 +1,15 @@
+GPU: NVIDIA GeForce RTX 4070; start-up 0.26 s; other solver processes on the CPU: 0
+like for like, CHEMKIN's constants: ignition 217.7223 us (-0.0219 % from the reference), final 2220.4498 K (-0.00226 %), atoms 1.1e-14, energy 8.0e-10, 80856 sub-steps, 14.9 s
+like for like, OpenFOAM's constants: ignition 217.7099 us (-0.0276 % from the reference), final 2220.5360 K (+0.00162 %), atoms 6.9e-15, energy 8.0e-10, 80856 sub-steps, 15.2 s
+default setting: ignition 217.7223 us (-0.0219 % from the reference), final 2220.4498 K (-0.00226 %), atoms 1.0e-14, energy 8.0e-10, 80000 sub-steps, 14.9 s
+OpenFOAM, 80000 steps: 217.7088 us, 2220.5361 K; extrapolated to a step of zero 217.7099 us, 2220.5360 K; gpucfd with OpenFOAM's constants differs from that by +8.2e-08 and -6.4e-07 K
+one parcel, 2500 steps: 1.9 s (OpenFOAM 4.4 s on one core); ignition 217.7170 us (OpenFOAM 217.6711); 10593 sub-steps
+one parcel, 10000 steps: 2.6 s (OpenFOAM 4.9 s on one core); ignition 217.7220 us (OpenFOAM 217.7011); 13845 sub-steps
+one parcel, 40000 steps: 7.7 s (OpenFOAM 7.8 s on one core); ignition 217.7222 us (OpenFOAM 217.7077); 41369 sub-steps
+one parcel, 80000 steps: 15.3 s (OpenFOAM 11.0 s on one core); ignition 217.7223 us (OpenFOAM 217.7088); 80856 sub-steps
+4096 parcels, 80000 steps, default setting: 5.7 s; ignition 217.7230 us, final 2220.4497 K
+slow start: gpucfd 198.9 million cells x steps per second (mixed, a million cells, 1e-8 s); OpenFOAM 102 us per step on one core (9793 per second, 1.25e-8 s, tolerance 1e-8): ratio 20313
+rise: gpucfd 197.1 million cells x steps per second (mixed, a million cells, 1e-8 s); OpenFOAM 660 us per step on one core (1516 per second, 1.25e-8 s, tolerance 1e-8): ratio 130022
+burnt gas: gpucfd 200.1 million cells x steps per second (mixed, a million cells, 1e-8 s); OpenFOAM 105 us per step on one core (9540 per second, 1.25e-8 s, tolerance 1e-8): ratio 20972
+the problem's requirements: {'ignition': True, 'final': True, 'conserved': True}
+record: /mnt/d/Projects/Agentic CFD/dev/compare/h2_air_ignition_box/gpucfd.json

@@ -1,0 +1,182 @@
+# Chemistry on the GPU, stage 1: many independent cells, tested on case 20. Written BEFORE any run, 2026-11-15.
+# (When this was written no line of the kernel existed. The only programs run were readers: the list of
+# reactions of the scheme and case 20's recorded costs.)
+# Why: step 4 of the ladder to the detonation engine needs burning in every cell, and case 20 measured what it
+# costs on the CPU: about 100 microseconds of one core per cell and step, far more while a cell ignites.
+
+what_is_built: >
+  A GPU kernel (gpucfd/src/gcfdk.cu, wrapper gpucfd/chemistry.py) that advances N independent cells over a
+  time step dt, at constant pressure (case 20's problem) or at constant volume (what a flow solver's splitting
+  calls). The reaction scheme is read from the CHEMKIN files by cfdlib.chem; no rate constant is typed.
+design_decisions:            # fixed before the runs; each is tested by a rung
+  - "One GPU thread per cell. Each cell takes its own sub-steps inside dt, with its own error control, and remembers its sub-step size for the next call."
+  - "The temperature is never integrated. Each cell stores its enthalpy (constant pressure) or its internal energy (constant volume), which chemistry does not change, and the temperature is found from it by Newton's method whenever rates are needed. So the energy is kept exactly, by construction, and in a flow solver the chemistry changes the species only."
+  - "Species change only by whole reactions: the kernel adds up the progress of each reaction over a sub-step and then applies it to the species. Every reaction keeps the atoms, so atoms are kept to round-off whatever the error of the rates."
+  - "Three precisions as in the flow solver: single, double, and mixed (species and energy stored in double, rates computed in single, the progress of the reactions applied in double)."
+  - "Integrators to choose from: two explicit Runge-Kutta pairs with error control (Bogacki-Shampine, orders 3 and 2; Dormand-Prince, orders 5 and 4) and one implicit (Rosenbrock, order 4 with an order 3 estimate, the constants of OpenFOAM's Rosenbrock34, the Jacobian by finite differences)."
+
+rungs:
+  1_rates_and_thermodynamics:
+    what: >
+      2000 random states (300 to 3500 K, 0.1 to 50 atm, random mixtures of all ten species, some species
+      absent): forward and reverse rate of each of the 27 reactions, enthalpy and heat capacity of each species,
+      the stored energy, and the temperature found back from that energy, against cfdlib.chem.
+    pass: >
+      double precision: every rate within 1e-12 (relative to that rate), enthalpies and heat capacities within
+      1e-13, net production of each species within 1e-12 of the gross rate of that species, temperature found
+      back within 1e-9 K.
+    recorded_not_judged: the same in single precision (expected 1e-5 to 1e-4 for the rates). It feeds rung 4.
+  2_one_parcel:
+    what: >
+      Case 20 (1000 K, 202650 Pa, H2:O2:N2 = 1:1:3.76, 1 ms) in 100000 steps of 1e-8 s, double precision,
+      Dormand-Prince with relative tolerance 1e-10 and absolute tolerance 1e-20 mol/kg (the tolerances of the
+      independent solution). Twice: with CHEMKIN's constants (the reference's own; the main answer) and with
+      OpenFOAM's constants. Ignition time read by the case's rule (first step at or above 1200 K, straight line
+      to the step before). Then the same parcel at constant volume against a constant-volume parcel added to
+      cfdlib/chem.py. Then the order of each integrator with fixed sub-steps.
+    required:                # the problem's required_accuracy
+      - ignition time within 1 % of the reference (217.77 microseconds)
+      - temperature at 1 ms within 0.1 % of the reference (2220.5 K)
+      - atoms of each element constant within 0.001 %, counted with the scheme's own atomic masses
+    pass_own:                # tighter, fixed here
+      - ignition time within 1e-6 (relative) of cfdlib.chem with the same constants, final temperature within 1e-3 K
+      - atoms within 1e-12 at every step; the enthalpy rebuilt from the output temperature and species by cfdlib.chem within 1e-10 of the heat released
+      - "constant volume: ignition time within 1e-6, final temperature within 1e-3 K, final pressure within 1e-8 (relative) of the constant-volume parcel of cfdlib.chem; internal energy and atoms kept as above"
+      - "order with fixed sub-steps, within 0.4 of 3 (Bogacki-Shampine), 5 (Dormand-Prince), 4 (Rosenbrock)"
+    expected:
+      - "against the reference: ignition time -0.022 % (what case 20's independent solution found, 217.722 microseconds) and final temperature 2220.45 K, -0.002 %"
+      - "with OpenFOAM's constants: 217.710 microseconds and 2220.536 K, the values OpenFOAM approaches as its step goes to zero"
+      - "against cfdlib.chem: ignition time within 1e-7, final temperature within 1e-5 K"
+      - "atoms within 1e-13"
+      - "the answer does not depend on the step dt, unlike OpenFOAM's (case 20: first order in the step), because the kernel integrates the constant-pressure equations inside a step instead of freezing the density: ignition time at steps of 1e-8 and 1e-6 s equal within 1e-6 apart from the reading rule"
+      - "constant volume ignites a little earlier than constant pressure and ends hotter, near 2500 K, at about 2.4 times the start pressure"
+  3_many_cells_and_speed:
+    what: >
+      4096 cells with start temperatures spread evenly from 1000 to 1400 K (same pressure and mixture as case
+      20), so that they ignite at different times, 0.3 ms. Sixteen of them are also run alone. Then speed:
+      cells times steps per second against the number of cells (1000 to as many as the card holds), at a step of
+      1e-8 s and at 1e-6 s, in each precision, for cells in three states taken from case 20's parcel (before
+      ignition at 100 microseconds, in the rise at the ignition time, burnt at 600 microseconds) and for the
+      mixed population above.
+    pass: >
+      each of the sixteen cells run alone gives bit for bit the numbers it gives in the batch, in every
+      precision; cells in another order give the same numbers in that order; five cells agree with cfdlib.chem
+      in ignition time within 1e-6 (double, tight tolerances).
+    speed_is_recorded_not_judged: true
+    expected:
+      - "at 1e-8 s one or two sub-steps per cell and step. Single and mixed precision: 10 million cells x steps per second or more from 100 000 cells up; double 5 to 20 times slower"
+      - "at 1e-6 s the explicit methods need hundreds of sub-steps in burnt gas (fast reactions in balance), the implicit one about ten: the implicit method wins there, the explicit ones at 1e-8 s"
+      - "small numbers of cells are limited by the launch: about 0.03 to 0.1 ms per step below 10 000 cells"
+      - "against OpenFOAM's 100 microseconds per cell and step on one core (10 000 cells x steps per second): a factor of a thousand or more in mixed precision on large batches"
+  4_precision:
+    what: >
+      Case 20 and the 4096-cell population in single, mixed and double precision with the chosen integrator
+      and tolerances: ignition time and final temperature against double, atoms, lowest mass fraction, sub-steps
+      and speed. Also at which relative tolerance single-precision rates stop helping (the error estimate then
+      sees round-off instead of error).
+    rule_for_the_default: >
+      The fastest precision that keeps the atoms within 1e-10 over case 20 and moves the ignition time and the
+      final temperature by less than a tenth of the required accuracy (0.1 % and 0.01 %) from the double-precision
+      answer at the same tolerances.
+    expected:
+      - "mixed keeps atoms to 1e-13 like double; single loses them at 1e-7 to 1e-4 over the millisecond (the flow solver's single precision lost mass in the same way)"
+      - "mixed moves the ignition time by less than 1e-4 (relative); it cannot use a relative tolerance below about 1e-5"
+      - "mixed is 3 to 10 times faster than double"
+
+tuning_budget: >
+  The integrator and its tolerances are chosen by one grid of runs on the 4096-cell population to 0.3 ms, double
+  precision: method (Bogacki-Shampine, Dormand-Prince, Rosenbrock) x relative tolerance (1e-3, 1e-4, 1e-6, 1e-8)
+  x absolute tolerance (1e-10, 1e-14 mol/kg) x step (1e-8 s, 1e-6 s): 48 runs. The answer of each cell is
+  compared with the same kernel at tolerance 1e-10 (which rung 2 has compared with cfdlib.chem).
+  Rule, fixed here: among the settings whose worst cell is within 0.1 % in ignition time and 0.01 % in final
+  temperature (a tenth of the required accuracy), the one with the least GPU time at the step of 1e-8 s becomes
+  the default; the winner at 1e-6 s is reported next to it. Nothing else is tuned. If the two winners differ,
+  both stay available and the document says when to use which.
+what_each_side_is_given:
+  openfoam: >
+    chemFoam as the solver agent of case 20 ran it: one cell on one core of the Ryzen 7 7800X3D, the chemistry
+    solver seulex (implicit) with relative tolerance 1e-8 and absolute tolerance 1e-16 kmol/m3, 2500 to 80000
+    equal steps, a log line and two output rows written at every step. Its times are read from
+    results/h2_air_ignition_box/runs/ and are not rerun. Its looser and its explicit runs (RKF45; tolerance 0.1)
+    are quoted next to it. OpenFOAM's constants.
+  gpucfd: >
+    The kernel on the RTX 4070. For the one-page report: the same single parcel in the same numbers of steps,
+    double precision with tolerance 1e-8 (OpenFOAM's), where the GPU has one cell to work on and the time is all
+    launch overhead. For the throughput: batches of cells in the chosen precision and tolerance. CHEMKIN's
+    constants for the main answer; OpenFOAM's for the direct comparison of numbers.
+  limits_to_state: >
+    One cell on one core against a batch on a GPU is not like for like: OpenFOAM's 100 microseconds per step
+    include its per-step overhead for a single cell and its output, and a flow solver would spread cells over 8
+    cores. OpenFOAM was not tuned for speed. Tolerances mean different things in the two codes. gpucfd's batch
+    numbers are for cells that all do the same work, and for a mixed population measured separately.
+when_each_run_ends: >
+  Accuracy runs end at the case's 1 ms (0.3 ms for the 4096-cell population: every cell has ignited by 0.22 ms).
+  Speed timings take a fixed number of steps sized for about one second each, best of three. A run that shows a
+  cell with a failed status, a temperature outside 200 to 5000 K or a value that is not a number is stopped and
+  counted as broken. No single run should exceed two minutes; all runs together about fifteen minutes of GPU
+  time. One GPU job at a time.
+expected_cost: about fifteen minutes of GPU time in total; the independent solutions of cfdlib.chem take a few seconds each on the CPU.
+
+# ---- added AFTER the runs of rungs 1 and 2 and the tuning, 2026-11-15 (everything above is unchanged) ----
+after_rung_1: >
+  The first run of rung 1 showed that two of its rules were written carelessly. (a) "Rates within 1e-12" and
+  "temperature found back within 1e-9 K" cannot both be the measure: a reverse rate changes by up to half its
+  value per kelvin, so a temperature that is right to 7e-12 K moves a rate by 2e-12. Found at the given
+  temperature: forward rates 1.7e-13, reverse 2.1e-12. The test now compares the rates at the temperature the
+  kernel found (found: 8e-15 and 8e-14) and records the other number next to it. (b) An enthalpy "within 1e-13"
+  was meant relative, but the enthalpy of a species passes through zero; it is now relative to |h| + R T. One
+  change to the kernel came from this run: where a collision partner is absent the fall-off ratio is now held at
+  the smallest number, as cfdlib.chem does (the kernel gave exactly zero, cfdlib.chem 1e-300 times the rate).
+after_rung_2: >
+  Two of rung 2's own checks failed on the first run, both because of the check, and one led to a change in the
+  kernel. (a) The order test took sub-steps of 1e-7 s at the state of ignition. The fastest reactions there act
+  in about 1e-8 s: the explicit methods are unstable above about 3e-8 s (not a number at 5e-8 s) and no method
+  shows its order above 1e-8 s. The test now covers 0.2 microseconds with sub-steps of 1e-8 s down to 1.25e-9 s
+  and judges the last refinement. (b) The energy rebuilt from the output was off by 3.2e-8 of the heat released
+  for the first 6.6 microseconds. Cause: the thermodynamic data. The two polynomials of each species do not
+  give the same enthalpy where they join at 1000 K (0.058 J/kg for this mixture), 1000 K is the start
+  temperature, and the first reactions take up heat, so the parcel needs an energy for which the data have no
+  temperature. Newton's method then stepped back and forth across the joint and stopped on either side. The
+  kernel now finds the joint itself by halving and reports 1000 K there; the check is applied away from the
+  joint (found 6e-16) and, on the joint, against the jump of the data (found 8e-10; jump 3.2e-8). cfdlib.chem
+  shows the same 3.2e-8 as an "enthalpy drift", and so did OpenFOAM in case 20 (its report puts the spike down
+  to the tolerance of the temperature search). Not expected: the kernel agrees with OpenFOAM's value at a step
+  of zero to 1e-7, and both differ from cfdlib.chem by 3e-7; so cfdlib.chem's own solution, not the kernel, is
+  the least accurate of the three at its tolerance of 1e-10. The expectation "within 1e-7 of cfdlib.chem" was
+  missed for that reason (found 3.4e-7; the pass rule 1e-6 is met).
+after_tuning: >
+  The 48 runs of the budget were made as planned. At steps of 1e-8 s every setting takes one sub-step per cell
+  and step and is within 1e-7 in ignition time, so the tolerance does not matter there and the choice among the
+  eight Bogacki-Shampine settings (10.8 to 11.1 s; 15.9 and 19.7 s at tolerance 1e-8) is decided by timing noise
+  of 3 %. The rule gave Bogacki-Shampine with relative tolerance 1e-6 and absolute 1e-14 mol/kg; it is used as
+  the default as the rule says. Dormand-Prince took 18.5 s, the implicit method 27.8 s. At steps of 1e-6 s the
+  rule gave the implicit method at tolerance 1e-3 (2.3 s; Bogacki-Shampine 3.2 s at the same accuracy rule).
+  Expected and found: I expected hundreds of explicit sub-steps per step of 1e-6 s in burnt gas and a clear win
+  of the implicit method. Found 14 explicit sub-steps against 4 implicit ones on average, and about the same
+  number of rate evaluations (48 against 52), because the implicit method pays for its Jacobian. A limit of
+  these timings: on 4096 cells a step takes as long as its slowest cell (the GPU is not full), so the times
+  follow the worst cell and not the sum of the work. The speed rung repeats the three methods on a million cells.
+after_rung_4: >
+  Run before rung 3's speed part, with the default the tuning gave. Found: single precision changes the atoms
+  by 1.1e-4 over case 20, more than the problem allows (1e-5); mixed 2.6e-14, double 1.2e-14. Mixed moves the
+  ignition time by 3.3e-6 and the final temperature by 4.8e-8 from double. Speed on a million cells at 1e-8 s:
+  single 232, mixed 180, double 20 million cells x steps per second. The rule allows mixed and double and
+  takes the faster: mixed is the default. As expected, mixed precision cannot use a relative tolerance below
+  about 1e-5: the error stays near 6e-6 while the rejected sub-steps grow (364 sub-steps per step of 1e-6 s at
+  tolerance 1e-8, 15.6 at 1e-6). Decided with the student away: the default tolerance stays the one the rule
+  gave (1e-6), although at steps of 1e-6 s in mixed precision 1e-4 or 1e-5 would cost 0.7 s and 1.0 s against
+  1.2 s with errors of 0.012 % and 0.0014 %. Retuning after seeing the result would break the budget.
+after_rung_3: >
+  Correctness as planned: every cell bit for bit the same alone, in a small batch in another order and in the
+  reversed batch, in all three precisions. Speed, expected and found. (a) "At least 10 million cells x steps
+  per second, double 5 to 20 times slower": found 180 to 207 million in mixed from a million cells up, double
+  18 to 21. (b) "Small batches 0.03 to 0.1 ms per step": 0.07 ms in mixed, but 0.32 ms in double; one parcel
+  in double takes 14.2 s for 80000 steps, OpenFOAM 11.0 s on one core. (c) "The implicit method wins clearly at
+  1e-6 s": on a million cells the tuning's winner (implicit, tolerance 1e-3) is 18 % faster than
+  Bogacki-Shampine in double (1.35 against 1.14 million) and less than half as fast in mixed (4.9 against
+  11.0), where its Jacobian by differences of single-precision rates is noisy. So the explicit method stays
+  the default at every step. (d) "A thousand times OpenFOAM's cost or more": 21000 to 135000 on the recorded
+  numbers, which are OpenFOAM's whole cost of a step of a one-cell run on one core at tolerance 1e-8; how
+  much of that is chemistry was not measured, and like for like in double the ratios are ten times smaller.
+  One section was added to the speed test after its first full run (large_step: the tuning's winner at 1e-6 s
+  on a million cells), because the tuning timed 4096 cells, where a step takes as long as its slowest cell.

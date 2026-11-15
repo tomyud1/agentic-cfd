@@ -1,0 +1,104 @@
+{
+ "start": {
+  "p": 2809218.096119079,
+  "T": 1542.377946012826,
+  "D": 1978.2527038183832
+ },
+ "reference": {
+  "t_2000": 4.186937632943943e-07,
+  "T_end": 3381.3591803762492,
+  "p_end": 5481379.195846654,
+  "p_ratio": 1.951211692470283
+ },
+ "rows": [
+  {
+   "setting": "double, tolerance 1e-8",
+   "dt": 1e-08,
+   "steps": 200,
+   "t_cross": 4.1852334281120945e-07,
+   "d_t": -0.000407028950811017,
+   "T_end": 3381.3591803764325,
+   "d_T": 5.417888360170764e-14,
+   "d_p": 3.7969627442180354e-14,
+   "substeps_per_step": 31.465,
+   "rejected": 230,
+   "status": 0,
+   "identical": true,
+   "atoms": 6.8833827526759706e-15,
+   "judged": false,
+   "pass": true
+  },
+  {
+   "setting": "double, tolerance 1e-8",
+   "dt": 2.5e-09,
+   "steps": 800,
+   "t_cross": 4.18672683274989e-07,
+   "d_t": -5.034710629414629e-05,
+   "T_end": 3381.359180376399,
+   "d_T": 4.418687638008123e-14,
+   "d_p": 3.241851231905457e-14,
+   "substeps_per_step": 8.23875,
+   "rejected": 575,
+   "status": 0,
+   "identical": true,
+   "atoms": 3.6637359812630166e-15,
+   "judged": true,
+   "pass": true
+  },
+  {
+   "setting": "default (mixed, 1e-6)",
+   "dt": 1e-08,
+   "steps": 200,
+   "t_cross": 4.1852400053470254e-07,
+   "d_t": -0.00040545805687675074,
+   "T_end": 3381.359375,
+   "d_T": 5.7557846044886674e-08,
+   "d_p": 4.350714744028039e-08,
+   "substeps_per_step": 20.54,
+   "rejected": 1368,
+   "status": 0,
+   "identical": true,
+   "atoms": 2.220446049250313e-16,
+   "judged": false,
+   "pass": true
+  },
+  {
+   "setting": "default (mixed, 1e-6)",
+   "dt": 2.5e-09,
+   "steps": 800,
+   "t_cross": 4.186732426946774e-07,
+   "d_t": -4.9010999245480136e-05,
+   "T_end": 3381.359619140625,
+   "d_T": 1.297597658211913e-07,
+   "d_p": 1.1573655744889777e-07,
+   "substeps_per_step": 5.46375,
+   "rejected": 1313,
+   "status": 0,
+   "identical": true,
+   "atoms": 1.1102230246251565e-15,
+   "judged": true,
+   "pass": true
+  }
+ ],
+ "speed": {
+  "cells": 1000000,
+  "dt": 5e-09,
+  "steps": 200,
+  "gpu_ms": 10946.506907999981,
+  "wall_s": 10.946543590999909,
+  "cell_steps_per_s": 18270668.59600984,
+  "substeps_per_step": 9.945,
+  "status": 0,
+  "T_end": 3380.49951171875,
+  "burnt": {
+   "steps": 200,
+   "gpu_ms": 12200.92557099997,
+   "cell_steps_per_s": 16392199.004588164,
+   "substeps_per_step": 11.1,
+   "status": 0,
+   "T_end": 3381.359375,
+   "p_end_atm": 54.09700897593196
+  }
+ },
+ "passed": true
+}
