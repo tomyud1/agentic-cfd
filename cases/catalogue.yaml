@@ -137,7 +137,7 @@ cases:
   # Steps 2 to 5 follow the validation sections of Cheng, Sheng and Wang, Energies 17 (2024) 769.
   - id: "18"
     title: Shock tube (Sod)
-    status: planned
+    status: in_progress
     tier: rde
     folder: shock_tube_sod
     new: "Step 1 of 7. The first flow with changing density and shock waves; OpenFOAM's shock solver (rhoCentralFoam)"

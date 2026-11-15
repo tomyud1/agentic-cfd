@@ -9,13 +9,34 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing is waiting to be committed.
+Case 18 (the shock tube) is with a fresh solver agent, launched on 2026-11-15 right after the
+commit below (Fable 5.2, high effort). Its report and its review are not in yet.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### A new target: the rotating detonation engine, commit hash to be filled in
+### Case 18 prepared: the shock tube, step 1 of the detonation-engine ladder, commit hash to be filled in
+- **Purpose.** The first flow with shock waves and changing density: does the workflow, with
+  OpenFOAM's shock solver, get a problem with an exact answer right, and what breaks on the way?
+- **The problem** (`cases/shock_tube_sod/problem.yaml`): Sod's shock tube in SI units. Air at
+  rest in a closed tube 1 m long; left of a thin wall 100 kPa and 1 kg/m³, right of it 10 kPa
+  and 0.125 kg/m³; the wall is removed. Asked for at 0.5 ms: the profiles against the exact
+  solution, the states between the waves, where each wave is, whether mass and energy are
+  conserved, and how sharp the computed jumps are.
+- **Tool check before the solve** (`dev/agent_checks/case18_toolgap.py`): OpenFOAM's own
+  shock-tube example was run through twelve tool checks. Two things would have misled a fresh
+  agent and are fixed in `cfdlib/monitor.py`, each with a test:
+  - The shock solver words its Courant number differently, so the tools read none and skipped
+    the Courant check without saying so.
+  - The solver starts from a tiny time step that grows to its cap. The pre-flight check took
+    that growth for a blow-up and failed a healthy run. It now tells a growing time step from
+    growing flow speeds.
+- **Left as it is on purpose:** the workflow's OpenFOAM notes cover only constant-density
+  solvers. A fresh agent can still find the shock solver; what it misses comes back as insights.
+- **Open.** The solve itself: a fresh agent is launched right after this commit.
+
+### A new target: the rotating detonation engine (`0ea2634`)
 Prof. Frankel proposed a challenge from his lab's own research: a rotating detonation engine, in
 which a burning shock wave runs round a ring-shaped chamber. The student decided to work on it
 now and to push the other parts of the plan back.

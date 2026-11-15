@@ -1,0 +1,33 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: shock_tube_sod
+title: Shock tube, air at rest released across a pressure jump (Sod's problem)
+description: >
+  A closed tube of air is divided by a thin wall. The air on the left is at ten times the pressure
+  and eight times the density of the air on the right, and all of it is at rest. At time zero the
+  wall is removed. Find how the air moves in the first half millisecond, before any wave reaches an
+  end of the tube, and compare the simulation with the exact solution of this problem.
+setup:
+  - 'A straight tube of length \(L\) with closed ends, filled with air at rest. Coordinate \(x\) along the tube, from \(0\) to \(L\). The flow depends only on \(x\) and on time \(t\).'
+  - 'A thin wall at \(x = L/2\) separates two uniform states. Left of it: pressure \(p_L\), density \(\rho_L\). Right of it: pressure \(p_R\), density \(\rho_R\).'
+  - 'At \(t = 0\) the wall is removed instantly.'
+  - 'The air is an ideal gas, \(p = \rho R T\), with a constant ratio of specific heats \(\gamma\).'
+  - 'No viscosity and no heat conduction (the Euler equations). The tube wall and the closed ends are frictionless and let no heat through.'
+  - 'This is the test problem of Sod (1978) in SI units: in units of \(\rho_L\), \(p_L\) and \(L\) the two states are \((\rho, u, p) = (1, 0, 1)\) and \((0.125, 0, 0.1)\).'
+  - 'The problem has an exact solution (the Riemann problem of gas dynamics). It holds until the first wave reaches an end of the tube.'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  L:      {value: 1.0,      unit: m,        symbol: '\(L\)',       label: "Length of the tube; the wall is at the middle"}
+  p_L:    {value: 100000.0, unit: Pa,       symbol: '\(p_L\)',     label: "Pressure left of the wall"}
+  rho_L:  {value: 1.0,      unit: kg/m³,    symbol: '\(\rho_L\)',  label: "Density left of the wall"}
+  p_R:    {value: 10000.0,  unit: Pa,       symbol: '\(p_R\)',     label: "Pressure right of the wall"}
+  rho_R:  {value: 0.125,    unit: kg/m³,    symbol: '\(\rho_R\)',  label: "Density right of the wall"}
+  gamma:  {value: 1.4,      unit: "-",      symbol: '\(\gamma\)',  label: "Ratio of specific heats of the air"}
+  R:      {value: 287.0,    unit: J/(kg K), symbol: '\(R\)',       label: "Specific gas constant of the air"}
+  t_end:  {value: 0.0005,   unit: s,        symbol: '\(t_{\mathrm{end}}\)', label: "Time of interest"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: profiles,  text: 'Density, velocity and pressure along the tube at \(t_{\mathrm{end}}\), compared with the exact solution'}
+  - {key: states,    text: 'The uniform states between the waves at \(t_{\mathrm{end}}\): the pressure and the velocity there, and the density on each side of the border between the gas from the left and the gas from the right'}
+  - {key: positions, text: 'Where each wave is at \(t_{\mathrm{end}}\), and how fast it moves'}
+  - {key: conserved, text: 'Total mass and total energy of the air in the tube: do they stay constant up to \(t_{\mathrm{end}}\)?'}
+  - {key: sharpness, text: 'How many cells wide each computed jump is, and how the error of the profiles falls as the grid is refined'}

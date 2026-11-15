@@ -45,6 +45,8 @@ def parse_log_text(text):
             continue
         elif "Courant Number mean" in line:
             cur["co"] = float(line.split()[-1])
+        elif line.startswith("Mean and max Courant Numbers"):     # rhoCentralFoam's wording: "... = mean max"
+            cur["co"] = float(line.split()[-1])
         elif "Solving for" in line:
             m = re.search(r"Solving for (\w+), Initial residual = ([^,]+)", line)
             if m and m.group(1) not in cur["res"]:
@@ -89,6 +91,22 @@ def _trend(values, floor=0.0):
     return late / float(np.median(v[:q])), late
 
 
+def _speed_trend(time, co):
+    """Trend (as _trend) of the Courant number divided by the time step, which follows the largest flow or
+    wave speed over the cell size. With a fixed time step it equals the Courant number's own trend. With an
+    adjustable one it tells a time step that rises to its cap (speeds steady) from a blow-up (speeds
+    growing). A log stores each Courant number with the step printed before it, so co[i] goes with
+    time[i+1] - time[i]. None when the printed times are too coarse to give the step sizes (case 18:
+    rhoCentralFoam starts from a tiny step, and the old check called its healthy start a blow-up)."""
+    time, co = np.asarray(time, dtype=float), np.asarray(co, dtype=float)
+    dt, c = np.diff(time), co[:-1]
+    m = np.isfinite(dt) & np.isfinite(c) & (c > 0)
+    if m.sum() < 8 or (dt[m] <= 0).mean() > 0.1:
+        return None
+    m &= dt > 0
+    return _trend(c[m] / dt[m])[0]
+
+
 def log_arrays(steps):
     """parse_log steps as arrays (nan where a step has no value): time, co, cont, exec, res{field}."""
     def col(k):
@@ -131,7 +149,13 @@ def assess_arrays(arr, flags, end_time=None, courant_limit=1.0, residual_targets
         add("Max Courant number", "warn" if co_max > courant_limit else "ok", f"{co_max:.3g}",
             f"Fluid should not cross more than about one cell per time step (limit used: {courant_limit}).")
         tr, _ = _trend(co)
-        if tr is not None:
+        speed = _speed_trend(arr["time"], arr["co"]) if tr is not None and tr > 5 else None
+        if speed is not None and speed <= 5:
+            add("Courant number trend", "ok", f"{_ratio(tr)} (late vs early), from a growing time step",
+                "The Courant number grew because the time step grew (an adjustable step rising from a small first "
+                "value to its cap). The Courant number divided by the time step, which follows the flow and wave "
+                "speeds, did not grow, so this is not the signature of a blow-up.")
+        elif tr is not None:
             add("Courant number trend", "fail" if tr > 5 else "ok", f"{_ratio(tr)} (late vs early)",
                 "A steadily growing Courant number is the typical signature of a blow-up.")
     for f in sorted(arr["res"]):

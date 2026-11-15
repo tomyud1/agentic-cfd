@@ -530,3 +530,42 @@ assert sp14["a grid of its own"][-2:] == [brief14.DASH, "12 s on the GPU"]
 assert "upper bounds" in b14["speed"]["note"] and "0.20 s once" in b14["speed"]["note"] and brief14.check_brief(b14) == []
 assert [brief14.seconds(x) for x in (0.336, 3.97, 679.2)] == ["0.34 s", "4.0 s", "679 s"]
 print("one-page report with a record of gpucfd's runs: ok")
+
+# 15. The log of OpenFOAM's shock solver (rhoCentralFoam) words its Courant number differently; before case 18 the
+# parser read none, so the Courant check of a run was skipped without a word.
+log15 = """Starting time loop
+
+Mean and max Courant Numbers = 0.0507 0.2
+deltaT = 5e-05
+Time = 5e-05
+
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+diagonal:  Solving for rhoUx, Initial residual = 0, Final residual = 0, No Iterations 0
+ExecutionTime = 0.01 s  ClockTime = 0 s
+
+Mean and max Courant Numbers = 0.0612 0.2413
+deltaT = 5e-05
+Time = 0.0001
+
+diagonal:  Solving for rho, Initial residual = 0, Final residual = 0, No Iterations 0
+ExecutionTime = 0.02 s  ClockTime = 0 s
+
+End
+"""
+L15 = monitor.parse_log_text(log15)
+assert [s["time"] for s in L15["steps"]] == [5e-05, 0.0001] and L15["ended"]
+assert L15["steps"][0]["co"] == 0.2413 and L15["steps"][1]["co"] is None, "stored as for the other solvers: with the step printed before it"
+print("rhoCentralFoam log: Courant number read: ok")
+
+# 16. An adjustable time step that rises from a tiny first value to its cap makes the Courant number grow many
+# times over; that is not a blow-up (case 18: rhoCentralFoam's healthy start failed the pre-flight). A Courant
+# number that grows at a fixed time step still fails.
+dt16 = np.minimum(1e-7 * 1.2 ** np.arange(60), 5e-5)
+t16 = np.cumsum(dt16)
+ramp16 = dict(time=t16, co=np.append(4000.0 * dt16[1:], np.nan), cont=np.full(60, np.nan), exec=np.linspace(0.01, 0.6, 60), res={})
+blow16 = dict(time=1e-5 * np.arange(1, 61), co=0.01 * 1.15 ** np.arange(60), cont=np.full(60, np.nan), exec=np.linspace(0.01, 0.6, 60), res={})
+flags16 = dict(fatal=False, fpe=False, nan=False, ended=True)
+c16 = {k: {c["name"]: c for c in monitor.assess_arrays(a, flags16)["checks"]}["Courant number trend"] for k, a in (("ramp", ramp16), ("blow", blow16))}
+assert c16["ramp"]["status"] == "ok" and "growing time step" in c16["ramp"]["value"], c16["ramp"]
+assert c16["blow"]["status"] == "fail", c16["blow"]
+print("Courant trend: a time step rising to its cap is not a blow-up; growth at a fixed step still is: ok")
