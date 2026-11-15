@@ -1,0 +1,80 @@
+# Written by setup/cj_h2_air_reference.py; do not edit by hand.
+source: 'Chapman-Jouguet theory: the slowest wave whose burnt gas, in chemical equilibrium, satisfies the conservation of
+  mass, momentum and energy across the wave. Computed by cfdlib.chem.cj_detonation from the thermodynamic data of OpenFOAM''s
+  hydrogen scheme ($FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/therm.dat). It does not depend on the reaction rates.'
+conditions:
+  pressure_Pa: 101325.0
+  temperature_K: 300.0
+  mole_ratios:
+    H2: 2.0
+    O2: 1.0
+    N2: 3.76
+cj:
+  note: 'with the constants OpenFOAM uses when it reads the data (standard pressure 1 bar): the state an OpenFOAM run should
+    reach'
+  speed_m_s: 1978.54
+  pressure_Pa: 1581135.2
+  temperature_K: 2969.88
+  density_kg_m3: 1.5306
+  gas_speed_m_s: 880.475
+  gas_speed_relative_to_wave_m_s: 1098.065
+  mole_fractions:
+    H2: 0.029937
+    H: 0.006223
+    O2: 0.010141
+    O: 0.002561
+    OH: 0.020362
+    HO2: 1.6e-05
+    H2O2: 2.0e-06
+    H2O: 0.294955
+    N2: 0.635805
+  fresh:
+    density_kg_m3: 0.849462
+    sound_speed_m_s: 408.778
+  front_before_burning:
+    pressure_Pa: 2810050.4
+    temperature_K: 1542.72
+    density_kg_m3: 4.58117
+    gas_speed_m_s: 1611.67
+cj_standard_constants:
+  note: with the constants the data were written for (standard pressure 1 atm)
+  speed_m_s: 1978.253
+  pressure_Pa: 1580779.6
+  temperature_K: 2968.9
+  density_kg_m3: 1.53066
+  gas_speed_m_s: 880.391
+  gas_speed_relative_to_wave_m_s: 1097.862
+  mole_fractions:
+    H2: 0.029993
+    H: 0.006251
+    O2: 0.010162
+    O: 0.002572
+    OH: 0.020394
+    HO2: 1.5e-05
+    H2O2: 2.0e-06
+    H2O: 0.294847
+    N2: 0.635764
+  fresh:
+    density_kg_m3: 0.849463
+    sound_speed_m_s: 408.778
+  front_before_burning:
+    pressure_Pa: 2809218.1
+    temperature_K: 1542.38
+    density_kg_m3: 4.58082
+    gas_speed_m_s: 1611.408
+front_note: 'front_before_burning: the state right behind a shock of the CJ speed with the composition unchanged. A fully
+  resolved detonation shows this pressure at its front; a coarse grid shows less.'
+uncertainty:
+  independent_program:
+    program: Cantera 3.2.0
+    speed_m_s: 1978.242
+    pressure_Pa: 1580779.4
+    temperature_K: 2968.9
+    relative_difference_in_speed: 5.7e-06
+    note: same data files, standard constants, its own thermodynamics and equilibrium solver; at that state the gas leaves
+      the wave at the equilibrium speed of sound to 0.001 %
+  constants:
+    speed_difference_m_s: 0.287
+    note: OpenFOAM's constants against the standard ones
+  not_covered: The scheme has no nitrogen oxides and its data tables are old; values in the literature for this mixture may
+    differ by about half a per cent. No published value was transcribed here.

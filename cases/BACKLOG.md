@@ -34,7 +34,7 @@ The challenge from Prof. Frankel's lab, reached in steps that each have a checka
 
 | # | Case | Folder | New for the agent | Candidate reference | gpucfd |
 |---|---|---|---|---|---|
-| 21 | **Detonation in a straight tube, hydrogen and air** | `detonation_tube_h2_air` | Step 4 of 7. Shock and burning together. Three solvers are compared here: OpenFOAM's own burning solver, a published detonation solver, and a new one in gpucfd | The Chapman-Jouguet speed, which follows from the gas's thermodynamics alone; both papers on the plan page (confirm)  | ✘ |
+| 21 | **Detonation in a straight tube, hydrogen and air** | `detonation_tube_h2_air` | Step 4 of 7. Shock and burning together. Three solvers are compared here: OpenFOAM's own burning solver, a published detonation solver, and a new one in gpucfd | The Chapman-Jouguet speed and state, which follow from the gas's thermodynamic data alone (cfdlib.chem, cross-checked with Cantera)  | ✘ |
 | 22 | **Detonation cells in two dimensions** | `detonation_cells_h2_air` | Step 5 of 7. The fine structure of a detonation front; the cost of very small cells | Published cell patterns cited by both papers on the plan page (confirm)  | ✘ |
 | 23 | **Rotating detonation engine, flat (unwrapped) 2D version** | `rde_unwrapped_2d` | Step 6 of 7. Injection, an open end, a wave that runs for many turns; probably needs the lab's machines | Cheng et al. (2024), section 4.7; Kwak et al., arXiv 2508.16105 (confirm; the final set-up is fixed with Prof. Frankel)  | ✘ |
 | 24 | **A blind engine case from Prof. Frankel's lab** | `rde_blind_lab` | Step 7 of 7. The agent does not see the answer and must judge its own result | A result of the lab that is not published; the lab compares after we report  | ✘ |

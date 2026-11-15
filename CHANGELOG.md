@@ -9,14 +9,36 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing is running. Next, in this order: the chemistry of every cell on the GPU in gpucfd, tested
-on case 20's ignition problem; then step 4, a detonation in a straight tube (case 21).
+Nothing is running. Two things wait for the student: the session that builds chemistry on the GPU
+in gpucfd (proposed, not started), and a fresh solver agent for case 21, whose problem is ready.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### Detonation theory in the tools: the reference for step 4, commit hash to be filled in
+### Case 21 prepared: a detonation in a tube, step 4 of the ladder, commit hash to be filled in
+- **Purpose.** Shock and burning together for the first time: does a detonation run at the speed
+  the theory fixes? Later the three solvers are compared on this problem.
+- **The problem** (`cases/detonation_tube_h2_air/problem.yaml`): a closed tube 0.12 m long with
+  hydrogen and air at 1 atm and 300 K; a layer of 1.5 mm at one end starts at 2500 K and 3 MPa.
+  Asked for: the wave's speed, whether shock and flame stay together, the burnt state, the peak
+  pressure at the front, conservation, and the cost. **Required:** speed within 2 % of the
+  theoretical one; flame within 1 mm of the shock.
+- **Reference** (`reference/cj.yaml`, written by `setup/cj_h2_air_reference.py`): the theoretical
+  speed 1978.5 m/s with OpenFOAM's constants, checked against Cantera (entry below).
+- **Checked before the solve** (`dev/agent_checks/case21_toolgap.py`, two trials with OpenFOAM's
+  burning solver `reactingFoam`, settings from its examples, nothing tuned):
+  - It runs, and it carries a wave in which shock and flame travel together.
+  - With a strong start (3 mm at 5 MPa in a 60 mm tube) the wave ran 7.8 % too fast to the end.
+    The start was still pushing it. So the problem has a weaker start and a longer tube.
+  - With the problem's start the wave runs 1.1 % below the theoretical speed over the second
+    half and is still rising; 1.56 MPa and 2920 K behind it (theory: 1.58 and 2970).
+  - The front is not resolved on 0.1 mm cells: peak pressure 1.97 MPa, theory 2.81.
+  - Cost: 57 to 88 microseconds per cell and step on one core; 11 minutes for this tube.
+- **Not launched:** the app does not let the dev agent start a session from a turn the student
+  did not start, and the day's budget was nearly used.
+
+### Detonation theory in the tools: the reference for step 4 (`bd2d70d`)
 - **What.** `cfdlib.chem.cj_detonation` gives the speed of a freely running detonation and the
   state behind it; `chem.shock_frozen` gives the state at the front before anything burns. Both
   follow from the thermodynamic data alone, with no simulation.

@@ -1,0 +1,47 @@
+# Problem statement: the data a user would give the agent. Physical inputs only, no numerics.
+name: detonation_tube_h2_air
+title: A detonation running down a closed tube of hydrogen and air
+description: >
+  A closed tube holds hydrogen and air at rest. A thin layer of the same gas at one end is suddenly
+  hot and at high pressure. It sends a shock down the tube that ignites the gas behind it: a
+  detonation. Find the speed of the wave and the state of the burnt gas, and compare them with
+  the Chapman-Jouguet theory, which fixes both from the gas alone.
+setup:
+  - 'A straight tube of length \(L\), closed at both ends. Only the distance along the tube matters (one dimension).'
+  - 'Start: hydrogen, oxygen and nitrogen in the mole ratio \(2 : 1 : 3.76\), at rest, at \(p_0\) and \(T_0\) everywhere.'
+  - 'Ignition: a layer of thickness \(L_{\mathrm{ign}}\) at the left end holds the same mixture at \(T_{\mathrm{ign}}\) and \(p_{\mathrm{ign}}\) at the start.'
+  - 'The gases are ideal gases whose heat capacities change with temperature. Friction and heat conduction play no part in the answer.'
+  - 'Reaction scheme and thermodynamic data: the hydrogen scheme that ships with OpenFOAM, files `chem.inp` and `therm.dat` in `$FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/` (10 species, 27 reaction lines). Use these files as they are.'
+  - 'The wave speed is the speed of the pressure front over the second half of the time, \(t_{\mathrm{end}}/2\) to \(t_{\mathrm{end}}\).'
+
+given:   # key: name used in code; symbol: LaTeX for the report
+  L:      {value: 0.12,     unit: m,  symbol: '\(L\)',   label: "Length of the tube"}
+  p_0:    {value: 101325.0, unit: Pa, symbol: '\(p_0\)', label: "Pressure at the start (1 atm)"}
+  T_0:    {value: 300.0,    unit: K,  symbol: '\(T_0\)', label: "Temperature at the start"}
+  x_H2:   {value: 2.0,      unit: "-", symbol: '\(n_{\mathrm{H_2}}\)', label: "Hydrogen, moles per mole of oxygen"}
+  x_O2:   {value: 1.0,      unit: "-", symbol: '\(n_{\mathrm{O_2}}\)', label: "Oxygen (the unit of the mole ratio)"}
+  x_N2:   {value: 3.76,     unit: "-", symbol: '\(n_{\mathrm{N_2}}\)', label: "Nitrogen, moles per mole of oxygen"}
+  L_ign:  {value: 0.0015,   unit: m,  symbol: '\(L_{\mathrm{ign}}\)', label: "Thickness of the ignition layer"}
+  T_ign:  {value: 2500.0,   unit: K,  symbol: '\(T_{\mathrm{ign}}\)', label: "Temperature of the ignition layer"}
+  p_ign:  {value: 3.0e6,    unit: Pa, symbol: '\(p_{\mathrm{ign}}\)', label: "Pressure of the ignition layer"}
+  t_end:  {value: 5.0e-5,   unit: s,  symbol: '\(t_{\mathrm{end}}\)', label: "Duration of interest"}
+
+quantities_of_interest:   # key links each request to its answer in the report
+  - {key: speed,     text: 'Speed of the wave, compared with the Chapman-Jouguet speed of the reference'}
+  - {key: attached,  text: 'Is it a detonation: do the pressure front and the burning front travel together, and how far apart are they?'}
+  - {key: burnt,     text: 'Pressure and temperature of the burnt gas just behind the wave, compared with the Chapman-Jouguet state'}
+  - {key: front,     text: 'The highest pressure at the front, compared with the pressure behind a shock of that speed without burning, and how it changes with the cell size'}
+  - {key: conserved, text: 'Are the mass in the tube and the number of atoms of each element kept, and how well is the total energy kept?'}
+  - {key: cost,      text: 'How the speed depends on the cell size and the time step, and the cost per cell and time step with the share of the chemistry'}
+
+required_accuracy:   # what the answer needs; only a miss of these, or a run that breaks, makes the experiment fail
+  - {key: speed,     text: 'Wave speed within 2 % of the Chapman-Jouguet speed of the reference'}
+  - {key: attached,  text: 'From 10 microseconds on, the burning front stays within 1 mm of the pressure front'}
+
+reference:
+  file: reference/cj.yaml
+  description: >
+    The Chapman-Jouguet speed and state of this mixture, computed from the thermodynamic data of the
+    scheme (cfdlib.chem.cj_detonation, written to the file by setup/cj_h2_air_reference.py) and
+    cross-checked with an independent program (Cantera). The file also gives the state at the front
+    before burning, and says what the reference does not cover.

@@ -66,9 +66,14 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
     speed, fixed by the gas alone. For hydrogen and air at 1 atm and 300 K: 1978 m/s, with 15.6 atm
     and 2969 K behind the wave. An independent program (Cantera) gives the same from the same
     data files, to 0.001 %.
-  - **Still to do before a fresh agent gets it:** a short trial of whether OpenFOAM's burning
-    solver runs a detonation at all, and how the wave is started. The problem statement follows
-    from that trial.
+  - **OpenFOAM's burning solver can do it** (trial, `dev/agent_checks/case21_toolgap.py`): on
+    0.1 mm cells a wave with shock and flame together runs 1.1 % below the theoretical speed
+    and is still approaching it. A strong start pushed the wave 7.8 % too fast for the whole of
+    a short tube, so the problem uses a weak start and a longer tube. The front itself is not
+    resolved: its peak pressure is 1.97 MPa where theory has 2.81. Cost: about 60 to 90
+    microseconds per cell and step on one core, so 0.12 m of tube takes 11 minutes.
+  - **The problem is written** (`cases/detonation_tube_h2_air/problem.yaml`; required: speed
+    within 2 % of theory, flame within 1 mm of the shock). It waits for a fresh agent.
 - **The solver gap.** No solver on the development PC handles a shock and burning together.
   Three ways are tried, all three (the student's decision), and compared on step 4 on the same
   grid: OpenFOAM's own burning solver (`rhoReactingFoam`), a published detonation solver (to be

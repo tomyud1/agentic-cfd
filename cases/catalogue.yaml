@@ -168,7 +168,7 @@ cases:
     tier: rde
     folder: detonation_tube_h2_air
     new: "Step 4 of 7. Shock and burning together. Three solvers are compared here: OpenFOAM's own burning solver, a published detonation solver, and a new one in gpucfd"
-    reference: The Chapman-Jouguet speed, which follows from the gas's thermodynamics alone; both papers on the plan page (confirm)
+    reference: The Chapman-Jouguet speed and state, which follow from the gas's thermodynamic data alone (cfdlib.chem, cross-checked with Cantera)
     gpucfd: "no"
 
   - id: "22"
