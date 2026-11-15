@@ -16,7 +16,26 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### What case 20's 14 insights led to, commit hash to be filled in
+### Detonation theory in the tools: the reference for step 4, commit hash to be filled in
+- **What.** `cfdlib.chem.cj_detonation` gives the speed of a freely running detonation and the
+  state behind it; `chem.shock_frozen` gives the state at the front before anything burns. Both
+  follow from the thermodynamic data alone, with no simulation.
+- **The numbers** for hydrogen and air (2 : 1 : 3.76) at 1 atm and 300 K, with the reaction
+  scheme of step 3: speed 1978.3 m/s, 15.60 atm and 2969 K behind the wave, density 1.80 times
+  the fresh gas. At the front: 27.7 atm and 1542 K. With OpenFOAM's constants the speed is 0.3
+  m/s higher.
+- **Verified** (test 21): an independent program, Cantera 3.2.0, with its own thermodynamics and
+  equilibrium solver, gives 1978.24 m/s, the same pressure and the same temperature from the same
+  two data files (`dev/agent_checks/case21_cj_cantera.py`). At that state the gas leaves the
+  wave at exactly the speed of sound, which is the defining condition and was not used in the
+  search. Mass and momentum balance across the wave to round-off.
+- **Downloads** (the student's OK of 2026-11-15): Cantera and a video reader, both from the
+  Python package index into a scratch environment, not the project's.
+- **Open.** Values I remember from the literature are about half a per cent lower (near 1968
+  m/s). I have not checked a source. This reaction scheme has no nitrogen oxides and its data
+  tables are old, which could explain it: a question for Prof. Frankel.
+
+### What case 20's 14 insights led to (`006c56a`)
 - **A chemistry tool, `cfdlib/chem.py`** (test 20 in `tests/test_tools.py`): the agent's
   independent solution, moved into the tools. It reads a reaction scheme, gives the reaction
   rates, solves a parcel at constant pressure and finds the chemical equilibrium, with the
@@ -43,7 +62,7 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
   be reported to its developers. The reference has no stated accuracy; a reference computed with
   stated tolerances (for example with the program Cantera) would tighten the case.
 
-### Case 20 solved: ignition of hydrogen and air, completed with one difference, commit hash to be filled in
+### Case 20 solved: ignition of hydrogen and air, completed with one difference (`aeedd3b`)
 A fresh agent (Fable 5.2, high effort) solved step 3 of the ladder in about 35 minutes with no
 human help: `results/h2_air_ignition_box/report.html`, one page: `brief.html`.
 - **All three requirements are met.** Ignition time 0.028 % early against the reference and final

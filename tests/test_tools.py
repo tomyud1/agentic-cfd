@@ -698,3 +698,21 @@ bad20 = chem20.parcel_health(sol20["T"], Y20, chem20.Mechanism(*chem20.scheme_fi
 assert not bad20["ok"] and bad20["atoms_change"] > 1e-6          # other atomic masses: the atoms seem to change
 print(f"chemistry: ignition {1e6 * sol20['t_ign']:.3f} us (reference {1e6 * ref20['ignition']['time_s']:.2f}, OpenFOAM at a step of zero "
       f"{1e6 * zero20:.3f}); atoms kept to {h20['atoms_change']:.0e}, with other atomic masses {bad20['atoms_change']:.0e}: ok")
+
+# 21. Detonation theory (the reference of case 21): the Chapman-Jouguet state of hydrogen and air from cfdlib.chem against
+# Cantera's, computed from the same two data files by dev/agent_checks/case21_cj_cantera.py (its record is read here).
+ct21 = json20.loads((ROOT20 / "dev/agent_checks/case21_cj_cantera.json").read_text())
+mix21 = dict(H2=2.0, O2=1.0, N2=3.76)
+std21 = chem20.build()                                            # standard constants, as Cantera uses
+cj21 = chem20.cj_detonation(std21, ct21["p1"], ct21["T1"], mix21)
+assert abs(cj21["D"] / ct21["D"] - 1) < 5e-5 and abs(cj21["p"] / ct21["p"] - 1) < 1e-4 and abs(cj21["T"] - ct21["T"]) < 0.05, (cj21, ct21)
+assert abs(cj21["w"] / ct21["sound_speed_equilibrium"] - 1) < 1e-4    # the CJ condition, which the search does not use
+vn21 = chem20.shock_frozen(std21, ct21["p1"], ct21["T1"], mix21, cj21["D"])
+m21 = cj21["fresh"]["rho"] * cj21["D"]                            # mass flux through the wave
+for s21 in (vn21, cj21):                                          # mass and momentum across the wave, both states
+    assert abs(s21["rho"] * (cj21["D"] - s21["u"]) / m21 - 1) < 1e-9 and abs((s21["p"] + m21 * (cj21["D"] - s21["u"])) / (ct21["p1"] + m21 * cj21["D"]) - 1) < 1e-9
+assert vn21["p"] > cj21["p"] and vn21["T"] < cj21["T"]          # the front is at higher pressure and colder than the burnt gas
+of21 = chem20.cj_detonation(mech20, ct21["p1"], ct21["T1"], mix21)
+assert 0 < of21["D"] - cj21["D"] < 1.0                           # OpenFOAM's constants move the speed by a fraction of a metre per second
+print(f"detonation theory: CJ speed {cj21['D']:.2f} m/s (Cantera {ct21['D']:.2f}), {cj21['p'] / 101325:.2f} atm, {cj21['T']:.0f} K; at the front "
+      f"{vn21['p'] / 101325:.1f} atm, {vn21['T']:.0f} K; with OpenFOAM's constants {of21['D'] - cj21['D']:+.2f} m/s: ok")

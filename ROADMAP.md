@@ -62,6 +62,13 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   the base for the theory of step 4.
 - **Step 4 is next:** a detonation in a straight tube (case 21). Before it, chemistry on the GPU
   in gpucfd (see above).
+  - **Its reference is ready** (`cfdlib.chem.cj_detonation`): a detonation that runs freely has one
+    speed, fixed by the gas alone. For hydrogen and air at 1 atm and 300 K: 1978 m/s, with 15.6 atm
+    and 2969 K behind the wave. An independent program (Cantera) gives the same from the same
+    data files, to 0.001 %.
+  - **Still to do before a fresh agent gets it:** a short trial of whether OpenFOAM's burning
+    solver runs a detonation at all, and how the wave is started. The problem statement follows
+    from that trial.
 - **The solver gap.** No solver on the development PC handles a shock and burning together.
   Three ways are tried, all three (the student's decision), and compared on step 4 on the same
   grid: OpenFOAM's own burning solver (`rhoReactingFoam`), a published detonation solver (to be

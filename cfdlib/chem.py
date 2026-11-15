@@ -417,3 +417,82 @@ def parcel_health(T, Y, mech, T_low, T_high, tol_sum=1e-9, tol_atoms=1e-8):
               dict(name="atoms of each element kept", ok=bool(change <= tol_atoms), value=f"largest relative change {change:.1e}")]
     return dict(ok=all(c["ok"] for c in checks), checks=checks, atoms_change=change, sum_off=sum_off, lowest_Y=low,
                 T_min=float(T.min()), T_max=float(T.max()))
+
+
+# ---- detonation theory: what the gas alone fixes, with no simulation ------------------------------------------
+def sound_speed_frozen(mech, T, sigma):
+    """Speed of sound with the composition held fixed: sqrt(gamma R T / W), sigma in mol/kg."""
+    cp = float(sigma @ mech.cp(T))                               # J/(kg K)
+    r = float(sigma.sum()) * mech.conv.R                         # gas constant of the mixture, J/(kg K)
+    return math.sqrt(cp / (cp - r) * r * T)
+
+
+def shock_frozen(mech, p1, T1, moles, D):
+    """The state right behind a shock of speed D that runs into gas at rest, before anything reacts (the
+    composition does not change; heat capacities change with temperature). In a detonation this is the
+    'von Neumann' state at the front. Returns dict(p, T, rho, u (gas speed, laboratory frame), ratio v2/v1)."""
+    fresh = Parcel(mech, p1, T1, moles)
+    v1, s = 1.0 / fresh.rho0, fresh.sigma0
+    r = float(s.sum()) * mech.conv.R
+
+    def state(x):                                                # x = v2 / v1
+        p2 = p1 + D * D * (1 - x) / v1
+        T2 = brentq(lambda T: float(s @ mech.h(T)) - fresh.h0 - 0.5 * D * D * (1 - x * x), T1, 6000.0, xtol=1e-10)
+        return p2, T2
+    x = brentq(lambda x: r * state(x)[1] / state(x)[0] - x * v1, 0.05, 0.95, xtol=1e-13)
+    p2, T2 = state(x)
+    return dict(p=p2, T=T2, rho=1.0 / (x * v1), u=D * (1 - x), ratio=x)
+
+
+def cj_detonation(mech, p1, T1, moles, x_range=(0.45, 0.70)):
+    """The Chapman-Jouguet detonation of a mixture at rest at (p1, T1): the slowest wave whose burnt gas, in
+    chemical equilibrium, satisfies the conservation of mass, momentum and energy across the wave. A detonation
+    that runs freely travels at this speed. It follows from the thermodynamic data alone, not from the reaction
+    rates.
+
+    Method (the definition, no shortcut): for a ratio x = v2 / v1 of the specific volumes, mass and momentum give
+    the pressure p2 = p1 + D^2 (1 - x) / v1 and energy gives the enthalpy h2 = h1 + D^2 (1 - x^2) / 2; the
+    equilibrium at (h2, p2) has a volume of its own, and D(x) is the speed for which that volume is x v1. The
+    minimum of D(x) is the CJ speed. Returns dict(D, p, T, rho, u (gas speed behind the wave, laboratory frame),
+    w (gas speed relative to the wave: the equilibrium speed of sound there), ratio, sigma (mol/kg), mach
+    (D over the frozen speed of sound of the fresh gas), fresh dict(rho, h, c))."""
+    from scipy.optimize import minimize_scalar
+    fresh = Parcel(mech, p1, T1, moles)
+    v1, h1 = 1.0 / fresh.rho0, fresh.h0
+    c1 = sound_speed_frozen(mech, T1, fresh.sigma0)
+    prod = Parcel(mech, p1, T1, moles)                           # carries pressure and enthalpy into the equilibrium solver
+    T_guess, s_guess = fresh.complete_combustion()
+    s_guess = s_guess + 1e-3 * s_guess.sum()                     # a little of every species: a start with exact zeros does not converge
+    guess = list(prod.equilibrium(s_guess, 0.9 * T_guess))       # equilibrium at the fresh gas's enthalpy and pressure
+
+    last = dict(p=p1, h=h1)
+
+    def burnt(x, D):
+        """Equilibrium at the pressure and enthalpy that mass, momentum and energy give for (x, D). The solver
+        starts from the last state it solved and walks to the new one, with shorter strides where it fails."""
+        p2, h2 = p1 + D * D * (1 - x) / v1, h1 + 0.5 * D * D * (1 - x * x)
+        pa, ha, done, stride = last["p"], last["h"], 0.0, 1.0
+        while done < 1.0:
+            g = min(1.0, done + stride)
+            prod.p, prod.h0 = pa * (p2 / pa) ** g, ha + g * (h2 - ha)
+            try:
+                with np.errstate(over="ignore", invalid="ignore"):   # a stride that is too long overflows; it is then halved
+                    T, s = prod.equilibrium(guess[1], guess[0])
+            except RuntimeError:
+                stride /= 2
+                if stride < 1e-4:
+                    raise
+                continue
+            guess[0], guess[1], done = T, s, g
+        last["p"], last["h"] = p2, h2
+        return T, s, prod.volume(s, T)
+
+    def speed(x):
+        return brentq(lambda D: burnt(x, D)[2] - x * v1, 3.5 * c1, 6.5 * c1, xtol=1e-9, rtol=1e-13)
+    best = minimize_scalar(speed, bounds=x_range, method="bounded", options=dict(xatol=1e-7))
+    x, D = float(best.x), float(best.fun)
+    if min(x - x_range[0], x_range[1] - x) < 1e-4:
+        raise RuntimeError(f"CJ point at the edge of x_range {x_range}: widen it")
+    T, s, v = burnt(x, D)
+    return dict(D=D, p=float(prod.p), T=float(T), rho=1.0 / v, u=D * (1 - x), w=D * x, ratio=x, sigma=s, mach=D / c1,
+                fresh=dict(rho=fresh.rho0, h=h1, c=c1))
