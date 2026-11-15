@@ -1,0 +1,33 @@
+report warning: results.problem.description: '1000 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+report warning: results.problem.reference: '1200 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+report warning: results.theory.derived[7].why: '1 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+report warning: results.theory.derived[7].why: '100 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+report warning: results.theory.derived[7].params[0].meaning: '1 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+report warning: results.theory.self_checks[8].name: '1000 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+report warning: results.comparison.tables[0].note: '0.1 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+report warning: results.insights[3].guideline: '0.1 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+report warning: results.insights[5].problem: '2000 K' looks like a number times a symbol in plain text (write \(0.009\,U\) instead)
+WARN: missed ['The tutorial as shipped (step set by the chemistry solver, relative tolerance 0.1, 47 steps) misses the required \\(1\\,\\%\\) on the ignition time: predicted because its steps would be too far apart to read that time']
+   ok   [requirement] Ignition time within 1 % of the reference | expected within \(1\,\%\) (smallest step, 80000 steps) | found \(217.709\,\mathrm{\mu s}\) against \(217.77\,\mathrm{\mu s}\): \(-0.028\,\%\)
+   ok   [requirement] Temperature at the end within 0.1 % of the reference | expected within \(0.1\,\%\) (smallest step, 80000 steps) | found \(2220.536\,\mathrm{K}\) against \(2220.5\,\mathrm{K}\): \(+0.0016\,\%\)
+   ok   [requirement] The number of atoms of each element constant within 0.001 % | expected change of at most \(0.001\,\%\) after every step of every run of the t | found largest change of hydrogen, oxygen or nitrogen atoms over every step of the 6 runs: \(9 \times 10^{-13}\) of the start value
+   ok   [health] Every run of the time-step family reaches the end of the millisecond without a solver erro | expected 6 runs finished | found 6 of 6 finished; log checks: ok, ok, ok, ok, ok, ok
+   ok   [health] The temperature stays between the start and the limit of complete burning, and the pressur | expected between \(1000\,\mathrm{K}\) and \(2253.6\,\mathrm{K}\); pressure unch | found lowest \(1000.0000\,\mathrm{K}\), highest \(2220.54\,\mathrm{K}\); largest change of the pressure \(0\)
+   ok   [health] No mass fraction is negative and the mass fractions add up to one | expected none negative; sum within \(1 \times 10^{-9}\) of one | found lowest mass fraction \(0\); sum off by at most \(1 \times 10^{-13}\)
+   ok   [expectation] The error falls in proportion to the time step (first order): observed order from the thre | expected between 0.8 and 1.2, for the ignition time and for the final temperatu | found ignition time \(0.993\), final temperature \(1.001\)
+   ok   [expectation] Smallest step against the independent solution with OpenFOAM's constants: ignition time | expected within \(1 \times 10^{-5}\) (relative) | found \(4.9 \times 10^{-6}\) (OpenFOAM earlier)
+   ok   [expectation] Smallest step against the independent solution with OpenFOAM's constants: final temperatur | expected within \(2 \times 10^{-4}\,\mathrm{K}\) | found \(8.3 \times 10^{-5}\,\mathrm{K}\)
+   ok   [expectation] Ignition time extrapolated to a time step of zero, against the independent solution with O | expected within \(3 \times 10^{-6}\) (relative) | found \(2.6 \times 10^{-7}\)
+   ok   [expectation] Final temperature extrapolated to a time step of zero, against the same | expected within \(2 \times 10^{-4}\,\mathrm{K}\) | found \(2.7 \times 10^{-7}\,\mathrm{K}\)
+   ok   [expectation] The steep part of the history: times at which the temperature passes 1100, 1200, 1400, 160 | expected each within \(0.10\,\mathrm{\mu s}\) | found largest difference \(0.071\,\mathrm{\mu s}\) (OpenFOAM earlier at every level)
+   ok   [expectation] The flat parts of the history (before the rise and above \(2100\,\mathrm{K}\)): temperatur | expected within \(0.3\,\mathrm{K}\) | found largest difference \(0.148\,\mathrm{K}\) over 825 points
+   ok   [expectation] Energy balance: the enthalpy of the parcel, rebuilt from temperature and composition, stay | expected within \(1 \times 10^{-6}\) of the heat released | found largest change \(3 \times 10^{-8}\) of the heat released
+   ok   [expectation] The atoms are kept to round-off, far inside the requirement | expected change of at most \(1 \times 10^{-10}\) | found at most \(9 \times 10^{-13}\)
+   ok   [expectation] Every other run (other tolerances, other chemistry solvers, adjustable step) keeps the ato | expected change of at most \(0.001\,\%\) | found largest change over 16 runs: \(7 \times 10^{-13}\)
+   ok   [expectation] At a fixed step of \(0.1\,\mathrm{\mu s}\) every tolerance of the chemistry solver, the tu | expected 6 of 6 runs | found 6 of 6; their ignition times differ from the tight run's by at most \(6 \times 10^{-6}\) (relative)
+   ok   [expectation] Step set by the chemistry solver (the tutorial's way): runs with a relative tolerance of \ | expected 3 of 3 runs | found 3 of 3: ignition time \(-0.042\,\%\), \(-0.035\,\%\), \(-0.028\,\%\) from the reference
+   MISS [expectation] The tutorial as shipped (step set by the chemistry solver, relative tolerance 0.1, 47 step | expected more than \(1\,\%\) from the reference | found \(-0.564\,\%\): inside the requirement. The prediction was wrong: the solver places its steps closest together where the temperature rises (\(1.50\,\m
+   ok   [expectation] Three other chemistry solvers with error control (Rosenbrock34, rodas34, RKF45) at the sam | expected within \(1 \times 10^{-5}\) (relative) | found within \(2 \times 10^{-9}\)
+   ok   [expectation] The chemistry solver without error control (EulerImplicit) is further off, but inside the  | expected further from the main solver than \(1 \times 10^{-5}\); within \(1\,\% | found \(-0.34\,\%\) from the main solver, \(-0.37\,\%\) from the reference
+   ok   [expectation] Solver time of the run with the smallest step | expected at most 60 s | found \(11.0\) s (\(21.2\) s the first time, while another job used the machine)
+Report: /mnt/d/Projects/Agentic CFD/results/h2_air_ignition_box/report.html

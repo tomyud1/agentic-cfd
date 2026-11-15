@@ -9,14 +9,64 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-- **Case 20 (ignition of hydrogen and air)** is with a fresh solver agent, launched on 2026-11-15
-  right after the commit that prepared it (Fable 5.2, high effort).
+Nothing is running. Next, in this order: the chemistry of every cell on the GPU in gpucfd, tested
+on case 20's ignition problem; then step 4, a detonation in a straight tube (case 21).
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### gpucfd: a solver for gas with shock waves, commit hash to be filled in
+### What case 20's 14 insights led to, commit hash to be filled in
+- **A chemistry tool, `cfdlib/chem.py`** (test 20 in `tests/test_tools.py`): the agent's
+  independent solution, moved into the tools. It reads a reaction scheme, gives the reaction
+  rates, solves a parcel at constant pressure and finds the chemical equilibrium, with the
+  constants of OpenFOAM or of the reference program. The test repeats case 20: it lands within
+  0.03 % of the reference and within 0.001 % of OpenFOAM's own runs taken to a time step of zero.
+- **`chem.parcel_health`:** what a sound burning history must do (atoms kept, mass fractions add
+  up to one, temperature inside its bounds). OpenFOAM's chemistry log has nothing for the
+  existing checks to judge.
+- **Run records hold the machine's load** (`foam.run`): a time taken while another job runs is
+  an upper bound (the agent's finest run took 21 s under load and 11 s alone).
+- **Guidance:** a new section on chemistry in the OpenFOAM notes (the time step as an accuracy
+  setting, constants that are not in the scheme's files, counting atoms with the solver's own
+  atomic masses, output digits, a harmless start-up warning, where the cost sits). One clause on
+  figures in the workflow.
+- **Found by the review:** counted with today's standard atomic masses, the atoms seemed to
+  change by 0.003 %, three times the allowed 0.001 %. OpenFOAM's table has hydrogen at 1.00797,
+  the standard is 1.00794. With OpenFOAM's own masses the atoms are kept to round-off. The notes
+  and the test now carry this trap.
+- **Nothing new:** a helper for the per-step output of a one-cell case (the case's `run.py` is
+  the worked example); the report's section title "meshes" for a case without a mesh; storing
+  the settings check in the pre-flight record.
+- **Open.** OpenFOAM's reader of reaction schemes converts activation energies with 1.987316
+  where its own gas constant gives 1.987216. It looks like a typing slip in OpenFOAM and could
+  be reported to its developers. The reference has no stated accuracy; a reference computed with
+  stated tolerances (for example with the program Cantera) would tighten the case.
+
+### Case 20 solved: ignition of hydrogen and air, completed with one difference, commit hash to be filled in
+A fresh agent (Fable 5.2, high effort) solved step 3 of the ladder in about 35 minutes with no
+human help: `results/h2_air_ignition_box/report.html`, one page: `brief.html`.
+- **All three requirements are met.** Ignition time 0.028 % early against the reference and final
+  temperature 0.0016 % high (allowed: 1 % and 0.1 %). Atoms kept to round-off.
+- **The one difference.** The agent predicted that OpenFOAM's example as shipped would miss the
+  1 %. It is inside, at 0.56 %. Shown as "expected, found"; the experiment did not fail.
+- **How it was checked beyond the reference.** The agent wrote an independent solution of the
+  same reaction scheme. OpenFOAM agrees with it to 0.00003 % once both use the same constants,
+  about forty times closer than either is to the reference. So most of the remaining 0.03 % is
+  the reference's own accuracy, which it does not state.
+- **What step 3 taught for the engine.** In OpenFOAM the time step is an accuracy setting of the
+  chemistry: halving it halves the error. The chemistry of one cell costs about 100 microseconds
+  per step on one core, against 0.3 for the flow in step 1, and up to 12 milliseconds while the
+  cell ignites. At small time steps a simple explicit chemistry solver gives the same answer in
+  a third of the time.
+- **Review by the dev agent** (`dev/agent_checks/case20_review.py`): ignition time, final
+  temperature, the order in the time step and the atoms were recomputed from the raw histories
+  and agree. The agent's rules were written at 13:21, after its pre-flight and two seconds
+  before its production runs started (from its transcript). The problem file is unchanged.
+- **Not done.** The report was checked by its contract and its numbers, not looked through by
+  eye in a browser (the dev agent's browser returns blank pictures on this PC today).
+
+### gpucfd: a solver for gas with shock waves (`e259c84`)
 Built by a separate session in one day as the base of gpucfd's own way to the detonation engine;
 notes with every number: [`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md).
 - **What it is.** A second library in gpucfd (`gpucfd/src/gcfdc.cu`, wrapper `gpucfd/euler.py`)

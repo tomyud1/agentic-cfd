@@ -1,0 +1,145 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling | performance
+
+- id: 1
+  stage: setup
+  logged: 2026-11-15 13:06
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'OpenFOAM''s tutorial for this very problem (<code>combustion/chemFoam/h2</code>), run as shipped, takes 47 time steps for the whole millisecond. Its temperature at the end is close to the reference, but 47 points cannot show when the mixture ignites.'
+  diagnosis: 'The tutorial sets <code>adjustTimeStep on</code>, and <code>chemFoam</code> then makes each time step equal to the last sub-step of its chemistry solver. With the tutorial''s loose tolerance (0.1) those sub-steps are long. Reading the source showed a second thing: inside a time step the chemistry is integrated with the density frozen, and the gas expands only after the step. So the time step is an accuracy setting in its own right, first order, and the tutorial hides it behind the tolerance.'
+  fix: 'The answers come from fixed time steps, a family of six with ratio 2, with tight tolerances of the chemistry solver. The tutorial''s way is kept as a variant study with six tolerances. The family showed first order (observed order 0.99 and 1.00) and the extrapolation to a step of zero lands on the independent solution.'
+  lesson: 'For a solver that splits chemistry from the rest, the outer time step sets an error that no tolerance of the chemistry solver removes. A tutorial that passes a visual comparison says nothing about that error.'
+  guideline: 'Reference note for reacting cases: "The time step of <code>chemFoam</code>, and of every OpenFOAM solver that calls the chemistry library once per step, is an accuracy setting of first order. Study it with fixed steps and tight chemistry tolerances first; study the tolerances after." It belongs in a reference on combustion, not in the main workflow text.'
+- id: 2
+  stage: setup
+  logged: 2026-11-15 13:06
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'At start-up <code>chemFoam</code> prints a warning that the sum of the mass fractions differs from one by 9. It looks like a wrong mixture.'
+  diagnosis: 'Harmless. <code>chemFoam</code> writes its own start files, with every one of the ten species set to 1 (<code>0/Ydefault</code>: <code>uniform 1</code>), so their sum is 10. The library warns and rescales; right after, the solver replaces the values by the mixture of <code>constant/initialConditions</code>.'
+  fix: 'No change to the case. The pre-flight has a check that does not trust the warning either way: after the first step, the density, the enthalpy and the three mass fractions must equal the start state of Theory (they do, to nine digits and better).'
+  lesson: 'A warning about the start mixture is settled by comparing the solver''s first state with the hand-computed start state, not by reading the warning.'
+  guideline: 'A line for the list of known harmless messages (if <code>cfdlib.monitor</code> keeps one): "chemFoam: Sum of mass fractions is different from one ... differs from 1 by (number of species minus one): comes from the start files the solver writes for itself". And a pre-flight check for every reacting case: first state against the start state of Theory.'
+- id: 3
+  stage: tooling
+  logged: 2026-11-15 13:07
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: '<code>chemFoam</code> writes its history file <code>chemFoam.out</code> with 6 significant digits, and writes the species only at the written times. A study of how the answer changes with the time step needs more digits and the species at every step.'
+  diagnosis: 'The file follows <code>writePrecision</code>, whose default is 6. The differences between time steps here are in the sixth to ninth digit. Species are fields, and fields are written only at write times.'
+  fix: '<code>writePrecision 14</code> in <code>controlDict</code>, and a function object (<code>volFieldValue</code>, average over the one cell) that adds a table row with temperature, density, enthalpy and all mass fractions after every step. The run script reads both files and checks that they agree. The table prints its time column with few digits, so times are taken as step number times time step.'
+  lesson: 'Before a convergence study, check how many digits the output files hold. Six digits hide an error of the size this case had to measure.'
+  guideline: 'A helper would have saved the reading code: <code>cfdlib.foam</code> could offer "state of a one-cell case after every step" (the function object and its reader), and the template notes could say: set <code>writePrecision</code> to 12 or more whenever a study compares runs that differ after the sixth digit.'
+- id: 4
+  stage: theory
+  logged: 2026-11-15 13:12
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'OpenFOAM does not read the reaction scheme with the same constants as CHEMKIN, the program of the reference. Its reader converts activation energies with a gas constant of 1.987316 cal/(mol K), and its equilibrium constants use a standard pressure of 1 bar where the data files are for 1 atm.'
+  diagnosis: 'Both are in OpenFOAM''s source: <code>RRcal = 1.987316</code> in the CHEMKIN reader (its own value in joules, 8.31451, corresponds to 1.987216, so this looks like a typing slip), and <code>Pstd</code> of \(10^{5}\) Pa in the global constants. Files written for CHEMKIN assume 1 atm.'
+  fix: 'Not changed: the problem says to use the files as they are, and every OpenFOAM user of CHEMKIN files has these constants. Their effect was measured with the independent program, one constant at a time: \(-0.0057\,\%\) on the ignition time (the activation energies) and \(+0.086\) K on the final temperature (the standard pressure). Both are reported and both are far inside the required accuracy.'
+  lesson: 'Two programs given the same reaction scheme still differ through constants that are not in the scheme. An independent solution that can switch constants turns "a small unexplained difference" into a number.'
+  guideline: 'For the dev agent: a short note in a combustion reference, "OpenFOAM reads CHEMKIN files with 1.987316 cal/(mol K) and a standard pressure of 1 bar; expect differences of about 0.01 % in ignition times and 0.1 K in final temperatures against CHEMKIN or Cantera". The slip in <code>chemkinLexer.L</code> could be reported to OpenFOAM. For hot, fast cases (a detonation) the effect of the standard pressure on the final state should be checked again.'
+- id: 5
+  stage: theory
+  logged: 2026-11-15 13:12
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'There is no tool in the repository for chemistry without flow, and no general chemistry program (Cantera) on the machine. A second answer next to the reference, with known tolerances, had to be written from nothing.'
+  diagnosis: 'The repository''s tools are for flows. This is the first case with reactions.'
+  fix: 'Wrote <code>mech.py</code> in the case folder (about 400 lines): a reader for the two CHEMKIN files, the rate laws of the CHEMKIN manual (third bodies, fall-off, backward rates from the thermodynamic data), a parcel at constant pressure solved with SciPy''s stiff integrators, the equilibrium by minimising the Gibbs energy, and a switch between CHEMKIN''s and OpenFOAM''s constants. Checked: OpenFOAM''s converter gives the same 27 reactions; two integrators and three tolerances agree to \(8 \times 10^{-11}\); run long, the rates arrive at the equilibrium.'
+  lesson: 'An independent solution with known tolerances was worth its cost here: it showed that most of the difference from the reference is the reference''s, which the reference alone could never show.'
+  guideline: 'Move <code>mech.py</code> into the tools (for example <code>cfdlib.chem</code>): the next steps of the detonation ladder need the same things (ignition delay at constant volume, the burnt state behind a detonation, the induction length). Installing Cantera on the machines would give a third, widely trusted answer; add it to <code>setup/README.md</code> if wanted.'
+- id: 6
+  stage: theory
+  logged: 2026-11-15 13:16
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'The reference does not agree with the independent solution as closely as its five printed digits would allow: its whole temperature rise comes 0.05 microseconds later (\(0.022\,\%\) of the ignition time), at every temperature level from 1100 to 2000 K.'
+  diagnosis: 'Not found with certainty. The independent solution does not move when its tolerances are tightened or its integrator changed, and OpenFOAM agrees with it to \(3 \times 10^{-7}\) once both use the same constants. The reference states no tolerances (SENKIN''s defaults were used). A constant shift of the whole rise is what a loosely integrated slow start would give. Slightly older physical constants in the reference program are a second possible part.'
+  fix: 'The verdict is still formed against the reference as given. The report shows all three answers side by side and says that the comparison cannot show an agreement better than about \(0.03\,\%\).'
+  lesson: 'A reference from another program has an accuracy of its own. When the solver agrees with an independent solution forty times more closely than either agrees with the reference, the remaining difference says something about the reference.'
+  guideline: 'When a problem''s reference has no stated accuracy, the problem file could give the required accuracy with that in mind (here 1 % was generous, so nothing went wrong). For the catalogue: this case can be tightened by replacing the SENKIN output with a reference computed to stated tolerances, for example with Cantera.'
+- id: 7
+  stage: preflight
+  logged: 2026-11-15 13:17
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: '<code>cfdlib.monitor.assess</code> has only two generic checks for a <code>chemFoam</code> log (no error, no NaN). Nothing in the tools knows what a healthy reacting parcel looks like.'
+  diagnosis: 'The monitor reads residuals, Courant numbers and continuity errors, which a one-cell chemistry solver does not print.'
+  fix: 'Added the checks in the case''s run script: the run reaches the end time; the temperature stays between the start and the limit of complete burning; the pressure stays as given; no negative mass fraction and a sum of one; atoms and enthalpy kept at every step.'
+  lesson: 'For chemistry the health of a run is physical: bounds from thermodynamics and the two conserved things.'
+  guideline: 'A small checker in the tools for reacting runs (atoms per element, enthalpy rebuilt from temperature and composition, bounds of the temperature) would serve every later case with chemistry; the functions in this case''s <code>measure.py</code> are a start.'
+- id: 8
+  stage: preflight
+  logged: 2026-11-15 13:18
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'The run time projected by the pre-flight''s short test was wrong by a factor of 90: 0.05 s projected for the largest step, 4.4 s in the full run.'
+  diagnosis: 'The short test covers the first 5 % of the time, where nothing happens yet. The cost of this problem sits in the rise, where the chemistry solver with tight tolerances needs up to 12 ms for one step against 0.1 ms elsewhere. A projection in proportion to the number of steps cannot see that.'
+  fix: 'The three largest steps were run in full as part of the pre-flight (a few seconds each); their times, split by phase, gave the budget for the smallest step (projected 11 s, measured 11.0 s when run alone).'
+  lesson: 'For a problem whose cost is concentrated in a short event, a short test from the start projects nothing. Run a coarse level in full instead.'
+  guideline: 'In the pre-flight reference, next to the run-time projection: "For ignition, transition or any event that concentrates the work, the first few per cent of the run do not show the cost. Project from a coarse level run in full, or from a short test that starts just before the event."'
+- id: 9
+  stage: preflight
+  logged: 2026-11-15 13:20
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'The pre-flight record lists all 60 OpenFOAM settings as undocumented, although the decisions file covers every one.'
+  diagnosis: 'My own order of work: the pre-flight ran before <code>decisions.yaml</code> existed, and its record keeps the result of that moment.'
+  fix: 'The report runs the coverage check again on the case of the smallest step (all covered) and does not use the stale list.'
+  lesson: 'A check stored in a record is true for the moment it ran. The report should repeat cheap checks, not quote old ones.'
+  guideline: 'None needed in the workflow text, which already asks for the decisions while setting up. The example run scripts could store the decisions check only in the analysis.'
+- id: 10
+  stage: production
+  logged: 2026-11-15 13:23
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'A prediction written before the runs was wrong. I expected the tutorial as shipped (47 steps) to miss the required 1 % on the ignition time. It is off by \(0.56\,\%\): inside.'
+  diagnosis: 'I pictured 47 steps spread evenly, about 20 microseconds apart. They are not: the step follows the chemistry solver''s sub-step, which shrinks where the temperature rises, so the two steps on either side of the ignition temperature are close together and a straight line between them reads the time well. The run is early for another reason, the loose tolerance during the slow start.'
+  fix: 'Nothing to fix in the runs. The report shows the prediction as "expected, found" and the verdict is "completed, with differences".'
+  lesson: 'An adaptive method puts its points where the action is. Judge it by a run, not by its number of steps.'
+  guideline: 'None for the workflow. For the student: the tutorial''s settings are good enough for a picture and for 1 %, and not for a study of accuracy.'
+- id: 11
+  stage: performance
+  logged: 2026-11-15 13:24
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'The tight tolerances chosen for the main runs make them four times slower than needed: the tutorial''s implicit chemistry solver spends half of each run in the short rise. An explicit solver (RKF45) gives the same answer to nine digits in under a third of the time.'
+  diagnosis: 'With time steps of 0.1 microseconds and less, the chemistry is not stiff within one step, so an implicit method with a very small absolute tolerance does work that brings nothing. The cost of the rise is the same on every level of the family (2.3 to 2.7 s): it is set by the tolerance, not by the step.'
+  fix: 'Kept for this report: the runs take seconds, and the tight setting makes the time-step study clean. Measured and reported in the performance appendix.'
+  lesson: 'Which chemistry solver is fastest depends on the outer time step. In a flow solver with small explicit steps (a detonation), an explicit chemistry solver may be the cheaper choice.'
+  guideline: 'For the detonation ladder: measure the chemistry solver and its tolerances on a one-cell case with the time step the flow solver will use, before the first flow run with chemistry. About 100 microseconds of one core per cell per step were measured here as an upper limit where little reacts.'
+- id: 12
+  stage: performance
+  logged: 2026-11-15 13:29
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'The run with the smallest step took 21.2 s in the production batch and 11.0 s when repeated alone, with identical numbers.'
+  diagnosis: 'Another session was running jobs on the same machine during the production batch. The solver''s own clock also has steps of 0.01 s, so a cost per step can only be read as an average over many steps.'
+  fix: 'The report shows the repeat and names the first time; the cost figure shows solver time summed along the run, not per step.'
+  lesson: 'On a shared desktop a single timing is good to a factor of two at best.'
+  guideline: 'When timings matter for a comparison, the run script could time each run twice or record the load of the machine next to the time (<code>cfdlib.foam.run</code> already writes a performance record; the one-minute load average would fit there).'
+- id: 13
+  stage: report
+  logged: 2026-11-15 13:22
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'The layout check of the figures stopped two figures: the sketch (a label inside the coloured gas region counted as text on top of a shape) and the convergence figure (tick labels of the logarithmic axes overlapped one another).'
+  diagnosis: 'Both are true findings of the check. The gas region was drawn as a rectangle patch, which the check treats as a shape that text must avoid. On a logarithmic axis that spans less than two decades matplotlib labels the minor ticks too, and they collide.'
+  fix: 'The gas region is drawn as a filled area. The convergence figure has one tick per time step of the family and no labels on minor ticks.'
+  lesson: 'The check caught what a reader would have seen. Both fixes took a minute.'
+  guideline: 'Two lines for the figure notes of the tools: "background regions of a sketch: use a filled area, not a patch, when labels sit inside" and "logarithmic axes shorter than two decades: set the ticks yourself". <code>cfdlib.plots</code> could offer a helper for the second.'
+- id: 14
+  stage: report
+  logged: 2026-11-15 13:37
+  status: resolved
+  resolved: 2026-11-15 13:37
+  problem: 'The report structure is built for flows on meshes: its tables are named "meshes", its convergence section expects a grid study, and the performance appendix asks for time per cell. This case has one cell and its study is in the time step.'
+  diagnosis: 'Not an error, a matter of fit. Every field could be filled sensibly (the "meshes" table holds the time-step family).'
+  fix: 'Filled as they are, with the words changed in the text.'
+  lesson: 'The contract carried a case of a new kind without change.'
+  guideline: 'None needed now. If more cases without a mesh follow, the section title "meshes" could become a title given by the case.'

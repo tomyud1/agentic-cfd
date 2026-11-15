@@ -1,0 +1,63 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     chemFoam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         {{ t_end }};
+
+deltaT          {{ dt }};
+
+maxDeltaT       {{ max_dt }};
+
+adjustTimeStep  {{ adjust }};
+
+writeControl    adjustable;
+
+writeInterval   {{ write_interval }};
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  14;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   10;
+
+runTimeModifiable no;
+
+DebugSwitches
+{
+    SolverPerformance   0;
+}
+{% if table %}
+functions
+{
+    state
+    {
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        writeControl    timeStep;
+        writeInterval   1;
+        writeFields     false;
+        log             false;
+        regionType      all;
+        operation       volAverage;
+        fields          ({{ table_fields }});
+    }
+}
+{% endif %}

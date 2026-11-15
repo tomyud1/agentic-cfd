@@ -1,0 +1,3539 @@
+{
+ "title": "Ignition of a hot hydrogen, oxygen and nitrogen mixture at constant pressure",
+ "date": "2026-11-15",
+ "verdict": "WARN",
+ "expectations": [
+  {
+   "kind": "requirement",
+   "text": "Ignition time within 1 % of the reference",
+   "expected": "within \\(1\\,\\%\\) (smallest step, 80000 steps)",
+   "found": "\\(217.709\\,\\mathrm{\\mu s}\\) against \\(217.77\\,\\mathrm{\\mu s}\\): \\(-0.028\\,\\%\\)",
+   "met": true,
+   "key": "ignition"
+  },
+  {
+   "kind": "requirement",
+   "text": "Temperature at the end within 0.1 % of the reference",
+   "expected": "within \\(0.1\\,\\%\\) (smallest step, 80000 steps)",
+   "found": "\\(2220.536\\,\\mathrm{K}\\) against \\(2220.5\\,\\mathrm{K}\\): \\(+0.0016\\,\\%\\)",
+   "met": true,
+   "key": "final"
+  },
+  {
+   "kind": "requirement",
+   "text": "The number of atoms of each element constant within 0.001 %",
+   "expected": "change of at most \\(0.001\\,\\%\\) after every step of every run of the time-step family",
+   "found": "largest change of hydrogen, oxygen or nitrogen atoms over every step of the 6 runs: \\(9 \\times 10^{-13}\\) of the start value",
+   "met": true,
+   "key": "conserved"
+  },
+  {
+   "kind": "health",
+   "text": "Every run of the time-step family reaches the end of the millisecond without a solver error",
+   "expected": "6 runs finished",
+   "found": "6 of 6 finished; log checks: ok, ok, ok, ok, ok, ok",
+   "met": true
+  },
+  {
+   "kind": "health",
+   "text": "The temperature stays between the start and the limit of complete burning, and the pressure stays as given",
+   "expected": "between \\(1000\\,\\mathrm{K}\\) and \\(2253.6\\,\\mathrm{K}\\); pressure unchanged",
+   "found": "lowest \\(1000.0000\\,\\mathrm{K}\\), highest \\(2220.54\\,\\mathrm{K}\\); largest change of the pressure \\(0\\)",
+   "met": true
+  },
+  {
+   "kind": "health",
+   "text": "No mass fraction is negative and the mass fractions add up to one",
+   "expected": "none negative; sum within \\(1 \\times 10^{-9}\\) of one",
+   "found": "lowest mass fraction \\(0\\); sum off by at most \\(1 \\times 10^{-13}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The error falls in proportion to the time step (first order): observed order from the three smallest steps",
+   "expected": "between 0.8 and 1.2, for the ignition time and for the final temperature",
+   "found": "ignition time \\(0.993\\), final temperature \\(1.001\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Smallest step against the independent solution with OpenFOAM's constants: ignition time",
+   "expected": "within \\(1 \\times 10^{-5}\\) (relative)",
+   "found": "\\(4.9 \\times 10^{-6}\\) (OpenFOAM earlier)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Smallest step against the independent solution with OpenFOAM's constants: final temperature",
+   "expected": "within \\(2 \\times 10^{-4}\\,\\mathrm{K}\\)",
+   "found": "\\(8.3 \\times 10^{-5}\\,\\mathrm{K}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Ignition time extrapolated to a time step of zero, against the independent solution with OpenFOAM's constants",
+   "expected": "within \\(3 \\times 10^{-6}\\) (relative)",
+   "found": "\\(2.6 \\times 10^{-7}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Final temperature extrapolated to a time step of zero, against the same",
+   "expected": "within \\(2 \\times 10^{-4}\\,\\mathrm{K}\\)",
+   "found": "\\(2.7 \\times 10^{-7}\\,\\mathrm{K}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The steep part of the history: times at which the temperature passes 1100, 1200, 1400, 1600, 1800 and \\(2000\\,\\mathrm{K}\\), against the reference",
+   "expected": "each within \\(0.10\\,\\mathrm{\\mu s}\\)",
+   "found": "largest difference \\(0.071\\,\\mathrm{\\mu s}\\) (OpenFOAM earlier at every level)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The flat parts of the history (before the rise and above \\(2100\\,\\mathrm{K}\\)): temperature at the reference's printed points",
+   "expected": "within \\(0.3\\,\\mathrm{K}\\)",
+   "found": "largest difference \\(0.148\\,\\mathrm{K}\\) over 825 points",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Energy balance: the enthalpy of the parcel, rebuilt from temperature and composition, stays at its start value at every step",
+   "expected": "within \\(1 \\times 10^{-6}\\) of the heat released",
+   "found": "largest change \\(3 \\times 10^{-8}\\) of the heat released",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The atoms are kept to round-off, far inside the requirement",
+   "expected": "change of at most \\(1 \\times 10^{-10}\\)",
+   "found": "at most \\(9 \\times 10^{-13}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Every other run (other tolerances, other chemistry solvers, adjustable step) keeps the atoms as required of the family",
+   "expected": "change of at most \\(0.001\\,\\%\\)",
+   "found": "largest change over 16 runs: \\(7 \\times 10^{-13}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "At a fixed step of \\(0.1\\,\\mathrm{\\mu s}\\) every tolerance of the chemistry solver, the tutorial's loose one included, stays within the two required accuracies",
+   "expected": "6 of 6 runs",
+   "found": "6 of 6; their ignition times differ from the tight run's by at most \\(6 \\times 10^{-6}\\) (relative)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Step set by the chemistry solver (the tutorial's way): runs with a relative tolerance of \\(1 \\times 10^{-4}\\) or tighter stay within the two required accuracies",
+   "expected": "3 of 3 runs",
+   "found": "3 of 3: ignition time \\(-0.042\\,\\%\\), \\(-0.035\\,\\%\\), \\(-0.028\\,\\%\\) from the reference",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The tutorial as shipped (step set by the chemistry solver, relative tolerance 0.1, 47 steps) misses the required \\(1\\,\\%\\) on the ignition time: predicted because its steps would be too far apart to read that time",
+   "expected": "more than \\(1\\,\\%\\) from the reference",
+   "found": "\\(-0.564\\,\\%\\): inside the requirement. The prediction was wrong: the solver places its steps closest together where the temperature rises (\\(1.50\\,\\mathrm{\\mu s}\\) apart around the ignition temperature)",
+   "met": false
+  },
+  {
+   "kind": "expectation",
+   "text": "Three other chemistry solvers with error control (Rosenbrock34, rodas34, RKF45) at the same step and tolerances give the ignition time of the main one",
+   "expected": "within \\(1 \\times 10^{-5}\\) (relative)",
+   "found": "within \\(2 \\times 10^{-9}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The chemistry solver without error control (EulerImplicit) is further off, but inside the required \\(1\\,\\%\\)",
+   "expected": "further from the main solver than \\(1 \\times 10^{-5}\\); within \\(1\\,\\%\\) of the reference",
+   "found": "\\(-0.34\\,\\%\\) from the main solver, \\(-0.37\\,\\%\\) from the reference",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Solver time of the run with the smallest step",
+   "expected": "at most 60 s",
+   "found": "\\(11.0\\) s (\\(21.2\\) s the first time, while another job used the machine)",
+   "met": true
+  }
+ ],
+ "comparison_type": "benchmark",
+ "summary": {
+  "headline": "Completed, with one difference from what was expected. OpenFOAM ignites the mixture at \\(217.709\\,\\mathrm{\\mu s}\\), \\(0.028\\,\\%\\) before the reference (required: within \\(1\\,\\%\\)), and ends at \\(2220.54\\,\\mathrm{K}\\), \\(0.0016\\,\\%\\) above it (required: \\(0.1\\,\\%\\)). The atoms of each element are kept to round-off. The one difference: I predicted that the tutorial as shipped would miss the ignition time by more than \\(1\\,\\%\\); it is off by \\(0.56\\,\\%\\).",
+  "answer_columns": [
+   "Requested",
+   "Reference (CHEMKIN II (SENKIN))",
+   "Simulation (OpenFOAM, 80000 steps)",
+   "Difference"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Temperature against time",
+    "theory": "1677 printed points, to \\(0.1\\,\\mathrm{K}\\) (Figure 5)",
+    "sim": "The same curve: flat for \\(215\\,\\mathrm{\\mu s}\\), a rise of \\(1000\\,\\mathrm{K}\\) within about \\(35\\,\\mathrm{\\mu s}\\), then a slow approach to the final temperature. The rise comes \\(0.06\\) to \\(0.07\\,\\mathrm{\\mu s}\\) earlier than the reference's",
+    "diff": "<span style='white-space:nowrap'>rise: \\(-0.07\\,\\mathrm{\\mu s}\\)</span><br><span style='white-space:nowrap'>flat parts: \\(0.15\\,\\mathrm{K}\\)</span>"
+   },
+   {
+    "letter": "b",
+    "label": "Ignition time (first reach of \\(1200\\,\\mathrm{K}\\))",
+    "theory": "\\(217.77\\,\\mathrm{\\mu s}\\)",
+    "sim": "\\(217.709\\,\\mathrm{\\mu s}\\)",
+    "diff": "\\(-0.028\\,\\%\\)"
+   },
+   {
+    "letter": "c",
+    "label": "Temperature at the end",
+    "theory": "\\(2220.5\\,\\mathrm{K}\\)",
+    "sim": "\\(2220.536\\,\\mathrm{K}\\)",
+    "diff": "<span style='white-space:nowrap'>\\(+0.0016\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(+0.036\\,\\mathrm{K}\\)</span>"
+   },
+   {
+    "letter": "d",
+    "label": "Hydrogen, oxygen, water, OH, H and O in time",
+    "theory": "The reference file holds no species. The independent solution (Theory) is the comparison",
+    "sim": "Hydrogen falls from \\(7.18\\) to \\(0.024\\) mol/kg and oxygen from \\(7.18\\) to \\(3.53\\) (half is left: the mixture is lean); water rises to \\(7.04\\). H, O and OH grow from nothing by a factor of ten every \\(18\\,\\mathrm{\\mu s}\\), peak during the rise (H at \\(1.65\\) mol/kg) and then fall slowly (Figure 2)",
+    "diff": "<span style='white-space:nowrap'>within \\(0.05\\,\\%\\)</span><br><span style='white-space:nowrap'>of each peak</span>"
+   },
+   {
+    "letter": "e",
+    "label": "Atoms and energy balance",
+    "theory": "No change (exact)",
+    "sim": "Yes, both. Atoms of H, O and N: change of at most \\(9 \\times 10^{-13}\\). Enthalpy of the parcel: change of at most \\(3 \\times 10^{-8}\\) of the heat released. Every step of all 6 runs (Figure 3)",
+    "diff": "<span style='white-space:nowrap'>atoms \\(9 \\times 10^{-13}\\)</span><br><span style='white-space:nowrap'>energy \\(3 \\times 10^{-8}\\)</span>"
+   },
+   {
+    "letter": "f",
+    "label": "Effect of the settings, and cost",
+    "theory": "–",
+    "sim": "Time step: the error is in proportion to it (\\(-0.018\\,\\%\\) on the ignition time at \\(0.4\\,\\mathrm{\\mu s}\\), \\(-0.0005\\,\\%\\) at \\(0.0125\\,\\mathrm{\\mu s}\\)). Tolerance of the chemistry solver: no effect at a fixed small step (\\(6 \\times 10^{-6}\\)); when it also sets the step, as in the tutorial, it decides the accuracy (\\(-0.56\\,\\%\\) at 0.1). Cost: about \\(123\\) microseconds of one core per step, and up to \\(12\\) milliseconds per step during the rise with tight tolerances (Figure 6)",
+    "diff": "–"
+   }
+  ],
+  "findings": [
+   "<b>The answer.</b> Ignition at \\(217.709\\,\\mathrm{\\mu s}\\) (reference \\(217.77\\,\\mathrm{\\mu s}\\), \\(-0.028\\,\\%\\)); temperature at the end \\(2220.54\\,\\mathrm{K}\\) (reference \\(2220.5\\,\\mathrm{K}\\)). Both are far inside the required accuracy.",
+   "<b>Three programs, one answer.</b> OpenFOAM, extrapolated to a time step of zero, and the independent program written for this report agree on the ignition time to \\(3 \\times 10^{-7}\\) (relative) and on the final temperature to \\(3 \\times 10^{-7}\\,\\mathrm{K}\\), when both use OpenFOAM's constants. So OpenFOAM integrates this reaction scheme correctly.",
+   "<b>Most of the small difference from the reference belongs to the reference.</b> The independent program with CHEMKIN's own constants ignites \\(0.022\\,\\%\\) before the reference, and its answer does not move when its tolerances are tightened. The reference states no tolerances. OpenFOAM's different constants add \\(0.0057\\,\\%\\) on the ignition time and \\(+0.09\\,\\mathrm{K}\\) on the final temperature.",
+   "<b>The time step matters, to first order.</b> Inside a step OpenFOAM lets the gas react without expanding, and corrects the density only after the step. The ignition time is early in proportion to the step (observed order \\(0.99\\), Figure 4): halve the step, halve the error.",
+   "<b>Atoms and energy are kept to round-off</b> at every step, as the method is built to do. The check is made outside OpenFOAM, from the printed temperature and composition.",
+   "<b>What it costs.</b> A step costs about \\(123\\) microseconds, except during the rise, where a tight tolerance costs \\(2.5\\) s in total whatever the step. The explicit method RKF45 gave the same answer as the tutorial's implicit one in \\(0.29\\) of the time."
+  ],
+  "limitations": [
+   "One start state only: \\(1000\\,\\mathrm{K}\\), 2 atm, one lean mixture. Other temperatures, pressures and mixtures were not run.",
+   "The reference states no tolerances and prints five digits. Two independent calculations sit \\(0.02\\,\\%\\) to \\(0.03\\,\\%\\) from it, so this comparison cannot show an agreement better than that.",
+   "The reaction scheme is taken as given. Whether it describes real hydrogen is not tested here: there is no experiment in this problem.",
+   "A parcel at constant pressure with no flow. A detonation burns nearer to constant volume and behind a shock; that is a later step.",
+   "The independent solution is this agent's own code. It shares the two data files with OpenFOAM but none of its source.",
+   "OpenFOAM's constants were left as they are (the problem says to use the files unchanged), so a difference of \\(0.006\\,\\%\\) in ignition time and \\(0.09\\) K in final temperature from a CHEMKIN-exact reading remains.",
+   "Costs are for one cell on one processor core with a table row written at every step. Run times repeat only roughly: the finest run took \\(21.2\\) s the first time and \\(11.0\\) s when repeated alone.",
+   "Solved with OpenFOAM only. The GPU solver gpucfd has no chemistry, so there is no second tool to compare speed with."
+  ]
+ },
+ "problem": {
+  "description": "A uniform mixture of hydrogen, oxygen and nitrogen at rest is suddenly at 1000 K. Nothing flows and no heat is exchanged; the pressure is held constant. After a short delay the mixture ignites and burns. Find the temperature against time, the ignition time and the final temperature, and compare them with a reference calculation made with the same reaction scheme by an independent program.\n",
+  "setup": [
+   "A closed, well-mixed parcel of gas: every property is the same everywhere, so there is no flow and only time matters.",
+   "Start: temperature \\(T_0\\), pressure \\(p\\), mixture of hydrogen, oxygen and nitrogen in the mole ratio \\(1 : 1 : 3.76\\).",
+   "The pressure stays at \\(p\\) (the parcel is free to expand) and no heat is exchanged with the surroundings.",
+   "The gases are ideal gases whose heat capacities change with temperature.",
+   "Reaction scheme and thermodynamic data: the hydrogen scheme that ships with OpenFOAM, files `chem.inp` and `therm.dat` in `$FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/` (10 species, 27 reaction lines; argon is listed and absent here). Use these files as they are.",
+   "Ignition time: the time at which the temperature first reaches \\(T_{\\mathrm{ign}}\\), the criterion of the reference.",
+   "Reference: the calculation of the program CHEMKIN II (SENKIN) for exactly these conditions, shipped with OpenFOAM in the same folder (`senk.out`)."
+  ],
+  "given": [
+   {
+    "label": "Temperature at the start",
+    "symbol": "\\(T_0\\)",
+    "value": "\\(1000\\)",
+    "unit": "K"
+   },
+   {
+    "label": "Pressure, held constant (2 atm)",
+    "symbol": "\\(p\\)",
+    "value": "\\(2.0265 \\times 10^{5}\\)",
+    "unit": "Pa"
+   },
+   {
+    "label": "Hydrogen, moles per mole of oxygen",
+    "symbol": "\\(n_{\\mathrm{H_2}}\\)",
+    "value": "\\(1\\)",
+    "unit": "-"
+   },
+   {
+    "label": "Oxygen (the unit of the mole ratio)",
+    "symbol": "\\(n_{\\mathrm{O_2}}\\)",
+    "value": "\\(1\\)",
+    "unit": "-"
+   },
+   {
+    "label": "Nitrogen, moles per mole of oxygen",
+    "symbol": "\\(n_{\\mathrm{N_2}}\\)",
+    "value": "\\(3.76\\)",
+    "unit": "-"
+   },
+   {
+    "label": "Temperature that defines the ignition time",
+    "symbol": "\\(T_{\\mathrm{ign}}\\)",
+    "value": "\\(1200\\)",
+    "unit": "K"
+   },
+   {
+    "label": "Duration of interest",
+    "symbol": "\\(t_{\\mathrm{end}}\\)",
+    "value": "\\(0.001\\)",
+    "unit": "s"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "history",
+    "text": "Temperature against time up to \\(t_{\\mathrm{end}}\\), compared with the reference"
+   },
+   {
+    "letter": "b",
+    "key": "ignition",
+    "text": "Ignition time, compared with the reference"
+   },
+   {
+    "letter": "c",
+    "key": "final",
+    "text": "Temperature at \\(t_{\\mathrm{end}}\\), compared with the reference"
+   },
+   {
+    "letter": "d",
+    "key": "species",
+    "text": "How the amounts of hydrogen, oxygen, water and the short-lived species OH, H and O change in time"
+   },
+   {
+    "letter": "e",
+    "key": "conserved",
+    "text": "Do the numbers of hydrogen, oxygen and nitrogen atoms stay constant, and does the energy balance of a parcel at constant pressure hold?"
+   },
+   {
+    "letter": "f",
+    "key": "cost",
+    "text": "How the answers depend on the accuracy settings of the chemistry solver and on the time step, and what one such parcel costs per time step"
+   }
+  ],
+  "required_accuracy": [
+   {
+    "key": "ignition",
+    "text": "Ignition time within 1 % of the reference"
+   },
+   {
+    "key": "final",
+    "text": "Temperature at the end within 0.1 % of the reference"
+   },
+   {
+    "key": "conserved",
+    "text": "The number of atoms of each element constant within 0.001 %"
+   }
+  ],
+  "reference": "Supplied with the problem: The temperature history, the ignition time (first reach of 1200 K) and the final temperature of the CHEMKIN II (SENKIN) calculation for these conditions, read by code from the file shipped with OpenFOAM (setup/parse_senkin_h2.py). The file also records what the source says, and does not say, about its own accuracy: five printed digits, the spacing of its printed points, and no stated integration tolerances."
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "Well mixed: one temperature and one composition, no flow",
+    "check": "Given. The simulation has a single cell, so nothing can vary in space.",
+    "status": "imposed"
+   },
+   {
+    "name": "Constant pressure",
+    "check": "Given. The solver's pressure changes by \\(0\\) (relative) at most, in every run.",
+    "status": "ok"
+   },
+   {
+    "name": "No heat exchange",
+    "check": "Given. The solver has no heat-exchange term. Checked through the energy balance: the enthalpy of the parcel changes by at most \\(3 \\times 10^{-8}\\) of the heat released.",
+    "status": "ok"
+   },
+   {
+    "name": "Ideal gases",
+    "check": "Given. Density, pressure and temperature printed by the solver satisfy the ideal-gas law to \\(2 \\times 10^{-13}\\). At 2 atm and 1000 K and above, real-gas effects are far below the required accuracy.",
+    "status": "ok"
+   },
+   {
+    "name": "Heat capacities from the data file",
+    "check": "Given (<code>therm.dat</code>: two polynomials per species, joined at 1000 K, which is the start temperature). The largest jump of a heat capacity at the joint is \\(7 \\times 10^{-7}\\) (relative, N2): harmless.",
+    "status": "ok"
+   },
+   {
+    "name": "The reaction scheme as given",
+    "check": "Given. OpenFOAM's reading of the file was compared with an independent reading: 27 reactions, largest difference of a rate parameter \\(4 \\times 10^{-10}\\) (relative).",
+    "status": "ok"
+   },
+   {
+    "name": "Pure start mixture: hydrogen, oxygen and nitrogen only",
+    "check": "Given. No reactive species at the start; the first reactions between hydrogen and oxygen make them. Argon is in the scheme and absent from the mixture (mass fraction zero throughout).",
+    "status": "imposed"
+   },
+   {
+    "name": "Constants of the reference program",
+    "check": "Not met exactly: OpenFOAM reads the scheme with two constants that differ from CHEMKIN's. Effect computed in Theory: \\(0.0057\\,\\%\\) on the ignition time, \\(0.09\\) K on the final temperature, both far inside the required accuracy.",
+    "status": "ok"
+   }
+  ]
+ },
+ "theory": {
+  "intro": "No formula gives the temperature against time: the 27 reactions between 9 species are a set of coupled equations in which some species change a million times faster than others. They can only be solved step by step. Theory still fixes a good deal before any run: the start state; two things that cannot change, the number of atoms of each element and the enthalpy (the energy of a parcel at constant pressure); two limits for the final temperature; and the shape of the history (a slow start in which the temperature difference grows like an exponential, then a sudden rise). The equations themselves are written out below and solved here a second time by an independent program (<code>mech.py</code>: its own reading of the two data files, the rate laws of the CHEMKIN manual, SciPy's stiff integrators with a relative tolerance of \\(1 \\times 10^{-10}\\)). That gives a second answer next to the reference, with known tolerances, and a tool to measure what a difference in the constants of two programs is worth.",
+  "steps": [
+   {
+    "label": "The parcel",
+    "latex": "\\sigma_i = \\frac{\\text{moles of species } i}{\\text{kg of gas}},\\qquad v = \\frac{R\\,T}{p}\\sum_i \\sigma_i,\\qquad c_i = \\frac{\\sigma_i}{v}",
+    "note": "One kilogram of gas is followed. Its volume \\(v\\) follows from the ideal-gas law at the fixed pressure, so the gas expands as it heats and as the number of molecules changes. \\(c_i\\) is the concentration that the reaction rates need."
+   },
+   {
+    "label": "Each reaction",
+    "latex": "q_j = k_{f,j}\\prod_i c_i^{\\nu'_{ij}} - k_{r,j}\\prod_i c_i^{\\nu''_{ij}},\\qquad k_f = A\\,T^{\\beta}\\,e^{-E/(R T)},\\qquad k_r = \\frac{k_f}{K_c},\\quad K_c = e^{-\\Delta G^{\\circ}/(R T)}\\left(\\frac{p^{\\circ}}{R T}\\right)^{\\Delta\\nu}",
+    "note": "Rate of reaction \\(j\\): forward minus backward. \\(A\\), \\(\\beta\\), \\(E\\) come from <code>chem.inp</code>. The backward rate is not given: it follows from the forward rate and the thermodynamic data (<code>therm.dat</code>), so that the reactions stop exactly at chemical equilibrium. \\(p^{\\circ}\\) is the pressure for which the data are tabulated. Reactions that need a third molecule to carry energy away multiply by the concentration of such molecules; four reactions of the scheme change between a low-pressure and a high-pressure form (fall-off)."
+   },
+   {
+    "label": "Species",
+    "latex": "\\frac{d\\sigma_i}{dt} = v\\,\\omega_i,\\qquad \\omega_i = \\sum_j (\\nu''_{ij} - \\nu'_{ij})\\,q_j",
+    "note": "Moles of each species per kilogram change by what the reactions make and use."
+   },
+   {
+    "label": "Energy at constant pressure, no heat exchange",
+    "latex": "\\sum_i \\sigma_i h_i(T) = h_0 = \\text{const}\\quad\\Longrightarrow\\quad \\frac{dT}{dt} = -\\,\\frac{v\\sum_i h_i\\,\\omega_i}{\\sum_i \\sigma_i c_{p,i}}",
+    "note": "\\(h_i\\) is the enthalpy of a mole of species \\(i\\), chemical energy included. The total cannot change, so when the reactions turn chemical energy into heat the temperature rises. Checked with SymPy: with this \\(dT/dt\\) the time derivative of the sum is zero."
+   },
+   {
+    "label": "Atoms",
+    "latex": "\\sum_i a_{ie}\\,\\sigma_i = \\text{const for each element } e",
+    "note": "\\(a_{ie}\\) is the number of atoms of element \\(e\\) in a molecule of species \\(i\\). Reactions only rearrange atoms."
+   },
+   {
+    "label": "Where it ends: chemical equilibrium",
+    "latex": "\\min_{\\sigma}\\ \\sum_i \\sigma_i\\,\\mu_i(T, p, \\sigma)\\quad\\text{with the atoms and } h_0 \\text{ fixed}",
+    "note": "Left alone for long enough, the mixture settles where its Gibbs energy is lowest. That state depends only on the thermodynamic data, not on the reaction rates, and gives the temperature that the history must approach."
+   }
+  ],
+  "derived": [
+   {
+    "label": "Mean molar mass of the start mixture",
+    "symbol": "W_0",
+    "formula": "W_0 = \\frac{\\sum_i n_i W_i}{\\sum_i n_i}",
+    "value_tex": "24.1919",
+    "unit_tex": "\\mathrm{g/mol}",
+    "why": "Turns the given mole ratio into mass fractions and gives the density.",
+    "params": [
+     {
+      "tex": "n_i",
+      "meaning": "moles of hydrogen, oxygen and nitrogen (given)",
+      "value": 1.0,
+      "unit": "1 : 1 : 3.76"
+     },
+     {
+      "tex": "W_{\\mathrm{H_2}}",
+      "meaning": "molar mass of hydrogen",
+      "value": 2.01594,
+      "unit": "g/mol"
+     },
+     {
+      "tex": "W_{\\mathrm{O_2}}",
+      "meaning": "molar mass of oxygen",
+      "value": 31.9988,
+      "unit": "g/mol"
+     },
+     {
+      "tex": "W_{\\mathrm{N_2}}",
+      "meaning": "molar mass of nitrogen",
+      "value": 28.0134,
+      "unit": "g/mol"
+     }
+    ],
+    "check": "\\frac{1\\times2.01594 + 1\\times31.9988 + 3.76\\times28.0134}{5.76} = 24.19186"
+   },
+   {
+    "label": "Mass fraction of hydrogen at the start",
+    "symbol": "Y_{\\mathrm{H_2}}",
+    "formula": "Y_i = \\frac{n_i W_i}{\\sum_k n_k W_k}",
+    "value_tex": "0.0144672",
+    "unit_tex": "",
+    "why": "The solver works with mass fractions. Oxygen: \\(0.229637\\), nitrogen: \\(0.755896\\). The pre-flight checks that the solver starts from these.",
+    "params": [
+     {
+      "tex": "n_{\\mathrm{H_2}} W_{\\mathrm{H_2}}",
+      "meaning": "grams of hydrogen per mole of oxygen",
+      "value": 2.01594,
+      "unit": "g"
+     },
+     {
+      "tex": "\\sum n_k W_k",
+      "meaning": "grams of mixture per mole of oxygen",
+      "value": 139.345124,
+      "unit": "g"
+     }
+    ],
+    "check": "\\frac{2.01594}{139.3451} = 0.014467"
+   },
+   {
+    "label": "Density at the start",
+    "symbol": "\\rho_0",
+    "formula": "\\rho_0 = \\frac{p\\,W_0}{R\\,T_0}",
+    "value_tex": "0.589633",
+    "unit_tex": "\\mathrm{kg/m^3}",
+    "why": "A check of both programs: the reference prints \\(0.58967\\) \\(\\mathrm{kg/m^3}\\) and OpenFOAM must start from this value (pre-flight).",
+    "params": [
+     {
+      "tex": "p",
+      "meaning": "pressure (given)",
+      "value": 202650.0,
+      "unit": "Pa"
+     },
+     {
+      "tex": "W_0",
+      "meaning": "mean molar mass",
+      "value": 0.024191861805555555,
+      "unit": "kg/mol"
+     },
+     {
+      "tex": "R",
+      "meaning": "gas constant",
+      "value": 8.31446261815324,
+      "unit": "J/(mol K)"
+     },
+     {
+      "tex": "T_0",
+      "meaning": "start temperature (given)",
+      "value": 1000.0,
+      "unit": "K"
+     }
+    ],
+    "check": "\\frac{202650\\times0.0241919}{8.314463\\times1000} = 0.589633"
+   },
+   {
+    "label": "Equivalence ratio",
+    "symbol": "\\phi",
+    "formula": "\\phi = \\frac{n_{\\mathrm{H_2}}/n_{\\mathrm{O_2}}}{2}",
+    "value_tex": "0.5",
+    "unit_tex": "",
+    "why": "Burning takes two molecules of hydrogen per molecule of oxygen. This mixture has half of that: it is lean, so the hydrogen is used up and half of the oxygen is left over.",
+    "params": [
+     {
+      "tex": "n_{\\mathrm{H_2}}/n_{\\mathrm{O_2}}",
+      "meaning": "moles of hydrogen per mole of oxygen (given)",
+      "value": 1.0,
+      "unit": ""
+     }
+    ],
+    "check": "\\frac{1}{2} = 0.5"
+   },
+   {
+    "label": "Heat released if all hydrogen burns to water",
+    "symbol": "q",
+    "formula": "q = h_0 - \\sum_i \\sigma_i^{\\mathrm{burnt}}\\,h_i(T_0)",
+    "value_tex": "1.7789",
+    "unit_tex": "\\mathrm{MJ/kg}",
+    "why": "The scale of the energy in this problem. Every energy difference in this report is given as a fraction of it.",
+    "params": [
+     {
+      "tex": "h_0",
+      "meaning": "enthalpy of the start mixture per kg",
+      "value": 890695.6866833745,
+      "unit": "J/kg"
+     },
+     {
+      "tex": "\\sigma_i^{\\mathrm{burnt}}",
+      "meaning": "moles per kg after complete burning: water, the left-over oxygen, nitrogen",
+      "value": 0,
+      "unit": ""
+     }
+    ],
+    "check": "0.89070 - (-0.88820) = 1.77890\\ \\mathrm{MJ/kg}"
+   },
+   {
+    "label": "Upper limit of the temperature: complete burning",
+    "symbol": "T_{\\mathrm{cc}}",
+    "formula": "\\sum_i \\sigma_i^{\\mathrm{burnt}}\\,h_i(T_{\\mathrm{cc}}) = h_0",
+    "value_tex": "2253.63",
+    "unit_tex": "\\mathrm{K}",
+    "why": "If every hydrogen molecule ended as water and nothing else formed, all of \\(q\\) would heat the gas. Real hot gas keeps some OH, O, H and unburnt hydrogen, which hold energy back, so the true final temperature is lower.",
+    "params": [
+     {
+      "tex": "h_0",
+      "meaning": "enthalpy of the start mixture per kg",
+      "value": 890695.6866833745,
+      "unit": "J/kg"
+     }
+    ],
+    "check": "\\sum_i \\sigma_i^{\\mathrm{burnt}} h_i(2253.63) - h_0 = 2 \\times 10^{-10}\\ \\mathrm{J/kg}"
+   },
+   {
+    "label": "Where the temperature must end: chemical equilibrium",
+    "symbol": "T_{\\mathrm{eq}}",
+    "formula": "\\min G \\text{ at fixed } h_0,\\ p \\text{ and atoms}",
+    "value_tex": "2223.28",
+    "unit_tex": "\\mathrm{K}",
+    "why": "The history must approach this value from below and may not pass it. At the end of the millisecond the independent solution is \\(2.83\\) K short of it: the slow reactions that join atoms back into molecules are not finished. After one second the rate equations give \\(2223.2833\\) K.",
+    "params": [
+     {
+      "tex": "p^{\\circ}",
+      "meaning": "pressure of the tabulated data",
+      "value": 101325.0,
+      "unit": "Pa"
+     }
+    ],
+    "check": "\\max_j \\frac{|q_{f,j} - q_{r,j}|}{q_{f,j}} = 7 \\times 10^{-15}\\ \\text{(all balanced)}"
+   },
+   {
+    "label": "Growth rate of the temperature rise before ignition",
+    "symbol": "\\lambda",
+    "formula": "T - T_0 \\propto e^{\\lambda t}",
+    "value_tex": "1.31 \\times 10^{5}",
+    "unit_tex": "\\mathrm{s^{-1}}",
+    "why": "In the slow start the reactive species multiply (each H atom that reacts makes more than one new carrier), so everything grows like an exponential. \\(1/\\lambda = 7.6\\,\\mathrm{\\mu s}\\) is the time scale that a time step must resolve. Read from the independent solution between 1 K and 100 K above the start.",
+    "params": [
+     {
+      "tex": "t_{+1}",
+      "meaning": "time at which the gas is 1 K warmer",
+      "value": 0.00017733605593978424,
+      "unit": "s (about)"
+     }
+    ],
+    "check": "\\lambda = \\frac{\\ln 100}{t_{+100\\,\\mathrm{K}} - t_{+1\\,\\mathrm{K}}} = 1.31 \\times 10^{5}\\ \\mathrm{s^{-1}}"
+   },
+   {
+    "label": "Ignition time of the independent solution",
+    "symbol": "t_{\\mathrm{ign}}",
+    "formula": "T(t_{\\mathrm{ign}}) = T_{\\mathrm{ign}}",
+    "value_tex": "2.17722 \\times 10^{-4}",
+    "unit_tex": "\\mathrm{s}",
+    "why": "A second answer next to the reference (\\(2.1777 \\times 10^{-4}\\) s). The two differ by \\(-0.022\\,\\%\\). The independent solution changes by less than \\(8 \\times 10^{-11}\\) (relative) between two integrators and three tolerances.",
+    "params": [
+     {
+      "tex": "T_{\\mathrm{ign}}",
+      "meaning": "temperature that defines ignition (given)",
+      "value": 1200.0,
+      "unit": "K"
+     }
+    ],
+    "check": "T(2.17722 \\times 10^{-4}\\ \\mathrm{s}) = 1200\\ \\mathrm{K}"
+   },
+   {
+    "label": "Temperature of the independent solution at the end",
+    "symbol": "T(t_{\\mathrm{end}})",
+    "formula": "T(t_{\\mathrm{end}})",
+    "value_tex": "2220.450",
+    "unit_tex": "\\mathrm{K}",
+    "why": "The reference prints \\(2220.5\\) K (five digits). Between the two limits above, as it must be: \\(2220.4 < 2223.3 < 2253.6\\) K.",
+    "params": [
+     {
+      "tex": "t_{\\mathrm{end}}",
+      "meaning": "duration of interest (given)",
+      "value": 0.001,
+      "unit": "s"
+     }
+    ],
+    "check": "2220.45 < T_{\\mathrm{eq}} = 2223.28 < T_{\\mathrm{cc}} = 2253.63"
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "SymPy: with the energy equation above, the enthalpy of the parcel does not change in time",
+    "ok": true
+   },
+   {
+    "name": "SymPy: in the data's polynomials the enthalpy is the integral of the heat capacity, and the entropy of heat capacity over temperature",
+    "ok": true
+   },
+   {
+    "name": "Each of the 27 reactions, as read from the file, has the same atoms on both sides",
+    "ok": true
+   },
+   {
+    "name": "The independent solution keeps the atoms of every element to \\(4 \\times 10^{-15}\\) and the enthalpy to \\(3 \\times 10^{-8}\\) of the heat released",
+    "ok": false
+   },
+   {
+    "name": "Two integrators (Radau, LSODA) and three tolerances give the same ignition time to \\(8 \\times 10^{-11}\\) (relative) and the same final temperature to \\(6 \\times 10^{-10}\\) K",
+    "ok": true
+   },
+   {
+    "name": "The rate equations, run for one second, arrive at the equilibrium found by minimising the Gibbs energy (difference \\(6 \\times 10^{-12}\\) K): rates and thermodynamic data are consistent",
+    "ok": true
+   },
+   {
+    "name": "The final temperature lies between the history's end and the limit of complete burning",
+    "ok": true
+   },
+   {
+    "name": "The start density agrees with the one the reference prints (\\(0.58967\\) \\(\\mathrm{kg/m^3}\\), five digits)",
+    "ok": true
+   },
+   {
+    "name": "The data's two temperature ranges join at 1000 K, the start temperature: the largest jump of a heat capacity there is \\(7.5 \\times 10^{-5}\\,\\%\\) (N2) and of an enthalpy \\(0.0032\\) K times the gas constant per mole (H2O2); small enough not to matter here",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "<code>chemFoam</code>, OpenFOAM's solver for one well-mixed parcel, starting from its tutorial <code>combustion/chemFoam/h2</code>, which is this very problem",
+   "settings": [
+    "system/controlDict/application"
+   ],
+   "why": "The problem has no flow and no space: only time. <code>chemFoam</code> is built for exactly that. It makes a mesh of one cell, takes the start mixture from one file, and advances the chemistry and the energy in time at constant pressure or constant volume. It uses the same chemistry library that OpenFOAM's reacting-flow solvers call in every cell, so what is learnt here about accuracy and cost carries over to them. gpucfd does not apply: it solves flows of constant density without chemistry (<code>cfdlib.gpu.check_fit</code> has no entry for reactions).",
+   "affects": "How the answer is reached. With the same scheme and a small enough time step any correct solver gives the same history; the independent solution in Theory is a second one.",
+   "alternatives": "A reacting-flow solver (<code>reactingFoam</code>) on a mesh of one cell: the same chemistry library with a flow solver around it that has nothing to do. A general chemistry program such as Cantera: not installed on this machine. The independent integrator written for the Theory section (<code>mech.py</code>): used as a cross-check, not as the answer, because the task is to learn what OpenFOAM does."
+  },
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "A mixture of ideal gases whose heat capacities change with temperature (<code>janaf</code>: the polynomials of <code>therm.dat</code>), reacting (<code>reactingMixture</code>), with the energy carried as enthalpy",
+   "settings": [
+    "constant/thermophysicalProperties/thermoType/*"
+   ],
+   "why": "This is the gas of the problem statement. <code>hePsiThermo</code> with <code>perfectGas</code> is the ideal-gas law. <code>sensibleEnthalpy</code> means the solver stores the enthalpy without the chemical part and adds the heat of the reactions as a source; the sum, which must stay constant, is rebuilt in the analysis from temperature and composition and checked at every step. <code>transport sutherland</code> names a viscosity law that a parcel without flow never uses; the solver insists on one.",
+   "affects": "Defines the equations solved: the same as in Theory.",
+   "alternatives": "Constant heat capacities (<code>hConst</code>): not the problem given, and the final temperature would be wrong by hundreds of kelvin."
+  },
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "The reaction scheme and its thermodynamic data are read where OpenFOAM ships them, unchanged, through OpenFOAM's reader for CHEMKIN files",
+   "settings": [
+    "constant/thermophysicalProperties/CHEMKINFile",
+    "constant/thermophysicalProperties/CHEMKINThermoFile",
+    "constant/thermophysicalProperties/CHEMKINTransportFile",
+    "constant/chemistryProperties/chemistry"
+   ],
+   "why": "The problem says to use the two files as they are. The case points at them in the tutorial folder (<code>$FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/</code>), so nothing is copied or edited. The pre-flight compares OpenFOAM's reading of the files, reaction by reaction, with the independent reading of Theory. One thing is not in the files and each program brings its own: the constants. OpenFOAM converts activation energies with \\(1.987316\\,\\mathrm{cal/(mol\\,K)}\\), where its own gas constant in joules gives \\(1.987216\\); and it takes \\(1\\,\\mathrm{bar}\\) as the pressure of the tabulated data, where CHEMKIN takes \\(1\\,\\mathrm{atm}\\). Theory measures what each is worth. The third file only sets the unused viscosity to zero.",
+   "affects": "The reaction rates and the heat capacities: everything. The two constants move the ignition time by about \\(0.006\\,\\%\\) and the final temperature by about \\(0.09\\,\\mathrm{K}\\) (Theory), far inside the required accuracy.",
+   "alternatives": "Converting the files once to OpenFOAM's own format (<code>chemkinToFoam</code>) and editing the constants there to match CHEMKIN: that would change the files, against the problem statement, and would hide a difference that every OpenFOAM user of CHEMKIN files has."
+  },
+  {
+   "area": "Start state and constraints",
+   "kind": "physics",
+   "choice": "Start mixture by mole ratio \\(1 : 1 : 3.76\\) at \\(T_0\\) and \\(p\\); the pressure is held constant; no heat exchange",
+   "settings": [
+    "constant/initialConditions/*",
+    "0/*"
+   ],
+   "why": "As given. <code>constantProperty pressure</code> makes the solver keep \\(p\\) and let the density follow the temperature and the composition (the parcel expands). <code>chemFoam</code> has no term for heat exchange, so the parcel is adiabatic by construction. The files in <code>0/</code> are written by the solver itself from these entries at start-up; the case template has none.",
+   "affects": "Sets the problem. The pre-flight checks that the solver's first state is the start state of Theory.",
+   "alternatives": "Constant volume (<code>constantProperty volume</code>): a different problem, with a higher final temperature and a rising pressure."
+  },
+  {
+   "area": "Time",
+   "kind": "physics",
+   "choice": "From \\(t = 0\\) to \\(t_{\\mathrm{end}}\\); the run ends there",
+   "settings": [
+    "system/controlDict/startTime",
+    "system/controlDict/endTime"
+   ],
+   "why": "The duration of interest is given. There is no steady state to wait for inside it (the gas is still \\(2.8\\,\\mathrm{K}\\) below its final temperature at the end), so the stop is the given time. What is checked at every step instead is physical: the atoms of each element and the enthalpy of the parcel must not change.",
+   "affects": "The length of the history.",
+   "alternatives": "Running on to chemical equilibrium (about a second): not asked; Theory gives that end state directly."
+  },
+  {
+   "area": "Time step",
+   "kind": "accuracy",
+   "choice": "Fixed time steps, a family of six with ratio 2 from \\(0.4\\) to \\(0.0125\\,\\mathrm{\\mu s}\\) (2500 to 80000 steps); the answers are those of the smallest step, with the value extrapolated to a step of zero next to them",
+   "settings": [
+    "system/controlDict/deltaT",
+    "system/controlDict/adjustTimeStep",
+    "system/controlDict/maxDeltaT",
+    "system/fvSchemes/ddtSchemes/default"
+   ],
+   "why": "The time step matters here in a way that is easy to miss. Inside one step <code>chemFoam</code> hands the gas to the chemistry solver, which integrates the reactions accurately but with the density frozen: the gas does not expand while it reacts. Only after the step are the temperature and the density brought up to date from the enthalpy. So during a step the molecules are a little too close together, the reactions a little too fast, and the error is in proportion to the step (first order; <code>Euler</code> is the matching first-order scheme for the mass fractions, and a single cell has nothing else to discretise). A family with ratio 2 shows that order and allows the extrapolation. The tutorial instead lets the step follow the chemistry solver's own sub-step (<code>adjustTimeStep on</code>); that way is studied as a variant, with the tutorial's <code>maxDeltaT 1</code>, which never limits anything.",
+   "affects": "The ignition time and every temperature: with \\(0.4\\,\\mathrm{\\mu s}\\) steps the ignition is \\(0.018\\,\\%\\) early, and the error halves with the step (pre-flight). The time scale to resolve is \\(1/\\lambda = 7.6\\,\\mathrm{\\mu s}\\) (Theory).",
+   "alternatives": "The tutorial's adjustable step: fewer steps, but the step then depends on the tolerance of the chemistry solver, so the two error sources cannot be told apart. A second-order treatment of the expansion: <code>chemFoam</code> has none."
+  },
+  {
+   "area": "Chemistry solver",
+   "kind": "accuracy",
+   "choice": "The reactions inside a step are integrated by <code>seulex</code> (an implicit method for stiff equations with its own sub-steps and error control), with a relative tolerance of \\(10^{-8}\\) and an absolute tolerance of \\(10^{-16}\\,\\mathrm{kmol/m^3}\\) for the family; the method and both tolerances are then varied",
+   "settings": [
+    "constant/chemistryProperties/chemistryType/solver",
+    "constant/chemistryProperties/odeCoeffs/*",
+    "constant/chemistryProperties/initialChemicalTimeStep",
+    "constant/chemistryProperties/EulerImplicitCoeffs/*"
+   ],
+   "why": "Reactions between radicals are thousands of times faster than the overall burning (a stiff problem): an explicit method would need tiny sub-steps, an implicit one does not. <code>seulex</code> is the tutorial's choice. Its tolerances are set tight for the family so that the family measures the time step alone: the tutorial's relative tolerance is \\(0.1\\). The absolute tolerance matters in the slow start, when the reactive species are still at concentrations of \\(10^{-12}\\,\\mathrm{kmol/m^3}\\) and less and the ignition time is being decided. The study then answers what looser settings cost in accuracy and save in time. <code>initialChemicalTimeStep</code> is only the first sub-step tried. The block <code>EulerImplicitCoeffs</code> is read only by the variant that uses that solver: one implicit Euler sub-step at a time, limited by a chemical time scale (<code>cTauChem 1</code>), without error control.",
+   "affects": "How accurately each step's chemistry is integrated, and most of the cost: around ignition one step at the tight tolerance costs many times a step of the slow start (pre-flight; the numbers are in the performance appendix).",
+   "alternatives": "Studied as variants at the same time step: <code>Rosenbrock34</code> and <code>rodas34</code> (implicit, fixed order), <code>RKF45</code> (explicit), <code>EulerImplicit</code>; tolerances from \\(10^{-1}\\) to \\(10^{-8}\\)."
+  },
+  {
+   "area": "Chemistry solver",
+   "kind": "solver",
+   "choice": "The tutorial's linear solver for the mass fractions and its empty lists of spatial schemes are kept",
+   "settings": [
+    "system/fvSolution/solvers/Yi/*",
+    "system/fvSchemes/gradSchemes",
+    "system/fvSchemes/divSchemes",
+    "system/fvSchemes/laplacianSchemes"
+   ],
+   "why": "With one cell the equation for each mass fraction is a single number: new value = old value + reaction rate times time step. Any linear solver returns it exactly in one pass, and there are no neighbours, so no gradient, flux or diffusion scheme is ever used.",
+   "affects": "Nothing: the solve is exact.",
+   "alternatives": "None needed."
+  },
+  {
+   "area": "Output",
+   "kind": "output",
+   "choice": "Temperature, pressure, density, enthalpy and all ten mass fractions are recorded after every time step with 14 digits; fields are written to disk only at the end",
+   "settings": [
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/writePrecision",
+    "system/controlDict/timePrecision",
+    "system/controlDict/DebugSwitches/*",
+    "system/controlDict/functions/state/*"
+   ],
+   "why": "The requested outputs are histories, and the conservation check is wanted at every step. <code>chemFoam</code> itself records only time, temperature and pressure (<code>chemFoam.out</code>), by default with 6 digits. A function object (<code>volFieldValue</code>: the average over the one cell, which is the cell's value) adds the rest as one table row per step, and <code>writePrecision 14</code> gives both files enough digits to see changes of \\(10^{-12}\\). The table prints its time with fewer digits, so times are taken as step number times time step (fixed steps) or from <code>chemFoam.out</code> (adjustable steps). <code>SolverPerformance 0</code> keeps ten lines per step out of the log, as in the tutorial.",
+   "affects": "What can be analysed, and the run time: writing the table costs a part of every step (measured in the performance appendix by a run without it).",
+   "alternatives": "Writing every field at every step (80000 folders of 15 files for the finest run). Reading the species from the two written times only: no history."
+  },
+  {
+   "area": "Reading the outputs",
+   "kind": "output",
+   "choice": "Ignition time: the first step at which \\(T \\ge T_{\\mathrm{ign}}\\) and a straight line between it and the step before. Final temperature: the value after the last step. Atoms: moles of each element per kilogram, from the mass fractions and OpenFOAM's molar masses. Energy: the enthalpy per kilogram, chemical part included, rebuilt from temperature and mass fractions with the data of <code>therm.dat</code> as read by <code>mech.py</code>",
+   "settings": [],
+   "why": "The ignition rule is the one the reference file applies to the reference's own printed history, so both sides are read alike. Its own error is measured by applying it to the independent solution sampled at the same steps: at most \\(0.0024\\,\\%\\) on the coarsest level and \\(2\\times10^{-8}\\) on the finest. The energy is rebuilt outside OpenFOAM on purpose: a balance computed by the solver's own bookkeeping would hold by construction and prove little.",
+   "affects": "The reported numbers, not the run.",
+   "alternatives": "The time of the fastest temperature rise as ignition time: another common definition, but not the reference's."
+  },
+  {
+   "area": "Reading the outputs",
+   "kind": "accuracy",
+   "choice": "The required accuracies are judged against the reference as given (the numbers printed by CHEMKIN II). The independent solution of Theory is used to explain differences and to estimate how well the reference fixes its own numbers; it does not replace the reference",
+   "settings": [],
+   "why": "The problem names its reference. The reference states no tolerances and prints five digits, so a second calculation with known tolerances is the only way to tell an error of OpenFOAM from an inaccuracy of the reference. It is run twice, with CHEMKIN's constants and with OpenFOAM's, so that the part of a difference that comes from the constants is known.",
+   "affects": "How the verdict is formed and how differences are explained.",
+   "alternatives": "Judging against the independent solution alone: it is this agent's own code and so not independent of this agent."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before the production runs: does OpenFOAM read the scheme as intended and start from the right state, do the output files hold what the analysis needs, and how large is the effect of the time step?",
+  "runs": [
+   {
+    "name": "Reading of the reaction scheme",
+    "setup": "OpenFOAM's converter on the two data files, compared with the independent reading",
+    "outcome": "identical"
+   },
+   {
+    "name": "2500 and 80000 steps, first 5 % of the time",
+    "setup": "125 and 4000 steps, main settings",
+    "outcome": "OK and OK: every check below"
+   },
+   {
+    "name": "2500, 5000, 10000 steps, in full",
+    "setup": "main settings, a few seconds each",
+    "outcome": "healthy; first order in the time step; their numbers sized the rules for the outcome"
+   }
+  ],
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "The temperature stays between the start and the limit of complete burning",
+    "status": "ok",
+    "value": "lowest \\(1000.0000\\,\\mathrm{K}\\), highest \\(1000.00\\,\\mathrm{K}\\)",
+    "meaning": "Nothing cools the parcel, and it cannot get hotter than complete burning would make it (Theory)."
+   },
+   {
+    "name": "The pressure stays as given",
+    "status": "ok",
+    "value": "largest relative change \\(0\\)",
+    "meaning": "The problem holds the pressure constant."
+   },
+   {
+    "name": "No negative mass fraction, and the mass fractions add up to one",
+    "status": "ok",
+    "value": "lowest mass fraction \\(0\\), sum off by at most \\(8 \\times 10^{-15}\\)",
+    "meaning": "A chemistry solver that oversteps makes a species negative; mass fractions that do not add up mean lost or made mass."
+   },
+   {
+    "name": "One row per time step in both output files",
+    "status": "ok",
+    "value": "4000 rows for 4000 steps",
+    "meaning": "The history and the table of species are needed after every step."
+   },
+   {
+    "name": "The solver starts from the start state of Theory",
+    "status": "ok",
+    "value": "after the first step, density, sensible enthalpy and the three mass fractions differ from the start values by at most \\(1 \\times 10^{-11}\\) (relative)",
+    "meaning": "Checks the mole ratio, the molar masses and the gas constant that the solver uses. The density is compared with the value for OpenFOAM's own gas constant."
+   },
+   {
+    "name": "Radicals appear from the first step",
+    "status": "ok",
+    "value": "mass fractions after one step: H \\(4.6 \\times 10^{-14}\\), HO2 \\(1.5 \\times 10^{-12}\\), OH \\(1.1 \\times 10^{-15}\\)",
+    "meaning": "The start mixture holds no reactive species; the first reactions must make some, or nothing would ever ignite. An output column that stays at zero would be a silent failure."
+   },
+   {
+    "name": "Atoms and energy kept during the short run",
+    "status": "ok",
+    "value": "atoms to \\(3 \\times 10^{-14}\\), enthalpy to \\(3 \\times 10^{-8}\\) of the heat released",
+    "meaning": "The physical check of every step (see Simulation)."
+   },
+   {
+    "name": "OpenFOAM reads the reaction scheme as the independent program does",
+    "status": "ok",
+    "value": "27 reactions; largest difference of a rate parameter \\(4 \\times 10^{-10}\\), of a molar mass \\(2 \\times 10^{-16}\\)",
+    "meaning": "The scheme was converted with OpenFOAM's own tool and compared reaction by reaction: same species, same kinds of reaction, same numbers."
+   },
+   {
+    "name": "Every setting belongs to a documented decision",
+    "status": "ok",
+    "value": "all covered",
+    "meaning": "Checked on the case of the smallest step."
+   },
+   {
+    "name": "First-order behaviour on the three largest steps, run in full",
+    "status": "ok",
+    "value": "ignition time \\(0.0178\\,\\%\\), \\(0.0088\\,\\%\\), \\(0.0040\\,\\%\\) before the independent solution on 2500, 5000, 10000 steps",
+    "meaning": "The difference halves with the step. This sized the rules for the outcome."
+   },
+   {
+    "name": "Run time projected from the short tests",
+    "status": "warn",
+    "value": "projected \\(0.05\\) s and \\(8.8\\) s for the largest and the smallest step; the full runs took \\(4.4\\) s and \\(11.0\\) s",
+    "meaning": "The first 5 % of the time holds none of the expensive part: the cost sits in the rise, which the short test never reaches. The three full runs of the pre-flight showed it, and the budget was sized from them."
+   }
+  ],
+  "conclusion": "The setup is right: same scheme, same start state, atoms and energy kept, one output row per step. The time step has a first-order effect that the three full runs measured, so the production family was kept at six levels. The run-time projection of the short tests was wrong for this kind of problem and was replaced by the times of the full runs."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Gas parcel",
+    "real": "A well-mixed parcel, the same everywhere",
+    "model": "One cell (<code>chemFoam</code> builds it itself)"
+   },
+   {
+    "aspect": "Chemistry",
+    "real": "27 reactions between 9 species, rates from the given file",
+    "model": "The same file, read by OpenFOAM's CHEMKIN reader with OpenFOAM's constants"
+   },
+   {
+    "aspect": "Pressure",
+    "real": "Held constant; the parcel expands",
+    "model": "Pressure fixed; the density is updated from temperature and composition after each time step, not within it"
+   },
+   {
+    "aspect": "Energy",
+    "real": "No heat exchange: the enthalpy stays constant",
+    "model": "The enthalpy is stored without its chemical part and the heat of reaction is added each step"
+   },
+   {
+    "aspect": "Time",
+    "real": "\\(0 \\le t \\le t_{\\mathrm{end}}\\), continuous",
+    "model": "2500 to 80000 equal steps; inside each, the chemistry solver takes its own smaller steps to a set tolerance"
+   }
+  ],
+  "meshes": {
+   "intro": "This problem has no mesh: its only discretisation is the time step. The family halves the step five times. All runs use the same chemistry solver (seulex) with tight tolerances (relative \\(1 \\times 10^{-8}\\)), so that the family shows the effect of the step alone.",
+   "head": [
+    "Steps",
+    "Time step (µs)",
+    "Steps during the rise (\\(1010\\) to \\(2000\\,\\mathrm{K}\\))",
+    "Solver time (s)",
+    "Per step (µs)",
+    "Of which during the rise (s)"
+   ],
+   "rows": [
+    [
+     2500,
+     "\\(0.4000\\)",
+     126,
+     "\\(4.42\\)",
+     "\\(1617\\)",
+     "\\(2.37\\)"
+    ],
+    [
+     5000,
+     "\\(0.2000\\)",
+     252,
+     "\\(4.54\\)",
+     "\\(826\\)",
+     "\\(2.37\\)"
+    ],
+    [
+     10000,
+     "\\(0.1000\\)",
+     503,
+     "\\(4.86\\)",
+     "\\(443\\)",
+     "\\(2.27\\)"
+    ],
+    [
+     20000,
+     "\\(0.0500\\)",
+     1007,
+     "\\(5.81\\)",
+     "\\(274\\)",
+     "\\(2.48\\)"
+    ],
+    [
+     40000,
+     "\\(0.0250\\)",
+     2016,
+     "\\(7.81\\)",
+     "\\(186\\)",
+     "\\(2.61\\)"
+    ],
+    [
+     80000,
+     "\\(0.0125\\)",
+     4032,
+     "\\(11.01\\)",
+     "\\(132\\)",
+     "\\(2.66\\)"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Steps",
+    "Ignition time (µs)",
+    "Temperature at the end (K)",
+    "Fastest rise (million K/s)",
+    "Time of the fastest rise (µs)",
+    "Reaches \\(2000\\,\\mathrm{K}\\) at (µs)"
+   ],
+   "rows": [
+    [
+     2500,
+     "\\(217.6711\\)",
+     "\\(2220.5387\\)",
+     "\\(91.7\\)",
+     "\\(220.60\\)",
+     "\\(249.731\\)"
+    ],
+    [
+     5000,
+     "\\(217.6908\\)",
+     "\\(2220.5373\\)",
+     "\\(91.4\\)",
+     "\\(220.50\\)",
+     "\\(249.826\\)"
+    ],
+    [
+     10000,
+     "\\(217.7011\\)",
+     "\\(2220.5367\\)",
+     "\\(91.1\\)",
+     "\\(220.45\\)",
+     "\\(249.874\\)"
+    ],
+    [
+     20000,
+     "\\(217.7054\\)",
+     "\\(2220.5363\\)",
+     "\\(90.9\\)",
+     "\\(220.47\\)",
+     "\\(249.898\\)"
+    ],
+    [
+     40000,
+     "\\(217.7077\\)",
+     "\\(2220.5362\\)",
+     "\\(90.8\\)",
+     "\\(220.46\\)",
+     "\\(249.909\\)"
+    ],
+    [
+     80000,
+     "\\(217.7088\\)",
+     "\\(2220.5361\\)",
+     "\\(90.7\\)",
+     "\\(220.48\\)",
+     "\\(249.915\\)"
+    ],
+    [
+     "extrapolated to a step of zero",
+     "\\(217.7099\\)",
+     "\\(2220.5360\\)",
+     "–",
+     "–",
+     "–"
+    ],
+    [
+     "independent solution, OpenFOAM's constants",
+     "\\(217.7098\\)",
+     "\\(2220.5360\\)",
+     "–",
+     "–",
+     "\\(249.921\\)"
+    ],
+    [
+     "independent solution, CHEMKIN's constants",
+     "\\(217.7222\\)",
+     "\\(2220.4498\\)",
+     "\\(90.7\\)",
+     "\\(220.49\\)",
+     "\\(249.935\\)"
+    ],
+    [
+     "reference (CHEMKIN II (SENKIN))",
+     "\\(217.77\\)",
+     "\\(2220.5\\)",
+     "–",
+     "–",
+     "\\(249.985\\)"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Steps",
+    "Log checks",
+    "Lowest and highest temperature (K)",
+    "Change of the pressure",
+    "Atoms: largest change",
+    "Enthalpy: largest change",
+    "Mass fractions: sum minus one",
+    "Lowest mass fraction"
+   ],
+   "rows": [
+    [
+     2500,
+     "OK",
+     "\\(1000.000\\) to \\(2220.54\\)",
+     "\\(0\\)",
+     "\\(3 \\times 10^{-13}\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(7 \\times 10^{-14}\\)",
+     "\\(0\\)"
+    ],
+    [
+     5000,
+     "OK",
+     "\\(1000.000\\) to \\(2220.54\\)",
+     "\\(0\\)",
+     "\\(7 \\times 10^{-13}\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(1 \\times 10^{-13}\\)",
+     "\\(0\\)"
+    ],
+    [
+     10000,
+     "OK",
+     "\\(1000.000\\) to \\(2220.54\\)",
+     "\\(0\\)",
+     "\\(3 \\times 10^{-13}\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(6 \\times 10^{-14}\\)",
+     "\\(0\\)"
+    ],
+    [
+     20000,
+     "OK",
+     "\\(1000.000\\) to \\(2220.54\\)",
+     "\\(0\\)",
+     "\\(4 \\times 10^{-13}\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(1 \\times 10^{-13}\\)",
+     "\\(0\\)"
+    ],
+    [
+     40000,
+     "OK",
+     "\\(1000.000\\) to \\(2220.54\\)",
+     "\\(0\\)",
+     "\\(7 \\times 10^{-13}\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(1 \\times 10^{-13}\\)",
+     "\\(0\\)"
+    ],
+    [
+     80000,
+     "OK",
+     "\\(1000.000\\) to \\(2220.54\\)",
+     "\\(0\\)",
+     "\\(9 \\times 10^{-13}\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(1 \\times 10^{-13}\\)",
+     "\\(0\\)"
+    ]
+   ],
+   "notes": [
+    "A parcel has no residuals to watch. The evidence that each step is right is physical: the atoms of each element and the enthalpy of the parcel must not change, and they are checked after every step (Figure 3). The enthalpy is rebuilt outside OpenFOAM from the printed temperature and composition, in units of the heat released by complete burning.",
+    "The largest change of the enthalpy, \\(3 \\times 10^{-8}\\), appears in the first steps and nowhere else. It is the accuracy to which OpenFOAM finds the temperature from the enthalpy (its default tolerance is one ten-thousandth of a kelvin), not a loss of energy.",
+    "The run stops at the given time. The gas is then still \\(2.86\\) K below its final (equilibrium) temperature; reaching it takes about a second and was not asked.",
+    "A smaller step still would cost little and gain nothing that matters: the smallest step is already \\(0.0005\\,\\%\\) from its own limit, while the reference fixes the answer only to about \\(0.02\\,\\%\\)."
+   ]
+  },
+  "tables": [
+   {
+    "title": "Species in moles per kilogram of gas (80000 steps)",
+    "head": [
+     "Species",
+     "Start",
+     "Highest value",
+     "Reached at (µs)",
+     "At the end",
+     "Independent solution, at the end",
+     "At equilibrium (never reached in 1 ms)",
+     "Largest difference from the independent solution (of the highest value)"
+    ],
+    "rows": [
+     [
+      "\\(\\mathrm{H_2}\\)",
+      "\\(7.176\\)",
+      "\\(7.176\\)",
+      "start",
+      "\\(0.02444\\)",
+      "\\(0.02444\\)",
+      "\\(0.02127\\)",
+      "\\(0.030\\,\\%\\)"
+     ],
+     [
+      "\\(\\mathrm{O_2}\\)",
+      "\\(7.176\\)",
+      "\\(7.176\\)",
+      "start",
+      "\\(3.534\\)",
+      "\\(3.534\\)",
+      "\\(3.538\\)",
+      "\\(0.017\\,\\%\\)"
+     ],
+     [
+      "\\(\\mathrm{H_2O}\\)",
+      "\\(0\\)",
+      "\\(7.044\\)",
+      "\\(1000.0\\)",
+      "\\(7.044\\)",
+      "\\(7.044\\)",
+      "\\(7.055\\)",
+      "\\(0.027\\,\\%\\)"
+     ],
+     [
+      "\\(\\mathrm{OH}\\)",
+      "\\(0\\)",
+      "\\(0.6199\\)",
+      "\\(236.2\\)",
+      "\\(0.2103\\)",
+      "\\(0.2103\\)",
+      "\\(0.1968\\)",
+      "\\(0.035\\,\\%\\)"
+     ],
+     [
+      "\\(\\mathrm{H}\\)",
+      "\\(0\\)",
+      "\\(1.655\\)",
+      "\\(221.2\\)",
+      "\\(0.004964\\)",
+      "\\(0.004964\\)",
+      "\\(0.004024\\)",
+      "\\(0.038\\,\\%\\)"
+     ],
+     [
+      "\\(\\mathrm{O}\\)",
+      "\\(0\\)",
+      "\\(0.8715\\)",
+      "\\(222.8\\)",
+      "\\(0.02898\\)",
+      "\\(0.02898\\)",
+      "\\(0.02522\\)",
+      "\\(0.048\\,\\%\\)"
+     ],
+     [
+      "\\(\\mathrm{HO_2}\\)",
+      "\\(0\\)",
+      "\\(0.00397\\)",
+      "\\(198.0\\)",
+      "\\(2.265 \\times 10^{-4}\\)",
+      "\\(2.265 \\times 10^{-4}\\)",
+      "\\(2.43 \\times 10^{-4}\\)",
+      "\\(0.008\\,\\%\\)"
+     ],
+     [
+      "\\(\\mathrm{H_2O_2}\\)",
+      "\\(0\\)",
+      "\\(2.266 \\times 10^{-4}\\)",
+      "\\(202.8\\)",
+      "\\(1.078 \\times 10^{-5}\\)",
+      "\\(1.078 \\times 10^{-5}\\)",
+      "\\(1.138 \\times 10^{-5}\\)",
+      "\\(0.030\\,\\%\\)"
+     ]
+    ],
+    "note": "The independent solution uses OpenFOAM's constants here. The largest differences occur within the rise, where a shift of a hundredth of a microsecond already changes a steep curve; they shrink with the time step like the ignition time does. The first six species are the ones asked for."
+   },
+   {
+    "title": "Tolerances of the chemistry solver at a fixed step (10000 steps, seulex)",
+    "head": [
+     "Relative tolerance",
+     "Absolute tolerance (kmol/m³)",
+     "Ignition time (µs)",
+     "From the tight run (relative)",
+     "From the reference",
+     "Temperature at the end (K)",
+     "Solver time (s)",
+     "Per step (µs)"
+    ],
+    "rows": [
+     [
+      "\\(0.1\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      "\\(217.7023\\)",
+      "\\(6 \\times 10^{-6}\\)",
+      "\\(-0.031\\,\\%\\)",
+      "\\(2220.5366\\)",
+      "\\(1.61\\)",
+      "\\(123\\)"
+     ],
+     [
+      "\\(0.1\\)",
+      "\\(1 \\times 10^{-16}\\)",
+      "\\(217.7023\\)",
+      "\\(6 \\times 10^{-6}\\)",
+      "\\(-0.031\\,\\%\\)",
+      "\\(2220.5366\\)",
+      "\\(1.51\\)",
+      "\\(109\\)"
+     ],
+     [
+      "\\(0.01\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      "\\(217.7023\\)",
+      "\\(6 \\times 10^{-6}\\)",
+      "\\(-0.031\\,\\%\\)",
+      "\\(2220.5366\\)",
+      "\\(1.40\\)",
+      "\\(101\\)"
+     ],
+     [
+      "\\(1 \\times 10^{-4}\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      "\\(217.7020\\)",
+      "\\(4 \\times 10^{-6}\\)",
+      "\\(-0.031\\,\\%\\)",
+      "\\(2220.5366\\)",
+      "\\(1.40\\)",
+      "\\(105\\)"
+     ],
+     [
+      "\\(1 \\times 10^{-6}\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      "\\(217.7013\\)",
+      "\\(1 \\times 10^{-6}\\)",
+      "\\(-0.032\\,\\%\\)",
+      "\\(2220.5367\\)",
+      "\\(1.51\\)",
+      "\\(115\\)"
+     ],
+     [
+      "\\(1 \\times 10^{-8}\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      "\\(217.7013\\)",
+      "\\(1 \\times 10^{-6}\\)",
+      "\\(-0.032\\,\\%\\)",
+      "\\(2220.5367\\)",
+      "\\(2.30\\)",
+      "\\(185\\)"
+     ],
+     [
+      "\\(1 \\times 10^{-8}\\)",
+      "\\(1 \\times 10^{-16}\\)",
+      "\\(217.7011\\)",
+      "the tight run",
+      "\\(-0.032\\,\\%\\)",
+      "\\(2220.5367\\)",
+      "\\(4.86\\)",
+      "\\(443\\)"
+     ]
+    ],
+    "note": "With the step fixed at \\(0.1\\,\\mathrm{\\mu s}\\) the tolerance hardly matters: so little happens within one step that even the loosest setting integrates it well. The tight absolute tolerance is what costs time: it makes the solver work hard during the rise."
+   },
+   {
+    "title": "Step set by the chemistry solver (the tutorial's way)",
+    "head": [
+     "Relative tolerance",
+     "Absolute tolerance (kmol/m³)",
+     "Steps taken",
+     "Smallest step (µs)",
+     "Largest step (µs)",
+     "Ignition time (µs)",
+     "From the reference",
+     "Temperature at the end: from the reference",
+     "Within both required accuracies",
+     "Solver time (s)"
+    ],
+    "rows": [
+     [
+      "\\(0.1\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      47,
+      "\\(0.1000\\)",
+      "\\(250.0\\)",
+      "\\(216.541\\)",
+      "\\(-0.564\\,\\%\\)",
+      "\\(-0.0159\\,\\%\\)",
+      "yes",
+      "\\(0.40\\)"
+     ],
+     [
+      "\\(0.01\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      68,
+      "\\(0.1000\\)",
+      "\\(156.3\\)",
+      "\\(217.100\\)",
+      "\\(-0.308\\,\\%\\)",
+      "\\(-0.0015\\,\\%\\)",
+      "yes",
+      "\\(0.40\\)"
+     ],
+     [
+      "\\(0.001\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      142,
+      "\\(0.1000\\)",
+      "\\(164.1\\)",
+      "\\(217.630\\)",
+      "\\(-0.064\\,\\%\\)",
+      "\\(+0.0023\\,\\%\\)",
+      "yes",
+      "\\(0.40\\)"
+     ],
+     [
+      "\\(1 \\times 10^{-4}\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      353,
+      "\\(0.0325\\)",
+      "\\(38.9\\)",
+      "\\(217.677\\)",
+      "\\(-0.042\\,\\%\\)",
+      "\\(+0.0019\\,\\%\\)",
+      "yes",
+      "\\(0.40\\)"
+     ],
+     [
+      "\\(1 \\times 10^{-6}\\)",
+      "\\(1 \\times 10^{-12}\\)",
+      2272,
+      "\\(0.0051\\)",
+      "\\(12.7\\)",
+      "\\(217.694\\)",
+      "\\(-0.035\\,\\%\\)",
+      "\\(+0.0017\\,\\%\\)",
+      "yes",
+      "\\(0.70\\)"
+     ],
+     [
+      "\\(1 \\times 10^{-8}\\)",
+      "\\(1 \\times 10^{-16}\\)",
+      56132,
+      "\\(0.0002\\)",
+      "\\(1.0\\)",
+      "\\(217.710\\)",
+      "\\(-0.028\\,\\%\\)",
+      "\\(+0.0016\\,\\%\\)",
+      "yes",
+      "\\(8.41\\)"
+     ]
+    ],
+    "note": "The first row is the tutorial as shipped. Here each time step is one sub-step of the chemistry solver, so the tolerance sets the step, and through the step the accuracy. A run time of 0.4 s is the smallest that the timer of the run script can show: these short runs spend it on start-up."
+   },
+   {
+    "title": "Other chemistry solvers at the same step and tolerances (10000 steps)",
+    "head": [
+     "Chemistry solver",
+     "Kind",
+     "Ignition time (µs)",
+     "From seulex (relative)",
+     "From the reference",
+     "Temperature at the end (K)",
+     "Solver time (s)",
+     "Per step (µs)"
+    ],
+    "rows": [
+     [
+      "seulex (main)",
+      "implicit, error control",
+      "\\(217.7011\\)",
+      "–",
+      "\\(-0.032\\,\\%\\)",
+      "\\(2220.5367\\)",
+      "\\(4.86\\)",
+      "\\(443\\)"
+     ],
+     [
+      "Rosenbrock34",
+      "implicit, error control",
+      "\\(217.7011\\)",
+      "\\(2 \\times 10^{-9}\\)",
+      "\\(-0.032\\,\\%\\)",
+      "\\(2220.5367\\)",
+      "\\(2.21\\)",
+      "\\(181\\)"
+     ],
+     [
+      "rodas34",
+      "implicit, error control",
+      "\\(217.7011\\)",
+      "\\(1 \\times 10^{-9}\\)",
+      "\\(-0.032\\,\\%\\)",
+      "\\(2220.5367\\)",
+      "\\(3.71\\)",
+      "\\(330\\)"
+     ],
+     [
+      "RKF45",
+      "explicit, error control",
+      "\\(217.7011\\)",
+      "\\(1 \\times 10^{-9}\\)",
+      "\\(-0.032\\,\\%\\)",
+      "\\(2220.5367\\)",
+      "\\(1.41\\)",
+      "\\(103\\)"
+     ],
+     [
+      "EulerImplicit",
+      "implicit, no error control",
+      "\\(216.9692\\)",
+      "\\(-0.003\\)",
+      "\\(-0.368\\,\\%\\)",
+      "\\(2220.5458\\)",
+      "\\(1.20\\)",
+      "\\(77\\)"
+     ]
+    ],
+    "note": "The three other solvers with error control reproduce seulex to nine digits. EulerImplicit takes sub-steps limited by a chemical time scale without checking their error; it ignites \\(0.34\\,\\%\\) early, still inside the required accuracy."
+   }
+  ]
+ },
+ "comparison": {
+  "kind": "Benchmark: OpenFOAM against the calculation of another program (CHEMKIN II (SENKIN)) with the same reaction scheme. An independent solution written for this report stands next to both, to tell an error of OpenFOAM from an inaccuracy of the reference.",
+  "definitions": [
+   {
+    "name": "Difference of the ignition time",
+    "latex": "\\frac{t_{\\mathrm{ign}}}{t_{\\mathrm{ign}}^{\\mathrm{ref}}} - 1",
+    "meaning": "Negative: ignition before the reference. Read from both histories by the same rule (first step at or above the ignition temperature, straight line to the step before)."
+   },
+   {
+    "name": "Difference of the final temperature",
+    "latex": "\\frac{T(t_{\\mathrm{end}})}{T^{\\mathrm{ref}}(t_{\\mathrm{end}})} - 1",
+    "meaning": "Positive: hotter than the reference."
+   },
+   {
+    "name": "Observed order",
+    "latex": "p = \\log_2\\frac{e(2\\,\\Delta t)}{e(\\Delta t)}",
+    "meaning": "How fast the difference \\(e\\) from the independent solution falls when the step is halved. 1: in proportion to the step."
+   },
+   {
+    "name": "Value at a step of zero",
+    "latex": "f_0 = f_3 + \\frac{f_3 - f_2}{2^{p} - 1}",
+    "meaning": "Richardson extrapolation from the three smallest steps (\\(f_3\\): the smallest), with the order observed on them."
+   }
+  ],
+  "head": [
+   "Steps",
+   "Time step (µs)",
+   "Ignition time: from the reference",
+   "Final temperature: from the reference",
+   "Ignition time: from the independent solution",
+   "Final temperature: from the independent solution (mK)",
+   "Order, ignition time",
+   "Order, final temperature"
+  ],
+  "rows": [
+   [
+    2500,
+    "\\(0.4000\\)",
+    "\\(-0.0454\\,\\%\\)",
+    "\\(+0.00174\\,\\%\\)",
+    "\\(-0.01779\\,\\%\\)",
+    "\\(+2.695\\)",
+    "–",
+    "–"
+   ],
+   [
+    5000,
+    "\\(0.2000\\)",
+    "\\(-0.0364\\,\\%\\)",
+    "\\(+0.00168\\,\\%\\)",
+    "\\(-0.00875\\,\\%\\)",
+    "\\(+1.342\\)",
+    "\\(1.023\\)",
+    "\\(1.006\\)"
+   ],
+   [
+    10000,
+    "\\(0.1000\\)",
+    "\\(-0.0317\\,\\%\\)",
+    "\\(+0.00165\\,\\%\\)",
+    "\\(-0.00402\\,\\%\\)",
+    "\\(+0.669\\)",
+    "\\(1.121\\)",
+    "\\(1.003\\)"
+   ],
+   [
+    20000,
+    "\\(0.0500\\)",
+    "\\(-0.0296\\,\\%\\)",
+    "\\(+0.00164\\,\\%\\)",
+    "\\(-0.00202\\,\\%\\)",
+    "\\(+0.334\\)",
+    "\\(0.994\\)",
+    "\\(1.002\\)"
+   ],
+   [
+    40000,
+    "\\(0.0250\\)",
+    "\\(-0.0286\\,\\%\\)",
+    "\\(+0.00163\\,\\%\\)",
+    "\\(-0.00100\\,\\%\\)",
+    "\\(+0.167\\)",
+    "\\(1.011\\)",
+    "\\(1.003\\)"
+   ],
+   [
+    80000,
+    "\\(0.0125\\)",
+    "\\(-0.0281\\,\\%\\)",
+    "\\(+0.00162\\,\\%\\)",
+    "\\(-0.00049\\,\\%\\)",
+    "\\(+0.083\\)",
+    "\\(1.030\\)",
+    "\\(1.004\\)"
+   ],
+   [
+    "step of zero (extrapolated)",
+    "\\(0\\)",
+    "\\(-0.0276\\,\\%\\)",
+    "\\(+0.00162\\,\\%\\)",
+    "\\(+0.00003\\,\\%\\)",
+    "\\(-0.000\\)",
+    "–",
+    "–"
+   ],
+   [
+    "independent solution, OpenFOAM's constants",
+    "–",
+    "\\(-0.0276\\,\\%\\)",
+    "\\(+0.00162\\,\\%\\)",
+    "–",
+    "–",
+    "–",
+    "–"
+   ],
+   [
+    "independent solution, CHEMKIN's constants",
+    "–",
+    "\\(-0.0220\\,\\%\\)",
+    "\\(-0.00226\\,\\%\\)",
+    "\\(+0.00567\\,\\%\\)",
+    "\\(-86.2\\)",
+    "–",
+    "–"
+   ]
+  ],
+  "findings": [
+   "<b>Against the reference</b>: every time step of the family is inside the required accuracy, by a factor of more than 30 on the ignition time and 60 on the final temperature. The difference barely changes with the step: it is not a time-step error of OpenFOAM.",
+   "<b>Against the independent solution with the same constants</b>: the difference halves with every halving of the step, down to \\(0.0005\\,\\%\\), and the extrapolation to a step of zero lands on it (\\(3 \\times 10^{-7}\\)). This is the evidence that OpenFOAM solves the equations of Theory.",
+   "<b>Where the \\(0.028\\,\\%\\) comes from</b>: \\(0.022\\,\\%\\) separates the reference from an independent solution with its own constants; \\(0.0057\\,\\%\\) comes from OpenFOAM's constants; \\(0.0005\\,\\%\\) is left from the time step. The first part cannot be traced further: the reference gives no tolerances, and a looser integration that reacts a little late would look exactly like this (the whole rise shifted by a constant \\(0.05\\,\\mathrm{\\mu s}\\), Figure 5).",
+   "<b>Final temperature</b>: OpenFOAM is \\(+0.036\\) K from the reference, which prints to \\(0.1\\,\\mathrm{K}\\). OpenFOAM's standard pressure alone explains \\(+0.086\\) K of the \\(+0.086\\) K between OpenFOAM and the independent solution with CHEMKIN's constants.",
+   "<b>The reading rule</b> adds almost nothing: applied to the independent solution sampled at the same steps, the straight-line rule moves the ignition time by \\(2 \\times 10^{-5}\\) at the largest step and \\(2 \\times 10^{-8}\\) at the smallest."
+  ],
+  "tables": [
+   {
+    "title": "Times at which the temperature passes a level (µs)",
+    "head": [
+     "Level (K)",
+     "Reference (CHEMKIN II (SENKIN))",
+     "OpenFOAM, 80000 steps",
+     "Independent, OpenFOAM's constants",
+     "Independent, CHEMKIN's constants",
+     "OpenFOAM minus reference",
+     "OpenFOAM minus independent (same constants)"
+    ],
+    "rows": [
+     [
+      "1100",
+      "\\(214.614\\)",
+      "\\(214.549\\)",
+      "\\(214.549\\)",
+      "\\(214.561\\)",
+      "\\(-0.065\\)",
+      "\\(-0.0005\\)"
+     ],
+     [
+      "1200",
+      "\\(217.769\\)",
+      "\\(217.709\\)",
+      "\\(217.710\\)",
+      "\\(217.722\\)",
+      "\\(-0.061\\)",
+      "\\(-0.0011\\)"
+     ],
+     [
+      "1400",
+      "\\(220.530\\)",
+      "\\(220.461\\)",
+      "\\(220.463\\)",
+      "\\(220.476\\)",
+      "\\(-0.069\\)",
+      "\\(-0.0022\\)"
+     ],
+     [
+      "1600",
+      "\\(223.195\\)",
+      "\\(223.132\\)",
+      "\\(223.135\\)",
+      "\\(223.148\\)",
+      "\\(-0.064\\)",
+      "\\(-0.0035\\)"
+     ],
+     [
+      "1800",
+      "\\(229.335\\)",
+      "\\(229.264\\)",
+      "\\(229.268\\)",
+      "\\(229.281\\)",
+      "\\(-0.071\\)",
+      "\\(-0.0048\\)"
+     ],
+     [
+      "2000",
+      "\\(249.985\\)",
+      "\\(249.915\\)",
+      "\\(249.921\\)",
+      "\\(249.935\\)",
+      "\\(-0.070\\)",
+      "\\(-0.0059\\)"
+     ],
+     [
+      "2200",
+      "\\(522.270\\)",
+      "\\(522.136\\)",
+      "\\(522.143\\)",
+      "\\(522.440\\)",
+      "\\(-0.134\\)",
+      "\\(-0.0069\\)"
+     ]
+    ],
+    "note": "Up to \\(2000\\,\\mathrm{K}\\) the whole rise of OpenFOAM is the reference's rise moved earlier by \\(0.06\\) to \\(0.07\\,\\mathrm{\\mu s}\\), and OpenFOAM is within \\(0.006\\,\\mathrm{\\mu s}\\) of the independent solution with the same constants (earlier, and more so as the rise goes on: the time-step error adds up). At \\(2200\\,\\mathrm{K}\\) the curve is almost flat (the reference prints 0.1 K and its points are \\(5.4\\,\\mathrm{\\mu s}\\) apart there), so a crossing time is poorly fixed: that level is shown, not judged. The reference file also lists a fastest rise of \\(105\\) million K/s at \\(220.64\\,\\mathrm{\\mu s}\\), against \\(90.7\\) at \\(220.48\\,\\mathrm{\\mu s}\\) here. That number is a slope between two neighbouring printed points, which lie \\(0.02\\) to \\(0.04\\,\\mathrm{\\mu s}\\) apart while their times are printed to \\(0.01\\,\\mathrm{\\mu s}\\): it can be off by a quarter and more, so it is not compared."
+   },
+   {
+    "title": "What the constants of the two programs are worth (independent solution, one constant changed at a time)",
+    "head": [
+     "Constant",
+     "CHEMKIN (reference)",
+     "OpenFOAM",
+     "Effect on the ignition time",
+     "Effect on the final temperature (K)"
+    ],
+    "rows": [
+     [
+      "Gas constant used to convert activation energies, cal/(mol K)",
+      "\\(1.987204\\)",
+      "\\(1.987316\\)",
+      "\\(-0.00572\\,\\%\\)",
+      "\\(+0.0002\\)"
+     ],
+     [
+      "Pressure for which the thermodynamic data are tabulated, Pa",
+      "\\(101325\\)",
+      "\\(100000\\)",
+      "\\(+0.00025\\,\\%\\)",
+      "\\(+0.0860\\)"
+     ],
+     [
+      "Gas constant, J/(mol K)",
+      "\\(8.314463\\)",
+      "\\(8.314470\\)",
+      "\\(-0.00020\\,\\%\\)",
+      "\\(-0.0000\\)"
+     ],
+     [
+      "All three together",
+      "",
+      "",
+      "\\(-0.00567\\,\\%\\)",
+      "\\(+0.0862\\)"
+     ]
+    ],
+    "note": "OpenFOAM's reader converts activation energies with 1.987316, although its own gas constant in joules corresponds to \\(1.987216\\): this looks like a typing slip in the source. Its standard pressure of 1 bar shifts every equilibrium constant with a change of mole number by 1.3 %, which moves the final composition and so the final temperature. The column for CHEMKIN holds today's standard values; the program of the reference may have used slightly older ones."
+   }
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "setup",
+   "logged": "2026-11-15 13:06",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "OpenFOAM's tutorial for this very problem (<code>combustion/chemFoam/h2</code>), run as shipped, takes 47 time steps for the whole millisecond. Its temperature at the end is close to the reference, but 47 points cannot show when the mixture ignites.",
+   "diagnosis": "The tutorial sets <code>adjustTimeStep on</code>, and <code>chemFoam</code> then makes each time step equal to the last sub-step of its chemistry solver. With the tutorial's loose tolerance (0.1) those sub-steps are long. Reading the source showed a second thing: inside a time step the chemistry is integrated with the density frozen, and the gas expands only after the step. So the time step is an accuracy setting in its own right, first order, and the tutorial hides it behind the tolerance.",
+   "fix": "The answers come from fixed time steps, a family of six with ratio 2, with tight tolerances of the chemistry solver. The tutorial's way is kept as a variant study with six tolerances. The family showed first order (observed order 0.99 and 1.00) and the extrapolation to a step of zero lands on the independent solution.",
+   "lesson": "For a solver that splits chemistry from the rest, the outer time step sets an error that no tolerance of the chemistry solver removes. A tutorial that passes a visual comparison says nothing about that error.",
+   "guideline": "Reference note for reacting cases: \"The time step of <code>chemFoam</code>, and of every OpenFOAM solver that calls the chemistry library once per step, is an accuracy setting of first order. Study it with fixed steps and tight chemistry tolerances first; study the tolerances after.\" It belongs in a reference on combustion, not in the main workflow text."
+  },
+  {
+   "id": 2,
+   "stage": "setup",
+   "logged": "2026-11-15 13:06",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "At start-up <code>chemFoam</code> prints a warning that the sum of the mass fractions differs from one by 9. It looks like a wrong mixture.",
+   "diagnosis": "Harmless. <code>chemFoam</code> writes its own start files, with every one of the ten species set to 1 (<code>0/Ydefault</code>: <code>uniform 1</code>), so their sum is 10. The library warns and rescales; right after, the solver replaces the values by the mixture of <code>constant/initialConditions</code>.",
+   "fix": "No change to the case. The pre-flight has a check that does not trust the warning either way: after the first step, the density, the enthalpy and the three mass fractions must equal the start state of Theory (they do, to nine digits and better).",
+   "lesson": "A warning about the start mixture is settled by comparing the solver's first state with the hand-computed start state, not by reading the warning.",
+   "guideline": "A line for the list of known harmless messages (if <code>cfdlib.monitor</code> keeps one): \"chemFoam: Sum of mass fractions is different from one ... differs from 1 by (number of species minus one): comes from the start files the solver writes for itself\". And a pre-flight check for every reacting case: first state against the start state of Theory."
+  },
+  {
+   "id": 3,
+   "stage": "tooling",
+   "logged": "2026-11-15 13:07",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "<code>chemFoam</code> writes its history file <code>chemFoam.out</code> with 6 significant digits, and writes the species only at the written times. A study of how the answer changes with the time step needs more digits and the species at every step.",
+   "diagnosis": "The file follows <code>writePrecision</code>, whose default is 6. The differences between time steps here are in the sixth to ninth digit. Species are fields, and fields are written only at write times.",
+   "fix": "<code>writePrecision 14</code> in <code>controlDict</code>, and a function object (<code>volFieldValue</code>, average over the one cell) that adds a table row with temperature, density, enthalpy and all mass fractions after every step. The run script reads both files and checks that they agree. The table prints its time column with few digits, so times are taken as step number times time step.",
+   "lesson": "Before a convergence study, check how many digits the output files hold. Six digits hide an error of the size this case had to measure.",
+   "guideline": "A helper would have saved the reading code: <code>cfdlib.foam</code> could offer \"state of a one-cell case after every step\" (the function object and its reader), and the template notes could say: set <code>writePrecision</code> to 12 or more whenever a study compares runs that differ after the sixth digit."
+  },
+  {
+   "id": 4,
+   "stage": "theory",
+   "logged": "2026-11-15 13:12",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "OpenFOAM does not read the reaction scheme with the same constants as CHEMKIN, the program of the reference. Its reader converts activation energies with a gas constant of 1.987316 cal/(mol K), and its equilibrium constants use a standard pressure of 1 bar where the data files are for 1 atm.",
+   "diagnosis": "Both are in OpenFOAM's source: <code>RRcal = 1.987316</code> in the CHEMKIN reader (its own value in joules, 8.31451, corresponds to 1.987216, so this looks like a typing slip), and <code>Pstd</code> of \\(10^{5}\\) Pa in the global constants. Files written for CHEMKIN assume 1 atm.",
+   "fix": "Not changed: the problem says to use the files as they are, and every OpenFOAM user of CHEMKIN files has these constants. Their effect was measured with the independent program, one constant at a time: \\(-0.0057\\,\\%\\) on the ignition time (the activation energies) and \\(+0.086\\) K on the final temperature (the standard pressure). Both are reported and both are far inside the required accuracy.",
+   "lesson": "Two programs given the same reaction scheme still differ through constants that are not in the scheme. An independent solution that can switch constants turns \"a small unexplained difference\" into a number.",
+   "guideline": "For the dev agent: a short note in a combustion reference, \"OpenFOAM reads CHEMKIN files with 1.987316 cal/(mol K) and a standard pressure of 1 bar; expect differences of about 0.01 % in ignition times and 0.1 K in final temperatures against CHEMKIN or Cantera\". The slip in <code>chemkinLexer.L</code> could be reported to OpenFOAM. For hot, fast cases (a detonation) the effect of the standard pressure on the final state should be checked again."
+  },
+  {
+   "id": 5,
+   "stage": "theory",
+   "logged": "2026-11-15 13:12",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "There is no tool in the repository for chemistry without flow, and no general chemistry program (Cantera) on the machine. A second answer next to the reference, with known tolerances, had to be written from nothing.",
+   "diagnosis": "The repository's tools are for flows. This is the first case with reactions.",
+   "fix": "Wrote <code>mech.py</code> in the case folder (about 400 lines): a reader for the two CHEMKIN files, the rate laws of the CHEMKIN manual (third bodies, fall-off, backward rates from the thermodynamic data), a parcel at constant pressure solved with SciPy's stiff integrators, the equilibrium by minimising the Gibbs energy, and a switch between CHEMKIN's and OpenFOAM's constants. Checked: OpenFOAM's converter gives the same 27 reactions; two integrators and three tolerances agree to \\(8 \\times 10^{-11}\\); run long, the rates arrive at the equilibrium.",
+   "lesson": "An independent solution with known tolerances was worth its cost here: it showed that most of the difference from the reference is the reference's, which the reference alone could never show.",
+   "guideline": "Move <code>mech.py</code> into the tools (for example <code>cfdlib.chem</code>): the next steps of the detonation ladder need the same things (ignition delay at constant volume, the burnt state behind a detonation, the induction length). Installing Cantera on the machines would give a third, widely trusted answer; add it to <code>setup/README.md</code> if wanted."
+  },
+  {
+   "id": 6,
+   "stage": "theory",
+   "logged": "2026-11-15 13:16",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "The reference does not agree with the independent solution as closely as its five printed digits would allow: its whole temperature rise comes 0.05 microseconds later (\\(0.022\\,\\%\\) of the ignition time), at every temperature level from 1100 to 2000 K.",
+   "diagnosis": "Not found with certainty. The independent solution does not move when its tolerances are tightened or its integrator changed, and OpenFOAM agrees with it to \\(3 \\times 10^{-7}\\) once both use the same constants. The reference states no tolerances (SENKIN's defaults were used). A constant shift of the whole rise is what a loosely integrated slow start would give. Slightly older physical constants in the reference program are a second possible part.",
+   "fix": "The verdict is still formed against the reference as given. The report shows all three answers side by side and says that the comparison cannot show an agreement better than about \\(0.03\\,\\%\\).",
+   "lesson": "A reference from another program has an accuracy of its own. When the solver agrees with an independent solution forty times more closely than either agrees with the reference, the remaining difference says something about the reference.",
+   "guideline": "When a problem's reference has no stated accuracy, the problem file could give the required accuracy with that in mind (here 1 % was generous, so nothing went wrong). For the catalogue: this case can be tightened by replacing the SENKIN output with a reference computed to stated tolerances, for example with Cantera."
+  },
+  {
+   "id": 7,
+   "stage": "preflight",
+   "logged": "2026-11-15 13:17",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "<code>cfdlib.monitor.assess</code> has only two generic checks for a <code>chemFoam</code> log (no error, no NaN). Nothing in the tools knows what a healthy reacting parcel looks like.",
+   "diagnosis": "The monitor reads residuals, Courant numbers and continuity errors, which a one-cell chemistry solver does not print.",
+   "fix": "Added the checks in the case's run script: the run reaches the end time; the temperature stays between the start and the limit of complete burning; the pressure stays as given; no negative mass fraction and a sum of one; atoms and enthalpy kept at every step.",
+   "lesson": "For chemistry the health of a run is physical: bounds from thermodynamics and the two conserved things.",
+   "guideline": "A small checker in the tools for reacting runs (atoms per element, enthalpy rebuilt from temperature and composition, bounds of the temperature) would serve every later case with chemistry; the functions in this case's <code>measure.py</code> are a start."
+  },
+  {
+   "id": 8,
+   "stage": "preflight",
+   "logged": "2026-11-15 13:18",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "The run time projected by the pre-flight's short test was wrong by a factor of 90: 0.05 s projected for the largest step, 4.4 s in the full run.",
+   "diagnosis": "The short test covers the first 5 % of the time, where nothing happens yet. The cost of this problem sits in the rise, where the chemistry solver with tight tolerances needs up to 12 ms for one step against 0.1 ms elsewhere. A projection in proportion to the number of steps cannot see that.",
+   "fix": "The three largest steps were run in full as part of the pre-flight (a few seconds each); their times, split by phase, gave the budget for the smallest step (projected 11 s, measured 11.0 s when run alone).",
+   "lesson": "For a problem whose cost is concentrated in a short event, a short test from the start projects nothing. Run a coarse level in full instead.",
+   "guideline": "In the pre-flight reference, next to the run-time projection: \"For ignition, transition or any event that concentrates the work, the first few per cent of the run do not show the cost. Project from a coarse level run in full, or from a short test that starts just before the event.\""
+  },
+  {
+   "id": 9,
+   "stage": "preflight",
+   "logged": "2026-11-15 13:20",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "The pre-flight record lists all 60 OpenFOAM settings as undocumented, although the decisions file covers every one.",
+   "diagnosis": "My own order of work: the pre-flight ran before <code>decisions.yaml</code> existed, and its record keeps the result of that moment.",
+   "fix": "The report runs the coverage check again on the case of the smallest step (all covered) and does not use the stale list.",
+   "lesson": "A check stored in a record is true for the moment it ran. The report should repeat cheap checks, not quote old ones.",
+   "guideline": "None needed in the workflow text, which already asks for the decisions while setting up. The example run scripts could store the decisions check only in the analysis."
+  },
+  {
+   "id": 10,
+   "stage": "production",
+   "logged": "2026-11-15 13:23",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "A prediction written before the runs was wrong. I expected the tutorial as shipped (47 steps) to miss the required 1 % on the ignition time. It is off by \\(0.56\\,\\%\\): inside.",
+   "diagnosis": "I pictured 47 steps spread evenly, about 20 microseconds apart. They are not: the step follows the chemistry solver's sub-step, which shrinks where the temperature rises, so the two steps on either side of the ignition temperature are close together and a straight line between them reads the time well. The run is early for another reason, the loose tolerance during the slow start.",
+   "fix": "Nothing to fix in the runs. The report shows the prediction as \"expected, found\" and the verdict is \"completed, with differences\".",
+   "lesson": "An adaptive method puts its points where the action is. Judge it by a run, not by its number of steps.",
+   "guideline": "None for the workflow. For the student: the tutorial's settings are good enough for a picture and for 1 %, and not for a study of accuracy."
+  },
+  {
+   "id": 11,
+   "stage": "performance",
+   "logged": "2026-11-15 13:24",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "The tight tolerances chosen for the main runs make them four times slower than needed: the tutorial's implicit chemistry solver spends half of each run in the short rise. An explicit solver (RKF45) gives the same answer to nine digits in under a third of the time.",
+   "diagnosis": "With time steps of 0.1 microseconds and less, the chemistry is not stiff within one step, so an implicit method with a very small absolute tolerance does work that brings nothing. The cost of the rise is the same on every level of the family (2.3 to 2.7 s): it is set by the tolerance, not by the step.",
+   "fix": "Kept for this report: the runs take seconds, and the tight setting makes the time-step study clean. Measured and reported in the performance appendix.",
+   "lesson": "Which chemistry solver is fastest depends on the outer time step. In a flow solver with small explicit steps (a detonation), an explicit chemistry solver may be the cheaper choice.",
+   "guideline": "For the detonation ladder: measure the chemistry solver and its tolerances on a one-cell case with the time step the flow solver will use, before the first flow run with chemistry. About 100 microseconds of one core per cell per step were measured here as an upper limit where little reacts."
+  },
+  {
+   "id": 12,
+   "stage": "performance",
+   "logged": "2026-11-15 13:29",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "The run with the smallest step took 21.2 s in the production batch and 11.0 s when repeated alone, with identical numbers.",
+   "diagnosis": "Another session was running jobs on the same machine during the production batch. The solver's own clock also has steps of 0.01 s, so a cost per step can only be read as an average over many steps.",
+   "fix": "The report shows the repeat and names the first time; the cost figure shows solver time summed along the run, not per step.",
+   "lesson": "On a shared desktop a single timing is good to a factor of two at best.",
+   "guideline": "When timings matter for a comparison, the run script could time each run twice or record the load of the machine next to the time (<code>cfdlib.foam.run</code> already writes a performance record; the one-minute load average would fit there)."
+  },
+  {
+   "id": 13,
+   "stage": "report",
+   "logged": "2026-11-15 13:22",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "The layout check of the figures stopped two figures: the sketch (a label inside the coloured gas region counted as text on top of a shape) and the convergence figure (tick labels of the logarithmic axes overlapped one another).",
+   "diagnosis": "Both are true findings of the check. The gas region was drawn as a rectangle patch, which the check treats as a shape that text must avoid. On a logarithmic axis that spans less than two decades matplotlib labels the minor ticks too, and they collide.",
+   "fix": "The gas region is drawn as a filled area. The convergence figure has one tick per time step of the family and no labels on minor ticks.",
+   "lesson": "The check caught what a reader would have seen. Both fixes took a minute.",
+   "guideline": "Two lines for the figure notes of the tools: \"background regions of a sketch: use a filled area, not a patch, when labels sit inside\" and \"logarithmic axes shorter than two decades: set the ticks yourself\". <code>cfdlib.plots</code> could offer a helper for the second."
+  },
+  {
+   "id": 14,
+   "stage": "report",
+   "logged": "2026-11-15 13:37",
+   "status": "resolved",
+   "resolved": "2026-11-15 13:37",
+   "problem": "The report structure is built for flows on meshes: its tables are named \"meshes\", its convergence section expects a grid study, and the performance appendix asks for time per cell. This case has one cell and its study is in the time step.",
+   "diagnosis": "Not an error, a matter of fit. Every field could be filled sensibly (the \"meshes\" table holds the time-step family).",
+   "fix": "Filled as they are, with the words changed in the text.",
+   "lesson": "The contract carried a case of a new kind without change.",
+   "guideline": "None needed now. If more cases without a mesh follow, the section title \"meshes\" could become a title given by the case."
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The problem as a picture. A parcel of hydrogen, oxygen and nitrogen is held at constant pressure (a free piston stands for that) and exchanges no heat. After a delay it ignites, heats up and expands. The piston is only a picture of the two constraints: the problem has no geometry."
+  },
+  {
+   "key": "history",
+   "section": "comparison",
+   "caption": "Temperature against time. Left: the whole millisecond; the dotted line is the temperature of chemical equilibrium. Right: a window of 0.8 microseconds around the ignition temperature (dotted line), with time counted from the ignition time of the independent solution. OpenFOAM is the solid line (80000 steps), the circles are the reference's printed points, the dashed line is the independent solution with CHEMKIN's constants. The three curves have the same shape; through the rise the reference runs on average \\(0.051\\,\\mathrm{\\mu s}\\) behind the independent solution and \\(0.067\\,\\mathrm{\\mu s}\\) behind OpenFOAM."
+  },
+  {
+   "key": "species",
+   "section": "simulation",
+   "caption": "The six requested species in moles per kilogram of gas, 80000 steps. Left: hydrogen is used up, half of the oxygen is left, water forms. Right, on a logarithmic scale: OH, H and O start from nothing, multiply at a constant rate during the slow start (straight lines), peak during the rise and then recombine slowly. The dotted line marks the ignition time."
+  },
+  {
+   "key": "conservation",
+   "section": "simulation",
+   "caption": "What must not change. Left: the change of the number of hydrogen, oxygen and nitrogen atoms, relative to the start, at every stored step of the run with 80000 steps; the dashed line is the required limit. Right: the change of the parcel's enthalpy in units of the heat released, for the largest and the smallest step. The spike at the start is the accuracy to which the solver finds the temperature from the enthalpy."
+  },
+  {
+   "key": "convergence",
+   "section": "convergence",
+   "caption": "The effect of the time step. Difference between OpenFOAM and the independent solution (same constants) against the time step, on logarithmic scales, for the ignition time (left) and the final temperature (right). The dashed line is an error in proportion to the step. Both follow it: OpenFOAM's treatment of the expansion is first order in time."
+  },
+  {
+   "key": "cost",
+   "section": "performance",
+   "caption": "Cost. Left: solver time used so far along three runs of 10000 steps. With tight tolerances the tutorial's method spends half of its time in the short rise; with the tutorial's tolerances, or with the explicit method RKF45, the rise costs almost nothing. Right: every run, its difference from the independent solution in ignition time against its solver time; the dashed line is the required accuracy."
+  }
+ ],
+ "performance": {
+  "intro": "One cell, one processor core. Solver time is the wall-clock time of the whole run, start-up included (about 0.3 s). The cost per step is from the solver's own clock inside the time loop, which has steps of 0.01 s, so it is an average over many steps. The three last columns split it by phase: the slow start (below \\(1010\\,\\mathrm{K}\\)), the rise (to \\(2000\\,\\mathrm{K}\\)) and the burnt gas. A cost measured over less than 0.05 s of that clock is shown as a dash.",
+  "head": [
+   "Run",
+   "Relative tolerance",
+   "Absolute tolerance",
+   "Steps",
+   "Solver time (s)",
+   "Per step (µs)",
+   "Slow start (µs per step)",
+   "Rise (µs per step)",
+   "Burnt gas (µs per step)"
+  ],
+  "rows": [
+   [
+    "2500 fixed steps, seulex",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    2500,
+    "\\(4.42\\)",
+    "\\(1617\\)",
+    "\\(481\\)",
+    "\\(18810\\)",
+    "\\(763\\)"
+   ],
+   [
+    "5000 fixed steps, seulex",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    5000,
+    "\\(4.54\\)",
+    "\\(826\\)",
+    "\\(251\\)",
+    "\\(9405\\)",
+    "\\(403\\)"
+   ],
+   [
+    "10000 fixed steps, seulex",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    10000,
+    "\\(4.86\\)",
+    "\\(443\\)",
+    "\\(155\\)",
+    "\\(4513\\)",
+    "\\(247\\)"
+   ],
+   [
+    "20000 fixed steps, seulex",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    20000,
+    "\\(5.81\\)",
+    "\\(274\\)",
+    "\\(130\\)",
+    "\\(2463\\)",
+    "\\(165\\)"
+   ],
+   [
+    "40000 fixed steps, seulex",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    40000,
+    "\\(7.81\\)",
+    "\\(186\\)",
+    "\\(115\\)",
+    "\\(1295\\)",
+    "\\(130\\)"
+   ],
+   [
+    "80000 fixed steps, seulex",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    80000,
+    "\\(11.01\\)",
+    "\\(132\\)",
+    "\\(102\\)",
+    "\\(660\\)",
+    "\\(105\\)"
+   ],
+   [
+    "10000 fixed steps, seulex",
+    "\\(0.1\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    10000,
+    "\\(1.61\\)",
+    "\\(123\\)",
+    "\\(100\\)",
+    "\\(99\\)",
+    "\\(131\\)"
+   ],
+   [
+    "10000 fixed steps, seulex",
+    "\\(0.01\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    10000,
+    "\\(1.40\\)",
+    "\\(101\\)",
+    "\\(95\\)",
+    "\\(99\\)",
+    "\\(103\\)"
+   ],
+   [
+    "10000 fixed steps, seulex",
+    "\\(1 \\times 10^{-4}\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    10000,
+    "\\(1.40\\)",
+    "\\(105\\)",
+    "\\(110\\)",
+    "\\(99\\)",
+    "\\(104\\)"
+   ],
+   [
+    "10000 fixed steps, seulex",
+    "\\(1 \\times 10^{-6}\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    10000,
+    "\\(1.51\\)",
+    "\\(115\\)",
+    "\\(110\\)",
+    "\\(278\\)",
+    "\\(105\\)"
+   ],
+   [
+    "10000 fixed steps, seulex",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    10000,
+    "\\(2.30\\)",
+    "\\(185\\)",
+    "\\(125\\)",
+    "\\(1412\\)",
+    "\\(119\\)"
+   ],
+   [
+    "10000 fixed steps, seulex",
+    "\\(0.1\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    10000,
+    "\\(1.51\\)",
+    "\\(109\\)",
+    "\\(105\\)",
+    "\\(99\\)",
+    "\\(111\\)"
+   ],
+   [
+    "10000 fixed steps, Rosenbrock34",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    10000,
+    "\\(2.21\\)",
+    "\\(181\\)",
+    "\\(115\\)",
+    "\\(1252\\)",
+    "\\(127\\)"
+   ],
+   [
+    "10000 fixed steps, rodas34",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    10000,
+    "\\(3.71\\)",
+    "\\(330\\)",
+    "\\(120\\)",
+    "\\(3101\\)",
+    "\\(200\\)"
+   ],
+   [
+    "10000 fixed steps, RKF45",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    10000,
+    "\\(1.41\\)",
+    "\\(103\\)",
+    "\\(95\\)",
+    "\\(199\\)",
+    "\\(99\\)"
+   ],
+   [
+    "10000 fixed steps, EulerImplicit",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    10000,
+    "\\(1.20\\)",
+    "\\(77\\)",
+    "\\(75\\)",
+    "\\(100\\)",
+    "\\(76\\)"
+   ],
+   [
+    "10000 fixed steps, seulex, no table of species",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    10000,
+    "\\(4.73\\)",
+    "\\(431\\)",
+    "\\(145\\)",
+    "\\(4533\\)",
+    "\\(232\\)"
+   ],
+   [
+    "step set by the chemistry solver, seulex",
+    "\\(0.1\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    47,
+    "\\(0.40\\)",
+    "–",
+    "–",
+    "–",
+    "–"
+   ],
+   [
+    "step set by the chemistry solver, seulex",
+    "\\(0.01\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    68,
+    "\\(0.40\\)",
+    "–",
+    "–",
+    "–",
+    "–"
+   ],
+   [
+    "step set by the chemistry solver, seulex",
+    "\\(0.001\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    142,
+    "\\(0.40\\)",
+    "–",
+    "–",
+    "–",
+    "–"
+   ],
+   [
+    "step set by the chemistry solver, seulex",
+    "\\(1 \\times 10^{-4}\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    353,
+    "\\(0.40\\)",
+    "\\(199\\)",
+    "–",
+    "–",
+    "–"
+   ],
+   [
+    "step set by the chemistry solver, seulex",
+    "\\(1 \\times 10^{-6}\\)",
+    "\\(1 \\times 10^{-12}\\)",
+    2272,
+    "\\(0.70\\)",
+    "\\(150\\)",
+    "–",
+    "\\(139\\)",
+    "\\(158\\)"
+   ],
+   [
+    "step set by the chemistry solver, seulex",
+    "\\(1 \\times 10^{-8}\\)",
+    "\\(1 \\times 10^{-16}\\)",
+    56132,
+    "\\(8.41\\)",
+    "\\(144\\)",
+    "\\(152\\)",
+    "\\(148\\)",
+    "\\(137\\)"
+   ]
+  ],
+  "notes": [
+   "<b>What a step costs.</b> Away from the rise, a step costs about \\(123\\) microseconds whatever the tolerance: the chemistry solver has almost nothing to do, and the time goes to calling it, updating the gas properties and writing a log line and two output rows. This is an upper limit for what the chemistry of one cell costs in a flow solver, where no line is printed per cell.",
+   "<b>The rise is the expensive part with tight tolerances.</b> With an absolute tolerance of \\(1 \\times 10^{-16}\\) the rise costs \\(2.3\\) to \\(2.7\\) s in every run of the family, whether it is cut into 126 steps or 4032: the solver's sub-steps are set by the tolerance, not by the time step (Figure 6, left). With the tutorial's tolerances the same rise costs \\(0.05\\) s.",
+   "<b>Cheaper at the same accuracy.</b> RKF45, an explicit method, gave the ignition time of seulex to nine digits in \\(1.4\\) s against \\(4.9\\) s. With steps this small the problem is not stiff within a step, so an implicit method pays for a strength it does not use. With larger steps that would turn around.",
+   "<b>Cheapest run inside the required accuracy</b>: the tutorial as shipped, 47 steps and \\(0.01\\) s inside the time loop. For an accuracy of \\(0.04\\,\\%\\) the adjustable step with a relative tolerance of \\(1 \\times 10^{-4}\\) needs 353 steps.",
+   "<b>The table of species</b> written at every step costs little: \\(4.86\\) s with it, \\(4.73\\) s without.",
+   "<b>Run times repeat only roughly.</b> The run with the smallest step took \\(21.2\\) s the first time, while another job was using the machine, and \\(11.0\\) s when repeated alone; the tables show the repeat. All runs together took \\(72\\) s of solver time.",
+   "<b>For a flow with chemistry in every cell</b> (the later steps towards a detonation engine), these numbers say: about a tenth of a millisecond of one core per cell per step where little reacts, and ten to a hundred times that in cells that are igniting if tolerances are tight. A million cells would need about \\(123\\) core-seconds per step. Not tried here: methods that tabulate or reduce the chemistry, and running it on the GPU."
+  ]
+ },
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.h2_air_ignition_box.theory",
+    "what": "The start state, the limits, the independent solution with both sets of constants, the SymPy checks"
+   },
+   {
+    "cmd": "python -m cases.h2_air_ignition_box.run preflight",
+    "what": "The scheme check, two short tests, and the three largest steps in full"
+   },
+   {
+    "cmd": "python -m cases.h2_air_ignition_box.run production",
+    "what": "Every other run, one at a time; writes runs/*.json and runs/*.npz"
+   },
+   {
+    "cmd": "python -m cases.h2_air_ignition_box.analyze",
+    "what": "The numbers, the rules, the figures and this report (checks the contract first)"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/h2_air_ignition_box/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/reference/senkin_h2.yaml",
+    "what": "The reference as given"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/numerics.yaml",
+    "what": "Runs, reading rules, and the rules for the outcome written before the production runs"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/decisions.yaml",
+    "what": "Every choice, with the OpenFOAM settings it controls"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/insights.yaml",
+    "what": "Insights logged during the work"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/template/",
+    "what": "The OpenFOAM case with {{ placeholders }}"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/mech.py",
+    "what": "The independent program: reads the two data files, the rate laws, the parcel, the equilibrium"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/theory.py",
+    "what": "Theory numbers and SymPy checks"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/measure.py",
+    "what": "The rules that read the outputs from a history"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/run.py",
+    "what": "Builds, pre-flights and runs the cases"
+   },
+   {
+    "path": "cases/h2_air_ignition_box/numbers.py, figs.py, sketch.py",
+    "what": "The numbers of the analysis and the figures"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/h2_air_ignition_box/S<steps>[_rel<tolerance>_abs<tolerance>][_<solver>], adj_rel<tolerance>_abs<tolerance>",
+    "what": "Production runs"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/h2_air_ignition_box/pf_*_preflight, scheme_check",
+    "what": "Pre-flight runs"
+   },
+   {
+    "path": "results/h2_air_ignition_box/",
+    "what": "theory.json, preflight.json, runs/, logs/, results.json and this report"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "23 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "Runs were made one at a time on one core. Another session was working on the same machine, so run times are rough.",
+   "The run with the smallest step was made twice; the numbers are identical, the times are not (see the performance appendix). The first record is kept in <code>results/h2_air_ignition_box/repeat/</code>.",
+   "The OpenFOAM case reads the reaction scheme from OpenFOAM's own tutorial folder; nothing is copied into this repository."
+  ]
+ },
+ "data": {
+  "reference": {
+   "t_ign": 0.00021777,
+   "T_end": 2220.5
+  },
+  "independent": {
+   "t_ign": 0.00021772217803706144,
+   "T_end": 2220.449815376344
+  },
+  "independent_openfoam_constants": {
+   "t_ign": 0.000217709837666216,
+   "T_end": 2220.5359895413235
+  },
+  "runs": {
+   "S2500": {
+    "steps": 2500,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 4.419894968999984,
+    "T_end": 2220.5386840812,
+    "t_ign": 0.000217671104642196,
+    "levels": {
+     "1100": 0.0002145284847308501,
+     "1200": 0.000217671104642196,
+     "1400": 0.00022039080019006972,
+     "1600": 0.00022302552143023464,
+     "1800": 0.00022911448020640368,
+     "2000": 0.0002497305728137572,
+     "2200": 0.0005219193410372221
+    },
+    "dt_min": 3.999999999997929e-07,
+    "dt_max": 4.000000000000097e-07,
+    "phase_steps": [
+     499,
+     126,
+     1875
+    ],
+    "loop_s": 4.04,
+    "us_per_step": 1616.6466586634654,
+    "phase_s": [
+     0.24,
+     2.37,
+     1.4299999999999997
+    ],
+    "energy_dev": 3.2372148184701895e-08,
+    "d_ref_t": -0.00045412755569640417,
+    "d_ref_T": 1.7421338076806236e-05,
+    "d_of_t": -0.00017791122548804772,
+    "d_of_T": 0.00269453987630186,
+    "atoms_max": 3.077538224260934e-13
+   },
+   "S5000": {
+    "steps": 5000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 4.543926436999982,
+    "T_end": 2220.5373314545,
+    "t_ign": 0.00021769077773963976,
+    "levels": {
+     "1100": 0.0002145401274254484,
+     "1200": 0.00021769077773963976,
+     "1400": 0.00022042710647059675,
+     "1600": 0.00022307934127930543,
+     "1800": 0.00022919114596829033,
+     "2000": 0.00024982608023639216,
+     "2200": 0.0005220315807389846
+    },
+    "dt_min": 1.9999999999989644e-07,
+    "dt_max": 2.0000000000011328e-07,
+    "phase_steps": [
+     998,
+     252,
+     3750
+    ],
+    "loop_s": 4.130000000000001,
+    "us_per_step": 826.1652330466095,
+    "phase_s": [
+     0.25,
+     2.37,
+     1.5100000000000002
+    ],
+    "energy_dev": 3.2372152831113746e-08,
+    "d_ref_t": -0.0003637886777804189,
+    "d_ref_T": 1.6812183967651606e-05,
+    "d_of_t": -8.75473831617457e-05,
+    "d_of_T": 0.0013419131764749181,
+    "atoms_max": 6.622480341889059e-13
+   },
+   "S10000": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 4.86316518000001,
+    "T_end": 2220.5366589896,
+    "t_ign": 0.00021770107537104645,
+    "levels": {
+     "1100": 0.0002145449578222739,
+     "1200": 0.00021770107537104645,
+     "1400": 0.00022044521004305025,
+     "1600": 0.00022310683436919162,
+     "1800": 0.00022922994997000583,
+     "2000": 0.00024987378482287277,
+     "2200": 0.0005220873723366172
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 4.430000000000001,
+    "us_per_step": 443.04430443044316,
+    "phase_s": [
+     0.31,
+     2.27,
+     1.85
+    ],
+    "energy_dev": 3.237215852460432e-08,
+    "d_ref_t": -0.0003165019467950003,
+    "d_ref_T": 1.6509340058368238e-05,
+    "d_of_t": -4.0247584874752995e-05,
+    "d_of_T": 0.0006694482763123233,
+    "atoms_max": 2.871036741680655e-13
+   },
+   "S20000": {
+    "steps": 20000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 5.80674336200002,
+    "T_end": 2220.5363237426,
+    "t_ign": 0.0002177054396632303,
+    "levels": {
+     "1100": 0.00021454730428381453,
+     "1200": 0.0002177054396632303,
+     "1400": 0.000220454281238661,
+     "1600": 0.00022312106411078575,
+     "1800": 0.00022924915096219853,
+     "2000": 0.0002498975426292798,
+     "2200": 0.0005221151875173562
+    },
+    "dt_min": 4.99999999999199e-08,
+    "dt_max": 5.000000000013674e-08,
+    "phase_steps": [
+     3991,
+     1007,
+     15002
+    ],
+    "loop_s": 5.470000000000001,
+    "us_per_step": 273.51367568378424,
+    "phase_s": [
+     0.52,
+     2.4799999999999995,
+     2.4700000000000006
+    ],
+    "energy_dev": 3.237215911358611e-08,
+    "d_ref_t": -0.00029646111388015317,
+    "d_ref_T": 1.6358361900392637e-05,
+    "d_of_t": -2.0201213839610155e-05,
+    "d_of_T": 0.00033420127647332265,
+    "atoms_max": 4.1455727739503345e-13
+   },
+   "S40000": {
+    "steps": 40000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 7.810433616999944,
+    "T_end": 2220.5361563318,
+    "t_ign": 0.00021770765529747447,
+    "levels": {
+     "1100": 0.00021454834127736114,
+     "1200": 0.00021770765529747447,
+     "1400": 0.00022045881798177404,
+     "1600": 0.0002231281085043847,
+     "1800": 0.00022925880080552346,
+     "2000": 0.0002499094243890275,
+     "2200": 0.0005221290757202317
+    },
+    "dt_min": 2.499999999985153e-08,
+    "dt_max": 2.500000000006837e-08,
+    "phase_steps": [
+     7981,
+     2016,
+     30003
+    ],
+    "loop_s": 7.430000000000001,
+    "us_per_step": 185.75464386609667,
+    "phase_s": [
+     0.92,
+     2.61,
+     3.9000000000000004
+    ],
+    "energy_dev": 3.237216002977999e-08,
+    "d_ref_t": -0.000286286919803147,
+    "d_ref_T": 1.6282968610781268e-05,
+    "d_of_t": -1.0024208207282115e-05,
+    "d_of_T": 0.00016679047666912084,
+    "atoms_max": 7.349676423018536e-13
+   },
+   "S80000": {
+    "steps": 80000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 11.011208486999998,
+    "T_end": 2220.5360727131,
+    "t_ign": 0.000217708768691795,
+    "levels": {
+     "1100": 0.00021454885540947953,
+     "1200": 0.000217708768691795,
+     "1400": 0.00022046108454336027,
+     "1600": 0.00022313165411442775,
+     "1800": 0.00022926360846597826,
+     "2000": 0.00024991535477971426,
+     "2200": 0.0005221360123766551
+    },
+    "dt_min": 1.2499999999925765e-08,
+    "dt_max": 1.2500000000142605e-08,
+    "phase_steps": [
+     15962,
+     4032,
+     60006
+    ],
+    "loop_s": 10.58,
+    "us_per_step": 132.25165314566433,
+    "phase_s": [
+     1.63,
+     2.66,
+     6.289999999999999
+    ],
+    "energy_dev": 3.23721610114163e-08,
+    "d_ref_t": -0.0002811742122652561,
+    "d_ref_T": 1.624531101107607e-05,
+    "d_of_t": -4.910087814447017e-06,
+    "d_of_T": 8.317177662320319e-05,
+    "atoms_max": 8.657519146026971e-13
+   },
+   "S10000_rel0.1_abs1e-12": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 0.1,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 1.6132810459999973,
+    "T_end": 2220.5366440287,
+    "t_ign": 0.00021770228096037504,
+    "levels": {
+     "1100": 0.00021454592469482599,
+     "1200": 0.00021770228096037504,
+     "1400": 0.00022044639720689778,
+     "1600": 0.00022310796571635148,
+     "1800": 0.00022923113550254488,
+     "2000": 0.0002498750089614807,
+     "2200": 0.0005220886334751757
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 1.23,
+    "us_per_step": 123.01230123012301,
+    "phase_s": [
+     0.2,
+     0.05000000000000002,
+     0.98
+    ],
+    "energy_dev": 3.237215472894394e-08,
+    "d_ref_t": -0.0003109658797123549,
+    "d_ref_T": 1.650260243168944e-05,
+    "d_of_t": -3.470998794530278e-05,
+    "d_of_T": 0.0006544873763232317,
+    "atoms_max": 3.852473895449293e-14
+   },
+   "S10000_rel0.01_abs1e-12": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 0.01,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 1.4019494770000165,
+    "T_end": 2220.5366440287,
+    "t_ign": 0.00021770228096037504,
+    "levels": {
+     "1100": 0.00021454592469482599,
+     "1200": 0.00021770228096037504,
+     "1400": 0.00022044639720689778,
+     "1600": 0.00022310796571635148,
+     "1800": 0.00022923113550254488,
+     "2000": 0.0002498750089614807,
+     "2200": 0.0005220886334751757
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 1.01,
+    "us_per_step": 101.01010101010101,
+    "phase_s": [
+     0.19,
+     0.05000000000000002,
+     0.77
+    ],
+    "energy_dev": 3.237215472894394e-08,
+    "d_ref_t": -0.0003109658797123549,
+    "d_ref_T": 1.650260243168944e-05,
+    "d_of_t": -3.470998794530278e-05,
+    "d_of_T": 0.0006544873763232317,
+    "atoms_max": 3.852473895449293e-14
+   },
+   "S10000_rel0.0001_abs1e-12": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 0.0001,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 1.4030421019999721,
+    "T_end": 2220.5366469161,
+    "t_ign": 0.00021770195899831814,
+    "levels": {
+     "1100": 0.00021454585083874786,
+     "1200": 0.00021770195899831814,
+     "1400": 0.00022044610280647512,
+     "1600": 0.00022310772668666763,
+     "1800": 0.00022923089098952023,
+     "2000": 0.00024987476526089065,
+     "2200": 0.0005220883895599546
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 1.05,
+    "us_per_step": 105.010501050105,
+    "phase_s": [
+     0.22,
+     0.05000000000000002,
+     0.78
+    ],
+    "energy_dev": 3.237215472894394e-08,
+    "d_ref_t": -0.0003124443297141122,
+    "d_ref_T": 1.6503902769526846e-05,
+    "d_of_t": -3.618884650469223e-05,
+    "d_of_T": 0.0006573747764377913,
+    "atoms_max": 2.90878432451791e-14
+   },
+   "S10000_rel1e-06_abs1e-12": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-06,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 1.5065646140000126,
+    "T_end": 2220.5366555622,
+    "t_ign": 0.0002177013156883837,
+    "levels": {
+     "1100": 0.00021454520130523156,
+     "1200": 0.0002177013156883837,
+     "1400": 0.00022044545395439357,
+     "1600": 0.00022310708074851844,
+     "1800": 0.00022923019604321267,
+     "2000": 0.0002498740354906532,
+     "2200": 0.0005220876591607928
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 1.15,
+    "us_per_step": 115.01150115011501,
+    "phase_s": [
+     0.22,
+     0.13999999999999999,
+     0.7899999999999999
+    ],
+    "energy_dev": 3.237215472894394e-08,
+    "d_ref_t": -0.0003153984094057538,
+    "d_ref_T": 1.6507796532394536e-05,
+    "d_of_t": -3.914374253199959e-05,
+    "d_of_T": 0.0006660208764515119,
+    "atoms_max": 1.028066520802895e-13
+   },
+   "S10000_rel1e-08_abs1e-12": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 2.304481375000023,
+    "T_end": 2220.5366562172,
+    "t_ign": 0.00021770129845506575,
+    "levels": {
+     "1100": 0.0002145451840880703,
+     "1200": 0.00021770129845506575,
+     "1400": 0.0002204454365273056,
+     "1600": 0.00022310706320756722,
+     "1800": 0.00022923017704739966,
+     "2000": 0.0002498740112389298,
+     "2200": 0.0005220876038255514
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 1.85,
+    "us_per_step": 185.01850185018503,
+    "phase_s": [
+     0.25,
+     0.71,
+     0.8900000000000001
+    ],
+    "energy_dev": 3.237215472894394e-08,
+    "d_ref_t": -0.00031547754481442425,
+    "d_ref_T": 1.6508091510880618e-05,
+    "d_of_t": -3.9222899809177036e-05,
+    "d_of_T": 0.0006666758763458347,
+    "atoms_max": 2.688960165642129e-13
+   },
+   "S10000_rel0.1_abs1e-16": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 0.1,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 1.50517567899999,
+    "T_end": 2220.5366440318,
+    "t_ign": 0.000217702280699227,
+    "levels": {
+     "1100": 0.00021454592442999248,
+     "1200": 0.000217702280699227,
+     "1400": 0.00022044639694186,
+     "1600": 0.00022310796544862174,
+     "1800": 0.00022923113523687038,
+     "2000": 0.0002498750086966764,
+     "2200": 0.0005220886332105138
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 1.09,
+    "us_per_step": 109.01090109010902,
+    "phase_s": [
+     0.21,
+     0.05000000000000002,
+     0.8300000000000001
+    ],
+    "energy_dev": 3.2372154401731835e-08,
+    "d_ref_t": -0.00031096707890432285,
+    "d_ref_T": 1.6502603827905915e-05,
+    "d_of_t": -3.47111874686723e-05,
+    "d_of_T": 0.0006544904763359227,
+    "atoms_max": 5.739853037312059e-14
+   },
+   "adj_rel0.1_abs1e-12": {
+    "steps": 47,
+    "adjust": true,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 0.1,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 0.4010418100000379,
+    "T_end": 2220.1468798445,
+    "t_ign": 0.00021654124984310817,
+    "levels": {
+     "1100": 0.00021314556871680442,
+     "1200": 0.00021654124984310817,
+     "1400": 0.00021916722017770965,
+     "1600": 0.0002216463767094584,
+     "1800": 0.000227688291792989,
+     "2000": 0.00024860517812316015,
+     "2200": 0.0005386717341780269
+    },
+    "dt_min": 1e-07,
+    "dt_max": 0.00025,
+    "phase_steps": [
+     25,
+     13,
+     9
+    ],
+    "loop_s": 0.01,
+    "us_per_step": 217.3913043478261,
+    "phase_s": [
+     0.0,
+     0.01,
+     0.0
+    ],
+    "energy_dev": 3.237214157501744e-08,
+    "d_ref_t": -0.005642421623234695,
+    "d_ref_T": -0.00015902731614503285,
+    "d_of_t": -0.005367639035675831,
+    "d_of_T": -0.3891096968236525,
+    "atoms_max": 7.915890165577366e-14
+   },
+   "adj_rel0.01_abs1e-12": {
+    "steps": 68,
+    "adjust": true,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 0.01,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 0.40103253999996014,
+    "T_end": 2220.4675910297,
+    "t_ign": 0.00021710034444916024,
+    "levels": {
+     "1100": 0.00021405232543752288,
+     "1200": 0.00021710034444916024,
+     "1400": 0.00021999340826368957,
+     "1600": 0.00022258294167838152,
+     "1800": 0.0002286427411531802,
+     "2000": 0.00024877116995648444,
+     "2200": 0.0005256867963641264
+    },
+    "dt_min": 1e-07,
+    "dt_max": 0.00015625000000000003,
+    "phase_steps": [
+     33,
+     22,
+     13
+    ],
+    "loop_s": 0.009999999999999998,
+    "us_per_step": 149.25373134328356,
+    "phase_s": [
+     0.0,
+     0.0,
+     0.009999999999999998
+    ],
+    "energy_dev": 3.237214157501744e-08,
+    "d_ref_t": -0.003075058781465523,
+    "d_ref_T": -1.4595348029722288e-05,
+    "d_of_t": -0.0027995667241744737,
+    "d_of_T": -0.06839851162339983,
+    "atoms_max": 1.4432899320127035e-14
+   },
+   "adj_rel0.001_abs1e-12": {
+    "steps": 142,
+    "adjust": true,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 0.001,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 0.4009948440000244,
+    "T_end": 2220.5508807683,
+    "t_ign": 0.00021762996751220463,
+    "levels": {
+     "1100": 0.00021447924374566447,
+     "1200": 0.00021762996751220463,
+     "1400": 0.00022036817902807673,
+     "1600": 0.00022299950009674408,
+     "1800": 0.00022906961965633052,
+     "2000": 0.0002496164318863539,
+     "2200": 0.0005222223764772032
+    },
+    "dt_min": 1e-07,
+    "dt_max": 0.00016412159269302003,
+    "phase_steps": [
+     43,
+     65,
+     34
+    ],
+    "loop_s": 0.019999999999999997,
+    "us_per_step": 141.84397163120565,
+    "phase_s": [
+     0.01,
+     0.009999999999999998,
+     0.0
+    ],
+    "energy_dev": 3.237214157501744e-08,
+    "d_ref_t": -0.0006430292868410126,
+    "d_ref_T": 2.2914104165661087e-05,
+    "d_of_t": -0.0003668651580817084,
+    "d_of_T": 0.014891226976487815,
+    "atoms_max": 1.687538997430238e-14
+   },
+   "adj_rel0.0001_abs1e-12": {
+    "steps": 353,
+    "adjust": true,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 0.0001,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 0.40151393999997254,
+    "T_end": 2220.5426176932,
+    "t_ign": 0.000217677481403314,
+    "levels": {
+     "1100": 0.00021452066559225557,
+     "1200": 0.000217677481403314,
+     "1400": 0.00022042276007367025,
+     "1600": 0.0002230820764184927,
+     "1800": 0.0002291872323718712,
+     "2000": 0.00024978410723604764,
+     "2200": 0.0005218152114201483
+    },
+    "dt_min": 3.2547885470000015e-08,
+    "dt_max": 3.8944670510199946e-05,
+    "phase_steps": [
+     95,
+     164,
+     94
+    ],
+    "loop_s": 0.07,
+    "us_per_step": 198.86363636363637,
+    "phase_s": [
+     0.01,
+     0.03,
+     0.030000000000000006
+    ],
+    "energy_dev": 3.237214157501744e-08,
+    "d_ref_t": -0.00042484546395737954,
+    "d_ref_T": 1.9192836388182144e-05,
+    "d_of_t": -0.00014862104188240188,
+    "d_of_T": 0.00662815187661181,
+    "atoms_max": 4.451994328746878e-14
+   },
+   "adj_rel1e-06_abs1e-12": {
+    "steps": 2272,
+    "adjust": true,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-06,
+    "abs": 1e-12,
+    "table": true,
+    "wall_time": 0.701125358000013,
+    "T_end": 2220.5372869003,
+    "t_ign": 0.000217693997698896,
+    "levels": {
+     "1100": 0.00021453398111575118,
+     "1200": 0.000217693997698896,
+     "1400": 0.0002204465495029101,
+     "1600": 0.0002231167534767497,
+     "1800": 0.0002292456225887212,
+     "2000": 0.0002498881683523343,
+     "2200": 0.0005220770962188412
+    },
+    "dt_min": 5.053643010007524e-09,
+    "dt_max": 1.2665984204644e-05,
+    "phase_steps": [
+     196,
+     1442,
+     634
+    ],
+    "loop_s": 0.33999999999999997,
+    "us_per_step": 149.71378247468073,
+    "phase_s": [
+     0.04,
+     0.2,
+     0.09999999999999998
+    ],
+    "energy_dev": 3.237214157501744e-08,
+    "d_ref_t": -0.00034900262251003067,
+    "d_ref_T": 1.679211902727573e-05,
+    "d_of_t": -7.275724188582355e-05,
+    "d_of_T": 0.0012973589764442295,
+    "atoms_max": 6.461498003318411e-14
+   },
+   "adj_rel1e-08_abs1e-16": {
+    "steps": 56132,
+    "adjust": true,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 8.40910510099991,
+    "T_end": 2220.5360378497,
+    "t_ign": 0.00021770969278041383,
+    "levels": {
+     "1100": 0.00021454925848888722,
+     "1200": 0.00021770969278041383,
+     "1400": 0.00022046312231484275,
+     "1600": 0.00022313491678810506,
+     "1800": 0.0002292680082918594,
+     "2000": 0.0002499207052136789,
+     "2200": 0.0005221411037134714
+    },
+    "dt_min": 2.2767442998169324e-10,
+    "dt_max": 9.9290022500002e-07,
+    "phase_steps": [
+     2437,
+     33655,
+     20040
+    ],
+    "loop_s": 8.1,
+    "us_per_step": 144.30528584917425,
+    "phase_s": [
+     0.37,
+     4.99,
+     2.7399999999999993
+    ],
+    "energy_dev": 3.23721449780233e-08,
+    "d_ref_t": -0.000276930796648589,
+    "d_ref_T": 1.6229610313001075e-05,
+    "d_of_t": -6.654995645671846e-07,
+    "d_of_T": 4.8308376335626235e-05,
+    "atoms_max": 7.107647803650252e-13
+   },
+   "S10000_Rosenbrock34": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "Rosenbrock34",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 2.2064708120000205,
+    "T_end": 2220.5366589126,
+    "t_ign": 0.00021770107587116178,
+    "levels": {
+     "1100": 0.00021454495817612788,
+     "1200": 0.00021770107587116178,
+     "1400": 0.00022044521103531137,
+     "1600": 0.0002231068357763576,
+     "1800": 0.00022922995181813525,
+     "2000": 0.0002498737874261267,
+     "2200": 0.0005220873803705605
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 1.81,
+    "us_per_step": 181.018101810181,
+    "phase_s": [
+     0.22999999999999998,
+     0.63,
+     0.9500000000000001
+    ],
+    "energy_dev": 3.2372158720931583e-08,
+    "d_ref_t": -0.0003164996502650341,
+    "d_ref_T": 1.6509305381662287e-05,
+    "d_of_t": -4.024528771018332e-05,
+    "d_of_T": 0.0006693712766718818,
+    "atoms_max": 2.886579864025407e-14
+   },
+   "S10000_rodas34": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "rodas34",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 3.714876165000078,
+    "T_end": 2220.5366589578,
+    "t_ign": 0.00021770107561686186,
+    "levels": {
+     "1100": 0.00021454495797806262,
+     "1200": 0.00021770107561686186,
+     "1400": 0.00022044521059391245,
+     "1600": 0.0002231068351743476,
+     "1800": 0.00022922995104960323,
+     "2000": 0.000249873786375105,
+     "2200": 0.0005220873766685119
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 3.3000000000000003,
+    "us_per_step": 330.03300330033005,
+    "phase_s": [
+     0.24,
+     1.56,
+     1.5
+    ],
+    "energy_dev": 3.2372158720931583e-08,
+    "d_ref_t": -0.00031650081801049,
+    "d_ref_T": 1.65093257373794e-05,
+    "d_of_t": -4.024645577827002e-05,
+    "d_of_T": 0.0006694164762848231,
+    "atoms_max": 4.418687638008123e-14
+   },
+   "S10000_RKF45": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "RKF45",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 1.4068236250000155,
+    "T_end": 2220.536659026,
+    "t_ign": 0.00021770107562156323,
+    "levels": {
+     "1100": 0.00021454495807882312,
+     "1200": 0.00021770107562156323,
+     "1400": 0.00022044521029764277,
+     "1600": 0.0002231068346266047,
+     "1800": 0.0002292299502244473,
+     "2000": 0.00024987378507403514,
+     "2200": 0.0005220873723399899
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 1.03,
+    "us_per_step": 103.01030103010301,
+    "phase_s": [
+     0.19,
+     0.09999999999999998,
+     0.74
+    ],
+    "energy_dev": 3.2372158786374004e-08,
+    "d_ref_t": -0.0003165007964217592,
+    "d_ref_T": 1.6509356451255286e-05,
+    "d_of_t": -4.024643418365503e-05,
+    "d_of_T": 0.000669484676564025,
+    "atoms_max": 1.0325074129013956e-14
+   },
+   "S10000_EulerImplicit": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "EulerImplicit",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": true,
+    "wall_time": 1.204979288000004,
+    "T_end": 2220.5458425234,
+    "t_ign": 0.00021696920496322504,
+    "levels": {
+     "1100": 0.00021386213404625415,
+     "1200": 0.00021696920496322504,
+     "1400": 0.00021965186905713896,
+     "1600": 0.00022227392612624716,
+     "1800": 0.00022838519950194806,
+     "2000": 0.00024904466426131037,
+     "2200": 0.0005213081747958287
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1990,
+     501,
+     7509
+    ],
+    "loop_s": 0.77,
+    "us_per_step": 77.00770077007701,
+    "phase_s": [
+     0.15,
+     0.04999999999999999,
+     0.5700000000000001
+    ],
+    "energy_dev": 3.237215924447094e-08,
+    "d_ref_t": -0.003677251397230852,
+    "d_ref_T": 2.064513551003344e-05,
+    "d_of_t": -0.003401925750945889,
+    "d_of_T": 0.009852982076608896,
+    "atoms_max": 4.671818487622659e-13
+   },
+   "S10000_notable": {
+    "steps": 10000,
+    "adjust": false,
+    "chem": "ode",
+    "ode": "seulex",
+    "rel": 1e-08,
+    "abs": 1e-16,
+    "table": false,
+    "wall_time": 4.725133625000012,
+    "T_end": 2220.5366589896,
+    "t_ign": 0.00021770107537104645,
+    "levels": {
+     "1100": 0.0002145449578222739,
+     "1200": 0.00021770107537104645,
+     "1400": 0.00022044521004305025,
+     "1600": 0.00022310683436919162,
+     "1800": 0.00022922994997000583,
+     "2000": 0.00024987378482287277,
+     "2200": 0.0005220873723366172
+    },
+    "dt_min": 9.99999999998398e-08,
+    "dt_max": 1.0000000000005664e-07,
+    "phase_steps": [
+     1996,
+     503,
+     7501
+    ],
+    "loop_s": 4.31,
+    "us_per_step": 431.04310431043103,
+    "phase_s": [
+     0.29,
+     2.28,
+     1.7399999999999998
+    ],
+    "d_ref_t": -0.0003165019467950003,
+    "d_ref_T": 1.6509340058368238e-05,
+    "d_of_t": -4.0247584874752995e-05,
+    "d_of_T": 0.0006694482763123233,
+    "atoms_max": null
+   }
+  },
+  "study": {
+   "t_ign": {
+    "values": [
+     0.000217671104642196,
+     0.00021769077773963976,
+     0.00021770107537104645,
+     0.0002177054396632303,
+     0.00021770765529747447,
+     0.000217708768691795
+    ],
+    "err": [
+     3.873302402001167e-08,
+     1.9059926576234882e-08,
+     8.762295169550526e-09,
+     4.398002985693582e-09,
+     2.182368741531762e-09,
+     1.068974420998436e-09
+    ],
+    "orders": [
+     1.02302158028843,
+     1.1211618419335871,
+     0.994460230975447,
+     1.0109536979658686,
+     1.0296675537571844
+    ],
+    "p": 0.9927551125442631,
+    "extrap": 0.0002177098933533922,
+    "monotonic": true,
+    "gci_abs": 1.4058269964889289e-09,
+    "orders3": [
+     0.9339115852099542,
+     1.2384929397395428,
+     0.9780279498708554,
+     0.9927551125442631
+    ],
+    "extrap_vs_of": 2.5578621887234476e-07,
+    "extrap_vs_ref": -0.000276009765384555
+   },
+   "T_end": {
+    "values": [
+     2220.5386840812,
+     2220.5373314545,
+     2220.5366589896,
+     2220.5363237426,
+     2220.5361563318,
+     2220.5360727131
+    ],
+    "err": [
+     0.00269453987630186,
+     0.0013419131764749181,
+     0.0006694482763123233,
+     0.00033420127647332265,
+     0.00016679047666912084,
+     8.317177662320319e-05
+    ],
+    "orders": [
+     1.005747606910674,
+     1.0032468325212878,
+     1.0022553489343629,
+     1.0026803269934268,
+     1.0038709620424926
+    ],
+    "p": 1.0014950800726778,
+    "extrap": 2220.535989267441,
+    "monotonic": true,
+    "gci_abs": 0.00010430707395952731,
+    "orders3": [
+     1.0082328647241439,
+     1.0042345456691488,
+     1.0018318210584254,
+     1.0014950800726778
+    ],
+    "extrap_vs_of": -2.738825060077943e-07,
+    "extrap_vs_ref": 1.6207731340145415e-05
+   }
+  },
+  "history": {
+   "shift": {
+    "1100": -6.514459052048543e-08,
+    "1200": -6.06430729108902e-08,
+    "1400": -6.891545663973396e-08,
+    "1600": -6.37305009568601e-08,
+    "1800": -7.10582006884159e-08,
+    "2000": -7.009976574028336e-08,
+    "2200": -1.3398762334490208e-07
+   },
+   "shift_ind": {
+    "1100": -4.782433443944849e-10,
+    "1200": -1.0689743963057316e-09,
+    "1400": -2.2321725719437295e-09,
+    "1600": -3.5081856983765376e-09,
+    "1800": -4.776855008797225e-09,
+    "2000": -5.894364340911819e-09,
+    "2200": -6.898647283634651e-09
+   },
+   "shift_max": 7.10582006884159e-08,
+   "steep_levels": [
+    "1100",
+    "1200",
+    "1400",
+    "1600",
+    "1800",
+    "2000"
+   ],
+   "dT_flat_max": 0.14824531236490657,
+   "dT_flat_mean": 0.05578627800748928,
+   "dT_steep_max": 6.2457453729409735,
+   "n_points": 1677,
+   "n_flat": 825,
+   "rise_rate": 90743158.91194008,
+   "rise_t": 0.00022048125
+  },
+  "species": {
+   "H2": {
+    "start": 7.176426209215617,
+    "end": 0.02443760653788089,
+    "peak": 7.176426209215617,
+    "t_peak": 0.0,
+    "end_ind": 0.0244377001029315,
+    "dmax": 0.00030283062859782063,
+    "end_eq": 0.021269713199273996
+   },
+   "H": {
+    "start": 0.0,
+    "end": 0.0049643642106989095,
+    "peak": 1.6545341204854311,
+    "t_peak": 0.00022124999999999998,
+    "end_ind": 0.004964393001708514,
+    "dmax": 0.00038388107143695643,
+    "end_eq": 0.004023709677520043
+   },
+   "O2": {
+    "start": 7.176426209215617,
+    "end": 3.5344414819622294,
+    "peak": 7.176426209215617,
+    "t_peak": 0.0,
+    "end_ind": 3.5344413850234284,
+    "dmax": 0.00017334959844014097,
+    "end_eq": 3.537856016664777
+   },
+   "O": {
+    "start": 0.0,
+    "end": 0.02897514330075303,
+    "peak": 0.8714817556571933,
+    "t_peak": 0.00022285,
+    "end_ind": 0.02897525423938423,
+    "dmax": 0.00047642698929128,
+    "end_eq": 0.025219854164725927
+   },
+   "OH": {
+    "start": 0.0,
+    "end": 0.21027470534659212,
+    "peak": 0.6199463421379144,
+    "t_peak": 0.00023625,
+    "end_ind": 0.21027508848969645,
+    "dmax": 0.00035114977549689037,
+    "end_eq": 0.19680015711555043
+   },
+   "HO2": {
+    "start": 0.0,
+    "end": 0.0002265075296580329,
+    "peak": 0.003970123657833893,
+    "t_peak": 0.00019803749999999998,
+    "end_ind": 0.0002265070918262009,
+    "dmax": 7.585639464831865e-05,
+    "end_eq": 0.0002429571693023909
+   },
+   "H2O2": {
+    "start": 0.0,
+    "end": 1.0776665227549412e-05,
+    "peak": 0.00022657843603453068,
+    "t_peak": 0.0002028375,
+    "end_ind": 1.077665051497256e-05,
+    "dmax": 0.00030298638520183564,
+    "end_eq": 1.1375447663935993e-05
+   },
+   "H2O": {
+    "start": 0.0,
+    "end": 7.044245037473732,
+    "peak": 7.044245037473732,
+    "t_peak": 0.001,
+    "end_ind": 7.044244738170581,
+    "dmax": 0.0002658424535517242,
+    "end_eq": 7.054611708587534
+   },
+   "N2": {
+    "start": 26.983362546650717,
+    "end": 26.983362546650568,
+    "peak": 26.983362546651318,
+    "t_peak": 0.00045908749999999996,
+    "end_ind": 26.983362546650717,
+    "dmax": 2.225106714106676e-14,
+    "end_eq": 26.983362546650707
+   }
+  },
+  "conv_effect": {
+   "R_cal": {
+    "t_ign": 0.00021770971602693998,
+    "T_end": 2220.450008034367,
+    "dt_ign_rel": -5.7238129040459995e-05,
+    "dT_end": 0.00019265802302470547
+   },
+   "p_std": {
+    "t_ign": 0.00021772272766970886,
+    "T_end": 2220.5358064071643,
+    "dt_ign_rel": 2.524467890063775e-06,
+    "dT_end": 0.08599103082042348
+   },
+   "R": {
+    "t_ign": 0.00021772175005395984,
+    "T_end": 2220.4498046264753,
+    "dt_ign_rel": -1.9657303883535704e-06,
+    "dT_end": -1.0749868579296162e-05
+   },
+   "all": {
+    "t_ign": 0.000217709837666216,
+    "T_end": 2220.5359895413235,
+    "dt_ign_rel": -5.6679438708129304e-05,
+    "dT_end": 0.08617416497963859
+   }
+  },
+  "first_timing_of_finest": 21.167341582000063
+ }
+}

@@ -1,0 +1,91 @@
+# Every modelling and numerical choice for this case. Written by the agent WHILE setting up the case.
+# `settings`: the OpenFOAM settings (path patterns, * = wildcard) this decision controls.
+
+- area: Solver
+  kind: solver
+  choice: '<code>chemFoam</code>, OpenFOAM''s solver for one well-mixed parcel, starting from its tutorial <code>combustion/chemFoam/h2</code>, which is this very problem'
+  settings: [system/controlDict/application]
+  why: 'The problem has no flow and no space: only time. <code>chemFoam</code> is built for exactly that. It makes a mesh of one cell, takes the start mixture from one file, and advances the chemistry and the energy in time at constant pressure or constant volume. It uses the same chemistry library that OpenFOAM''s reacting-flow solvers call in every cell, so what is learnt here about accuracy and cost carries over to them. gpucfd does not apply: it solves flows of constant density without chemistry (<code>cfdlib.gpu.check_fit</code> has no entry for reactions).'
+  affects: 'How the answer is reached. With the same scheme and a small enough time step any correct solver gives the same history; the independent solution in Theory is a second one.'
+  alternatives: 'A reacting-flow solver (<code>reactingFoam</code>) on a mesh of one cell: the same chemistry library with a flow solver around it that has nothing to do. A general chemistry program such as Cantera: not installed on this machine. The independent integrator written for the Theory section (<code>mech.py</code>): used as a cross-check, not as the answer, because the task is to learn what OpenFOAM does.'
+
+- area: Physical model
+  kind: physics
+  choice: 'A mixture of ideal gases whose heat capacities change with temperature (<code>janaf</code>: the polynomials of <code>therm.dat</code>), reacting (<code>reactingMixture</code>), with the energy carried as enthalpy'
+  settings: [constant/thermophysicalProperties/thermoType/*]
+  why: 'This is the gas of the problem statement. <code>hePsiThermo</code> with <code>perfectGas</code> is the ideal-gas law. <code>sensibleEnthalpy</code> means the solver stores the enthalpy without the chemical part and adds the heat of the reactions as a source; the sum, which must stay constant, is rebuilt in the analysis from temperature and composition and checked at every step. <code>transport sutherland</code> names a viscosity law that a parcel without flow never uses; the solver insists on one.'
+  affects: 'Defines the equations solved: the same as in Theory.'
+  alternatives: 'Constant heat capacities (<code>hConst</code>): not the problem given, and the final temperature would be wrong by hundreds of kelvin.'
+
+- area: Physical model
+  kind: physics
+  choice: 'The reaction scheme and its thermodynamic data are read where OpenFOAM ships them, unchanged, through OpenFOAM''s reader for CHEMKIN files'
+  settings: [constant/thermophysicalProperties/CHEMKINFile, constant/thermophysicalProperties/CHEMKINThermoFile, constant/thermophysicalProperties/CHEMKINTransportFile, constant/chemistryProperties/chemistry]
+  why: 'The problem says to use the two files as they are. The case points at them in the tutorial folder (<code>$FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/</code>), so nothing is copied or edited. The pre-flight compares OpenFOAM''s reading of the files, reaction by reaction, with the independent reading of Theory. One thing is not in the files and each program brings its own: the constants. OpenFOAM converts activation energies with \(1.987316\,\mathrm{cal/(mol\,K)}\), where its own gas constant in joules gives \(1.987216\); and it takes \(1\,\mathrm{bar}\) as the pressure of the tabulated data, where CHEMKIN takes \(1\,\mathrm{atm}\). Theory measures what each is worth. The third file only sets the unused viscosity to zero.'
+  affects: 'The reaction rates and the heat capacities: everything. The two constants move the ignition time by about \(0.006\,\%\) and the final temperature by about \(0.09\,\mathrm{K}\) (Theory), far inside the required accuracy.'
+  alternatives: 'Converting the files once to OpenFOAM''s own format (<code>chemkinToFoam</code>) and editing the constants there to match CHEMKIN: that would change the files, against the problem statement, and would hide a difference that every OpenFOAM user of CHEMKIN files has.'
+
+- area: Start state and constraints
+  kind: physics
+  choice: 'Start mixture by mole ratio \(1 : 1 : 3.76\) at \(T_0\) and \(p\); the pressure is held constant; no heat exchange'
+  settings: [constant/initialConditions/*, '0/*']
+  why: 'As given. <code>constantProperty pressure</code> makes the solver keep \(p\) and let the density follow the temperature and the composition (the parcel expands). <code>chemFoam</code> has no term for heat exchange, so the parcel is adiabatic by construction. The files in <code>0/</code> are written by the solver itself from these entries at start-up; the case template has none.'
+  affects: 'Sets the problem. The pre-flight checks that the solver''s first state is the start state of Theory.'
+  alternatives: 'Constant volume (<code>constantProperty volume</code>): a different problem, with a higher final temperature and a rising pressure.'
+
+- area: Time
+  kind: physics
+  choice: 'From \(t = 0\) to \(t_{\mathrm{end}}\); the run ends there'
+  settings: [system/controlDict/startTime, system/controlDict/endTime]
+  why: 'The duration of interest is given. There is no steady state to wait for inside it (the gas is still \(2.8\,\mathrm{K}\) below its final temperature at the end), so the stop is the given time. What is checked at every step instead is physical: the atoms of each element and the enthalpy of the parcel must not change.'
+  affects: 'The length of the history.'
+  alternatives: 'Running on to chemical equilibrium (about a second): not asked; Theory gives that end state directly.'
+
+- area: Time step
+  kind: accuracy
+  choice: 'Fixed time steps, a family of six with ratio 2 from \(0.4\) to \(0.0125\,\mathrm{\mu s}\) (2500 to 80000 steps); the answers are those of the smallest step, with the value extrapolated to a step of zero next to them'
+  settings: [system/controlDict/deltaT, system/controlDict/adjustTimeStep, system/controlDict/maxDeltaT, system/fvSchemes/ddtSchemes/default]
+  why: 'The time step matters here in a way that is easy to miss. Inside one step <code>chemFoam</code> hands the gas to the chemistry solver, which integrates the reactions accurately but with the density frozen: the gas does not expand while it reacts. Only after the step are the temperature and the density brought up to date from the enthalpy. So during a step the molecules are a little too close together, the reactions a little too fast, and the error is in proportion to the step (first order; <code>Euler</code> is the matching first-order scheme for the mass fractions, and a single cell has nothing else to discretise). A family with ratio 2 shows that order and allows the extrapolation. The tutorial instead lets the step follow the chemistry solver''s own sub-step (<code>adjustTimeStep on</code>); that way is studied as a variant, with the tutorial''s <code>maxDeltaT 1</code>, which never limits anything.'
+  affects: 'The ignition time and every temperature: with \(0.4\,\mathrm{\mu s}\) steps the ignition is \(0.018\,\%\) early, and the error halves with the step (pre-flight). The time scale to resolve is \(1/\lambda = 7.6\,\mathrm{\mu s}\) (Theory).'
+  alternatives: 'The tutorial''s adjustable step: fewer steps, but the step then depends on the tolerance of the chemistry solver, so the two error sources cannot be told apart. A second-order treatment of the expansion: <code>chemFoam</code> has none.'
+
+- area: Chemistry solver
+  kind: accuracy
+  choice: 'The reactions inside a step are integrated by <code>seulex</code> (an implicit method for stiff equations with its own sub-steps and error control), with a relative tolerance of \(10^{-8}\) and an absolute tolerance of \(10^{-16}\,\mathrm{kmol/m^3}\) for the family; the method and both tolerances are then varied'
+  settings: [constant/chemistryProperties/chemistryType/solver, constant/chemistryProperties/odeCoeffs/*, constant/chemistryProperties/initialChemicalTimeStep, constant/chemistryProperties/EulerImplicitCoeffs/*]
+  why: 'Reactions between radicals are thousands of times faster than the overall burning (a stiff problem): an explicit method would need tiny sub-steps, an implicit one does not. <code>seulex</code> is the tutorial''s choice. Its tolerances are set tight for the family so that the family measures the time step alone: the tutorial''s relative tolerance is \(0.1\). The absolute tolerance matters in the slow start, when the reactive species are still at concentrations of \(10^{-12}\,\mathrm{kmol/m^3}\) and less and the ignition time is being decided. The study then answers what looser settings cost in accuracy and save in time. <code>initialChemicalTimeStep</code> is only the first sub-step tried. The block <code>EulerImplicitCoeffs</code> is read only by the variant that uses that solver: one implicit Euler sub-step at a time, limited by a chemical time scale (<code>cTauChem 1</code>), without error control.'
+  affects: 'How accurately each step''s chemistry is integrated, and most of the cost: around ignition one step at the tight tolerance costs many times a step of the slow start (pre-flight; the numbers are in the performance appendix).'
+  alternatives: 'Studied as variants at the same time step: <code>Rosenbrock34</code> and <code>rodas34</code> (implicit, fixed order), <code>RKF45</code> (explicit), <code>EulerImplicit</code>; tolerances from \(10^{-1}\) to \(10^{-8}\).'
+
+- area: Chemistry solver
+  kind: solver
+  choice: 'The tutorial''s linear solver for the mass fractions and its empty lists of spatial schemes are kept'
+  settings: [system/fvSolution/solvers/Yi/*, system/fvSchemes/gradSchemes, system/fvSchemes/divSchemes, system/fvSchemes/laplacianSchemes]
+  why: 'With one cell the equation for each mass fraction is a single number: new value = old value + reaction rate times time step. Any linear solver returns it exactly in one pass, and there are no neighbours, so no gradient, flux or diffusion scheme is ever used.'
+  affects: 'Nothing: the solve is exact.'
+  alternatives: 'None needed.'
+
+- area: Output
+  kind: output
+  choice: 'Temperature, pressure, density, enthalpy and all ten mass fractions are recorded after every time step with 14 digits; fields are written to disk only at the end'
+  settings: [system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision, system/controlDict/timePrecision,
+             system/controlDict/DebugSwitches/*, 'system/controlDict/functions/state/*']
+  why: 'The requested outputs are histories, and the conservation check is wanted at every step. <code>chemFoam</code> itself records only time, temperature and pressure (<code>chemFoam.out</code>), by default with 6 digits. A function object (<code>volFieldValue</code>: the average over the one cell, which is the cell''s value) adds the rest as one table row per step, and <code>writePrecision 14</code> gives both files enough digits to see changes of \(10^{-12}\). The table prints its time with fewer digits, so times are taken as step number times time step (fixed steps) or from <code>chemFoam.out</code> (adjustable steps). <code>SolverPerformance 0</code> keeps ten lines per step out of the log, as in the tutorial.'
+  affects: 'What can be analysed, and the run time: writing the table costs a part of every step (measured in the performance appendix by a run without it).'
+  alternatives: 'Writing every field at every step (80000 folders of 15 files for the finest run). Reading the species from the two written times only: no history.'
+
+- area: Reading the outputs
+  kind: output
+  choice: 'Ignition time: the first step at which \(T \ge T_{\mathrm{ign}}\) and a straight line between it and the step before. Final temperature: the value after the last step. Atoms: moles of each element per kilogram, from the mass fractions and OpenFOAM''s molar masses. Energy: the enthalpy per kilogram, chemical part included, rebuilt from temperature and mass fractions with the data of <code>therm.dat</code> as read by <code>mech.py</code>'
+  settings: []
+  why: 'The ignition rule is the one the reference file applies to the reference''s own printed history, so both sides are read alike. Its own error is measured by applying it to the independent solution sampled at the same steps: at most \(0.0024\,\%\) on the coarsest level and \(2\times10^{-8}\) on the finest. The energy is rebuilt outside OpenFOAM on purpose: a balance computed by the solver''s own bookkeeping would hold by construction and prove little.'
+  affects: 'The reported numbers, not the run.'
+  alternatives: 'The time of the fastest temperature rise as ignition time: another common definition, but not the reference''s.'
+
+- area: Reading the outputs
+  kind: accuracy
+  choice: 'The required accuracies are judged against the reference as given (the numbers printed by CHEMKIN II). The independent solution of Theory is used to explain differences and to estimate how well the reference fixes its own numbers; it does not replace the reference'
+  settings: []
+  why: 'The problem names its reference. The reference states no tolerances and prints five digits, so a second calculation with known tolerances is the only way to tell an error of OpenFOAM from an inaccuracy of the reference. It is run twice, with CHEMKIN''s constants and with OpenFOAM''s, so that the part of a difference that comes from the constants is known.'
+  affects: 'How the verdict is formed and how differences are explained.'
+  alternatives: 'Judging against the independent solution alone: it is this agent''s own code and so not independent of this agent.'

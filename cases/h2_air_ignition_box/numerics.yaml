@@ -1,0 +1,73 @@
+# Numerical choices (made by the agent, not given by the user).
+solver: chemFoam              # OpenFOAM's solver for one well-mixed parcel (a single cell, no flow)
+# What sets the error here. chemFoam advances the parcel in time steps. Inside a step its chemistry solver
+# integrates the reactions with sub-steps of its own, to a tolerance; between steps the density and the
+# temperature are brought up to date. So there are two numerical settings, and both are studied:
+#   - the time step (the "grid" of this problem: a family with ratio 2);
+#   - the chemistry solver: its method and its two tolerances.
+main:                         # the settings of the time-step family
+  chem: ode                   # chemistry by an ordinary-differential-equation solver with error control
+  ode: seulex                 # the method of OpenFOAM's tutorial: implicit, built for stiff problems
+  rel_tol: 1.0e-8             # tight, so that the family measures the time step alone (the tutorial has 0.1)
+  abs_tol: 1.0e-16            # kmol/m^3; four orders below the tutorial's 1e-12
+  init_chem_dt: 1.0e-7        # first sub-step of the chemistry solver (the tutorial's)
+runs:
+  family_steps: [2500, 5000, 10000, 20000, 40000, 80000]    # fixed steps over t_end: 0.4 down to 0.0125 microseconds
+  # chemistry-solver tolerances at one fixed step (10000 steps, 0.1 microseconds): [rel_tol, abs_tol]
+  tolerance: {steps: 10000, pairs: [[1.0e-1, 1.0e-12], [1.0e-2, 1.0e-12], [1.0e-4, 1.0e-12], [1.0e-6, 1.0e-12], [1.0e-8, 1.0e-12], [1.0e-1, 1.0e-16]]}
+  # the tutorial's way: the time step follows the chemistry solver's own sub-step (adjustTimeStep on).
+  # [rel_tol, abs_tol]; the first is the tutorial as shipped
+  adjustable: {pairs: [[1.0e-1, 1.0e-12], [1.0e-2, 1.0e-12], [1.0e-3, 1.0e-12], [1.0e-4, 1.0e-12], [1.0e-6, 1.0e-12], [1.0e-8, 1.0e-16]], first_dt: 1.0e-5, max_dt: 1.0}
+  # other chemistry solvers at the same fixed step, same tolerances as main: [chem, ode]
+  methods: {steps: 10000, variants: [[ode, Rosenbrock34], [ode, rodas34], [ode, RKF45], [EulerImplicit, none]]}
+  timing: {steps: 10000}      # the main settings without the table of species at every step: what the output costs
+preflight:
+  fraction: 0.05              # short test: the first 5 % of the time, on the coarsest and the finest level
+  full_steps: [2500, 5000, 10000]   # the three coarsest levels in full (seconds each): they size the rules for the outcome
+# How outputs are read from the history (fixed before the production runs).
+extraction:
+  ignition: linear            # ignition time: the first step at which T >= T_ign, and a straight line between
+                              # that step and the one before it (the rule the reference file applies to SENKIN's history)
+  levels: [1100, 1200, 1400, 1600, 1800, 2000, 2200]   # temperatures (K) whose crossing times compare the two histories
+  phases: [1010, 2000]        # for the cost per step: induction T < 1010 K, ignition up to 2000 K, burnt above
+  store_points: 5000          # points of each history kept in results/ for the figures (the numbers use every step)
+# Rules for the outcome. Written at 13:21 on 2026-11-15, after the pre-flight (scheme check, two short tests, the
+# three coarsest levels of the family in full: 2500, 5000 and 10000 steps) and BEFORE the production runs (20000
+# to 80000 steps, every tolerance, method and adjustable-step variant). "family" = the six fixed-step runs with the
+# main settings; "finest" = 80000 steps. "independent (OF)" = the independent solution of Theory computed with
+# OpenFOAM's constants. A missed requirement or health rule gives FAIL, a missed expectation WARN.
+# What the pre-flight showed: ignition time 0.0178 %, 0.0088 % and 0.0040 % below independent (OF) on the three
+# levels (halving with the step), final temperature 2.7, 1.3 and 0.7 mK above it; atoms kept to 7e-13, enthalpy
+# to 3e-8 of the heat released; the tutorial as shipped takes 47 steps.
+acceptance:
+  # ---- requirements: the problem's required_accuracy, with the exact quantity each one is checked on ----
+  req_ignition: 0.01          # finest: |t_ign / t_ref - 1|, t_ref = the ignition time printed by the reference
+  req_final: 0.001            # finest: |T(t_end) / T_ref - 1|, T_ref = the last temperature printed by the reference
+  req_conserved: 1.0e-5       # family, EVERY step: |atoms of an element per kg / the start value - 1|, for H, O and N
+  # ---- health: what a sound run must do ----
+  # every run of the family reaches t_end without a solver error; the temperature stays between the start and the limit
+  # of complete burning; the pressure stays as given; no mass fraction is negative and they add up to one
+  # ---- expectations: my own limits and predictions, each sized from the pre-flight ----
+  exp_order: [0.8, 1.2]       # observed order in the time step, from the three finest levels, for the ignition time and for
+                              # the final temperature (a first-order method; pre-flight: 1.0 and 1.0 on the coarse levels)
+  exp_finest_vs_independent_t: 1.0e-5    # finest: |t_ign / t_ign of independent (OF) - 1|. Projected from the pre-flight: 5e-6
+  exp_finest_vs_independent_T: 2.0e-4    # finest: |T(t_end) - independent (OF)| in K. Projected: 8e-5 K
+  exp_extrapolated_t: 3.0e-6  # the ignition time extrapolated to a zero time step (three finest levels) against independent (OF), relative
+  exp_extrapolated_T: 2.0e-4  # the same for the final temperature, K (the solver finds T from the enthalpy to about 1e-4 K)
+  exp_history_shift: 1.0e-7   # finest: |time at which T crosses each of 1100 ... 2000 K - the reference's|, s. The independent solution
+                              # is 0.05 microseconds ahead of the reference at every level, OpenFOAM's constants add 0.012
+  exp_history_flat: 0.3       # finest: |T - T_ref| at the reference's printed points outside the steep part (T < T_0 + 10 K or
+                              # T > 2100 K), K. The reference prints 0.1 K; independent vs reference 0.11 K; constants +0.09 K
+  exp_energy: 1.0e-6          # family, every step: |enthalpy per kg rebuilt from T and the mass fractions - start value| / heat released
+                              # (pre-flight: 3e-8)
+  exp_atoms: 1.0e-10          # family, every step: the same quantity as req_conserved; expected at round-off (pre-flight: 7e-13 at
+                              # most; it may grow with the number of steps)
+  exp_variants_conserved: 1.0e-5   # every variant run keeps the atoms as required of the family
+  exp_tolerance_fixed: both   # at the fixed step of 0.1 microseconds every tolerance pair, the tutorial's 0.1 included, stays within
+                              # the two required accuracies (the time step, not the tolerance, limits the chemistry there)
+  exp_adjustable_tight: 1.0e-4     # adjustable step: runs with a relative tolerance of 1e-4 or tighter stay within the two required
+                              # accuracies; the tutorial as shipped (0.1, 47 steps) is expected to MISS the 1 % on the ignition time,
+                              # because its steps are too far apart to read it
+  exp_methods_agree: 1.0e-5   # Rosenbrock34, rodas34 and RKF45 at the same step and tolerances: ignition time within this (relative)
+                              # of seulex. EulerImplicit has no error control: expected further off, but inside the required 1 %
+  exp_finest_seconds: 60      # solver time of the finest run (projected about 11 s: 8 s of ordinary steps + 2.3 s around ignition)

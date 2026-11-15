@@ -154,13 +154,13 @@ cases:
     reports: [{path: results/shock_diffraction_corner/report.html}]
 
   - id: "20"
-    title: Ignition of hydrogen and air in a closed box
-    status: in_progress
-    tier: rde
+    title: Ignition of a hot hydrogen, oxygen and nitrogen mixture at constant pressure
+    status: solved
     folder: h2_air_ignition_box
-    new: "Step 3 of 7. Chemistry alone, with no flow: the time until the mixture ignites"
-    reference: An independent chemistry program (CHEMKIN II, SENKIN) with the same reaction scheme; its output for these conditions ships with OpenFOAM
-    gpucfd: "no"
+    tests: "Step 3 of 7 to the detonation engine. Chemistry alone in one well-mixed cell (OpenFOAM's chemFoam, the full hydrogen scheme), against an independent chemistry program (CHEMKIN II) with the same scheme"
+    shows: "The first case without a mesh: the study is in the time step, which is a first-order accuracy setting of OpenFOAM's chemistry; an independent solution written by the agent (now cfdlib.chem) that puts a number on each difference of constants between two programs and shows the reference's own accuracy; health checks for a reacting run; where the cost of chemistry sits"
+    headline: "Ignition time within 0.03 % of the reference and final temperature within 0.002 % (required: 1 % and 0.1 %), atoms kept to round-off; OpenFOAM agrees with the agent's independent solution about forty times more closely than either agrees with the reference; one prediction of the agent was wrong (OpenFOAM's example as shipped is inside the 1 %)"
+    reports: [{path: results/h2_air_ignition_box/report.html}]
 
   - id: "21"
     title: Detonation in a straight tube, hydrogen and air

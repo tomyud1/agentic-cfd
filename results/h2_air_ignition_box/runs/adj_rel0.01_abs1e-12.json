@@ -1,0 +1,188 @@
+{
+ "name": "adj_rel0.01_abs1e-12",
+ "steps": 68,
+ "adjust": true,
+ "chem": "ode",
+ "ode": "seulex",
+ "rel": 0.01,
+ "abs": 1e-12,
+ "table": true,
+ "studies": [
+  "adjustable"
+ ],
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/h2_air_ignition_box/adj_rel0.01_abs1e-12",
+ "wall_time": 0.40103253999996014,
+ "total_time": 0.7411870956420898,
+ "cpu_s": 0.209452,
+ "peak_mem_mb": 201.4140625,
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "The run reaches the end of the time of interest",
+    "status": "ok",
+    "value": "last time \\(0.001\\,\\mathrm{s}\\)",
+    "meaning": "The history must cover the whole millisecond."
+   },
+   {
+    "name": "The temperature stays between the start and the limit of complete burning",
+    "status": "ok",
+    "value": "lowest \\(1000.0000\\,\\mathrm{K}\\), highest \\(2220.47\\,\\mathrm{K}\\)",
+    "meaning": "Nothing cools the parcel, and it cannot get hotter than complete burning would make it (Theory)."
+   },
+   {
+    "name": "The pressure stays as given",
+    "status": "ok",
+    "value": "largest relative change \\(0\\)",
+    "meaning": "The problem holds the pressure constant."
+   },
+   {
+    "name": "No negative mass fraction, and the mass fractions add up to one",
+    "status": "ok",
+    "value": "lowest mass fraction \\(0\\), sum off by at most \\(3 \\times 10^{-15}\\)",
+    "meaning": "A chemistry solver that oversteps makes a species negative; mass fractions that do not add up mean lost or made mass."
+   }
+  ],
+  "steps": 68,
+  "last_time": 0.001,
+  "wall_time": 0.03,
+  "est_full_runtime": 0.03,
+  "est_kind": "fixed run length"
+ },
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/h2_air_ignition_box",
+ "t_last": 0.001,
+ "T_end": 2220.4675910297,
+ "t_ign": 0.00021710034444916024,
+ "levels": {
+  "1100": 0.00021405232543752288,
+  "1200": 0.00021710034444916024,
+  "1400": 0.00021999340826368957,
+  "1600": 0.00022258294167838152,
+  "1800": 0.0002286427411531802,
+  "2000": 0.00024877116995648444,
+  "2200": 0.0005256867963641264
+ },
+ "p_dev": 0.0,
+ "T_max": 2220.4675910297,
+ "T_min": 999.99999895088,
+ "dt_min": 1e-07,
+ "dt_max": 0.00015625000000000003,
+ "headers": [
+  "# Time\tTemperature [K]\tPressure [Pa]",
+  "# Time                \tvolAverage(T)\tvolAverage(p)\tvolAverage(rho)\tvolAverage(h)\tvolAverage(H2)\tvolAverage(H)\tvolAverage(O2)\tvolAverage(O)\tvolAverage(OH)\tvolAverage(HO2)\tvolAverage(H2O2)\tvolAverage(H2O)\tvolAverage(AR)\tvolAverage(N2)"
+ ],
+ "rise_rate": 91906967.2934356,
+ "rise_t": 0.000219768908284475,
+ "phase_steps": [
+  33,
+  22,
+  13
+ ],
+ "loop_s": 0.009999999999999998,
+ "us_per_step": 149.25373134328356,
+ "phase_s": [
+  0.0,
+  0.0,
+  0.009999999999999998
+ ],
+ "first_row": {
+  "T": 999.999999938771,
+  "p": 202650.0,
+  "rho": 0.589632382579171,
+  "h": 890646.444930554,
+  "H2": 0.0144672446514666,
+  "H": 3.58949631673004e-13,
+  "O2": 0.229637026971388,
+  "O": 6.29087323767544e-14,
+  "OH": 5.98201207797836e-14,
+  "HO2": 1.23074118724427e-11,
+  "H2O2": 8.05287863509164e-17,
+  "H2O": 1.0699927338128e-14,
+  "AR": 0.0,
+  "N2": 0.755895728364345
+ },
+ "atoms_drift": {
+  "H": 1.4432899320127035e-14,
+  "N": 2.220446049250313e-16,
+  "O": 1.2878587085651816e-14
+ },
+ "atoms_drift_at": {
+  "H": 0.00019420512625428,
+  "N": 1e-07,
+  "O": 0.0002364317724742
+ },
+ "sumY_dev": 2.6645352591003757e-15,
+ "Y_min": 0.0,
+ "energy_dev": 3.237214157501744e-08,
+ "energy_end": -1.6818702043852097e-14,
+ "hs_dev": 3.237214164045986e-08,
+ "state_dev": 5.040412531798211e-14,
+ "Y_end": {
+  "H2": 4.93891938084807e-05,
+  "H": 5.02119092780067e-06,
+  "O2": 0.113094768153145,
+  "O": 0.000464787638140012,
+  "OH": 0.003582652724063,
+  "HO2": 7.49494953903283e-06,
+  "H2O2": 3.67428045135674e-07,
+  "H2O": 0.126899790357988,
+  "AR": 0.0,
+  "N2": 0.755895728364345
+ },
+ "Y_peak": {
+  "H2": [
+   0.01446724465220613,
+   0.0
+  ],
+  "H": [
+   0.00165072080471467,
+   0.00022099329207653
+  ],
+  "O2": [
+   0.22963702698344868,
+   0.0
+  ],
+  "O": [
+   0.0138745354781141,
+   0.00022221700570777
+  ],
+  "OH": [
+   0.0105503901128981,
+   0.00023421691341936
+  ],
+  "HO2": [
+   0.000131037450132366,
+   0.00020020110417086
+  ],
+  "H2O2": [
+   7.7197642307262e-06,
+   0.00020319909312915
+  ],
+  "H2O": [
+   0.126899790357988,
+   0.001
+  ],
+  "AR": [
+   0.0,
+   0.0
+  ],
+  "N2": [
+   0.7558957283643453,
+   0.0
+  ]
+ }
+}

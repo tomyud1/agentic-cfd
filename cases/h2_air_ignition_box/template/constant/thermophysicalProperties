@@ -1,0 +1,23 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      thermophysicalProperties;
+}
+
+thermoType
+{
+    type            hePsiThermo;
+    mixture         reactingMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleEnthalpy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+// The reaction scheme and its thermodynamic data, read where they are shipped (not copied, not changed)
+CHEMKINFile          "{{ scheme_dir }}/chem.inp";
+CHEMKINThermoFile    "{{ scheme_dir }}/therm.dat";
+CHEMKINTransportFile "{{ scheme_dir }}/transportProperties";

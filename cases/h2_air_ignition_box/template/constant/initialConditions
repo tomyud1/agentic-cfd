@@ -1,0 +1,22 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      initialConditions;
+}
+
+constantProperty pressure;
+
+fractionBasis   mole;
+
+fractions
+{
+    H2              {{ x_H2 }};
+    O2              {{ x_O2 }};
+    N2              {{ x_N2 }};
+}
+
+p               {{ p }};
+
+T               {{ T_0 }};

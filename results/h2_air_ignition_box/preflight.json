@@ -1,0 +1,267 @@
+{
+ "short": [
+  {
+   "status": "ok",
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "The temperature stays between the start and the limit of complete burning",
+     "status": "ok",
+     "value": "lowest \\(1000.0000\\,\\mathrm{K}\\), highest \\(1000.00\\,\\mathrm{K}\\)",
+     "meaning": "Nothing cools the parcel, and it cannot get hotter than complete burning would make it (Theory)."
+    },
+    {
+     "name": "The pressure stays as given",
+     "status": "ok",
+     "value": "largest relative change \\(0\\)",
+     "meaning": "The problem holds the pressure constant."
+    },
+    {
+     "name": "No negative mass fraction, and the mass fractions add up to one",
+     "status": "ok",
+     "value": "lowest mass fraction \\(0\\), sum off by at most \\(3 \\times 10^{-15}\\)",
+     "meaning": "A chemistry solver that oversteps makes a species negative; mass fractions that do not add up mean lost or made mass."
+    },
+    {
+     "name": "One row per time step in both output files",
+     "status": "ok",
+     "value": "125 rows for 125 steps",
+     "meaning": "The history and the table of species are needed after every step."
+    },
+    {
+     "name": "The solver starts from the start state of Theory",
+     "status": "ok",
+     "value": "after the first step, density, sensible enthalpy and the three mass fractions differ from the start values by at most \\(4 \\times 10^{-10}\\) (relative)",
+     "meaning": "Checks the mole ratio, the molar masses and the gas constant that the solver uses. The density is compared with the value for OpenFOAM's own gas constant."
+    },
+    {
+     "name": "Radicals appear from the first step",
+     "status": "ok",
+     "value": "mass fractions after one step: H \\(1.4 \\times 10^{-12}\\), HO2 \\(5.2 \\times 10^{-11}\\), OH \\(6.2 \\times 10^{-13}\\)",
+     "meaning": "The start mixture holds no reactive species; the first reactions must make some, or nothing would ever ignite. An output column that stays at zero would be a silent failure."
+    },
+    {
+     "name": "Atoms and energy kept during the short run",
+     "status": "ok",
+     "value": "atoms to \\(1 \\times 10^{-14}\\), enthalpy to \\(3 \\times 10^{-8}\\) of the heat released",
+     "meaning": "The physical check of every step (see Simulation)."
+    }
+   ],
+   "steps": 125,
+   "last_time": 5e-05,
+   "wall_time": 0.05,
+   "est_full_runtime": 0.05,
+   "est_kind": "fixed run length",
+   "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/h2_air_ignition_box/pf_S2500_preflight",
+   "end_time_short": 5e-05,
+   "timed_out": false,
+   "s_per_step": 0.0,
+   "name": "S2500",
+   "n_steps": 125,
+   "headers": [
+    "# Time\tTemperature [K]\tPressure [Pa]",
+    "# Time                \tvolAverage(T)\tvolAverage(p)\tvolAverage(rho)\tvolAverage(h)\tvolAverage(H2)\tvolAverage(H)\tvolAverage(O2)\tvolAverage(O)\tvolAverage(OH)\tvolAverage(HO2)\tvolAverage(H2O2)\tvolAverage(H2O)\tvolAverage(AR)\tvolAverage(N2)"
+   ],
+   "first_row": {
+    "T": 999.999999766174,
+    "p": 202650.0,
+    "rho": 0.589632382682304,
+    "h": 890646.444697368,
+    "H2": 0.0144672446491747,
+    "H": 1.35073008629589e-12,
+    "O2": 0.229637026931346,
+    "O": 8.68868411807296e-13,
+    "OH": 6.16800483539837e-13,
+    "HO2": 5.1720667953153e-11,
+    "H2O2": 1.33794284974669e-15,
+    "H2O": 5.77004496978049e-13,
+    "AR": 0.0,
+    "N2": 0.755895728364345
+   },
+   "us_per_step": 80.64516129032259,
+   "projected": 0.05,
+   "wall_short": 0.5009289740000895
+  },
+  {
+   "status": "ok",
+   "checks": [
+    {
+     "name": "Solver finished without errors",
+     "status": "ok",
+     "value": "no errors",
+     "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+    },
+    {
+     "name": "No NaN values",
+     "status": "ok",
+     "value": "none",
+     "meaning": "NaN (not a number) means the calculation produced invalid values."
+    },
+    {
+     "name": "The temperature stays between the start and the limit of complete burning",
+     "status": "ok",
+     "value": "lowest \\(1000.0000\\,\\mathrm{K}\\), highest \\(1000.00\\,\\mathrm{K}\\)",
+     "meaning": "Nothing cools the parcel, and it cannot get hotter than complete burning would make it (Theory)."
+    },
+    {
+     "name": "The pressure stays as given",
+     "status": "ok",
+     "value": "largest relative change \\(0\\)",
+     "meaning": "The problem holds the pressure constant."
+    },
+    {
+     "name": "No negative mass fraction, and the mass fractions add up to one",
+     "status": "ok",
+     "value": "lowest mass fraction \\(0\\), sum off by at most \\(8 \\times 10^{-15}\\)",
+     "meaning": "A chemistry solver that oversteps makes a species negative; mass fractions that do not add up mean lost or made mass."
+    },
+    {
+     "name": "One row per time step in both output files",
+     "status": "ok",
+     "value": "4000 rows for 4000 steps",
+     "meaning": "The history and the table of species are needed after every step."
+    },
+    {
+     "name": "The solver starts from the start state of Theory",
+     "status": "ok",
+     "value": "after the first step, density, sensible enthalpy and the three mass fractions differ from the start values by at most \\(1 \\times 10^{-11}\\) (relative)",
+     "meaning": "Checks the mole ratio, the molar masses and the gas constant that the solver uses. The density is compared with the value for OpenFOAM's own gas constant."
+    },
+    {
+     "name": "Radicals appear from the first step",
+     "status": "ok",
+     "value": "mass fractions after one step: H \\(4.6 \\times 10^{-14}\\), HO2 \\(1.5 \\times 10^{-12}\\), OH \\(1.1 \\times 10^{-15}\\)",
+     "meaning": "The start mixture holds no reactive species; the first reactions must make some, or nothing would ever ignite. An output column that stays at zero would be a silent failure."
+    },
+    {
+     "name": "Atoms and energy kept during the short run",
+     "status": "ok",
+     "value": "atoms to \\(3 \\times 10^{-14}\\), enthalpy to \\(3 \\times 10^{-8}\\) of the heat released",
+     "meaning": "The physical check of every step (see Simulation)."
+    }
+   ],
+   "steps": 4000,
+   "last_time": 5e-05,
+   "wall_time": 0.43,
+   "est_full_runtime": 8.794182091045522,
+   "est_kind": "fixed run length",
+   "case": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/h2_air_ignition_box/pf_S80000_preflight",
+   "end_time_short": 5e-05,
+   "timed_out": false,
+   "s_per_step": 0.00011005502751375687,
+   "name": "S80000",
+   "n_steps": 4000,
+   "headers": [
+    "# Time\tTemperature [K]\tPressure [Pa]",
+    "# Time                \tvolAverage(T)\tvolAverage(p)\tvolAverage(rho)\tvolAverage(h)\tvolAverage(H2)\tvolAverage(H)\tvolAverage(O2)\tvolAverage(O)\tvolAverage(OH)\tvolAverage(HO2)\tvolAverage(H2O2)\tvolAverage(H2O)\tvolAverage(AR)\tvolAverage(N2)"
+   ],
+   "first_row": {
+    "T": 999.999999992248,
+    "p": 202650.0,
+    "rho": 0.589632382547544,
+    "h": 890646.445002612,
+    "H2": 0.0144672446521139,
+    "H": 4.59650668598247e-14,
+    "O2": 0.229637026981979,
+    "O": 1.01578766959599e-15,
+    "OH": 1.06729607017527e-15,
+    "HO2": 1.51423693550681e-12,
+    "H2O2": 1.24900271056897e-18,
+    "H2O": 1.91959354060295e-17,
+    "AR": 0.0,
+    "N2": 0.755895728364345
+   },
+   "us_per_step": 105.02625656414104,
+   "projected": 8.794182091045522,
+   "wall_short": 0.8022850780000681
+  }
+ ],
+ "gas_constant": 8314.47006650545,
+ "scheme": {
+  "ok": true,
+  "reactions": 27,
+  "worst": 3.981363209912085e-10,
+  "w_dev": 2.220446049250313e-16,
+  "notes": [],
+  "kinds": {
+   "reversibleArrheniusLindemannFallOffReaction": 4,
+   "reversibleArrheniusReaction": 18,
+   "reversibleArrheniusTroeFallOffReaction": 1,
+   "reversiblethirdBodyArrheniusReaction": 4
+  }
+ },
+ "decisions": [
+  "decisions: every modelling and numerical choice must be documented",
+  "undocumented OpenFOAM setting (add it to a decision's settings): 0/T/internalField",
+  "undocumented OpenFOAM setting (add it to a decision's settings): 0/T/boundaryField/boundary/type",
+  "undocumented OpenFOAM setting (add it to a decision's settings): 0/Ydefault/internalField",
+  "undocumented OpenFOAM setting (add it to a decision's settings): 0/Ydefault/boundaryField/boundary/type",
+  "undocumented OpenFOAM setting (add it to a decision's settings): 0/p/internalField",
+  "undocumented OpenFOAM setting (add it to a decision's settings): 0/p/boundaryField/boundary/type",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/chemistryProperties/chemistryType/solver",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/chemistryProperties/chemistry",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/chemistryProperties/initialChemicalTimeStep",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/chemistryProperties/EulerImplicitCoeffs/cTauChem",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/chemistryProperties/EulerImplicitCoeffs/equilibriumRateLimiter",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/chemistryProperties/odeCoeffs/solver",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/chemistryProperties/odeCoeffs/absTol",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/chemistryProperties/odeCoeffs/relTol",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/initialConditions/constantProperty",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/initialConditions/fractionBasis",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/initialConditions/fractions/H2",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/initialConditions/fractions/O2",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/initialConditions/fractions/N2",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/initialConditions/p",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/initialConditions/T",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/thermoType/type",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/thermoType/mixture",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/thermoType/transport",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/thermoType/thermo",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/thermoType/energy",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/thermoType/equationOfState",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/thermoType/specie",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/CHEMKINFile",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/CHEMKINThermoFile",
+  "undocumented OpenFOAM setting (add it to a decision's settings): constant/thermophysicalProperties/CHEMKINTransportFile",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/application",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/startTime",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/endTime",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/deltaT",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/maxDeltaT",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/adjustTimeStep",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/writeControl",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/writeInterval",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/writePrecision",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/timePrecision",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/DebugSwitches/SolverPerformance",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/type",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/libs",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/writeControl",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/writeInterval",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/writeFields",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/log",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/regionType",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/operation",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/controlDict/functions/state/fields",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/fvSchemes/ddtSchemes/default",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/fvSchemes/gradSchemes",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/fvSchemes/divSchemes",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/fvSchemes/laplacianSchemes",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/fvSolution/solvers/Yi/solver",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/fvSolution/solvers/Yi/preconditioner",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/fvSolution/solvers/Yi/tolerance",
+  "undocumented OpenFOAM setting (add it to a decision's settings): system/fvSolution/solvers/Yi/relTol"
+ ],
+ "ignored": []
+}
