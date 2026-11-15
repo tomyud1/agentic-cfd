@@ -1,0 +1,102 @@
+{
+ "1D_double": {
+  "n": [
+   24,
+   1,
+   1
+  ],
+  "combinations": 192,
+  "worst": 3.3528654131728037e-16,
+  "worst_at": "periodic/minmod/hll/3 stages",
+  "smallest_change": 0.08336189490829678
+ },
+ "2D_double": {
+  "n": [
+   20,
+   16,
+   1
+  ],
+  "combinations": 192,
+  "worst": 4.313488495432049e-16,
+  "worst_at": "periodic/central/hllc/3 stages",
+  "smallest_change": 0.07515114638698853
+ },
+ "3D_double": {
+  "n": [
+   12,
+   10,
+   9
+  ],
+  "combinations": 192,
+  "worst": 3.292287563599408e-16,
+  "worst_at": "periodic/first/rusanov/3 stages",
+  "smallest_change": 0.07213271557686585
+ },
+ "1D_float": {
+  "n": [
+   24,
+   1,
+   1
+  ],
+  "combinations": 192,
+  "worst": 8.804960033972274e-08,
+  "worst_at": "periodic/weno5/rusanov/1 stages",
+  "smallest_change": 0.0833618991947975
+ },
+ "2D_float": {
+  "n": [
+   20,
+   16,
+   1
+  ],
+  "combinations": 192,
+  "worst": 9.474395205396192e-08,
+  "worst_at": "walls/weno5/hllc/3 stages",
+  "smallest_change": 0.07515114848540579
+ },
+ "3D_float": {
+  "n": [
+   12,
+   10,
+   9
+  ],
+  "combinations": 192,
+  "worst": 1.0136433756700511e-07,
+  "worst_at": "open/weno5/hllc/3 stages",
+  "smallest_change": 0.07213271339914226
+ },
+ "1D_mixed": {
+  "n": [
+   24,
+   1,
+   1
+  ],
+  "combinations": 192,
+  "worst": 6.414688764077864e-08,
+  "worst_at": "periodic/weno5/rusanov/1 stages",
+  "smallest_change": 0.08336189490829678
+ },
+ "2D_mixed": {
+  "n": [
+   20,
+   16,
+   1
+  ],
+  "combinations": 192,
+  "worst": 5.0287046475548894e-08,
+  "worst_at": "periodic/weno5/rusanov/1 stages",
+  "smallest_change": 0.07515114638698853
+ },
+ "3D_mixed": {
+  "n": [
+   12,
+   10,
+   9
+  ],
+  "combinations": 192,
+  "worst": 5.871826492293531e-08,
+  "worst_at": "open/weno5/hybrid/3 stages",
+  "smallest_change": 0.07213271557686585
+ },
+ "directions": 0.0
+}

@@ -1,0 +1,92 @@
+{
+ "tool": "gpucfd",
+ "case": "shock_diffraction_corner",
+ "date": "2026-11-15",
+ "source": "gpucfd/tests/results/test_euler_corner.json",
+ "setting": {
+  "recon": "weno5",
+  "flux": "rusanov",
+  "cfl": 0.4,
+  "precision": "mixed"
+ },
+ "grid_shown": 800,
+ "plain": "gpucfd's new shock solver meets the same three requirements on the same grids, and on 800 by 800 cells it takes 16 s on the GPU against OpenFOAM's 742 s on 8 cores. Its pressure ripple behind the shock is larger: at most \\(4.4\\,\\%\\) at any written time against OpenFOAM's \\(2.0\\,\\%\\)",
+ "busy_cpu": false,
+ "answers": {
+  "a": {
+   "value": {
+    "speed": 5.145112188231771e-05,
+    "p": -0.00023078557087041762,
+    "rho": -0.00037678811407781954,
+    "u": 9.947141921773373e-05
+   },
+   "diff": "<span style='white-space:nowrap'>\\(+0.005\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.023\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.038\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(+0.010\\,\\%\\)</span>"
+  },
+  "b": {
+   "value": {
+    "mass": 6.357513404910801e-08,
+    "energy": 6.025448909730256e-08
+   },
+   "diff": "<span style='white-space:nowrap'>mass \\(6 \\times 10^{-8}\\)</span><br><span style='white-space:nowrap'>energy \\(6 \\times 10^{-8}\\)</span>"
+  },
+  "c": {
+   "value": {
+    "dev_cells": 0.004238164287517776,
+    "ripple": 0.023675987221264575
+   },
+   "diff": "<span style='white-space:nowrap'>\\(0.004\\) cells</span><br><span style='white-space:nowrap'>ripple \\(2.4\\,\\%\\)</span>"
+  },
+  "d": {
+   "value": {
+    "step_face": 0.03842573673242812,
+    "line": 0.00512851202205164
+   },
+   "diff": "<span style='white-space:nowrap'>step face \\(3.8\\,\\%\\)</span><br><span style='white-space:nowrap'>line \\(0.5\\,\\%\\)</span>"
+  }
+ },
+ "runs": [
+  {
+   "N": 100,
+   "cells": 10000,
+   "steps": 477,
+   "wall_s": 0.10856899499992778
+  },
+  {
+   "N": 200,
+   "cells": 40000,
+   "steps": 933,
+   "wall_s": 0.3803844379999646
+  },
+  {
+   "N": 400,
+   "cells": 160000,
+   "steps": 1840,
+   "wall_s": 2.3105729129999872
+  },
+  {
+   "N": 800,
+   "cells": 640000,
+   "steps": 3680,
+   "wall_s": 16.16987137600006
+  },
+  {
+   "label": "1600 by 1600 cells, 7308 steps (gpucfd only)",
+   "N": 1600,
+   "cells": 2560000,
+   "steps": 7308,
+   "wall_s": 128.68563598900005
+  }
+ ],
+ "openfoam_same_rules": {
+  "speed": 5.762409248166733e-05,
+  "state": {
+   "p": -0.0002045833040638101,
+   "rho": -0.0003577128885189351,
+   "u": 8.777765846024188e-05
+  },
+  "dev_cells": 6.323518126905014e-05,
+  "step_face": 0.03192040143740171,
+  "line": 0.006293970408776165,
+  "ripple_any_time": 0.020184040820770233
+ }
+}

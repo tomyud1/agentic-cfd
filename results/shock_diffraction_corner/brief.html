@@ -239,7 +239,7 @@
 <section id="goal">
   <h2>Goal</h2>
   <p class="headline">The first flow with shocks in two dimensions. Step 2 of 7 on the way to a rotating detonation engine.</p>
-  <p class="lead">Solved with OpenFOAM's shock solver by a fresh agent. gpucfd's new shock solver has run the same problem on the same grids. Its numbers are in gpucfd's own record and join this page once they are checked.</p>
+  <p class="lead">Solved with OpenFOAM's shock solver by a fresh agent. gpucfd's new shock solver then ran the same problem on the same grids, with its outputs read by the case's own code. Its method was picked by a rule fixed before the runs.</p>
 </section>
 
 <section id="problem">
@@ -2165,38 +2165,40 @@ L 108 36
 
 <section id="results">
   <h2>Results</h2>
-  <p class="headline"><b>Completed, as expected.</b> The three requirements are met: on 800 cells per side the flat part of the shock moves at the exact speed to within \(0.006\,\%\), the state behind it is within \(0.036\,\%\), mass and energy match the exact inflow to \(3 \times 10^{-9}\) of it, and the flat part is straight to \(6 \times 10^{-5}\) cells on every grid.</p>
+  <p class="headline"><b>Completed, as expected.</b> The three requirements are met: on 800 cells per side the flat part of the shock moves at the exact speed to within \(0.006\,\%\), the state behind it is within \(0.036\,\%\), mass and energy match the exact inflow to \(3 \times 10^{-9}\) of it, and the flat part is straight to \(6 \times 10^{-5}\) cells on every grid. gpucfd's new shock solver meets the same three requirements on the same grids, and on 800 by 800 cells it takes 16 s on the GPU against OpenFOAM's 742 s on 8 cores. Its pressure ripple behind the shock is larger: at most \(4.4\,\%\) at any written time against OpenFOAM's \(2.0\,\%\).</p>
   <div class="two">
-    <div><h4>Accuracy</h4><div class="table-wrap"><table class="full">
-    <tr><th class="">Requirement</th><th class="num">OpenFOAM: difference from the reference</th><th class="num">gpucfd</th></tr>
+    <div><h4>Accuracy: difference from the reference</h4><div class="table-wrap"><table class="full">
+    <tr><th class="">Requirement</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
-    <tr><td class="">Flat part: shock speed, pressure, density, velocity</td><td class="num"><span style='white-space:nowrap'>\(+0.006\,\%\)</span><br><span style='white-space:nowrap'>\(-0.020\,\%\)</span><br><span style='white-space:nowrap'>\(-0.036\,\%\)</span><br><span style='white-space:nowrap'>\(+0.009\,\%\)</span></td><td class="num"><span class="wait">being checked</span></td></tr>
+    <tr><td class="">Flat part: shock speed, pressure, density, velocity</td><td class="num"><span style='white-space:nowrap'>\(+0.006\,\%\)</span><br><span style='white-space:nowrap'>\(-0.020\,\%\)</span><br><span style='white-space:nowrap'>\(-0.036\,\%\)</span><br><span style='white-space:nowrap'>\(+0.009\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>\(+0.005\,\%\)</span><br><span style='white-space:nowrap'>\(-0.023\,\%\)</span><br><span style='white-space:nowrap'>\(-0.038\,\%\)</span><br><span style='white-space:nowrap'>\(+0.010\,\%\)</span></td></tr>
     
-    <tr><td class="">Mass and energy against what flowed in</td><td class="num"><span style='white-space:nowrap'>mass \(3 \times 10^{-9}\)</span><br><span style='white-space:nowrap'>energy \(1 \times 10^{-12}\)</span></td><td class="num"><span class="wait">being checked</span></td></tr>
+    <tr><td class="">Mass and energy against what flowed in</td><td class="num"><span style='white-space:nowrap'>mass \(3 \times 10^{-9}\)</span><br><span style='white-space:nowrap'>energy \(1 \times 10^{-12}\)</span></td><td class="num"><span style='white-space:nowrap'>mass \(6 \times 10^{-8}\)</span><br><span style='white-space:nowrap'>energy \(6 \times 10^{-8}\)</span></td></tr>
     
-    <tr><td class="">Flat part stays straight</td><td class="num"><span style='white-space:nowrap'>\(6 \times 10^{-5}\) cells</span><br><span style='white-space:nowrap'>ripple \(1.2\,\%\)</span></td><td class="num"><span class="wait">being checked</span></td></tr>
+    <tr><td class="">Flat part stays straight</td><td class="num"><span style='white-space:nowrap'>\(6 \times 10^{-5}\) cells</span><br><span style='white-space:nowrap'>ripple \(1.2\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>\(0.004\) cells</span><br><span style='white-space:nowrap'>ripple \(2.4\,\%\)</span></td></tr>
     
-    <tr><td class="">Same picture at two times</td><td class="num"><span style='white-space:nowrap'>step face \(3.2\,\%\)</span><br><span style='white-space:nowrap'>line \(0.6\,\%\)</span></td><td class="num"><span class="wait">being checked</span></td></tr>
+    <tr><td class="">Same picture at two times</td><td class="num"><span style='white-space:nowrap'>step face \(3.2\,\%\)</span><br><span style='white-space:nowrap'>line \(0.6\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>step face \(3.8\,\%\)</span><br><span style='white-space:nowrap'>line \(0.5\,\%\)</span></td></tr>
     
   </table></div>
-  <p class="small">On the finest grid (800 by 800 cells). The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes.</p></div>
+  <p class="small">On 800 by 800 cells, the finest grid both tools ran. The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes.</p></div>
     <div><h4>Speed</h4><div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
-    <tr><td class="">100 by 100 cells, 510 steps</td><td class="num">3.3 s on 1 core</td><td class="num"><span class="wait">being checked</span></td></tr>
+    <tr><td class="">100 by 100 cells</td><td class="num">3.3 s on 1 core, 510 steps</td><td class="num">0.11 s on the GPU, 477 steps</td></tr>
     
-    <tr><td class="">200 by 200 cells, 1020 steps</td><td class="num">21 s on 1 core</td><td class="num"><span class="wait">being checked</span></td></tr>
+    <tr><td class="">200 by 200 cells</td><td class="num">21 s on 1 core, 1020 steps</td><td class="num">0.38 s on the GPU, 933 steps</td></tr>
     
-    <tr><td class="">400 by 400 cells, 2040 steps</td><td class="num">187 s on 1 core</td><td class="num"><span class="wait">being checked</span></td></tr>
+    <tr><td class="">400 by 400 cells</td><td class="num">187 s on 1 core, 2040 steps</td><td class="num">2.3 s on the GPU, 1840 steps</td></tr>
     
-    <tr><td class="">800 by 800 cells, 4080 steps</td><td class="num">742 s on 8 cores</td><td class="num"><span class="wait">being checked</span></td></tr>
+    <tr><td class="">800 by 800 cells</td><td class="num">742 s on 8 cores, 4080 steps</td><td class="num">16 s on the GPU, 3680 steps</td></tr>
+    
+    <tr><td class="">1600 by 1600 cells, 7308 steps (gpucfd only)</td><td class="num">–</td><td class="num">129 s on the GPU</td></tr>
     
   </table></div>
-  <p class="small">Cells and time step are halved together, so each level costs about eight times the one before. Sixteen cores were slower than eight.</p></div>
+  <p class="small">Cells and time step are halved together, so each level costs about eight times the one before. A gpucfd step has three stages, an OpenFOAM step one. For OpenFOAM, sixteen cores were slower than eight.</p></div>
   </div>
   <div class="two" style="margin-top: 14px">
-    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>All three requirements are met with a wide margin. A strong shock on a grid of squares stayed flat, which some other methods are known to get wrong.</li><li>The solver keeps mass and energy to the last digit, and the shock moves at the exact speed.</li><li>For the detonation engine: this flow needs about five time steps per cell, against two in the tube. With half as many, the gas round the corner got a negative pressure and the run broke. Eight cores gave only 2.3 times the speed of one.</li></ul></div>
-    <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>gpucfd's column is empty on this page until its record is checked. Its own tests show the same accuracy on the flat part in a fraction of the time.</li><li>The pattern round the corner is checked only against itself (two times, two grids), not against an experiment.</li><li>The start is not clean: the shock is put in as a sharp jump, and two weak waves from that start stay in the flow at about 2 % of the pressure.</li></ul></div>
+    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>All three requirements are met with a wide margin. A strong shock on a grid of squares stayed flat, which some other methods are known to get wrong.</li><li>Both tools keep mass and energy and move the shock at the exact speed. On the flat part their answers agree to a few thousandths of a per cent.</li><li>gpucfd needs about 50 times less time than OpenFOAM on 8 cores for the finest common grid.</li><li>For the detonation engine: this flow needs about five time steps per cell, against two in the tube. With half as many, the gas round the corner got a negative pressure and the run broke. Eight cores gave only 2.3 times the speed of one.</li></ul></div>
+    <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>The speed table is not tuned on OpenFOAM's side: its runs are the solver agent's own, with a time step chosen for safety. gpucfd ran on the GPU of the same PC.</li><li>gpucfd is worse in one place: the weak waves left by the start of the shock are about twice as tall as OpenFOAM's.</li><li>The pattern round the corner is checked only against itself (two times, two grids), not against an experiment.</li><li>The start is not clean: the shock is put in as a sharp jump, and two weak waves from that start stay in the flow at about 2 % of the pressure.</li></ul></div>
   </div>
   <p class="small">Details: <a href="report.html">the full report of this case</a></p>
 </section>

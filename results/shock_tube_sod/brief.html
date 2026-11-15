@@ -239,7 +239,7 @@
 <section id="goal">
   <h2>Goal</h2>
   <p class="headline">The first flow with shock waves. Step 1 of 7 on the way to a rotating detonation engine.</p>
-  <p class="lead">Solved with OpenFOAM's shock solver, which the project had never used. gpucfd cannot solve it yet: it has no solver for a gas whose density changes.</p>
+  <p class="lead">Solved first with OpenFOAM's shock solver, which the project had never used. gpucfd had no solver for a gas whose density changes. One was built the same day and run on the same problem and grids, with its settings chosen by a budget of twelve short runs fixed in advance.</p>
 </section>
 
 <section id="problem">
@@ -1938,38 +1938,38 @@ z
 
 <section id="results">
   <h2>Results</h2>
-  <p class="headline">OpenFOAM's shock solver converges to the exact solution of the shock tube: on 12800 cells the mean errors are \(0.0085\,\%\) (density), \(0.012\,\%\) (velocity), \(0.0068\,\%\) (pressure), the states between the waves are within \(0.0022\,\%\) and mass and energy are kept to round-off. But the pressure error falls more slowly than the limit set before the runs assumed (order \(0.78\) against \(0.85\)): \(0.0068\,\%\) against a limit of \(0.0055\,\%\).</p>
+  <p class="headline">OpenFOAM's shock solver converges to the exact solution of the shock tube: on 12800 cells the mean errors are \(0.0085\,\%\) (density), \(0.012\,\%\) (velocity), \(0.0068\,\%\) (pressure), the states between the waves are within \(0.0022\,\%\) and mass and energy are kept to round-off. But the pressure error falls more slowly than the limit set before the runs assumed (order \(0.78\) against \(0.85\)): \(0.0068\,\%\) against a limit of \(0.0055\,\%\). gpucfd's new solver for gas with shocks runs the same grids with errors 2.1 to 3.2 times smaller than OpenFOAM's on the finest grid, in 11090 steps against 23040 and 1.2 s against 84 s.</p>
   <div class="two">
-    <div><h4>Accuracy</h4><div class="table-wrap"><table class="full">
-    <tr><th class="">Requirement</th><th class="num">OpenFOAM: difference from the reference</th><th class="num">gpucfd</th></tr>
+    <div><h4>Accuracy: difference from the reference</h4><div class="table-wrap"><table class="full">
+    <tr><th class="">Requirement</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
-    <tr><td class="">Density, velocity, pressure along the tube</td><td class="num">\(\rho\): \(0.0085\,\%\)<br>\(u\): \(0.012\,\%\)<br>\(p\): \(0.0068\,\%\)</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">Density, velocity, pressure along the tube</td><td class="num">\(\rho\): \(0.0085\,\%\)<br>\(u\): \(0.012\,\%\)<br>\(p\): \(0.0068\,\%\)</td><td class="num">\(\rho\): \(0.0041\,\%\)<br>\(u\): \(0.0053\,\%\)<br>\(p\): \(0.0021\,\%\)</td></tr>
     
-    <tr><td class="">States between the waves</td><td class="num">\(0.00023\,\%\)<br>\(0.000094\,\%\)<br>\(0.0022\,\%\)<br>\(0.000033\,\%\)</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">States between the waves</td><td class="num">\(0.00023\,\%\)<br>\(0.000094\,\%\)<br>\(0.0022\,\%\)<br>\(0.000033\,\%\)</td><td class="num">\(3.3 \times 10^{-6}\,\%\)<br>\(3.7 \times 10^{-6}\,\%\)<br>\(2.9 \times 10^{-6}\,\%\)<br>\(3.6 \times 10^{-6}\,\%\)</td></tr>
     
-    <tr><td class="">Where each wave is, and its speed</td><td class="num">\(-0.11\,\mathrm{mm},\ -0.04\,\mathrm{m/s}\)<br>\(+0.08\,\mathrm{mm},\ +0.00\,\mathrm{m/s}\)<br>\(+0.03\,\mathrm{mm},\ +0.05\,\mathrm{m/s}\)<br>\(+0.01\,\mathrm{mm},\ -0.00\,\mathrm{m/s}\)</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">Where each wave is, and its speed</td><td class="num">\(-0.11\,\mathrm{mm},\ -0.04\,\mathrm{m/s}\)<br>\(+0.08\,\mathrm{mm},\ +0.00\,\mathrm{m/s}\)<br>\(+0.03\,\mathrm{mm},\ +0.05\,\mathrm{m/s}\)<br>\(+0.01\,\mathrm{mm},\ -0.00\,\mathrm{m/s}\)</td><td class="num">\(-0.00\,\mathrm{mm},\ -0.00\,\mathrm{m/s}\)<br>\(+0.03\,\mathrm{mm},\ +0.00\,\mathrm{m/s}\)<br>\(-0.02\,\mathrm{mm},\ +0.00\,\mathrm{m/s}\)<br>\(+0.01\,\mathrm{mm},\ -0.00\,\mathrm{m/s}\)</td></tr>
     
-    <tr><td class="">Mass and energy kept</td><td class="num">round-off</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">Mass and energy kept</td><td class="num">round-off</td><td class="num">constant. Largest change: mass \(9.9 \times 10^{-16}\), energy \(1.1 \times 10^{-15}\) (relative; fluxes in single precision)</td></tr>
     
   </table></div>
   <p class="small">Differences from the exact solution on the finest grid (12 800 cells). The first row is the mean difference along the tube.</p></div>
     <div><h4>Speed</h4><div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
-    <tr><td class="">100 cells, 180 steps</td><td class="num">0.40 s on 1 core</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">100 cells</td><td class="num">0.40 s on 1 core, 180 steps</td><td class="num">0.01 s on the GPU, 90 steps</td></tr>
     
-    <tr><td class="">800 cells, 1440 steps</td><td class="num">1.1 s on 1 core</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">800 cells</td><td class="num">1.1 s on 1 core, 1440 steps</td><td class="num">0.05 s on the GPU, 700 steps</td></tr>
     
-    <tr><td class="">3200 cells, 5760 steps</td><td class="num">7.0 s on 1 core</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">3200 cells</td><td class="num">7.0 s on 1 core, 5760 steps</td><td class="num">0.20 s on the GPU, 2780 steps</td></tr>
     
-    <tr><td class="">12800 cells, 23040 steps</td><td class="num">84 s on 1 core</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">12800 cells</td><td class="num">84 s on 1 core, 23040 steps</td><td class="num">1.2 s on the GPU, 11090 steps</td></tr>
     
   </table></div>
-  <p class="small">Four of the eight runs of the grid study. Cells and time step are halved together, so each level costs four times the one before.</p></div>
+  <p class="small">Four of the eight grids. Cells and time step are halved together, so each level costs four times the one before. A gpucfd step has three stages, an OpenFOAM step one. In one dimension the GPU is mostly idle, so gpucfd's times measure its overhead, not the card. gpucfd's times run from creating the solver to the final field; starting the GPU library adds 0.22 s once.</p></div>
   </div>
   <div class="two" style="margin-top: 14px">
-    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>OpenFOAM's shock solver gets the exact answer to about a hundredth of a per cent, puts every wave in the right place, and keeps mass and energy exactly.</li><li>One expectation was not met: the pressure error fell more slowly with the grid than the agent had predicted before its fine runs. The answer itself is accurate.</li><li>For the detonation engine: a shock is spread over 2 cells on every grid, and this solver needs half the time step its own examples use, or the pressure rings behind the shock.</li></ul></div>
-    <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>gpucfd has no column: a solver for a gas with changing density is not built yet.</li><li>Why the error in the expansion falls slowly is not explained. Only one solver was run, and a second one on the same grids would tell.</li><li>One dimension and no friction. The time step is not converged: the full report says how much error is left.</li></ul></div>
+    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>OpenFOAM's shock solver gets the exact answer to about a hundredth of a per cent, puts every wave in the right place, and keeps mass and energy exactly.</li><li>One expectation was not met: the pressure error fell more slowly with the grid than the agent had predicted before its fine runs. The answer itself is accurate.</li><li>gpucfd's new solver is two to three times more accurate on the finest grid, in half the time steps.</li><li>For the detonation engine: a shock is spread over 2 cells on every grid, and this solver needs half the time step its own examples use, or the pressure rings behind the shock.</li></ul></div>
+    <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>The two tools were not given the same care: OpenFOAM ran as the solver agent set it up, on one core and not tuned for speed. gpucfd's method was chosen by twelve short tries.</li><li>Why OpenFOAM's error in the expansion falls slowly is not explained. gpucfd with the same kind of limiter does not show it, so it belongs to OpenFOAM's solver and not to the limiter.</li><li>One dimension and no friction. The time step is not converged: the full report says how much error is left.</li></ul></div>
   </div>
   <p class="small">Details: <a href="report.html">the full report of this case</a></p>
 </section>

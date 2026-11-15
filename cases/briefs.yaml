@@ -196,57 +196,64 @@ turbulent_channel_re180:
 
 shock_tube_sod:
   goal: The first flow with shock waves. Step 1 of 7 on the way to a rotating detonation engine.
-  story: "Solved with OpenFOAM's shock solver, which the project had never used. gpucfd cannot solve it yet: it has no solver for a gas whose density changes."
+  story: "Solved first with OpenFOAM's shock solver, which the project had never used. gpucfd had no solver for a gas whose density changes. One was built the same day and run on the same problem and grids, with its settings chosen by a budget of twelve short runs fixed in advance."
   requirements:
     - A closed tube of air at rest, 1 m long. A thin wall in the middle separates high pressure on the left from low pressure on the right.
     - The wall is removed. A shock wave runs to the right and an expansion to the left. No friction and no heat conduction.
     - "Asked for at half a millisecond: density, velocity and pressure along the tube, the states between the waves, where each wave is, whether mass and energy are kept, and how sharp the computed jumps are."
     - "Reference: the exact solution of this problem."
     - "Pass limits: written by the solver agent before its fine runs."
-  gpucfd: cannot yet
+  gpucfd: not run
+  record: dev/compare/shock_tube_sod/gpucfd.json
   accuracy:
     note: "Differences from the exact solution on the finest grid (12 800 cells). The first row is the mean difference along the tube."
     rows: {a: "Density, velocity, pressure along the tube", b: States between the waves, c: "Where each wave is, and its speed", d: Mass and energy kept}
   speed:
     data:
       files: [results/shock_tube_sod/runs/N100.json, results/shock_tube_sod/runs/N800.json, results/shock_tube_sod/runs/N3200.json, results/shock_tube_sod/runs/N12800.json]
-      label: "{N} cells, {steps} steps"
+      label: "{N} cells"
+      detail: "{steps} steps"
       wall: wall_time
-    note: Four of the eight runs of the grid study. Cells and time step are halved together, so each level costs four times the one before.
+    note: Four of the eight grids. Cells and time step are halved together, so each level costs four times the one before. A gpucfd step has three stages, an OpenFOAM step one. In one dimension the GPU is mostly idle, so gpucfd's times measure its overhead, not the card.
   meaning:
     - OpenFOAM's shock solver gets the exact answer to about a hundredth of a per cent, puts every wave in the right place, and keeps mass and energy exactly.
     - "One expectation was not met: the pressure error fell more slowly with the grid than the agent had predicted before its fine runs. The answer itself is accurate."
+    - "gpucfd's new solver is two to three times more accurate on the finest grid, in half the time steps."
     - "For the detonation engine: a shock is spread over 2 cells on every grid, and this solver needs half the time step its own examples use, or the pressure rings behind the shock."
   limits:
-    - "gpucfd has no column: a solver for a gas with changing density is not built yet."
-    - Why the error in the expansion falls slowly is not explained. Only one solver was run, and a second one on the same grids would tell.
+    - "The two tools were not given the same care: OpenFOAM ran as the solver agent set it up, on one core and not tuned for speed. gpucfd's method was chosen by twelve short tries."
+    - "Why OpenFOAM's error in the expansion falls slowly is not explained. gpucfd with the same kind of limiter does not show it, so it belongs to OpenFOAM's solver and not to the limiter."
     - "One dimension and no friction. The time step is not converged: the full report says how much error is left."
 
 shock_diffraction_corner:
   goal: The first flow with shocks in two dimensions. Step 2 of 7 on the way to a rotating detonation engine.
-  story: "Solved with OpenFOAM's shock solver by a fresh agent. gpucfd's new shock solver has run the same problem on the same grids. Its numbers are in gpucfd's own record and join this page once they are checked."
+  story: "Solved with OpenFOAM's shock solver by a fresh agent. gpucfd's new shock solver then ran the same problem on the same grids, with its outputs read by the case's own code. Its method was picked by a rule fixed before the runs."
   requirements:
     - A square chamber of still air, 1 m by 1 m. A flat shock wave five times faster than sound enters through the upper half of the left side.
     - Below the opening the left side is a wall, so the shock has to bend round a sharp corner into the lower half. No friction and no heat conduction.
     - "Asked for at 0.45 ms: the speed of the flat part of the shock and the gas behind it, whether mass and energy are kept, whether the flat part stays flat, and the pattern round the corner."
     - "Reference: the exact jump across a shock for the flat part. The pattern round the corner has no exact solution."
     - "Required: the flat part's speed within 0.5 % and the gas behind it within 1 %; mass and energy within 0.01 % of what flowed in; the flat part straight to within one cell."
-  gpucfd: being checked
+  gpucfd: not run
+  record: dev/compare/shock_diffraction_corner/gpucfd.json
   accuracy:
-    note: "On the finest grid (800 by 800 cells). The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes."
+    note: "On 800 by 800 cells, the finest grid both tools ran. The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes."
     rows: {a: "Flat part: shock speed, pressure, density, velocity", b: Mass and energy against what flowed in, c: Flat part stays straight, d: Same picture at two times}
   speed:
     data:
       files: [results/shock_diffraction_corner/runs/N100.json, results/shock_diffraction_corner/runs/N200.json, results/shock_diffraction_corner/runs/N400.json, results/shock_diffraction_corner/runs/N800.json]
-      label: "{N} by {N} cells, {steps} steps"
+      label: "{N} by {N} cells"
+      detail: "{steps} steps"
       wall: wall_time
       cores: cores
-    note: Cells and time step are halved together, so each level costs about eight times the one before. Sixteen cores were slower than eight.
+    note: Cells and time step are halved together, so each level costs about eight times the one before. A gpucfd step has three stages, an OpenFOAM step one. For OpenFOAM, sixteen cores were slower than eight.
   meaning:
     - All three requirements are met with a wide margin. A strong shock on a grid of squares stayed flat, which some other methods are known to get wrong.
-    - "The solver keeps mass and energy to the last digit, and the shock moves at the exact speed."
+    - "Both tools keep mass and energy and move the shock at the exact speed. On the flat part their answers agree to a few thousandths of a per cent."
+    - "gpucfd needs about 50 times less time than OpenFOAM on 8 cores for the finest common grid."
     - "For the detonation engine: this flow needs about five time steps per cell, against two in the tube. With half as many, the gas round the corner got a negative pressure and the run broke. Eight cores gave only 2.3 times the speed of one."
   limits:
-    - "gpucfd's column is empty on this page until its record is checked. Its own tests show the same accuracy on the flat part in a fraction of the time."
+    - "The speed table is not tuned on OpenFOAM's side: its runs are the solver agent's own, with a time step chosen for safety. gpucfd ran on the GPU of the same PC."
+    - "gpucfd is worse in one place: the weak waves left by the start of the shock are about twice as tall as OpenFOAM's."
     - The pattern round the corner is checked only against itself (two times, two grids), not against an experiment.
     - "The start is not clean: the shock is put in as a sharp jump, and two weak waves from that start stay in the flow at about 2 % of the pressure."

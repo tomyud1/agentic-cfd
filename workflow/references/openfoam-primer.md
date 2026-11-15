@@ -68,7 +68,9 @@ The worked example is `cases/shock_tube_sod/`.
 - **Its only time scheme is the explicit Euler step.** At the tutorials' limit the solution rang by
   3 % behind the shock; at half that step by 0.6 %, and a finer grid did not remove it. A time-step
   study shows it. Check for wiggles with the ripple on a stretch that should be uniform; the total
-  variation of a profile detects them but grows with the number of cells.
+  variation of a profile detects them but grows with the number of cells. The single stage is not
+  the whole cause: another solver with one stage and the same limiter rang 20 times less on the
+  same grid and step (`gpucfd/COMPRESSIBLE.md`, rung 3), so part of it belongs to this solver.
 - **Comparing with an exact solution that has jumps:** compare cell averages with cell averages
   (`verification.cell_averages`) and use the mean error (`verification.mean_abs_error`). Measured
   there: a shock 2 cells wide on every grid, the border between two gases 4 to 6 cells, and a mean

@@ -35,8 +35,8 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   the verdict is FAIL because the pressure error falls with order 0.78 where the agent's limit
   assumed 0.85. Carried forward: a shock takes 2 cells, the border between two gases 4 to 6;
   the solver needs half its tutorials' time step; about 0.3 microseconds per cell and step on one
-  core; ten times less error costs about 17 times more cells. Open: why the error in the
-  expansion falls that slowly.
+  core; ten times less error costs about 17 times more cells. The slow fall of the error in the
+  expansion belongs to this OpenFOAM solver: gpucfd with the same limiter does not show it.
 - **Step 2 is done (2026-11-15):** a Mach 5 shock going round a sharp corner (case 19), with the
   same OpenFOAM solver, solved by a fresh agent in about 50 minutes. It is the first problem with
   a stated required accuracy, and all three requirements are met (flat part of the shock within
@@ -44,9 +44,12 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   dimensions this flow needs about five time steps per cell (two in the tube), or the pressure
   goes negative at the corner; 800 by 800 cells take 12 minutes on 8 cores, and 8 cores are only
   2.3 times faster than one; starting a shock as a sharp jump leaves two weak waves of about 2 %.
-- **gpucfd has a shock solver now** ([`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md), built in
-  parallel on 2026-11-15, under review): it runs steps 1 and 2 on the GPU. It is the base of the
-  third detonation solver (step 4).
+- **gpucfd has a shock solver now** ([`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md), built and
+  reviewed on 2026-11-15): it runs steps 1 and 2 on the GPU, as accurate as OpenFOAM or better
+  and 20 to 70 times faster. It is the base of the third detonation solver. **Next for it, in
+  order:** the chemistry of every cell on the GPU, tested on step 3's ignition problem and timed
+  against OpenFOAM's chemistry on the CPU; then several gases with heat capacities that change
+  with temperature, and a guard against negative pressure; then the two together on step 4.
 - **Step 3 is next:** ignition of hydrogen and air in a closed box (case 20), chemistry alone.
 - **The solver gap.** No solver on the development PC handles a shock and burning together.
   Three ways are tried, all three (the student's decision), and compared on step 4 on the same
@@ -55,9 +58,21 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   budget fixed before its runs. The report shows all three, whatever the outcome.
 - **Hardware.** Steps 1 to 4 fit the development PC. Steps 5 to 7 probably need the lab's
   machines; their cost is measured on steps 4 and 5 first.
-- **Open, for the meeting.** Whether this flat engine or the lab's own set-up is the target; full
-  hydrogen chemistry or a one-reaction model first; which published solver the lab trusts; a lab
-  result to keep hidden for step 7; access to the lab's GPUs.
+- **Prof. Frankel's answers (email, 2026-11-15).**
+  - The flat engine is the right target: a generic engine, the lab has no specific design yet.
+  - **Full hydrogen chemistry from the start.** A one-reaction model predicts a temperature that
+    is much too high. So the one-reaction option is dropped; step 3 already uses the full scheme.
+  - **Chemistry on the GPU is the key to speed** in the lab's own code, and he asked whether
+    OpenFOAM has it. OpenFOAM as installed solves the chemistry on the CPU, one cell after
+    another. Step 3 measures what that costs. This makes chemistry inside gpucfd (the third
+    solver) the most interesting of the three ways, and it moves ahead of the published solver.
+  - He knows no published detonation solver to trust. That way stays on the list with the lowest
+    priority, and still needs a download the student must approve.
+  - The lab has run the flat engine with its own code (a video was sent). That is the material
+    for the blind step 7; the set-up behind it is a question for the meeting.
+- **Open, for the meeting.** The set-up of the lab's own flat-engine run (size, supply, grid,
+  reaction scheme) and which of its numbers stay hidden for step 7; how accurate an engine
+  answer must be; access to the lab's GPUs.
 - **Pushed back:** case 8 (buoyancy cavity), the cheaper-methods candidates (section 5), the
   workflow diet (section 4) and gpucfd's turbulence-model direction.
 

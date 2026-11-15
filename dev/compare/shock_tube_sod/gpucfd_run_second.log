@@ -1,0 +1,46 @@
+GPU: {'name': 'NVIDIA GeForce RTX 4070', 'compute_capability': 8.9}; start-up 0.51 s; other solver processes on the CPU: 9
+PASS  rung 3a: the exact solution conserves mass, momentum and energy: total mass, momentum (against the push of the two ends) and energy at t_end off by 0.0e+00, 4.4e-16, 0.0e+00
+PASS  rung 3a: exact cell averages against 64 samples per cell: largest difference 2.1e-03 (a cell with a jump; bound 1/128 of the jump), elsewhere at most 3.8e-09
+PASS  rung 3a: OpenFOAM's stored profiles scored with this exact solution give OpenFOAM's recorded errors: 8 grids, largest relative difference of an error 1.4e-09
+try vanleer  hll   Courant 0.4: errors 1.34e-03 2.41e-03 8.85e-04 sum 4.64e-03; ripple 0.00 %, wiggle 0.75 %, shock 2.50, border 6.03 cells; within limits True
+try vanleer  hll   Courant 0.8: errors 1.36e-03 2.44e-03 8.99e-04 sum 4.69e-03; ripple 0.01 %, wiggle 0.69 %, shock 2.50, border 6.06 cells; within limits True
+try vanleer  hllc  Courant 0.4: errors 1.28e-03 2.36e-03 8.58e-04 sum 4.50e-03; ripple 0.01 %, wiggle 0.69 %, shock 2.50, border 5.76 cells; within limits True
+try vanleer  hllc  Courant 0.8: errors 1.29e-03 2.38e-03 8.68e-04 sum 4.54e-03; ripple 0.01 %, wiggle 0.65 %, shock 2.50, border 5.78 cells; within limits True
+try mc       hll   Courant 0.4: errors 1.17e-03 2.04e-03 7.35e-04 sum 3.95e-03; ripple 0.04 %, wiggle 1.60 %, shock 2.32, border 5.29 cells; within limits True
+try mc       hll   Courant 0.8: errors 1.18e-03 2.10e-03 7.58e-04 sum 4.04e-03; ripple 0.03 %, wiggle 1.73 %, shock 2.32, border 5.29 cells; within limits True
+try mc       hllc  Courant 0.4: errors 1.10e-03 2.00e-03 7.11e-04 sum 3.81e-03; ripple 0.06 %, wiggle 1.55 %, shock 2.32, border 5.07 cells; within limits True
+try mc       hllc  Courant 0.8: errors 1.11e-03 2.05e-03 7.31e-04 sum 3.89e-03; ripple 0.03 %, wiggle 1.58 %, shock 2.32, border 5.04 cells; within limits True
+try weno5    hll   Courant 0.4: errors 8.04e-04 1.58e-03 5.88e-04 sum 2.97e-03; ripple 0.03 %, wiggle 2.73 %, shock 2.10, border 3.45 cells; within limits True
+try weno5    hll   Courant 0.8: errors 8.06e-04 1.65e-03 6.16e-04 sum 3.07e-03; ripple 0.03 %, wiggle 2.03 %, shock 2.10, border 3.48 cells; within limits True
+try weno5    hllc  Courant 0.4: errors 7.79e-04 1.60e-03 5.94e-04 sum 2.97e-03; ripple 0.03 %, wiggle 2.64 %, shock 2.10, border 3.32 cells; within limits True
+try weno5    hllc  Courant 0.8: errors 7.98e-04 1.67e-03 6.25e-04 sum 3.10e-03; ripple 0.05 %, wiggle 2.46 %, shock 2.10, border 3.35 cells; within limits True
+chosen: weno5 / hllc at Courant 0.4
+  weno5/hllc N    100:    90 steps, wall 0.007 s | errors 2.98e-03 5.86e-03 2.29e-03 | shock 2.05, border 2.96 cells | ripple 0.25 %, wiggle 2.35 %
+  weno5/hllc N    200:   180 steps, wall 0.014 s | errors 1.46e-03 2.10e-03 1.07e-03 | shock 1.80, border 2.96 cells | ripple 0.06 %, wiggle 1.63 %
+  weno5/hllc N    400:   350 steps, wall 0.025 s | errors 7.79e-04 1.60e-03 5.94e-04 | shock 2.10, border 3.32 cells | ripple 0.03 %, wiggle 1.19 %
+  weno5/hllc N    800:   700 steps, wall 0.049 s | errors 3.81e-04 6.49e-04 2.67e-04 | shock 1.91, border 3.68 cells | ripple 0.02 %, wiggle 1.08 %
+  weno5/hllc N   1600:  1390 steps, wall 0.096 s | errors 2.18e-04 3.05e-04 1.42e-04 | shock 1.79, border 4.12 cells | ripple 0.01 %, wiggle 1.01 %
+  weno5/hllc N   3200:  2780 steps, wall 0.190 s | errors 1.19e-04 1.48e-04 6.60e-05 | shock 1.80, border 4.81 cells | ripple 0.01 %, wiggle 1.23 %
+  weno5/hllc N   6400:  5550 steps, wall 0.411 s | errors 6.70e-05 1.13e-04 4.23e-05 | shock 2.03, border 5.54 cells | ripple 0.01 %, wiggle 1.65 %
+  weno5/hllc N  12800: 11090 steps, wall 1.170 s | errors 4.10e-05 5.32e-05 2.11e-05 | shock 1.95, border 6.26 cells | ripple 0.01 %, wiggle 2.41 %
+  vanleer/hll N    100:    90 steps, wall 0.005 s | errors 4.38e-03 8.71e-03 3.35e-03 | shock 2.47, border 4.10 cells | ripple 0.27 %, wiggle 0.30 %
+  vanleer/hll N    200:   180 steps, wall 0.009 s | errors 2.41e-03 3.71e-03 1.66e-03 | shock 2.34, border 4.80 cells | ripple 0.10 %, wiggle 0.20 %
+  vanleer/hll N    400:   350 steps, wall 0.013 s | errors 1.34e-03 2.41e-03 8.85e-04 | shock 2.50, border 6.03 cells | ripple 0.00 %, wiggle 0.18 %
+  vanleer/hll N    800:   700 steps, wall 0.026 s | errors 7.43e-04 1.02e-03 4.02e-04 | shock 2.44, border 7.43 cells | ripple 0.00 %, wiggle 0.17 %
+  vanleer/hll N   1600:  1390 steps, wall 0.050 s | errors 4.29e-04 5.12e-04 2.17e-04 | shock 2.35, border 9.10 cells | ripple 0.00 %, wiggle 0.16 %
+  vanleer/hll N   3200:  2780 steps, wall 0.096 s | errors 2.49e-04 2.27e-04 1.01e-04 | shock 2.37, border 11.20 cells | ripple 0.00 %, wiggle 0.16 %
+  vanleer/hll N   6400:  5550 steps, wall 0.193 s | errors 1.44e-04 1.61e-04 5.92e-05 | shock 2.46, border 13.71 cells | ripple 0.00 %, wiggle 0.16 %
+  vanleer/hll N  12800: 11090 steps, wall 0.639 s | errors 8.99e-05 7.45e-05 2.88e-05 | shock 2.44, border 16.89 cells | ripple 0.00 %, wiggle 0.17 %
+N    100: OpenFOAM's error / gpucfd's: tuned 1.53 1.40 1.49; like for like 1.04 0.94 1.02; OpenFOAM's time / gpucfd's 59.0
+N    200: OpenFOAM's error / gpucfd's: tuned 1.56 1.61 1.51; like for like 0.94 0.91 0.97; OpenFOAM's time / gpucfd's 41.5
+N    400: OpenFOAM's error / gpucfd's: tuned 1.64 1.44 1.56; like for like 0.95 0.96 1.04; OpenFOAM's time / gpucfd's 28.7
+N    800: OpenFOAM's error / gpucfd's: tuned 1.91 1.71 1.99; like for like 0.98 1.09 1.32; OpenFOAM's time / gpucfd's 22.5
+N   1600: OpenFOAM's error / gpucfd's: tuned 1.98 2.08 2.37; like for like 1.01 1.24 1.55; OpenFOAM's time / gpucfd's 24.1
+N   3200: OpenFOAM's error / gpucfd's: tuned 2.07 2.24 2.90; like for like 0.99 1.45 1.90; OpenFOAM's time / gpucfd's 36.9
+N   6400: OpenFOAM's error / gpucfd's: tuned 2.07 1.99 2.83; like for like 0.96 1.40 2.02; OpenFOAM's time / gpucfd's 58.5
+N  12800: OpenFOAM's error / gpucfd's: tuned 2.06 2.21 3.24; like for like 0.94 1.58 2.37; OpenFOAM's time / gpucfd's 71.9
+by the case's rules: FAIL; fail ['momentum changes by 4.9e-08 (limit 1e-09)', 'an end cell is disturbed']; warn ['wiggle 0.053 above 0.05']
+like for like: fail ['momentum changes by 4.6e-08 (limit 1e-09)']; warn []
+fitted order of the error over all grids: tuned: 0.89 0.95 0.96; like_for_like: 0.81 0.98 0.98; openfoam: 0.81 0.85 0.78
+record: /mnt/d/Projects/Agentic CFD/dev/compare/shock_tube_sod/gpucfd.json
+exit 0

@@ -1,0 +1,632 @@
+{
+ "busy_cpu": false,
+ "busy_processes": [],
+ "rows": [
+  {
+   "n": [
+    12800,
+    1,
+    1
+   ],
+   "cells": 12800,
+   "precision": "float",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 400,
+   "ms_per_step": 0.05355410999996821,
+   "cell_steps_per_s": 239010600.68046317,
+   "ns_per_cell_step": 4.183914843747516,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    12800,
+    1,
+    1
+   ],
+   "cells": 12800,
+   "precision": "float",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 400,
+   "ms_per_step": 0.09493679749997681,
+   "cell_steps_per_s": 134826540.7836527,
+   "ns_per_cell_step": 7.416937304685688,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    12800,
+    1,
+    1
+   ],
+   "cells": 12800,
+   "precision": "mixed",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 400,
+   "ms_per_step": 0.06366227749997051,
+   "cell_steps_per_s": 201060981.5209003,
+   "ns_per_cell_step": 4.973615429685196,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    12800,
+    1,
+    1
+   ],
+   "cells": 12800,
+   "precision": "mixed",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 400,
+   "ms_per_step": 0.10378110499994364,
+   "cell_steps_per_s": 123336516.79664572,
+   "ns_per_cell_step": 8.107898828120597,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    12800,
+    1,
+    1
+   ],
+   "cells": 12800,
+   "precision": "double",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 400,
+   "ms_per_step": 0.32062843499996235,
+   "cell_steps_per_s": 39921599.59238021,
+   "ns_per_cell_step": 25.049096484372054,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    12800,
+    1,
+    1
+   ],
+   "cells": 12800,
+   "precision": "double",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 400,
+   "ms_per_step": 1.5038891475000127,
+   "cell_steps_per_s": 8511265.621723553,
+   "ns_per_cell_step": 117.4913396484385,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    1
+   ],
+   "cells": 16384,
+   "precision": "float",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 400,
+   "ms_per_step": 0.1034556674999476,
+   "cell_steps_per_s": 158367350.92360502,
+   "ns_per_cell_step": 6.314432830807348,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    1
+   ],
+   "cells": 16384,
+   "precision": "float",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 400,
+   "ms_per_step": 0.13747129750001477,
+   "cell_steps_per_s": 119181242.17892276,
+   "ns_per_cell_step": 8.390582122803636,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    1
+   ],
+   "cells": 16384,
+   "precision": "mixed",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 400,
+   "ms_per_step": 0.11613498999999138,
+   "cell_steps_per_s": 141077206.79186538,
+   "ns_per_cell_step": 7.08831726074166,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    1
+   ],
+   "cells": 16384,
+   "precision": "mixed",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 400,
+   "ms_per_step": 0.153510954999947,
+   "cell_steps_per_s": 106728539.3410891,
+   "ns_per_cell_step": 9.369565124508483,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    1
+   ],
+   "cells": 16384,
+   "precision": "double",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 400,
+   "ms_per_step": 0.6243018949999533,
+   "cell_steps_per_s": 26243713.388057597,
+   "ns_per_cell_step": 38.10436370849324,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    1
+   ],
+   "cells": 16384,
+   "precision": "double",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 400,
+   "ms_per_step": 2.6298473099998954,
+   "cell_steps_per_s": 6230019.491131845,
+   "ns_per_cell_step": 160.5131414794858,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    512,
+    512,
+    1
+   ],
+   "cells": 262144,
+   "precision": "float",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 400,
+   "ms_per_step": 1.2453823175000434,
+   "cell_steps_per_s": 210492791.10227197,
+   "ns_per_cell_step": 4.750756521225141,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    512,
+    512,
+    1
+   ],
+   "cells": 262144,
+   "precision": "float",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 400,
+   "ms_per_step": 1.492699980000034,
+   "cell_steps_per_s": 175617340.06320146,
+   "ns_per_cell_step": 5.694198532104622,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    512,
+    512,
+    1
+   ],
+   "cells": 262144,
+   "precision": "mixed",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 400,
+   "ms_per_step": 1.4895474775000184,
+   "cell_steps_per_s": 175989019.45708326,
+   "ns_per_cell_step": 5.682172689437936,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    512,
+    512,
+    1
+   ],
+   "cells": 262144,
+   "precision": "mixed",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 400,
+   "ms_per_step": 1.6790657325000211,
+   "cell_steps_per_s": 156124918.1172225,
+   "ns_per_cell_step": 6.405127458572468,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    512,
+    512,
+    1
+   ],
+   "cells": 262144,
+   "precision": "double",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 254,
+   "ms_per_step": 6.852235732283388,
+   "cell_steps_per_s": 38256710.69151106,
+   "ns_per_cell_step": 26.13920491135936,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    512,
+    512,
+    1
+   ],
+   "cells": 262144,
+   "precision": "double",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 254,
+   "ms_per_step": 33.924019086613974,
+   "cell_steps_per_s": 7727386.290247638,
+   "ns_per_cell_step": 129.40986284871664,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    2048,
+    2048,
+    1
+   ],
+   "cells": 4194304,
+   "precision": "float",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 158,
+   "ms_per_step": 18.31050805063274,
+   "cell_steps_per_s": 229065408.14715737,
+   "ns_per_cell_step": 4.365565312059579,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    2048,
+    2048,
+    1
+   ],
+   "cells": 4194304,
+   "precision": "float",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 158,
+   "ms_per_step": 21.8891547531644,
+   "cell_steps_per_s": 191615621.85920638,
+   "ns_per_cell_step": 5.21878117398367,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    2048,
+    2048,
+    1
+   ],
+   "cells": 4194304,
+   "precision": "mixed",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 158,
+   "ms_per_step": 22.87914981645579,
+   "cell_steps_per_s": 183324294.54975873,
+   "ns_per_cell_step": 5.4548143902911645,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    2048,
+    2048,
+    1
+   ],
+   "cells": 4194304,
+   "precision": "mixed",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 158,
+   "ms_per_step": 25.597566474683337,
+   "cell_steps_per_s": 163855576.04267874,
+   "ns_per_cell_step": 6.102935427351794,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    2048,
+    2048,
+    1
+   ],
+   "cells": 4194304,
+   "precision": "double",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 15,
+   "ms_per_step": 103.40574266666857,
+   "cell_steps_per_s": 40561615.74624014,
+   "ns_per_cell_step": 24.65385023752894,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    2048,
+    2048,
+    1
+   ],
+   "cells": 4194304,
+   "precision": "double",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 15,
+   "ms_per_step": 526.9881068666621,
+   "cell_steps_per_s": 7959010.735438168,
+   "ns_per_cell_step": 125.64375564257195,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "float",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 39,
+   "ms_per_step": 74.70978435897268,
+   "cell_steps_per_s": 224565177.69328895,
+   "ns_per_cell_step": 4.453050157962601,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "float",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 39,
+   "ms_per_step": 87.13536469230596,
+   "cell_steps_per_s": 192541984.0640367,
+   "ns_per_cell_step": 5.193672459859012,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "mixed",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 39,
+   "ms_per_step": 88.00081451281977,
+   "cell_steps_per_s": 190648417.2093195,
+   "ns_per_cell_step": 5.245257288981661,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "mixed",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 39,
+   "ms_per_step": 97.91552841025762,
+   "cell_steps_per_s": 171343772.25341532,
+   "ns_per_cell_step": 5.836220288888074,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "double",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 4,
+   "ms_per_step": 417.4765767499921,
+   "cell_steps_per_s": 40187203.14947662,
+   "ns_per_cell_step": 24.883543059229382,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "double",
+   "recon": "weno5",
+   "flux": "rusanov",
+   "steps": 4,
+   "ms_per_step": 2171.1890420000127,
+   "cell_steps_per_s": 7727201.858270939,
+   "ns_per_cell_step": 129.41295158863144,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    128
+   ],
+   "cells": 2097152,
+   "precision": "float",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 317,
+   "ms_per_step": 13.78068891482623,
+   "cell_steps_per_s": 152180490.60985166,
+   "ns_per_cell_step": 6.5711445402270465,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    128
+   ],
+   "cells": 2097152,
+   "precision": "mixed",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 317,
+   "ms_per_step": 16.319025936908506,
+   "cell_steps_per_s": 128509630.91227776,
+   "ns_per_cell_step": 7.781517952398542,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    128,
+    128,
+    128
+   ],
+   "cells": 2097152,
+   "precision": "double",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 31,
+   "ms_per_step": 75.60233445161383,
+   "cell_steps_per_s": 27739249.260116376,
+   "ns_per_cell_step": 36.05000231342976,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    256,
+    256,
+    256
+   ],
+   "cells": 16777216,
+   "precision": "float",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 39,
+   "ms_per_step": 107.98902587179477,
+   "cell_steps_per_s": 155360379.11776346,
+   "ns_per_cell_step": 6.436647526728795,
+   "bytes_per_cell": 61.25
+  },
+  {
+   "n": [
+    256,
+    256,
+    256
+   ],
+   "cells": 16777216,
+   "precision": "mixed",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 39,
+   "ms_per_step": 133.38184087179326,
+   "cell_steps_per_s": 125783359.19149798,
+   "ns_per_cell_step": 7.9501772446509165,
+   "bytes_per_cell": 121.25
+  },
+  {
+   "n": [
+    256,
+    256,
+    256
+   ],
+   "cells": 16777216,
+   "precision": "double",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 4,
+   "ms_per_step": 598.0526644999918,
+   "cell_steps_per_s": 28053074.580023427,
+   "ns_per_cell_step": 35.646716624497884,
+   "bytes_per_cell": 121.25
+  }
+ ],
+ "largest_2d": {
+  "float": {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "float",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 39,
+   "ms_per_step": 74.70978435897268,
+   "cell_steps_per_s": 224565177.69328895,
+   "ns_per_cell_step": 4.453050157962601,
+   "bytes_per_cell": 61.25
+  },
+  "mixed": {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "mixed",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 39,
+   "ms_per_step": 88.00081451281977,
+   "cell_steps_per_s": 190648417.2093195,
+   "ns_per_cell_step": 5.245257288981661,
+   "bytes_per_cell": 121.25
+  },
+  "double": {
+   "n": [
+    4096,
+    4096,
+    1
+   ],
+   "cells": 16777216,
+   "precision": "double",
+   "recon": "vanleer",
+   "flux": "hybrid",
+   "steps": 4,
+   "ms_per_step": 417.4765767499921,
+   "cell_steps_per_s": 40187203.14947662,
+   "ns_per_cell_step": 24.883543059229382,
+   "bytes_per_cell": 121.25
+  }
+ }
+}

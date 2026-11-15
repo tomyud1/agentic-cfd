@@ -9,9 +9,6 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-- **gpucfd: a solver for gas with shocks** (`gpucfd/src/gcfdc.cu`, `gpucfd/euler.py`, notes in
-  `gpucfd/COMPRESSIBLE.md`), built by a separate session on 2026-11-15. It has run the shock tube
-  and the corner on the GPU; its tests and records are being reviewed and are not committed yet.
 - **Case 20 (ignition of hydrogen and air)** is with a fresh solver agent, launched on 2026-11-15
   right after the commit that prepared it (Fable 5.2, high effort).
 
@@ -19,7 +16,58 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### Case 20 prepared: ignition of hydrogen and air, step 3 of the ladder, commit hash to be filled in
+### gpucfd: a solver for gas with shock waves, commit hash to be filled in
+Built by a separate session in one day as the base of gpucfd's own way to the detonation engine;
+notes with every number: [`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md).
+- **What it is.** A second library in gpucfd (`gpucfd/src/gcfdc.cu`, wrapper `gpucfd/euler.py`)
+  for gas without friction, with shocks, on uniform grids in one to three dimensions. The whole
+  time step runs on the GPU. The incompressible solver is not touched.
+- **Verified in five rungs**, all kept as tests (`bash gpucfd/run_ladder.sh compressible`):
+  the GPU code against an independent NumPy version (192 combinations, equal to round-off);
+  smooth flows with exact solutions (the expected orders of accuracy); the shock tube of case 18;
+  the corner of case 19; speed and memory.
+- **Step 1, the shock tube, next to OpenFOAM** (same grids, same reading rules): errors 1.5 times
+  smaller on 100 cells and 2 to 3 times smaller on 12 800, in half the time steps, 1.2 s against
+  84 s. With OpenFOAM's kind of limiter the density error is the same in both, which checks both.
+- **Step 2, the corner, next to OpenFOAM:** all three requirements met on every grid up to
+  1600 by 1600. On 800 by 800 the flat shock agrees with OpenFOAM's to a few thousandths of a per
+  cent, in 16 s against 742 s on 8 cores.
+- **Speed:** about 180 million cells times steps per second in two dimensions and 130 million in
+  three; the 12 GB card holds about 90 million cells.
+- **Where it is worse or limited.** The weak waves left by the start of the shock are taller than
+  OpenFOAM's (2.4 % against 1.2 % in pressure on 800 by 800). The sharpest method (WENO5) breaks
+  down in the thin gas behind the corner unless paired with the most smearing flux formula. Single
+  precision slowly loses mass, cause not found; the default stores in double precision and
+  computes in single, which keeps mass exactly at 80 to 85 % of the speed; forces on walls are
+  then exact only to 5e-8, where its plan had expected 1e-9.
+- **Two findings about OpenFOAM's shock solver.** Its slow fall of the error in the expansion
+  (case 18's open question) does not appear in gpucfd with the same limiter, so it belongs to
+  that solver. Its ringing behind a shock is not only due to its one-stage time step: gpucfd with
+  one stage rings 20 times less. The OpenFOAM notes now say so.
+- **Review by the dev agent:** the ladder was rebuilt and rerun and passes; the pictures and the
+  record were read; the comparison numbers for OpenFOAM in its records equal those of the two
+  case reports.
+- **On the one-page reports** of steps 1 and 2 gpucfd now has its column
+  (`dev/compare/shock_tube_sod/gpucfd.json`, `dev/compare/shock_diffraction_corner/gpucfd.json`).
+  `cfdlib.brief` puts a gpucfd run in the row of the same grid and shows each tool's number of
+  steps.
+- **Fairness.** OpenFOAM's runs are the solver agents' own: one core for most grids, time steps
+  chosen for safety, not tuned for speed. gpucfd's method was chosen by a budget fixed before
+  its runs (twelve short tries on the tube, a written rule on the corner).
+
+### Prof. Frankel's answers on the engine (email, 2026-11-15)
+- The flat engine is the right target; the lab has no specific design yet.
+- **Full hydrogen chemistry from the start.** A one-reaction model predicts a temperature much
+  too high. The one-reaction option is dropped.
+- **Chemistry on the GPU is the key to speed in the lab's code**, and he asked whether OpenFOAM
+  has it. As installed it has not. So chemistry on the GPU in gpucfd moves ahead of the published
+  detonation solver, which he could not name and which now has the lowest priority.
+- The lab has run the flat engine with its own code and sent a video of the temperature. Seen
+  in it: fuel enters through many separate small openings along the bottom, not through an even
+  layer; one wave runs sideways; the hot and cold streams roll up into small swirls. The set-up
+  behind the video is a question for the meeting on 2026-11-17.
+
+### Case 20 prepared: ignition of hydrogen and air, step 3 of the ladder (`415538d`)
 - **Purpose.** Chemistry alone, with no flow: can the workflow and OpenFOAM's chemistry solver
   get the time until a hot mixture ignites, and what does the chemistry of one cell cost per
   time step? The engine will pay that cost in every cell.

@@ -1,0 +1,50 @@
+# Case 19 with gpucfd: the Mach 5.09 shock going round a corner. Written BEFORE the runs, 2026-11-15 10:32.
+# (Before this plan gpucfd's compressible solver had run rungs 1 to 3: kernels, smooth flows, the shock tube.
+# No two-dimensional shock had been run.)
+# The runs themselves are rung 4 of the compressible ladder: gpucfd/tests/test_euler_corner.py.
+
+problem: cases/shock_diffraction_corner/problem.yaml, with its required_accuracy
+set_up: >
+  The chamber as a square of N x N cells. All sides frictionless walls, except the part of the left side above
+  the corner: there the state behind the shock (from the jump conditions) enters with its own exact flux
+  (the gas behind a Mach 5.09 shock moves faster than sound, Mach 1.67, so nothing travels back). Start: still
+  air everywhere, so the shock stands on the left side at time zero. Time step from the Courant number, found
+  again every step. Ten equal chunks to t_end, the fields kept after each (t_end / 2 is one of them).
+  Precision: mixed.
+step_1_which_flux: >
+  Before the corner, a flat Mach 5.09 shock in a plain duct (1 m x 0.25 m, 400 x 100 cells, the same inflow over
+  the whole left side), with the still air's density disturbed by random noise of relative size 1e-4 (fixed seed),
+  to see which reconstruction and flux formula keep it flat: van Leer and WENO5, each with Rusanov, HLL, HLLC and
+  the hybrid (HLLC, with HLL on faces that lie along a strong shock). Measured at t_end: the largest deviation of
+  the shock from a straight line in cells, and the spread of the pressure across the duct behind the shock.
+  Chosen for the corner: among the settings that stay straight to 0.1 cell and survive the corner on 200 x 200,
+  the one with the sharpest border in the shock tube (rung 3e: WENO5 before van Leer, HLLC-type before HLL
+  before Rusanov). That is the whole tuning budget; Courant number 0.4 (sum over both directions) is not tuned.
+grids: [100, 200, 400, 800, 1600]       # finer (3200) only if 1600 took under two minutes
+stop: t_end = 0.45 ms. A run that produces a cell with no gas or no pressure stops and counts as broken.
+measured:
+  flat_part: >
+    rows above y = 0.9 m, which no signal from the corner reaches before t_end (it reaches y = 0.85 m on the
+    shock). Shock position per row: where the pressure is half-way between the two states. Speed: slope of the
+    mean position over the snapshots from t_end / 2 on. State behind: mean over the stretch 0.10 m to 0.02 m
+    behind the shock in those rows, at t_end. Ripple: highest minus lowest pressure in that stretch.
+  conserved: mass and energy in the chamber at each of the ten times against start + exact inflow.
+  stable: largest distance of the flat rows' shock positions from a straight line fitted through them, in cells.
+  similar: >
+    density along the step face and along y = H_s at t_end / 2 and t_end against distance / time; the mean
+    difference between the two, as a share of the density behind the shock.
+  pattern: how far the bent shock has run down the step face, where the shock is on the top wall, lowest density.
+pass_rules:                              # the problem's required_accuracy, on the finest grid unless said
+  - speed of the flat shock within 0.5 %; pressure, density and velocity behind it within 1 %
+  - mass and energy within 0.01 % of the inflow at every written time, on every grid
+  - flat part straight to within one cell on every grid
+  - no run breaks
+expected:                                # not rules: shown as expected and found
+  - speed within 0.1 % and the state within 0.2 % on 400 x 400 and finer (a captured shock moves at the right speed if the scheme conserves)
+  - mass and energy to 1e-12 (the inflow flux is exact and mixed precision conserves to round-off)
+  - straight to 0.05 cell with HLL or the hybrid; HLLC alone and WENO5 may fail (broken shock, or negative pressure in the expansion round the corner)
+  - the two times differ by a few per cent on 400 x 400 (the start smears over a fixed number of cells, a larger share of the picture at the earlier time) and by less on finer grids
+  - cost about 1e9 cell-stages per second, so 1600 x 1600 in about one minute
+comparison_with_openfoam: >
+  Case 19 is being solved with OpenFOAM by another agent at the same time. If results/shock_diffraction_corner/
+  exists when these runs are done, its recorded numbers are set next to these; otherwise the comparison is open.

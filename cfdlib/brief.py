@@ -39,7 +39,8 @@ A case's entry in cases/briefs.yaml (from_case):
                   time); or data: {list or files, label, cells, wall, cores} takes them from results.json's data
                   (list) or from run records (files: JSON paths under the repository root); or
                   pick: a ready table; or text: one sentence when nothing was recorded. Optional title, note.
-                  In data, cores is a number, or the key of each run that holds its number of cores.
+                  In data, cores is a number, or the key of each run that holds its number of cores; detail
+                  is an optional pattern added to both tools' cells (for example "{steps} steps").
   pick            {file, table, columns[], head[], rows[] (optional)}: columns (by number) of the table with
                   that title in a report or study JSON under results/, with new headings; rows keeps the
                   rows whose first cell is listed.
@@ -51,7 +52,7 @@ A record of gpucfd's runs (record:), written by code, never by hand:
   answers         {letter: {diff or sim: the finished cell, formed as the case's report forms OpenFOAM's}}
   runs            [{wall_s, cells, ...}]: one per run. With speed data: a run fills gpucfd's cell of the row whose
                   label it gives (the same label pattern, so a run carries the keys the pattern names). A run
-                  with a label of its own that matches no row gets a row of its own (key: label).
+                  with a label of its own (key: label) whose pattern matches no row gets a row of its own.
   plain           optional: gpucfd's result in one sentence, added to the page's headline
   busy_cpu        true if another solver was running while the times were taken: the page then says so
   startup_s       optional: the one-off start of the GPU library, not in the run times: the page says so
@@ -228,16 +229,27 @@ def from_case(folder, s):
     elif "data" in sp:
         d = sp["data"]
         head = ["Run"] + (["Cells"] if "cells" in d else []) + ["OpenFOAM", "gpucfd"]
-        mine = {d["label"].format(**run): run for run in gpu_runs if "label" not in run}
         source = ([json.loads((ROOT / f).read_text(encoding="utf-8")) for f in d["files"]] if "files" in d
                   else res["data"][d["list"]])
+        labels = [d["label"].format(**r) for r in source]
+
+        def row_of(run):                                          # the row a gpucfd run belongs to, by the same label pattern
+            try:
+                return d["label"].format(**run)
+            except (KeyError, IndexError):
+                return None
+        # a run without a label of its own must match a row; one with a label gets that row if the pattern matches, else its own
+        mine = {row_of(run): run for run in gpu_runs if "label" not in run or row_of(run) in labels}
+        detail = lambda r: f", {d['detail'].format(**r)}" if d.get("detail") else ""
         rows = []
-        for r in source:
-            label = d["label"].format(**r)
+        for r, label in zip(source, labels):
             cells = [f"{int(eval(d['cells'], {}, dict(r))):,}"] if "cells" in d else []            # noqa: S307  (our own spec file)
             cores = int(r[d["cores"]]) if isinstance(d.get("cores"), str) else int(d.get("cores", 1))   # a key of the run, or a number
-            rows.append([label] + cells + [f"{seconds(r[d['wall']])} on {cores} core{'s' if cores != 1 else ''}",
-                                           gpu_time(mine.pop(label)) if label in mine else no_gpu])
+            run = mine.pop(label, None)
+            if run is not None:
+                gpu_runs.remove(run)
+            rows.append([label] + cells + [f"{seconds(r[d['wall']])} on {cores} core{'s' if cores != 1 else ''}{detail(r)}",
+                                           gpu_time(run) + detail(run) if run is not None else no_gpu])
         if mine:
             raise ValueError(f"{folder}: gpucfd runs {list(mine)} match no row of the speed table")
     else:

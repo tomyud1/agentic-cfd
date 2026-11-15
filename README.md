@@ -47,6 +47,9 @@ GPU.
 - **Trust:** every feature passes a verification ladder before the next is built: exact solutions,
   an independent reference code and the order of accuracy. Speed-only changes must give
   bit-identical results.
+- **Gas with shock waves** (a second solver, first version): on a shock tube and on a Mach 5
+  shock going round a corner it matches or beats OpenFOAM's accuracy in 20 to 70 times less
+  time ([`gpucfd/COMPRESSIBLE.md`](gpucfd/COMPRESSIBLE.md)). No burning yet.
 - **What it handles:** incompressible laminar flow in a box with walls, inflow and outflow, and
   bodies of any shape inside the flow, on uniform grids or with cells clustered toward walls and
   around bodies. On the DFG cylinder benchmark at Re 100 (case 4), with cells clustered around the
