@@ -30,8 +30,14 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   tube, a shock round a corner, ignition in a closed box, a detonation in a tube, detonation
   cells, the flat engine, a blind case from the lab). Each step is one turn of the loop and ends
   in a one-page report.
-- **Step 1 is next:** the shock tube (case 18), with OpenFOAM's `rhoCentralFoam`. It is the first
-  time the workflow, the checks and the report tools see a shock.
+- **Step 1 is done (2026-11-15):** the shock tube (case 18), with OpenFOAM's `rhoCentralFoam`,
+  solved by a fresh agent in 37 minutes. The answer is within about 0.01 % of the exact solution;
+  the verdict is FAIL because the pressure error falls with order 0.78 where the agent's limit
+  assumed 0.85. Carried forward: a shock takes 2 cells, the border between two gases 4 to 6;
+  the solver needs half its tutorials' time step; about 0.3 microseconds per cell and step on one
+  core; ten times less error costs about 17 times more cells. Open: why the error in the
+  expansion falls that slowly.
+- **Step 2 is next:** a shock going round a corner (case 19).
 - **The solver gap.** No solver on the development PC handles a shock and burning together.
   Three ways are tried, all three (the student's decision), and compared on step 4 on the same
   grid: OpenFOAM's own burning solver (`rhoReactingFoam`), a published detonation solver (to be

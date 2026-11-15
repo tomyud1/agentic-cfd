@@ -15,7 +15,7 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-15
 
-### Case 18 solved: the shock tube, verdict FAIL on one of its own limits, commit hash to be filled in
+### Case 18 solved: the shock tube, verdict FAIL on one of its own limits (`8a40087`)
 A fresh agent (Fable 5.2, high effort) solved step 1 of the detonation-engine ladder in 37 minutes
 with no human help: `results/shock_tube_sod/report.html`, one page: `brief.html`.
 - **The answer is accurate.** On 12 800 cells the mean difference from the exact solution is
@@ -36,7 +36,7 @@ with no human help: `results/shock_tube_sod/report.html`, one page: `brief.html`
 - **Open.** Why the error in the expansion falls with order 0.78 is not explained (the agent's
   insight 10). A second solver on the same grids would tell; it is a question for the supervisor.
 
-### What case 18's 14 insights led to, commit hash to be filled in (the commit after the case's)
+### What case 18's 14 insights led to, commit hash to be filled in
 - **Tools, each with a test** (`tests/test_tools.py`, checks 15 to 17):
   - `foam.gas_constant()` and `foam.mol_weight(R)`: OpenFOAM's own gas constant is not the
     textbook value, so a typed molar mass gives a density wrong in the fifth digit. The helper

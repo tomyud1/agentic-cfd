@@ -1,0 +1,97 @@
+{
+ "title": "Shock tube, air at rest released across a pressure jump (Sod's problem)",
+ "date": "2026-11-15",
+ "verdict": "FAIL",
+ "goal": "The first flow with shock waves. Step 1 of 7 on the way to a rotating detonation engine.",
+ "story": "Solved with OpenFOAM's shock solver, which the project had never used. gpucfd cannot solve it yet: it has no solver for a gas whose density changes.",
+ "problem": {
+  "requirements": [
+   "A closed tube of air at rest, 1 m long. A thin wall in the middle separates high pressure on the left from low pressure on the right.",
+   "The wall is removed. A shock wave runs to the right and an expansion to the left. No friction and no heat conduction.",
+   "Asked for at half a millisecond: density, velocity and pressure along the tube, the states between the waves, where each wave is, whether mass and energy are kept, and how sharp the computed jumps are.",
+   "Reference: the exact solution of this problem.",
+   "Pass limits: written by the solver agent before its fine runs."
+  ]
+ },
+ "results": {
+  "headline": "<b>Verification FAILED on one of its own limits.</b> OpenFOAM's shock solver converges to the exact solution of the shock tube: on 12800 cells the mean errors are \\(0.0085\\,\\%\\) (density), \\(0.012\\,\\%\\) (velocity), \\(0.0068\\,\\%\\) (pressure), the states between the waves are within \\(0.0022\\,\\%\\) and mass and energy are kept to round-off.",
+  "meaning": [
+   "OpenFOAM's shock solver gets the exact answer to about a hundredth of a per cent, puts every wave in the right place, and keeps mass and energy exactly.",
+   "The verdict is FAIL by the agent's own rule. The pressure error fell more slowly with the grid than its limit assumed. The answer itself is accurate.",
+   "For the detonation engine: a shock is spread over 2 cells on every grid, and this solver needs half the time step its own examples use, or the pressure rings behind the shock."
+  ],
+  "limits": [
+   "gpucfd has no column: a solver for a gas with changing density is not built yet.",
+   "Why the error in the expansion falls slowly is not explained. Only one solver was run, and a second one on the same grids would tell.",
+   "One dimension and no friction. The time step is not converged: the full report says how much error is left."
+  ]
+ },
+ "accuracy": {
+  "title": "Accuracy",
+  "head": [
+   "Requirement",
+   "OpenFOAM: difference from the reference",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "Density, velocity, pressure along the tube",
+    "\\(\\rho\\): \\(0.0085\\,\\%\\)<br>\\(u\\): \\(0.012\\,\\%\\)<br>\\(p\\): \\(0.0068\\,\\%\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "States between the waves",
+    "\\(0.00023\\,\\%\\)<br>\\(0.000094\\,\\%\\)<br>\\(0.0022\\,\\%\\)<br>\\(0.000033\\,\\%\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Where each wave is, and its speed",
+    "\\(-0.11\\,\\mathrm{mm},\\ -0.04\\,\\mathrm{m/s}\\)<br>\\(+0.08\\,\\mathrm{mm},\\ +0.00\\,\\mathrm{m/s}\\)<br>\\(+0.03\\,\\mathrm{mm},\\ +0.05\\,\\mathrm{m/s}\\)<br>\\(+0.01\\,\\mathrm{mm},\\ -0.00\\,\\mathrm{m/s}\\)",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "Mass and energy kept",
+    "round-off",
+    "<span class=\"wait\">cannot yet</span>"
+   ]
+  ],
+  "note": "Differences from the exact solution on the finest grid (12 800 cells). The first row is the mean difference along the tube."
+ },
+ "speed": {
+  "title": "Speed",
+  "head": [
+   "Run",
+   "OpenFOAM",
+   "gpucfd"
+  ],
+  "rows": [
+   [
+    "100 cells, 180 steps",
+    "0.40 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "800 cells, 1440 steps",
+    "1.1 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "3200 cells, 5760 steps",
+    "7.0 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ],
+   [
+    "12800 cells, 23040 steps",
+    "84 s on 1 core",
+    "<span class=\"wait\">cannot yet</span>"
+   ]
+  ],
+  "note": "Four of the eight runs of the grid study. Cells and time step are halved together, so each level costs four times the one before."
+ },
+ "links": [
+  {
+   "href": "report.html",
+   "text": "the full report of this case"
+  }
+ ]
+}

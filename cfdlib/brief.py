@@ -56,6 +56,7 @@ A record of gpucfd's runs (record:), written by code, never by hand:
   startup_s       optional: the one-off start of the GPU library, not in the run times: the page says so
 """
 import json
+import os
 import re
 import subprocess
 import sys
@@ -271,7 +272,8 @@ def build(folders=None):
         if folders and folder not in folders:
             continue
         if s.get("script"):                                       # a page with a script of its own
-            r = subprocess.run([sys.executable, str(ROOT / s["script"])], cwd=ROOT, capture_output=True, text=True)
+            env = dict(os.environ, PYTHONPATH=os.pathsep.join(p for p in (str(ROOT), os.environ.get("PYTHONPATH")) if p))
+            r = subprocess.run([sys.executable, str(ROOT / s["script"])], cwd=ROOT, capture_output=True, text=True, env=env)
             if r.returncode:
                 raise RuntimeError(f"{s['script']} failed:\n{r.stdout[-2000:]}\n{r.stderr[-3000:]}")
             print(r.stdout.strip().splitlines()[-1])

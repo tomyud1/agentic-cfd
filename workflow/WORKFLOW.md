@@ -94,6 +94,8 @@ case, if you want to see the full set of files once.
 ### 1. Theory: what can be known without the simulation
 - Exact solution available: derive it with SymPy, self-check it (satisfies equations and boundary
   conditions), evaluate the requested quantities. See `cases/plane_poiseuille/analytical.py`.
+  With a symbolic exponent (gas dynamics, similarity solutions) write the solution in a variable
+  declared positive, or SymPy will not reduce a correct residual to zero.
 - No exact solution (usual case): say so in `theory.intro`, and give what theory CAN say: limiting
   cases, scaling, conservation laws, symmetry, sign of quantities, expected flow structure.
   See `cases/lid_driven_cavity_re100/theory.py`.
@@ -165,6 +167,7 @@ case, if you want to see the full set of files once.
 - Plan a mesh study: at least 3 meshes, refinement ratio 2 (needed for observed order and GCI). When
   ratio 2 is out of reach (a time-resolved 3D run costs 16 times more per level), smaller and unequal
   ratios in one grid family work too: `verification.three_grid_study(values, h=cell sizes)`.
+  A limit sized from coarse runs: `verification.project_error` (three levels show the order's trend).
   Transient problems also need a time-step study (or an argument, with numbers, that time error is
   negligible).
 - Define a **physical** convergence/steadiness check for your problem (a balance, a conserved

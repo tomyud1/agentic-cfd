@@ -21,6 +21,28 @@ def foam_env(var):
     return out.stdout.strip()
 
 
+def gas_constant():
+    """OpenFOAM's own universal gas constant in J/(kmol K), read from its etc/controlDict.
+
+    A compressible solver gets the density from p W / (RR T) with the molar mass W of
+    constant/thermophysicalProperties and this RR, which OpenFOAM builds as 1000 NA k from two rounded
+    constants: Boltzmann's k in etc/controlDict and Avogadro's NA, a default in its source
+    (fundamentalConstants.C; a case can override either under DimensionedConstants, which this does not
+    see). In v2606 that is 8314.4700665, not the textbook 8314.4626: with a molar mass typed from a textbook
+    the start density is off in the fifth digit (case 18, where the solver agent measured the same value
+    with a one-step run). For a gas with a given specific gas constant R use `mol_weight(R)`."""
+    text = (Path(foam_env("WM_PROJECT_DIR")) / "etc" / "controlDict").read_text()
+    k = float(re.search(r"\bk\s+k\s+\[[^\]]*\]\s*([0-9.eE+-]+)\s*;", text[text.index("SICoeffs"):]).group(1))
+    src = (Path(foam_env("FOAM_SRC")) / "OpenFOAM/global/constants/fundamental/fundamentalConstants.C").read_text()
+    na = float(re.search(r'"NA"\s*,\s*dimensionSet\([^)]*\)\s*,(?:\s*//[^\n]*\n)?\s*([0-9.eE+-]+)', src).group(1))
+    return 1000.0 * na * k
+
+
+def mol_weight(R):
+    """The molWeight entry (kg/kmol) that makes OpenFOAM's specific gas constant equal to R in J/(kg K)."""
+    return gas_constant() / R
+
+
 def run(cmd, case_dir, log_name=None, timeout=None, watch=None, watch_every=10.0):
     """Run an OpenFOAM command in case_dir, logging to log.<name>. Returns wall time in seconds.
 

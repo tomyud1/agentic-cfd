@@ -26,6 +26,7 @@
   ol.ladder .badge { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-left: 10px;
                      padding: 2px 10px; border-radius: 999px; background: var(--accent); color: #fff; vertical-align: 2px; }
   ol.ladder .badge.mark { background: var(--warn-tint); color: var(--warn-ink); }
+  ol.ladder .badge.done { background: var(--ink); }
 
   .ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 12px; }
   .way { border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
@@ -43,7 +44,7 @@
 <header>
   <div class="kicker">Agentic CFD plan · {{ r.date }}</div>
   <h1>{{ r.title }}</h1>
-  <span class="tagline">A plan: nothing on this page is a result yet</span>
+  <span class="tagline">A plan. Step 1 of 7 is done; its result is in the ladder below</span>
 </header>
 
 <section id="goal">
@@ -85,8 +86,9 @@
     <li class="{{ 'next' if s.status == 'next' else '' }} {{ 'final' if loop.last else '' }}">
       <div class="n">{{ loop.index }}</div>
       <div>
-        <div class="name">{{ s.name }}{% if s.status == 'next' %}<span class="badge">next</span>{% endif %}{% if s.get('mark') %}<span class="badge mark">{{ s.mark }}</span>{% endif %}</div>
+        <div class="name">{{ s.name }}{% if s.status == 'next' %}<span class="badge">next</span>{% endif %}{% if s.status == 'done' %}<span class="badge done">done</span>{% endif %}{% if s.get('mark') %}<span class="badge mark">{{ s.mark }}</span>{% endif %}</div>
         <div class="what">{{ s.what }}</div>
+        {% if s.get('result') %}<div class="what" style="color: var(--ink)">{{ s.result }}</div>{% endif %}
         <div class="facts">
           <div><div class="lbl">What is new</div>{{ s.new }}</div>
           <div><div class="lbl">How we know the answer</div>{{ s.answer }}</div>

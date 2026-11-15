@@ -238,6 +238,7 @@
   ol.ladder .badge { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-left: 10px;
                      padding: 2px 10px; border-radius: 999px; background: var(--accent); color: #fff; vertical-align: 2px; }
   ol.ladder .badge.mark { background: var(--warn-tint); color: var(--warn-ink); }
+  ol.ladder .badge.done { background: var(--ink); }
 
   .ways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 12px; }
   .way { border: 1px solid var(--line); border-radius: 12px; padding: 14px 18px; }
@@ -255,7 +256,7 @@
 <header>
   <div class="kicker">Agentic CFD plan · 2026-11-15</div>
   <h1>The next challenge: a rotating detonation engine</h1>
-  <span class="tagline">A plan: nothing on this page is a result yet</span>
+  <span class="tagline">A plan. Step 1 of 7 is done; its result is in the ladder below</span>
 </header>
 
 <section id="goal">
@@ -2972,11 +2973,12 @@ z
   <p class="lead" style="margin-bottom: 0">Each step adds one new difficulty, and each has an answer we can check. Each step is one case of the project's loop: a fresh AI agent solves it with the workflow and writes a checked report, then the tools and the workflow are improved with what it learned. Each step ends in a one-page report with accuracy and speed side by side.</p>
   <ol class="ladder">
     
-    <li class="next ">
+    <li class=" ">
       <div class="n">1</div>
       <div>
-        <div class="name">Shock tube<span class="badge">next</span></div>
+        <div class="name">Shock tube<span class="badge done">done</span></div>
         <div class="what">A tube with high pressure on one side of a thin wall and low pressure on the other. The wall is removed.</div>
+        <div class="what" style="color: var(--ink)">Solved on 2026-11-15 by a fresh agent in 37 minutes. The answer is within about 0.01 % of the exact one. Verdict FAIL: the error falls more slowly with the grid than a limit the agent set for itself. <a href="../shock_tube_sod/brief.html">One-page report</a></div>
         <div class="facts">
           <div><div class="lbl">What is new</div>shock waves, changing density</div>
           <div><div class="lbl">How we know the answer</div>an exact formula</div>
@@ -2985,11 +2987,12 @@ z
       </div>
     </li>
     
-    <li class=" ">
+    <li class="next ">
       <div class="n">2</div>
       <div>
-        <div class="name">A shock going round a corner</div>
+        <div class="name">A shock going round a corner<span class="badge">next</span></div>
         <div class="what">A shock wave runs along a wall that suddenly ends and bends round the corner.</div>
+        
         <div class="facts">
           <div><div class="lbl">What is new</div>shocks in two dimensions</div>
           <div><div class="lbl">How we know the answer</div>published experiments and simulations</div>
@@ -3003,6 +3006,7 @@ z
       <div>
         <div class="name">Ignition in a closed box</div>
         <div class="what">Hot hydrogen and air at rest. How long until the mixture ignites?</div>
+        
         <div class="facts">
           <div><div class="lbl">What is new</div>chemistry alone, with no flow</div>
           <div><div class="lbl">How we know the answer</div>an independent chemistry code</div>
@@ -3016,6 +3020,7 @@ z
       <div>
         <div class="name">Detonation in a straight tube<span class="badge mark">The three solvers are compared here</span></div>
         <div class="what">A detonation wave runs down a tube of hydrogen and air.</div>
+        
         <div class="facts">
           <div><div class="lbl">What is new</div>shock and burning together</div>
           <div><div class="lbl">How we know the answer</div>the wave's speed follows from the gas alone, with no simulation</div>
@@ -3029,6 +3034,7 @@ z
       <div>
         <div class="name">Detonation cells</div>
         <div class="what">In two dimensions a detonation front is not flat: it wrinkles into a regular pattern of cells.</div>
+        
         <div class="facts">
           <div><div class="lbl">What is new</div>the fine structure of the wave</div>
           <div><div class="lbl">How we know the answer</div>published cell patterns</div>
@@ -3042,6 +3048,7 @@ z
       <div>
         <div class="name">The flat engine</div>
         <div class="what">The problem of this page.</div>
+        
         <div class="facts">
           <div><div class="lbl">What is new</div>injection, the open end, a wave that runs for many turns</div>
           <div><div class="lbl">How we know the answer</div>two published simulations</div>
@@ -3055,6 +3062,7 @@ z
       <div>
         <div class="name">A blind engine case from the lab</div>
         <div class="what">A variant the lab has computed and not published. The agent does not see the answer.</div>
+        
         <div class="facts">
           <div><div class="lbl">What is new</div>no answer to lean on</div>
           <div><div class="lbl">How we know the answer</div>the lab compares, after we report</div>

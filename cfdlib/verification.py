@@ -14,9 +14,52 @@ def relative_l2(sim, exact, scale):
     return float(np.sqrt(np.mean((sim - exact) ** 2)) / abs(scale))
 
 
+def mean_abs_error(sim, exact, scale):
+    """Mean absolute error (the L1 error on equal cells) of sim vs exact, divided by a reference scale.
+
+    The measure for a profile with jumps (shocks, contact surfaces): the largest error does not fall with the
+    grid there, since the cell that a jump crosses is always wrong by a share of the jump, and the RMS error
+    falls only with the square root of the cell size. Compare like with like: a finite-volume solver holds
+    cell averages, so `exact` should be the exact solution averaged over each cell (`cell_averages`), formed
+    from the conserved quantities as the solver forms them (case 18, cases/shock_tube_sod/theory.py)."""
+    sim, exact = np.asarray(sim, dtype=float), np.asarray(exact, dtype=float)
+    return float(np.mean(np.abs(sim - exact)) / abs(scale))
+
+
+def cell_averages(f, edges, sub=64):
+    """Averages of f(x) over the cells between consecutive `edges`, by `sub` equally spaced samples per cell.
+
+    f takes an array of x and returns an array, or a tuple of arrays (each is averaged). In a cell that a
+    jump crosses the average is off by up to jump / (2 sub); use a closed-form integral where that matters."""
+    edges = np.asarray(edges, dtype=float)
+    w = (np.arange(sub) + 0.5) / sub
+    x = (edges[:-1, None] + w[None, :] * np.diff(edges)[:, None]).ravel()
+    out = f(x)
+    avg = lambda a: np.asarray(a, dtype=float).reshape(len(edges) - 1, sub).mean(axis=1)    # noqa: E731
+    return tuple(avg(a) for a in out) if isinstance(out, tuple) else avg(out)
+
+
 def order_from_errors(h, err):
     """Observed order p between consecutive meshes, from err ~ C h^p (known exact solution)."""
     return [math.log(err[i] / err[i + 1]) / math.log(h[i] / h[i + 1]) for i in range(len(h) - 1)]
+
+
+def project_error(h, err, h_target):
+    """The error to expect on a finer grid, from the errors of coarse grids (three or more levels, coarse to
+    fine): for sizing an accuracy limit before the fine runs.
+
+    An order measured between two grids is one number and hides its trend (case 18: 100 to 400 cells gave
+    0.94, while 200 to 400 was already 0.80 and the fine grids settled at 0.78, so a limit sized with 0.85 was
+    missed). Returns the orders between consecutive levels, the order used (the lowest of the last two, so a
+    falling order is not averaged away), the projected error at h_target, and `falling`: True when the order
+    drops from pair to pair, in which case even this projection is likely too low."""
+    h, err = [float(v) for v in h], [float(v) for v in err]
+    if len(h) < 3:
+        raise ValueError("project_error needs at least three levels: with two, the order's trend is unknown")
+    orders = order_from_errors(h, err)
+    used = min(orders[-2:])
+    return dict(orders=orders, order_used=used, projected=err[-1] * (h_target / h[-1]) ** used,
+                falling=orders[-1] < orders[-2] - 0.02)
 
 
 def order_three_grids(f_coarse, f_med, f_fine, r=2.0):

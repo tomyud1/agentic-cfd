@@ -67,6 +67,8 @@ def parse_log_text(text):
         fpe="sigFpe::sigHandler" in text or bool(re.search(r"Floating point exception\s*\(core dumped\)", text)),
         nan=bool(re.search(r"\bnan\b", text, re.I)),
         ended=bool(re.search(r"^End\s*$", text, re.M)),
+        # rhoCentralFoam's own Courant number (see assess_arrays): half the usual one in subsonic flow
+        central_courant="Mean and max Courant Numbers" in text,
     )
 
 
@@ -146,8 +148,14 @@ def assess_arrays(arr, flags, end_time=None, courant_limit=1.0, residual_targets
     co = arr["co"][np.isfinite(arr["co"])]
     if co.size:
         co_max = float(co.max())
-        add("Max Courant number", "warn" if co_max > courant_limit else "ok", f"{co_max:.3g}",
-            f"Fluid should not cross more than about one cell per time step (limit used: {courant_limit}).")
+        central = bool(flags.get("central_courant"))
+        add("Max Courant number", "warn" if co_max > courant_limit else "ok",
+            f"{co_max:.3g}" + (" (as rhoCentralFoam counts it)" if central else ""),
+            f"Fluid should not cross more than about one cell per time step (limit used: {courant_limit})."
+            + (" rhoCentralFoam prints its own Courant number: in subsonic flow it is half the usual "
+               "(|u| + c) dt / dx, in supersonic flow |u| dt / dx without the speed of sound (its source, "
+               "centralCourantNo.H). A limit copied from its tutorials (maxCo 0.2) is a usual Courant number of "
+               "about 0.4, where case 18 found the solution ringing behind the shock." if central else ""))
         tr, _ = _trend(co)
         speed = _speed_trend(arr["time"], arr["co"]) if tr is not None and tr > 5 else None
         if speed is not None and speed <= 5:
@@ -208,6 +216,22 @@ def assess_arrays(arr, flags, end_time=None, courant_limit=1.0, residual_targets
                 wall_time=float(exe[-1]) if len(exe) else None, est_full_runtime=est, est_kind=est_kind)
 
 
+def set_end_time(case_dir, end_time):
+    """Set endTime in system/controlDict and leave every other character of the file as it is.
+
+    foamDictionary -set rewrites the whole file with 6 significant digits, so a time step written with more
+    (an end time divided by a whole number of steps) ran as its rounding in the pre-flight copy (case 18:
+    seen as a momentum check that was off by exactly that rounding). The one entry is replaced in the text;
+    only when the file has no plain `endTime <value>;` line is foamDictionary used."""
+    path = Path(case_dir) / "system" / "controlDict"
+    text = path.read_text()
+    new, n = re.subn(r"^(\s*endTime\s+)[^;]+;", lambda m: f"{m.group(1)}{end_time!r};", text, flags=re.M)
+    if n == 1:
+        path.write_text(new)
+    else:
+        foam.run(f"foamDictionary -entry endTime -set {end_time} system/controlDict", case_dir, "setEndTime")
+
+
 def preflight(case_dir, solver, end_time_short, end_time_full, timeout=600, courant_limit=1.0,
               residual_targets=None):
     """Run a short copy of a prepared case (mesh already built) and assess it.
@@ -230,7 +254,7 @@ def preflight(case_dir, solver, end_time_short, end_time_full, timeout=600, cour
                          "folders. Run decomposePar on the prepared case first")
     skip = ("log.*", "postProcessing") if parallel else ("log.*", "postProcessing", "processor*")
     shutil.copytree(case_dir, pf, ignore=shutil.ignore_patterns(*skip))
-    foam.run(f"foamDictionary -entry endTime -set {end_time_short} system/controlDict", pf, "setEndTime")
+    set_end_time(pf, end_time_short)
     timed_out = False
     try:
         foam.run(solver, pf, timeout=timeout)

@@ -31,6 +31,13 @@ def m(s):
     return rf"\({s}\)"
 
 
+def _plain(x, sig):
+    """x to `sig` significant digits without e-notation, for 1e-3 <= |x| < 1e5. Python's g format writes
+    10000 at 4 digits as 1e+04 (case 18: pressures in pascal came out that way in the theory cards)."""
+    s = f"{x:.{sig}g}"
+    return f"{float(s):.0f}" if "e" in s else s
+
+
 def fmt(x, sig=4):
     """Number formatting for HTML (non-math) text."""
     if isinstance(x, bool) or x is None:
@@ -40,7 +47,7 @@ def fmt(x, sig=4):
     if x == 0:
         return "0"
     if 1e-3 <= abs(x) < 1e5:
-        return f"{x:.{sig}g}"
+        return _plain(x, sig)
     mant, exp = f"{x:.{sig - 1}e}".split("e")
     return f"{mant}×10<sup>{int(exp)}</sup>"
 
@@ -54,7 +61,7 @@ def tex_num(x, sig=4):
     if x == 0:
         return "0"
     if 1e-3 <= abs(x) < 1e5:
-        return f"{x:.{sig}g}"
+        return _plain(x, sig)
     mant, exp = f"{x:.{sig - 1}e}".split("e")
     mant = mant.rstrip("0").rstrip(".")
     return rf"{mant} \times 10^{{{int(exp)}}}"
@@ -91,6 +98,12 @@ def m_pct(x, decimals=2, signed=False, unit=True, size=False):
         return DASH
     v = 100 * (abs(x) if size else x)
     return m(f"{v:{'+' if signed else ''}.{decimals}f}" + (r"\,\%" if unit else ""))
+
+
+def lines(*parts):
+    """Several values in one table cell, one per line, none broken in the middle: for an answer with a pair of
+    numbers per line (case 18: four waves, each a position and a speed, wrapped inside a pair)."""
+    return "<br>".join(f"<span style='white-space:nowrap'>{p}</span>" for p in parts)
 
 
 def m_times(x, decimals=1):

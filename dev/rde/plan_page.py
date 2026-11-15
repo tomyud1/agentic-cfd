@@ -164,9 +164,12 @@ page = dict(
     ]),
     steps=[
         dict(name="Shock tube", what="A tube with high pressure on one side of a thin wall and low pressure on the other. The wall is removed.",
-             new="shock waves, changing density", answer="an exact formula", where="this PC, seconds", status="next"),
+             new="shock waves, changing density", answer="an exact formula", where="this PC, seconds", status="done",
+             result='Solved on 2026-11-15 by a fresh agent in 37 minutes. The answer is within about 0.01 % of the exact one. '
+                    'Verdict FAIL: the error falls more slowly with the grid than a limit the agent set for itself. '
+                    '<a href="../shock_tube_sod/brief.html">One-page report</a>'),
         dict(name="A shock going round a corner", what="A shock wave runs along a wall that suddenly ends and bends round the corner.",
-             new="shocks in two dimensions", answer="published experiments and simulations", where="this PC, minutes", status="planned"),
+             new="shocks in two dimensions", answer="published experiments and simulations", where="this PC, minutes", status="next"),
         dict(name="Ignition in a closed box", what="Hot hydrogen and air at rest. How long until the mixture ignites?",
              new="chemistry alone, with no flow", answer="an independent chemistry code", where="this PC, seconds", status="planned"),
         dict(name="Detonation in a straight tube", what="A detonation wave runs down a tube of hydrogen and air.",

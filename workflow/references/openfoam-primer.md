@@ -55,6 +55,28 @@ Tutorials live in `$FOAM_TUTORIALS/incompressible/<solver>/...` (e.g. `icoFoam/c
   1/cos(θ/2) − 1 (θ the full wedge angle). That is 1.5e-4 at 2° and 1e-5 at 0.5°, and refinement does
   not remove it. Choose θ so the bias sits well below the target accuracy.
 
+## Compressible flow with shocks (measured in case 18, a shock tube with `rhoCentralFoam`)
+`rhoCentralFoam` is the density-based solver for flows with shocks (explicit, central fluxes, no
+viscosity needed). Tutorials: `$FOAM_TUTORIALS/compressible/rhoCentralFoam/` (`shockTube`, `forwardStep`).
+The worked example is `cases/shock_tube_sod/`.
+- **The density is not an input.** It follows from p, T and the molar mass through OpenFOAM's own
+  universal gas constant, which is not the textbook value (8314.4700665 in v2606).
+  `foam.mol_weight(R)` gives the `molWeight` for a specific gas constant R; check the start density
+  in the solver's output.
+- **Its printed Courant number is not the usual one:** half of (|u| + c) Δt / Δx in subsonic flow.
+  The tutorials' `maxCo 0.2` is a usual Courant number of about 0.4. `monitor.assess` says so.
+- **Its only time scheme is the explicit Euler step.** At the tutorials' limit the solution rang by
+  3 % behind the shock; at half that step by 0.6 %, and a finer grid did not remove it. A time-step
+  study shows it. Check for wiggles with the ripple on a stretch that should be uniform; the total
+  variation of a profile detects them but grows with the number of cells.
+- **Comparing with an exact solution that has jumps:** compare cell averages with cell averages
+  (`verification.cell_averages`) and use the mean error (`verification.mean_abs_error`). Measured
+  there: a shock 2 cells wide on every grid, the border between two gases 4 to 6 cells, and a mean
+  error that fell with order 0.8, not 1 or 2. `verification.project_error` sizes a limit from three
+  coarse grids.
+- Cost: about 0.3 microseconds per cell and step on one core. A fixed time step that divides the
+  end time: `monitor.preflight` keeps its digits.
+
 ## Turbulence models (RANS; measured in case 7, a flat plate with Spalart-Allmaras)
 - **A model name covers several published variants,** and a solver's default may be another one
   than the benchmark's. Set `printCoeffs on` in the model's dictionary and compare the coefficients

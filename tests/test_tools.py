@@ -569,3 +569,46 @@ c16 = {k: {c["name"]: c for c in monitor.assess_arrays(a, flags16)["checks"]}["C
 assert c16["ramp"]["status"] == "ok" and "growing time step" in c16["ramp"]["value"], c16["ramp"]
 assert c16["blow"]["status"] == "fail", c16["blow"]
 print("Courant trend: a time step rising to its cap is not a blow-up; growth at a fixed step still is: ok")
+
+# 17. What case 18 (shock tube) asked of the tools.
+from cfdlib import report as report17  # noqa: E402
+assert L15["central_courant"] and not monitor.parse_log_text("Time = 1" + chr(10) + "Courant Number mean: 0.1 max: 0.5")["central_courant"]
+# a five-digit number is written in full, not as 1e+04 (pressures in pascal)
+assert [report17.tex_num(v) for v in (10000, 30313, 1234.5, 0.001234, 99999.0)] == ["10000", "30310", "1234", "0.001234", "100000"]
+assert report17.fmt(10000.0) == "10000" and report17.tex_num(1.004e-6) == "1.004 " + chr(92) + "times 10^{-6}"
+assert report17.lines("a b", "c") == "<span style='white-space:nowrap'>a b</span><br><span style='white-space:nowrap'>c</span>"
+# the pre-flight copy keeps every digit of the time step when its end time is changed
+with tempfile.TemporaryDirectory() as tmp17:
+    (Path(tmp17) / "system").mkdir()
+    ctrl17 = """application rhoCentralFoam;
+deltaT          2.7777777777777779e-06;
+endTime         0.0005;
+writeInterval   18;
+"""
+    (Path(tmp17) / "system" / "controlDict").write_text(ctrl17)
+    monitor.set_end_time(tmp17, 5e-05)
+    assert (Path(tmp17) / "system" / "controlDict").read_text() == ctrl17.replace("0.0005;", "5e-05;")
+# mean error for profiles with jumps, and exact cell averages
+assert verification.mean_abs_error([1.0, 2.0], [1.0, 4.0], 2.0) == 0.5
+e17 = np.linspace(0.0, 1.0, 11)
+assert np.allclose(verification.cell_averages(lambda x: x ** 2, e17), (e17[1:] ** 3 - e17[:-1] ** 3) / (3 * 0.1), atol=1e-5)
+a17, b17 = verification.cell_averages(lambda x: (np.where(x < 0.55, 1.0, 0.0), x), e17, sub=100)
+assert abs(a17[5] - 0.5) < 0.006 and a17[4] == 1.0 and a17[6] == 0.0 and np.allclose(b17, 0.5 * (e17[1:] + e17[:-1]))
+# the error to expect on a fine grid, from three coarse ones: replay of case 18's pressure error
+runs17 = Path(__file__).resolve().parents[1] / "results" / "shock_tube_sod" / "runs"
+if runs17.exists():
+    p17 = {n: json.loads((runs17 / f"N{n}.json").read_text())["errors"]["p"] for n in (100, 200, 400, 12800)}
+    pr17 = verification.project_error([1 / 100, 1 / 200, 1 / 400], [p17[100], p17[200], p17[400]], 1 / 12800)
+    old17 = p17[100] * (100 / 12800) ** 0.85                 # the limit the solver agent sized from two grids
+    assert pr17["falling"] and pr17["order_used"] < 0.85 and old17 < pr17["projected"], pr17
+    print(f"case 18 replay: orders between the coarse grids {pr17['orders'][0]:.2f} then {pr17['orders'][1]:.2f}; projected pressure "
+          f"error on 12800 cells {pr17['projected']:.2e} (limit sized from two grids {old17:.2e}, reached {p17[12800]:.2e}); flagged as falling")
+    gc17 = json.loads((runs17.parent / "gas_constant.json").read_text())
+    assert abs(foam.gas_constant() / gc17["RR"] - 1) < 1e-9 and abs(foam.mol_weight(287.0) / gc17["mol_weight"] - 1) < 1e-9
+    print(f"OpenFOAM's gas constant from its own constants: {foam.gas_constant():.7f} J/(kmol K), as the solver agent measured it with a run")
+try:
+    verification.project_error([1, 0.5], [1, 0.5], 0.1)
+    raise AssertionError("two levels accepted")
+except ValueError:
+    pass
+print("shock-flow tools (number format, answer lines, pre-flight end time, mean error, cell averages, projection): ok")
