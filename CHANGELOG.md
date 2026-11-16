@@ -18,7 +18,19 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-16
 
-### One-page reports: every number named, the result in short points, commit hash to be filled in
+### Plan page of the detonation engine brought up to date, commit hash to be filled in
+- **What.** The student saw that the plan page still listed five "open questions for Prof.
+  Frankel" which he had answered by email on 2026-11-15. Other parts were as old: the page said
+  that one step was done, that no solver joins shock and burning, and that gpucfd's detonation
+  solver was "to be written".
+- **Now.** His answers stand on the page, each next to its question. Four questions are still
+  open for the next meeting (the set-up behind the lab's video, the accuracy an engine answer
+  needs, which lab result stays hidden for step 7, access to GPUs). The table "where we are
+  today" and the three ways to a detonation solver say what is done and what is being built.
+  The line under the title counts the finished steps from the list, so it cannot go stale.
+- **Verified.** Page rebuilt and read in a browser.
+
+### One-page reports: every number named, the result in short points (`58c09db`)
 - **What.** The student read step 1's one-page report and could not follow it: the result was one
   dense paragraph, and the accuracy table stacked four bare numbers in a cell with no word on
   which was which or what they were measured against ("what is -0.11 mm?").
@@ -39,7 +51,7 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
   at five window widths (none wider than its window); steps 1 and 4 read by eye in a browser.
   No number changed: the same cells, re-arranged.
 
-### One-page reports: tables no longer run past the edge of the page (same commit)
+### One-page reports: tables no longer run past the edge of the page (`58c09db`)
 - **What.** On a laptop-size window the two result tables of a one-page report were wider than
   the page: the right-hand table was cut off and the page scrolled sideways (the student saw it
   on step 1's page).

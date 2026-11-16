@@ -254,15 +254,15 @@
 <body>
 <main class="plan">
 <header>
-  <div class="kicker">Agentic CFD plan · 2026-11-15</div>
+  <div class="kicker">Agentic CFD plan · 2026-11-16</div>
   <h1>The next challenge: a rotating detonation engine</h1>
-  <span class="tagline">A plan. Step 1 of 7 is done; its result is in the ladder below</span>
+  <span class="tagline">A plan. Steps 1 to 4 of 7 are done; their results are in the ladder below</span>
 </header>
 
 <section id="goal">
   <h2>Goal</h2>
   <p class="headline">Simulate a rotating detonation engine with an AI agent: first a flat, two-dimensional version of it, with every result on the way checked against a known answer.</p>
-  <p class="lead" style="margin-bottom: 0">Prof. Frankel proposed this engine as a challenge: his lab studies it. Every flow the project has solved so far had constant density and no burning. This engine needs shock waves and burning together, which is new for the workflow, for our use of OpenFOAM and for gpucfd, our GPU solver. So we do not jump: we climb to it in seven steps.</p>
+  <p class="lead" style="margin-bottom: 0">Prof. Frankel proposed this engine as a challenge: his lab studies it. Every flow the project had solved before it had constant density and no burning. This engine needs shock waves and burning together, which is new for the workflow, for our use of OpenFOAM and for gpucfd, our GPU solver. So we do not jump: we climb to it in seven steps.</p>
 </section>
 
 <section id="engine">
@@ -2964,7 +2964,7 @@ z
   <h2>Why it is hard for us</h2>
   <div class="table-wrap"><table class="full">
     <tr><th>The engine needs</th><th>Where we are today</th></tr>
-    <tr><td style="font-weight: 600; width: 38%">Gas that is squeezed and expands, with shock waves</td><td>New for us. OpenFOAM's shock solver is installed here and has never been used in this project.</td></tr><tr><td style="font-weight: 600; width: 38%">Burning: a chain of chemical reactions between hydrogen and air</td><td>New for us. OpenFOAM's chemistry solver is installed here and has never been used.</td></tr><tr><td style="font-weight: 600; width: 38%">Shock and burning in one solver</td><td><b>Missing.</b> No solver on this PC joins the two. There are three ways to get one, and we try all three.</td></tr><tr><td style="font-weight: 600; width: 38%">Very small cells at the wave: the burning zone is far thinner than the engine</td><td>Cost unknown. The second paper needed cells of half a micrometre to resolve that zone fully. We measure the cost on steps 4 and 5.</td></tr><tr><td style="font-weight: 600; width: 38%">Checks and reports that understand such flows</td><td>The workflow has never seen a shock. Step 1 shows what breaks.</td></tr>
+    <tr><td style="font-weight: 600; width: 38%">Gas that is squeezed and expands, with shock waves</td><td><b>Done</b> (steps 1 and 2). OpenFOAM's shock solver and a new shock solver in gpucfd both match the exact solutions.</td></tr><tr><td style="font-weight: 600; width: 38%">Burning: a chain of chemical reactions between hydrogen and air</td><td><b>Done</b> (step 3). OpenFOAM's chemistry solver and new chemistry on the GPU in gpucfd both match the reference.</td></tr><tr><td style="font-weight: 600; width: 38%">Shock and burning in one solver</td><td><b>Done with OpenFOAM</b> (step 4). <b>In progress for gpucfd:</b> its shock solver and its chemistry are being joined.</td></tr><tr><td style="font-weight: 600; width: 38%">Very small cells at the wave: the burning zone is far thinner than the engine</td><td>Measured in one dimension (step 4): the wave's speed is right even with cells larger than the burning zone; the pressure peak at the front is not. What two dimensions need is measured on step 5. The second paper needed cells of half a micrometre to resolve the zone fully.</td></tr><tr><td style="font-weight: 600; width: 38%">Checks and reports that understand such flows</td><td>Four cases solved. What each one broke was turned into a check, a tool or a note for the next agent.</td></tr>
   </table></div>
 </section>
 
@@ -3006,7 +3006,7 @@ z
       <div>
         <div class="name">Ignition in a closed box<span class="badge done">done</span></div>
         <div class="what">Hot hydrogen and air at rest. How long until the mixture ignites?</div>
-        <div class="what" style="color: var(--ink)">Solved on 2026-11-15 by a fresh agent in about 35 minutes. The ignition time is within 0.03 % of the reference and the final temperature within 0.002 %. The chemistry of one cell costs several hundred times more than its flow, which is why the next tool to build is chemistry on the GPU. <a href="../h2_air_ignition_box/brief.html">One-page report</a></div>
+        <div class="what" style="color: var(--ink)">Solved on 2026-11-15 by a fresh agent in about 35 minutes. The ignition time is within 0.03 % of the reference and the final temperature within 0.002 %. The chemistry of one cell costs several hundred times more than its flow, so chemistry on the GPU was built for gpucfd the same day; it meets the same requirements. <a href="../h2_air_ignition_box/brief.html">One-page report</a></div>
         <div class="facts">
           <div><div class="lbl">What is new</div>chemistry alone, with no flow</div>
           <div><div class="lbl">How we know the answer</div>an independent chemistry code</div>
@@ -3020,7 +3020,7 @@ z
       <div>
         <div class="name">Detonation in a straight tube<span class="badge done">done</span><span class="badge mark">The three solvers are compared here</span></div>
         <div class="what">A detonation wave runs down a tube of hydrogen and air.</div>
-        <div class="what" style="color: var(--ink)">Solved with OpenFOAM on 2026-11-16 by a fresh agent in about an hour and a half. The wave runs 0.5 % below the theoretical speed (required: 2 %) and the flame stays within 0.06 mm of the shock. OpenFOAM needed five passes per time step to keep the energy; with one it lost 15 % of the heat. Almost all the time is chemistry. The GPU solver comes next on this step. <a href="../detonation_tube_h2_air/brief.html">One-page report</a></div>
+        <div class="what" style="color: var(--ink)">Solved with OpenFOAM on 2026-11-16 by a fresh agent in about an hour and a half. The wave runs 0.5 % below the theoretical speed (required: 2 %) and the flame stays within 0.06 mm of the shock. OpenFOAM needed five passes per time step to keep the energy; with one it lost 15 % of the heat. Almost all the time is chemistry. The GPU solver is being built for this step now. <a href="../detonation_tube_h2_air/brief.html">One-page report</a></div>
         <div class="facts">
           <div><div class="lbl">What is new</div>shock and burning together</div>
           <div><div class="lbl">How we know the answer</div>the wave's speed follows from the gas alone, with no simulation</div>
@@ -3076,26 +3076,26 @@ z
 
 <section id="ways">
   <h2>Three ways to get a detonation solver</h2>
-  <p class="lead" style="margin-bottom: 0">Step 4 needs a solver that handles a shock and burning together. We do not have one. We try all three ways below, and all three results go into the report.</p>
+  <p class="lead" style="margin-bottom: 0">Step 4 needs a solver that handles a shock and burning together. When the plan was written we had none. We try the three ways below, and every result goes into the report. Where each one stands is written in colour.</p>
   <div class="ways">
     
     <div class="way">
       <div class="name"><span class="letter">A</span>OpenFOAM's own burning solver</div>
-      <div class="have">Installed already.</div>
+      <div class="have">Done on step 4: the wave speed is within 0.5 % of the theory.</div>
       <p>It was made for flames, not for shocks. The second paper shows that a solver of this kind can carry a detonation, on another branch of OpenFOAM than ours.</p>
-      <p class="risk"><b>Risk:</b> It may smear the shock or get its speed wrong.</p>
+      <p class="risk"><b>Risk:</b> It may smear the shock or get its speed wrong. Found: with the setting of its own examples it lost 15 % of the heat and the wave ran 17 % too slow; five passes per time step fix that, at five times the cost.</p>
     </div>
     
     <div class="way">
       <div class="name"><span class="letter">B</span>A published detonation solver</div>
-      <div class="have">To be found, downloaded and built.</div>
+      <div class="have">Not started. Lowest priority since Prof. Frankel's answers.</div>
       <p>Research groups have built solvers for exactly this job on top of OpenFOAM. The first paper describes one.</p>
       <p class="risk"><b>Risk:</b> That paper lists no public link to its code, so another one may be needed, and it may not build on our version.</p>
     </div>
     
     <div class="way">
       <div class="name"><span class="letter">C</span>Our own solver in gpucfd</div>
-      <div class="have">To be written.</div>
+      <div class="have">Its shock solver (steps 1 and 2) and its chemistry on the GPU (step 3) are built and tested. They are being joined now, for step 4.</div>
       <p>A GPU solver for detonations, open to everyone. The flat engine is a rectangle that repeats sideways: the kind of grid gpucfd is built for.</p>
       <p class="risk"><b>Risk:</b> The most work. New code must pass steps 1 to 3 before it is trusted on step 4.</p>
     </div>
@@ -3107,7 +3107,12 @@ z
 <section id="rules">
   <div class="two">
     <div class="callout good"><span class="tag">How we keep ourselves honest</span><ul class="points"><li>Every step has a known answer, and its pass limits are written down before the runs.</li><li>Code computes every number in a report. Nothing is typed in by hand.</li><li>What was expected before the runs is shown next to what was found, and never changed afterwards. A step is called failed only when the experiment failed.</li><li>Tools are compared on the same problem and the same grid, each with a tuning budget fixed in advance.</li></ul></div>
-    <div class="callout info"><span class="tag">Open questions for Prof. Frankel</span><ul class="points"><li>Is this flat engine the right target, or does the lab prefer a set-up of its own?</li><li>Full hydrogen chemistry from the start, or a simple one-reaction model first?</li><li>Which published detonation solver does the lab trust?</li><li>Is there a lab result the agent may not see, for step 7?</li><li>Which GPUs can gpucfd be tested on, and how are they reached?</li></ul></div>
+    <div class="callout info">
+      <span class="tag">Answered by Prof. Frankel (15 November 2026)</span>
+      <ul class="points"><li>Is this flat engine the right target? <b>Yes. It is a generic engine; the lab has no specific design yet.</b></li><li>Full hydrogen chemistry, or a one-reaction model first? <b>Full chemistry from the start. A one-reaction model predicts a temperature much too high. The one-reaction option is dropped.</b></li><li>Which published detonation solver does the lab trust? <b>None was named. Chemistry on the GPU is the key to speed in the lab's own code, so it was built first (step 3). The published solver now has the lowest priority.</b></li><li>Does OpenFOAM run the chemistry on the GPU? (his question to us) <b>As installed, it does not. gpucfd now does.</b></li><li>Is there a lab result for step 7? <b>The lab has run the flat engine in two dimensions with its own code and sent a video of it.</b></li></ul>
+      <div style="margin-top: 12px"><span class="tag">Still open, for the next meeting</span></div>
+      <ul class="points"><li>The set-up behind the lab's video, so that step 6 matches it. In the video the fuel enters through separate small openings, not through an even layer.</li><li>How accurate must an engine answer be? Each step states its required accuracy before the runs.</li><li>Which lab result stays hidden from the agent for step 7?</li><li>Which GPUs can gpucfd be tested on, and how are they reached?</li></ul>
+    </div>
   </div>
 </section>
 

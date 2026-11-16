@@ -126,10 +126,10 @@ PAPER2 = dict(href="https://arxiv.org/abs/2508.16105", text="Kwak, Kim, Ryu and 
 
 page = dict(
     title="The next challenge: a rotating detonation engine",
-    date="2026-11-15",
+    date="2026-11-16",
     goal="Simulate a rotating detonation engine with an AI agent: first a flat, two-dimensional version of it, "
          "with every result on the way checked against a known answer.",
-    story="Prof. Frankel proposed this engine as a challenge: his lab studies it. Every flow the project has solved so far had "
+    story="Prof. Frankel proposed this engine as a challenge: his lab studies it. Every flow the project had solved before it had "
           "constant density and no burning. This engine needs shock waves and burning together, which is new for the workflow, "
           "for our use of OpenFOAM and for gpucfd, our GPU solver. So we do not jump: we climb to it in seven steps.",
     engine=[
@@ -156,11 +156,11 @@ page = dict(
     problem_note=f"The numbers are those of the 2D test in the first paper (its section 4.7), which used cells of "
                  f"{SETUP['cell_mm']:g} mm: {CELLS:,} cells. The final problem statement is fixed with Prof. Frankel.".replace(",", " "),
     hard=dict(head=["The engine needs", "Where we are today"], rows=[
-        ["Gas that is squeezed and expands, with shock waves", "New for us. OpenFOAM's shock solver is installed here and has never been used in this project."],
-        ["Burning: a chain of chemical reactions between hydrogen and air", "New for us. OpenFOAM's chemistry solver is installed here and has never been used."],
-        ["Shock and burning in one solver", "<b>Missing.</b> No solver on this PC joins the two. There are three ways to get one, and we try all three."],
-        ["Very small cells at the wave: the burning zone is far thinner than the engine", "Cost unknown. The second paper needed cells of half a micrometre to resolve that zone fully. We measure the cost on steps 4 and 5."],
-        ["Checks and reports that understand such flows", "The workflow has never seen a shock. Step 1 shows what breaks."],
+        ["Gas that is squeezed and expands, with shock waves", "<b>Done</b> (steps 1 and 2). OpenFOAM's shock solver and a new shock solver in gpucfd both match the exact solutions."],
+        ["Burning: a chain of chemical reactions between hydrogen and air", "<b>Done</b> (step 3). OpenFOAM's chemistry solver and new chemistry on the GPU in gpucfd both match the reference."],
+        ["Shock and burning in one solver", "<b>Done with OpenFOAM</b> (step 4). <b>In progress for gpucfd:</b> its shock solver and its chemistry are being joined."],
+        ["Very small cells at the wave: the burning zone is far thinner than the engine", "Measured in one dimension (step 4): the wave's speed is right even with cells larger than the burning zone; the pressure peak at the front is not. What two dimensions need is measured on step 5. The second paper needed cells of half a micrometre to resolve the zone fully."],
+        ["Checks and reports that understand such flows", "Four cases solved. What each one broke was turned into a check, a tool or a note for the next agent."],
     ]),
     steps=[
         dict(name="Shock tube", what="A tube with high pressure on one side of a thin wall and low pressure on the other. The wall is removed.",
@@ -178,7 +178,7 @@ page = dict(
              new="chemistry alone, with no flow", answer="an independent chemistry code", where="this PC, seconds", status="done",
              result='Solved on 2026-11-15 by a fresh agent in about 35 minutes. The ignition time is within 0.03 % of the reference and the '
                     'final temperature within 0.002 %. The chemistry of one cell costs several hundred times more than its flow, '
-                    'which is why the next tool to build is chemistry on the GPU. '
+                    'so chemistry on the GPU was built for gpucfd the same day; it meets the same requirements. '
                     '<a href="../h2_air_ignition_box/brief.html">One-page report</a>'),
         dict(name="Detonation in a straight tube", what="A detonation wave runs down a tube of hydrogen and air.",
              new="shock and burning together", answer="the wave's speed follows from the gas alone, with no simulation",
@@ -186,7 +186,7 @@ page = dict(
              result='Solved with OpenFOAM on 2026-11-16 by a fresh agent in about an hour and a half. The wave runs 0.5 % below the '
                     'theoretical speed (required: 2 %) and the flame stays within 0.06 mm of the shock. OpenFOAM needed five passes per '
                     'time step to keep the energy; with one it lost 15 % of the heat. Almost all the time is chemistry. '
-                    'The GPU solver comes next on this step. '
+                    'The GPU solver is being built for this step now. '
                     '<a href="../detonation_tube_h2_air/brief.html">One-page report</a>'),
         dict(name="Detonation cells", what="In two dimensions a detonation front is not flat: it wrinkles into a regular pattern of cells.",
              new="the fine structure of the wave", answer="published cell patterns", where="this PC or the lab: to be measured", status="planned"),
@@ -200,14 +200,16 @@ page = dict(
          "then the tools and the workflow are improved with what it learned. Each step ends in a one-page report with "
          "accuracy and speed side by side.",
     ways=[
-        dict(letter="A", name="OpenFOAM's own burning solver", have="Installed already.",
+        dict(letter="A", name="OpenFOAM's own burning solver", have="Done on step 4: the wave speed is within 0.5 % of the theory.",
              idea="It was made for flames, not for shocks. The second paper shows that a solver of this kind can carry a detonation, "
                   "on another branch of OpenFOAM than ours.",
-             risk="It may smear the shock or get its speed wrong."),
-        dict(letter="B", name="A published detonation solver", have="To be found, downloaded and built.",
+             risk="It may smear the shock or get its speed wrong. Found: with the setting of its own examples it lost 15 % of the heat "
+                  "and the wave ran 17 % too slow; five passes per time step fix that, at five times the cost."),
+        dict(letter="B", name="A published detonation solver", have="Not started. Lowest priority since Prof. Frankel's answers.",
              idea="Research groups have built solvers for exactly this job on top of OpenFOAM. The first paper describes one.",
              risk="That paper lists no public link to its code, so another one may be needed, and it may not build on our version."),
-        dict(letter="C", name="Our own solver in gpucfd", have="To be written.",
+        dict(letter="C", name="Our own solver in gpucfd", have="Its shock solver (steps 1 and 2) and its chemistry on the GPU (step 3) are built and tested. "
+                                                                 "They are being joined now, for step 4.",
              idea="A GPU solver for detonations, open to everyone. The flat engine is a rectangle that repeats sideways: "
                   "the kind of grid gpucfd is built for.",
              risk="The most work. New code must pass steps 1 to 3 before it is trusted on step 4."),
@@ -222,11 +224,23 @@ page = dict(
         "A step is called failed only when the experiment failed.",
         "Tools are compared on the same problem and the same grid, each with a tuning budget fixed in advance.",
     ],
+    answered=[                                                    # Prof. Frankel's email of 2026-11-15 (CHANGELOG.md)
+        dict(q="Is this flat engine the right target?",
+             a="Yes. It is a generic engine; the lab has no specific design yet."),
+        dict(q="Full hydrogen chemistry, or a one-reaction model first?",
+             a="Full chemistry from the start. A one-reaction model predicts a temperature much too high. The one-reaction option is dropped."),
+        dict(q="Which published detonation solver does the lab trust?",
+             a="None was named. Chemistry on the GPU is the key to speed in the lab's own code, so it was built first (step 3). "
+               "The published solver now has the lowest priority."),
+        dict(q="Does OpenFOAM run the chemistry on the GPU? (his question to us)",
+             a="As installed, it does not. gpucfd now does."),
+        dict(q="Is there a lab result for step 7?",
+             a="The lab has run the flat engine in two dimensions with its own code and sent a video of it."),
+    ],
     questions=[
-        "Is this flat engine the right target, or does the lab prefer a set-up of its own?",
-        "Full hydrogen chemistry from the start, or a simple one-reaction model first?",
-        "Which published detonation solver does the lab trust?",
-        "Is there a lab result the agent may not see, for step 7?",
+        "The set-up behind the lab's video, so that step 6 matches it. In the video the fuel enters through separate small openings, not through an even layer.",
+        "How accurate must an engine answer be? Each step states its required accuracy before the runs.",
+        "Which lab result stays hidden from the agent for step 7?",
         "Which GPUs can gpucfd be tested on, and how are they reached?",
     ],
     words=[

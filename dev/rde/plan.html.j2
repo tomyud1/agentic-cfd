@@ -44,7 +44,7 @@
 <header>
   <div class="kicker">Agentic CFD plan · {{ r.date }}</div>
   <h1>{{ r.title }}</h1>
-  <span class="tagline">A plan. Step 1 of 7 is done; its result is in the ladder below</span>
+  <span class="tagline">{% set done = r.steps|selectattr('status', 'equalto', 'done')|list|length %}A plan. Steps 1 to {{ done }} of {{ r.steps|length }} are done; their results are in the ladder below</span>
 </header>
 
 <section id="goal">
@@ -102,7 +102,7 @@
 
 <section id="ways">
   <h2>Three ways to get a detonation solver</h2>
-  <p class="lead" style="margin-bottom: 0">Step 4 needs a solver that handles a shock and burning together. We do not have one. We try all three ways below, and all three results go into the report.</p>
+  <p class="lead" style="margin-bottom: 0">Step 4 needs a solver that handles a shock and burning together. When the plan was written we had none. We try the three ways below, and every result goes into the report. Where each one stands is written in colour.</p>
   <div class="ways">
     {% for w in r.ways %}
     <div class="way">
@@ -119,7 +119,12 @@
 <section id="rules">
   <div class="two">
     <div class="callout good"><span class="tag">How we keep ourselves honest</span><ul class="points">{% for x in r.rules %}<li>{{ x }}</li>{% endfor %}</ul></div>
-    <div class="callout info"><span class="tag">Open questions for Prof. Frankel</span><ul class="points">{% for x in r.questions %}<li>{{ x }}</li>{% endfor %}</ul></div>
+    <div class="callout info">
+      <span class="tag">Answered by Prof. Frankel (15 November 2026)</span>
+      <ul class="points">{% for x in r.answered %}<li>{{ x.q }} <b>{{ x.a }}</b></li>{% endfor %}</ul>
+      <div style="margin-top: 12px"><span class="tag">Still open, for the next meeting</span></div>
+      <ul class="points">{% for x in r.questions %}<li>{{ x }}</li>{% endfor %}</ul>
+    </div>
   </div>
 </section>
 
