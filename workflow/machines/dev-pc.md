@@ -52,8 +52,12 @@ MSYS_NO_PATHCONV=1 wsl -d Ubuntu-24.04 --cd "/mnt/d/Projects/Agentic CFD" -- /ho
 - Environment variables reach WSL only through `WSLENV`, e.g.
   `CFD_FIG_PNG_DIR=/mnt/c/.../png WSLENV=CFD_FIG_PNG_DIR MSYS_NO_PATHCONV=1 wsl ...`.
 - Git Bash expands `$var` inside an inline `bash -c` before WSL sees it: put loops in a `.sh` file.
-- Never call `python` from Git Bash itself, not even for one line: it is the Windows launcher, not
-  the pipeline's Python, and fed a here-document it hangs until the tool's time limit.
+- `python` in Git Bash is Windows Python 3.14, not the pipeline's Python: it has none of the
+  project's packages (no NumPy), so project code fails there at its first import. Run the pipeline
+  through WSL. Started with no script and no input (`python`, or `python -` with nothing piped),
+  its interactive prompt finds no console, loops forever and floods the output (43 MB in 16 s).
+  `PYTHON_BASIC_REPL=1` in the environment stops that: the prompt then ends at once. For Claude
+  Code it is set for this project in `.claude/settings.local.json` (not in git).
 - A shell heredoc that writes or patches code eats backslashes (a `\\n` in a Python string arrives as
   a real line break, a double backslash as a single one): change code with your file-editing tool.
 - Windows Python's `Path.write_text` turns every line end into CRLF: a script that patches repository

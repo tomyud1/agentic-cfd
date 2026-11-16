@@ -16,7 +16,24 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-16
 
-### What case 21's 22 insights led to, commit hash to be filled in
+### The stuck `python` command on the development PC: cause found, commit hash to be filled in
+- **What.** Case 21's agent lost minutes to a `python` command that never returned (insight 8).
+  The first note in the machine file said that `python` on the Windows side hangs. That was
+  wrong, and the note is corrected.
+- **What is true** (each form run and timed on this PC):
+  - `python script.py`, `python -c "..."` and input piped into Python all work;
+  - project code fails there within a second, because that Python has no NumPy: a cheap slip;
+  - only `python` with nothing after it, and `python -` with nothing piped in, never return:
+    Python 3.14 opens its interactive prompt, finds no console, and prints errors in a loop
+    (43 MB in 16 seconds).
+- **Fix.** `PYTHON_BASIC_REPL=1` in the environment: those two forms then end at once, and
+  nothing else changes. For Claude Code it is set in `.claude/settings.local.json`, a file that
+  is not in git and applies to this project on this PC only.
+- **Why not a guard that refuses the command.** It would have blocked commands that work.
+- **Not verified.** That a newly started session reads the setting from that file; the setting
+  itself was tested by typing it in front of the command.
+
+### What case 21's 22 insights led to (`c61a437`)
 - **Purpose.** Every limitation the solver agent logged gets an answer: a tool, a check, a line in
   the notes, or a stated reason for leaving it.
 - **Tools changed** (each covered by check 22 of `tests/test_tools.py`):
@@ -45,8 +62,8 @@ What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 - **Not acted on, with the reason.**
   - A run-time forecast for runs whose cost grows (insight 11): the notes now say how to time
     such a run; a forecast tool waits for a second case that needs it.
-  - A hook that refuses a bare `python` in Git Bash (insight 8): it would change the student's
-    agent settings; that is his decision.
+  - A hook that refuses a bare `python` in Git Bash (insight 8): not added. The cause was found
+    and fixed instead; see the entry above.
   - Three unexplained effects stay open and are stated in the report (even number of passes,
     dependence on the split between cores, no trend with the time step: insights 4, 12, 15).
   - Insights 13, 17 and 21 are lessons the workflow already states; no change.
