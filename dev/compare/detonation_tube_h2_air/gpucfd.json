@@ -1,0 +1,1729 @@
+{
+ "tool": "gpucfd",
+ "case": "detonation_tube_h2_air",
+ "date": "2026-11-16",
+ "device": "NVIDIA GeForce RTX 4070",
+ "startup_s": 0.2986182470000003,
+ "plain": "gpucfd's joined solver, built after this case was solved, runs the same tube on the same grids. On 3200 cells its wave travels at \\(1968.3\\,\\mathrm{m/s}\\) (-0.52 % from the theory), with the burning front \\(0.06\\,\\mathrm{mm}\\) behind the pressure front, in 6 s on the GPU against 401 s on 8 cores, and it keeps mass and energy to rounding. On finer grids (4000 cells and more) gpucfd finds no detonation at all: the hot layer of the problem is too weak to ignite the gas behind its own shock, and on coarser cells it is the smearing of the scheme that holds shock and flame together. OpenFOAM was not run on such grids",
+ "busy_cpu": false,
+ "machine": {
+  "before": {
+   "gpu_utilization_percent": 1.0,
+   "gpu_memory_used_MiB": 1224.0,
+   "solver_processes": []
+  },
+  "after": {
+   "gpu_utilization_percent": 91.0,
+   "gpu_memory_used_MiB": 1980.0,
+   "solver_processes": []
+  }
+ },
+ "answers": {
+  "a": {
+   "value": 1968.3019968855547,
+   "diff": "\\(-0.52\\,\\%\\)"
+  },
+  "b": {
+   "value": 6.397265146323994e-05,
+   "diff": "<span style='white-space:nowrap'>limit \\(1\\,\\mathrm{mm}\\)</span><br><span style='white-space:nowrap'>found \\(0.06\\,\\mathrm{mm}\\)</span>"
+  },
+  "c": {
+   "value": {
+    "p": 1511441.1064023941,
+    "T": 2935.9509370054266,
+    "behind": 0.004875159123792638,
+    "found": 101,
+    "of": 101
+   },
+   "diff": "<span style='white-space:nowrap'>p \\(-4.4\\,\\%\\)</span><br><span style='white-space:nowrap'>T \\(-1.1\\,\\%\\)</span>"
+  },
+  "d": {
+   "value": {
+    "p_peak": 2572111.5346534653,
+    "p_shock": 2780406.741326917
+   },
+   "diff": "\\(-7\\,\\%\\)"
+  },
+  "e": {
+   "value": {
+    "mass": 6.661338147750939e-16,
+    "atoms": 6.661338147750939e-16,
+    "energy_of_heat": 1.5160480182631104e-17
+   },
+   "diff": "<span style='white-space:nowrap'>mass \\(7 \\times 10^{-16}\\)</span><br><span style='white-space:nowrap'>energy \\(2 \\times 10^{-15}\\,\\%\\)</span>"
+  }
+ },
+ "runs": [
+  {
+   "N": 400,
+   "cells": 400,
+   "steps_done": 999,
+   "wall_s": 2.4429416909999997,
+   "gpu_s": 2.106201595000002,
+   "speed_dev": -0.007461611731933715,
+   "gap_max": 0.00017425002668248687,
+   "openfoam": {
+    "wall_s": 35.46474191900006,
+    "cores": 8,
+    "speed_dev": -0.004913073030494042,
+    "gap_max": 0.0001210437490713201
+   }
+  },
+  {
+   "N": 800,
+   "cells": 800,
+   "steps_done": 1998,
+   "wall_s": 2.982734584,
+   "gpu_s": 2.921650194000006,
+   "speed_dev": -0.006337851789336324,
+   "gap_max": 0.00012403200716990317,
+   "openfoam": {
+    "wall_s": 73.30689095700001,
+    "cores": 8,
+    "speed_dev": -0.003210733350405337,
+    "gap_max": 0.00010411986206881885
+   }
+  },
+  {
+   "N": 1600,
+   "cells": 1600,
+   "steps_done": 4169,
+   "wall_s": 4.085895024000001,
+   "gpu_s": 4.012392999999998,
+   "speed_dev": -0.0057535437519632415,
+   "gap_max": 8.473831626191336e-05,
+   "openfoam": {
+    "wall_s": 171.03424395499997,
+    "cores": 8,
+    "speed_dev": -0.004112213081251426,
+    "gap_max": 7.80381885037984e-05
+   }
+  },
+  {
+   "N": 3200,
+   "cells": 3200,
+   "steps_done": 8390,
+   "wall_s": 6.1836122909999975,
+   "gpu_s": 6.099319751000005,
+   "speed_dev": -0.005174524201909114,
+   "gap_max": 6.397265146323994e-05,
+   "openfoam": {
+    "wall_s": 401.33546710400003,
+    "cores": 8,
+    "speed_dev": -0.005130884511296507,
+    "gap_max": 5.9708395438298756e-05
+   }
+  },
+  {
+   "label": "4800 cells: no detonation forms (7782 steps)",
+   "N": 4800,
+   "cells": 4800,
+   "steps_done": 7782,
+   "wall_s": 3.651846221999989,
+   "gpu_s": 3.559128642999989
+  },
+  {
+   "label": "19200 cells: no detonation forms (29778 steps)",
+   "N": 19200,
+   "cells": 19200,
+   "steps_done": 29778,
+   "wall_s": 16.839721814,
+   "gpu_s": 16.65257620099997
+  },
+  {
+   "label": "the 1200-cell tube in 1024 rows, a full GPU (4383 steps)",
+   "cells": 1228800,
+   "steps_done": 4383,
+   "wall_s": 268.913021499,
+   "gpu_s": 266.04075084100015,
+   "ns_per_cell_step": 49.39642192242076
+  }
+ ],
+ "flow": {
+  "recon": "vanleer",
+  "flux": "hybrid",
+  "cfl": 0.4,
+  "precision": "mixed"
+ },
+ "chemistry": {
+  "method": "bs23",
+  "rtol": 0.0001,
+  "atol": 1e-14,
+  "quiet": 1.0,
+  "split": "flow-chemistry",
+  "max_substeps": 100000
+ },
+ "reference": {
+  "D": 1978.54,
+  "p": 1581135.2,
+  "T": 2969.88,
+  "Y_H2O": 0.22229606508862848,
+  "p_front": 2810050.4,
+  "T_front": 1542.72
+ },
+ "requirements_met": {
+  "on_openfoams_finest_grid_3200_cells": {
+   "speed": true,
+   "attached": true
+  },
+  "on_every_grid_with_a_detonation": {
+   "grids": [
+    400,
+    800,
+    1200,
+    1600,
+    2400,
+    3200,
+    3200
+   ],
+   "speed": true,
+   "attached": true
+  },
+  "on_gpucfds_finest_grid": {
+   "N": 19200,
+   "speed": false,
+   "attached": false,
+   "why": "no detonation forms on 4000 cells and more"
+  },
+  "grids_without_a_detonation": [
+   4000,
+   4800,
+   9600,
+   19200
+  ]
+ },
+ "like_for_like": [
+  {
+   "N": 400,
+   "h": 0.0003,
+   "cells": 400,
+   "steps": 999,
+   "gpu_s": 2.106201595000002,
+   "wall_s": 2.4429416909999997,
+   "detonation": true,
+   "mass": 2.220446049250313e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 1.865174681370263e-14,
+   "status": 0,
+   "substeps_per_cell_step": 2.6236486486486488,
+   "ns_per_cell_step": 5270.774762262267,
+   "p_peak": {
+    "mean": 2146413.1856435644,
+    "low": 2139471.0,
+    "high": 2153262.5
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting, a grid of OpenFOAM's solution",
+   "energy_of_heat": 0.0,
+   "heat_released_J_per_m2": 258030.18281859098,
+   "speed": 1963.7769027238999,
+   "speed_dev": -0.007461611731933715,
+   "speed_first": 1962.4655742596767,
+   "speed_second": 1965.108778705125,
+   "gap_max": 0.00017425002668248687,
+   "gap_mean": 0.00013665570825761362,
+   "sonic": {
+    "p": 1505017.4492280218,
+    "T": 2931.026125101,
+    "behind": 0.004845341970133548,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1556159.023555652,
+    "T": 2934.271253754947
+   },
+   "energy_rebuilt": -3.311741951217417e-05,
+   "p_shock_of_this_speed": 2767355.837033274,
+   "peak_ratio": 0.7756187899365384
+  },
+  {
+   "N": 800,
+   "h": 0.00015,
+   "cells": 800,
+   "steps": 1998,
+   "gpu_s": 2.921650194000006,
+   "wall_s": 2.982734584,
+   "detonation": true,
+   "mass": 4.440892098500626e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 2.0650148258027912e-14,
+   "status": 0,
+   "substeps_per_cell_step": 1.3778897647647648,
+   "ns_per_cell_step": 1827.859230480484,
+   "p_peak": {
+    "mean": 2299094.1113861385,
+    "low": 2295798.0,
+    "high": 2303785.0
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting, a grid of OpenFOAM's solution",
+   "energy_of_heat": 2.3229337273608563e-18,
+   "heat_released_J_per_m2": 258884.18508113263,
+   "speed": 1966.0003067207265,
+   "speed_dev": -0.006337851789336324,
+   "speed_first": 1965.3875461666817,
+   "speed_second": 1966.7854794083405,
+   "gap_max": 0.00012403200716990317,
+   "gap_mean": 0.00010654702721553608,
+   "sonic": {
+    "p": 1508174.8712688298,
+    "T": 2933.5273856813724,
+    "behind": 0.004844725876438705,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557455.2562551126,
+    "T": 2937.1966922963707
+   },
+   "energy_rebuilt": -3.302322580600592e-05,
+   "p_shock_of_this_speed": 2773764.496116843,
+   "peak_ratio": 0.8288714181051694
+  },
+  {
+   "N": 1600,
+   "h": 7.5e-05,
+   "cells": 1600,
+   "steps": 4169,
+   "gpu_s": 4.012392999999998,
+   "wall_s": 4.085895024000001,
+   "detonation": true,
+   "mass": 2.220446049250313e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 2.1316282072803006e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.6945545994243224,
+   "ns_per_cell_step": 601.5220976253295,
+   "p_peak": {
+    "mean": 2439401.6485148515,
+    "low": 2438077.5,
+    "high": 2441765.5
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting, a grid of OpenFOAM's solution",
+   "energy_of_heat": 2.2114525290718298e-17,
+   "heat_released_J_per_m2": 259383.92158497593,
+   "speed": 1967.1563835449906,
+   "speed_dev": -0.0057535437519632415,
+   "speed_first": 1966.8593055430197,
+   "speed_second": 1967.6003151868738,
+   "gap_max": 8.473831626191336e-05,
+   "gap_mean": 8.032030031635133e-05,
+   "sonic": {
+    "p": 1509821.164600433,
+    "T": 2934.825237967632,
+    "behind": 0.004855265925800466,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1558413.1789840935,
+    "T": 2938.78931712544
+   },
+   "energy_rebuilt": 0.00124268875745992,
+   "p_shock_of_this_speed": 2777099.7072755047,
+   "peak_ratio": 0.8783990153915091
+  },
+  {
+   "N": 3200,
+   "h": 3.75e-05,
+   "cells": 3200,
+   "steps": 8390,
+   "gpu_s": 6.099319751000005,
+   "wall_s": 6.1836122909999975,
+   "detonation": true,
+   "mass": 6.661338147750939e-16,
+   "atoms": 6.661338147750939e-16,
+   "energy": 3.3306690738754696e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.39281175506555427,
+   "ns_per_cell_step": 227.17966891388576,
+   "p_peak": {
+    "mean": 2572111.5346534653,
+    "low": 2570863.0,
+    "high": 2575964.5
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting, a grid of OpenFOAM's solution",
+   "energy_of_heat": 1.5160480182631104e-17,
+   "heat_released_J_per_m2": 259361.17006277808,
+   "speed": 1968.3019968855547,
+   "speed_dev": -0.005174524201909114,
+   "speed_first": 1968.4928586772749,
+   "speed_second": 1968.3889055814345,
+   "gap_max": 6.397265146323994e-05,
+   "gap_mean": 6.091036240099099e-05,
+   "sonic": {
+    "p": 1511441.1064023941,
+    "T": 2935.9509370054266,
+    "behind": 0.004875159123792638,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1560722.523546387,
+    "T": 2940.2988084105414
+   },
+   "energy_rebuilt": 0.0007930786861043426,
+   "p_shock_of_this_speed": 2780406.741326917,
+   "peak_ratio": 0.925084627519625
+  }
+ ],
+ "grids": [
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1200,
+   "steps": 3157,
+   "gpu_s": 3.6562144229999918,
+   "wall_s": 3.7315367689999945,
+   "detonation": true,
+   "mass": 2.220446049250313e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 3.397282455352979e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.9140927568366594,
+   "ns_per_cell_step": 965.1078088375018,
+   "p_peak": {
+    "mean": 2381756.334158416,
+    "low": 2380122.5,
+    "high": 2384753.25
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting",
+   "speed": 1966.7595382525576,
+   "speed_dev": -0.0059541185659336415,
+   "speed_first": 1966.378540288079,
+   "speed_second": 1967.195939171713,
+   "gap_max": 9.958753639939186e-05,
+   "gap_mean": 9.038890947981939e-05,
+   "sonic": {
+    "p": 1509252.7277735877,
+    "T": 2934.3778433319294,
+    "behind": 0.004850638120783184,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557729.3097153464,
+    "T": 2938.2163137908024
+   },
+   "energy_rebuilt": 0.0010485846609689098,
+   "p_shock_of_this_speed": 2775954.6031982335,
+   "peak_ratio": 0.8579954194547512
+  },
+  {
+   "N": 2400,
+   "h": 4.9999999999999996e-05,
+   "cells": 2400,
+   "steps": 6183,
+   "gpu_s": 5.0894125110000035,
+   "wall_s": 5.1713137540000105,
+   "detonation": true,
+   "mass": 2.220446049250313e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 5.806466418789569e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.4949468300177907,
+   "ns_per_cell_step": 342.97081453178095,
+   "p_peak": {
+    "mean": 2517124.0148514854,
+    "low": 2515968.25,
+    "high": 2519096.25
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting",
+   "speed": 1967.574384809374,
+   "speed_dev": -0.005542276219144493,
+   "speed_first": 1967.4169715524963,
+   "speed_second": 1967.8877193102676,
+   "gap_max": 7.064273749984515e-05,
+   "gap_mean": 6.798179497640926e-05,
+   "sonic": {
+    "p": 1510423.970606053,
+    "T": 2935.287330350119,
+    "behind": 0.0048604771842330015,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1558821.7823329207,
+    "T": 2939.3776643960796
+   },
+   "energy_rebuilt": 0.0012909887179159973,
+   "p_shock_of_this_speed": 2778306.11684127,
+   "peak_ratio": 0.9059923237376271
+  },
+  {
+   "N": 4800,
+   "h": 2.4999999999999998e-05,
+   "cells": 4800,
+   "steps": 7782,
+   "gpu_s": 3.559128642999989,
+   "wall_s": 3.651846221999989,
+   "detonation": false,
+   "mass": 4.440892098500626e-16,
+   "atoms": 1.3322676295501878e-15,
+   "energy": 3.3084646133829665e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.11445523323053199,
+   "ns_per_cell_step": 95.28207838066449,
+   "p_peak": {
+    "mean": 631410.0352722772,
+    "low": 529237.75,
+    "high": 782413.8125
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting",
+   "shock": {
+    "speed": 951.3446178794665,
+    "x_end": 0.05812960725524988,
+    "behind_end": 0.02770588812543258,
+    "front_lost_at": 2.2000000000000003e-05
+   }
+  },
+  {
+   "N": 9600,
+   "h": 1.2499999999999999e-05,
+   "cells": 9600,
+   "steps": 14974,
+   "gpu_s": 5.364554599999915,
+   "wall_s": 5.486699287999997,
+   "detonation": false,
+   "mass": 1.887379141862766e-15,
+   "atoms": 1.4210854715202004e-14,
+   "energy": 1.0769163338864018e-13,
+   "status": 0,
+   "substeps_per_cell_step": 0.03813884343973999,
+   "ns_per_cell_step": 37.31853685276643,
+   "p_peak": {
+    "mean": 588032.1893564357,
+    "low": 495363.40625,
+    "high": 724374.125
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting",
+   "shock": {
+    "speed": 918.2492875413009,
+    "x_end": 0.05597517188640006,
+    "behind_end": 0.030218039191761338,
+    "front_lost_at": 1.925e-05
+   }
+  },
+  {
+   "N": 19200,
+   "h": 6.2499999999999995e-06,
+   "cells": 19200,
+   "steps": 29778,
+   "gpu_s": 16.65257620099997,
+   "wall_s": 16.839721814,
+   "detonation": false,
+   "mass": 4.440892098500626e-15,
+   "atoms": 1.84297022087776e-14,
+   "energy": 8.837375276016246e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.015963298548145162,
+   "ns_per_cell_step": 29.12625687203355,
+   "p_peak": {
+    "mean": 572536.0959158416,
+    "low": 483238.84375,
+    "high": 703938.4375
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting",
+   "shock": {
+    "speed": 905.9189584196662,
+    "x_end": 0.05517056961281737,
+    "behind_end": 0.03143854026283947,
+    "front_lost_at": 1.825e-05
+   }
+  }
+ ],
+ "border": [
+  {
+   "N": 3200,
+   "h": 3.75e-05,
+   "cells": 3200,
+   "steps": 8390,
+   "gpu_s": 6.229994968000054,
+   "wall_s": 6.305808540000001,
+   "detonation": true,
+   "mass": 6.661338147750939e-16,
+   "atoms": 6.661338147750939e-16,
+   "energy": 3.3306690738754696e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.39281175506555427,
+   "ns_per_cell_step": 232.04689243146805,
+   "p_peak": {
+    "mean": 2572111.5346534653,
+    "low": 2570863.0,
+    "high": 2575964.5
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting, to find where the detonation is lost",
+   "speed": 1968.3019968855547,
+   "speed_dev": -0.005174524201909114,
+   "speed_first": 1968.4928586772749,
+   "speed_second": 1968.3889055814345,
+   "gap_max": 6.397265146323994e-05,
+   "gap_mean": 6.091036240099099e-05,
+   "sonic": {
+    "p": 1511441.1064023941,
+    "T": 2935.9509370054266,
+    "behind": 0.004875159123792638,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1560722.523546387,
+    "T": 2940.2988084105414
+   },
+   "energy_rebuilt": 0.0007930786861043426,
+   "p_shock_of_this_speed": 2780406.741326917,
+   "peak_ratio": 0.925084627519625
+  },
+  {
+   "N": 4000,
+   "h": 2.9999999999999997e-05,
+   "cells": 4000,
+   "steps": 6668,
+   "gpu_s": 3.3404050330000463,
+   "wall_s": 3.4289657449999993,
+   "detonation": false,
+   "mass": 4.440892098500626e-16,
+   "atoms": 1.7763568394002505e-15,
+   "energy": 3.6415315207705135e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.15460385422915418,
+   "ns_per_cell_step": 125.24014070935986,
+   "p_peak": {
+    "mean": 663369.6485148515,
+    "low": 554079.4375,
+    "high": 825583.9375
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed setting, to find where the detonation is lost",
+   "shock": {
+    "speed": 974.6377083859375,
+    "x_end": 0.05961693865036795,
+    "behind_end": 0.026440298073568937,
+    "front_lost_at": 2.4e-05
+   }
+  }
+ ],
+ "stronger_patch": {
+  "given": {
+   "p_ign": 12000000.0
+  },
+  "runs": [
+   {
+    "N": 1200,
+    "h": 9.999999999999999e-05,
+    "cells": 1200,
+    "steps": 3486,
+    "gpu_s": 5.222307562000119,
+    "wall_s": 5.285800897000001,
+    "detonation": true,
+    "mass": 5.551115123125783e-16,
+    "atoms": 6.661338147750939e-16,
+    "energy": 6.661338147750939e-16,
+    "status": 0,
+    "substeps_per_cell_step": 1.6655483840122394,
+    "ns_per_cell_step": 1248.4001630331131,
+    "p_peak": {
+     "mean": 2730050.3935643565,
+     "low": 2614273.0,
+     "high": 2913390.5
+    },
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    },
+    "given": {
+     "T_ign": 2500.0,
+     "p_ign": 12000000.0,
+     "L_ign": 0.0015
+    },
+    "tag": "patch at 12 MPa",
+    "speed": 2094.200613458883,
+    "speed_dev": 0.05845755630863314,
+    "speed_first": 2120.0361265483666,
+    "speed_second": 2071.452120748176,
+    "gap_max": 9.542146664169582e-05,
+    "gap_mean": 8.32612045570084e-05,
+    "sonic": {
+     "p": 1687514.9981684156,
+     "T": 3031.6076519761873,
+     "behind": 0.013339385647627855,
+     "found": 101,
+     "of": 101
+    },
+    "back": {
+     "p": 2138772.651732673,
+     "T": 3106.069073667621
+    },
+    "energy_rebuilt": -3.4536623275682743e-06,
+    "p_shock_of_this_speed": 3156031.349280926,
+    "peak_ratio": 0.865026386441432
+   },
+   {
+    "N": 2400,
+    "h": 4.9999999999999996e-05,
+    "cells": 2400,
+    "steps": 6940,
+    "gpu_s": 7.115767253000069,
+    "wall_s": 7.18127518,
+    "detonation": true,
+    "mass": 5.551115123125783e-16,
+    "atoms": 1.1102230246251565e-15,
+    "energy": 4.440892098500626e-16,
+    "status": 0,
+    "substeps_per_cell_step": 0.8576350864553315,
+    "ns_per_cell_step": 427.21945563160835,
+    "p_peak": {
+     "mean": 2857339.3514851485,
+     "low": 2743761.75,
+     "high": 3038841.75
+    },
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    },
+    "given": {
+     "T_ign": 2500.0,
+     "p_ign": 12000000.0,
+     "L_ign": 0.0015
+    },
+    "tag": "patch at 12 MPa",
+    "speed": 2095.4569570204953,
+    "speed_dev": 0.059092541480331606,
+    "speed_first": 2121.603883164163,
+    "speed_second": 2072.447445519014,
+    "gap_max": 6.3640142086277e-05,
+    "gap_mean": 6.049492293909394e-05,
+    "sonic": {
+     "p": 1689275.3690790173,
+     "T": 3032.6388219471637,
+     "behind": 0.01331863277522889,
+     "found": 101,
+     "of": 101
+    },
+    "back": {
+     "p": 2140336.4248298267,
+     "T": 3106.757842866501
+    },
+    "energy_rebuilt": -1.1186040559940658e-05,
+    "p_shock_of_this_speed": 3159901.547160029,
+    "peak_ratio": 0.9042494865237782
+   },
+   {
+    "N": 4800,
+    "h": 2.4999999999999998e-05,
+    "cells": 4800,
+    "steps": 13957,
+    "gpu_s": 10.560090140999966,
+    "wall_s": 10.649356607000001,
+    "detonation": true,
+    "mass": 8.881784197001252e-16,
+    "atoms": 1.7763568394002505e-15,
+    "energy": 4.440892098500626e-16,
+    "status": 0,
+    "substeps_per_cell_step": 0.42730150342719303,
+    "ns_per_cell_step": 157.62834272228937,
+    "p_peak": {
+     "mean": 2977254.871287129,
+     "low": 2865187.75,
+     "high": 3155834.25
+    },
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    },
+    "given": {
+     "T_ign": 2500.0,
+     "p_ign": 12000000.0,
+     "L_ign": 0.0015
+    },
+    "tag": "patch at 12 MPa",
+    "speed": 2096.045252392637,
+    "speed_dev": 0.059389879604474505,
+    "speed_first": 2122.244986010394,
+    "speed_second": 2072.908906484818,
+    "gap_max": 4.884169938856875e-05,
+    "gap_mean": 4.4620090130201875e-05,
+    "sonic": {
+     "p": 1690093.0779322516,
+     "T": 3033.1093265954382,
+     "behind": 0.013310746312002882,
+     "found": 101,
+     "of": 101
+    },
+    "back": {
+     "p": 2141301.1235689977,
+     "T": 3107.098696128921
+    },
+    "energy_rebuilt": -3.7140048426587136e-05,
+    "p_shock_of_this_speed": 3161714.633739844,
+    "peak_ratio": 0.9416583139780309
+   },
+   {
+    "N": 9600,
+    "h": 1.2499999999999999e-05,
+    "cells": 9600,
+    "steps": 27998,
+    "gpu_s": 16.959546469999996,
+    "wall_s": 17.073319009999977,
+    "detonation": true,
+    "mass": 1.5543122344752192e-15,
+    "atoms": 1.9984014443252818e-15,
+    "energy": 2.6645352591003757e-15,
+    "status": 0,
+    "substeps_per_cell_step": 0.1117421631306998,
+    "ns_per_cell_step": 63.09805785978759,
+    "p_peak": {
+     "mean": 3093896.5148514854,
+     "low": 2988903.0,
+     "high": 3265357.0
+    },
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    },
+    "given": {
+     "T_ign": 2500.0,
+     "p_ign": 12000000.0,
+     "L_ign": 0.0015
+    },
+    "tag": "patch at 12 MPa",
+    "speed": 2095.9681872665733,
+    "speed_dev": 0.059350929102557126,
+    "speed_first": 2122.394145253632,
+    "speed_second": 2072.6920135454384,
+    "gap_max": 4.119399511451349e-05,
+    "gap_mean": 3.699833480964191e-05,
+    "sonic": {
+     "p": 1689871.5292848214,
+     "T": 3033.1645103151423,
+     "behind": 0.013316589597110679,
+     "found": 101,
+     "of": 101
+    },
+    "back": {
+     "p": 2141529.7067063735,
+     "T": 3107.1432733516885
+    },
+    "energy_rebuilt": -3.3061733336725574e-05,
+    "p_shock_of_this_speed": 3161477.094171619,
+    "peak_ratio": 0.9786237327340683
+   },
+   {
+    "N": 19200,
+    "h": 6.2499999999999995e-06,
+    "cells": 19200,
+    "steps": 56336,
+    "gpu_s": 40.868083253000385,
+    "wall_s": 41.072141861999995,
+    "detonation": true,
+    "mass": 2.220446049250313e-15,
+    "atoms": 6.8833827526759706e-15,
+    "energy": 1.3100631690576847e-14,
+    "status": 0,
+    "substeps_per_cell_step": 0.04337902736113083,
+    "ns_per_cell_step": 37.78305173886035,
+    "p_peak": {
+     "mean": 3534355.7722772276,
+     "low": 2516069.5,
+     "high": 7105325.5
+    },
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    },
+    "given": {
+     "T_ign": 2500.0,
+     "p_ign": 12000000.0,
+     "L_ign": 0.0015
+    },
+    "tag": "patch at 12 MPa",
+    "speed": 2083.9511233794437,
+    "speed_dev": 0.05327722632822374,
+    "speed_first": 2112.0863747880035,
+    "speed_second": 2058.657333143394,
+    "gap_max": 0.0003556675395207376,
+    "gap_mean": 0.0001231498590583905,
+    "sonic": {
+     "p": 1719014.3248539646,
+     "T": 3033.3709532673456,
+     "behind": 0.012953233960639758,
+     "found": 101,
+     "of": 101
+    },
+    "back": {
+     "p": 2131161.4671662287,
+     "T": 3099.6856002429918
+    },
+    "energy_rebuilt": -1.5197538821842826e-05,
+    "p_shock_of_this_speed": 3124547.505925342,
+    "peak_ratio": 1.1311576366096951
+   }
+  ],
+  "note": "NOT the case's problem: plan.yaml, rung d4"
+ },
+ "other_settings": [
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1200,
+   "steps": 3192,
+   "gpu_s": 4.1307285049998015,
+   "wall_s": 4.19333280699999,
+   "detonation": true,
+   "mass": 3.3306690738754696e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 1.6542323066914832e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.9131239557226399,
+   "ns_per_cell_step": 1078.406564588503,
+   "p_peak": {
+    "mean": 2682363.918316832,
+    "low": 2680768.0,
+    "high": 2683554.0
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 56332,
+    "species": 432,
+    "cold": 0,
+    "mass_moved": 7.008326829659192e-38,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "WENO5 with HLLC",
+   "speed": 1967.604029460825,
+   "speed_dev": -0.005527293124816812,
+   "speed_first": 1967.5363512051754,
+   "speed_second": 1968.0914690030347,
+   "gap_max": 9.710316519111889e-05,
+   "gap_mean": 8.383262193960281e-05,
+   "sonic": {
+    "p": 1510482.0110314132,
+    "T": 2935.3894228235763,
+    "behind": 0.0048456261357707675,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557451.393842822,
+    "T": 2939.3989202820426
+   },
+   "energy_rebuilt": 0.0010375147360153214,
+   "p_shock_of_this_speed": 2778391.6855254653,
+   "peak_ratio": 0.9654376423205887
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1200,
+   "steps": 1594,
+   "gpu_s": 3.1448134110001558,
+   "wall_s": 3.2064444649999757,
+   "detonation": true,
+   "mass": 2.220446049250313e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 1.9317880628477724e-14,
+   "status": 0,
+   "substeps_per_cell_step": 1.7190464240903387,
+   "ns_per_cell_step": 1644.0889852572961,
+   "p_peak": {
+    "mean": 2399076.25990099,
+    "low": 2394897.5,
+    "high": 2402843.75
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "Courant number 0.8",
+   "speed": 1966.6696183207157,
+   "speed_dev": -0.005999566184805127,
+   "speed_first": 1966.1975396317443,
+   "speed_second": 1967.1049658555112,
+   "gap_max": 9.541038442859723e-05,
+   "gap_mean": 8.383184308579683e-05,
+   "sonic": {
+    "p": 1509152.5456654967,
+    "T": 2934.402564048326,
+    "behind": 0.004846078690575353,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557321.0028774752,
+    "T": 2938.2854909764656
+   },
+   "energy_rebuilt": -3.562769803033827e-05,
+   "p_shock_of_this_speed": 2775695.1710066553,
+   "peak_ratio": 0.8643154640900003
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1200,
+   "steps": 10000,
+   "gpu_s": 6.249412185000249,
+   "wall_s": 6.315111327999972,
+   "detonation": true,
+   "mass": 4.440892098500626e-16,
+   "atoms": 6.661338147750939e-16,
+   "energy": 2.7533531010703882e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.2911978333333333,
+   "ns_per_cell_step": 520.7843487500207,
+   "p_peak": {
+    "mean": 2372147.3613861385,
+    "low": 2370660.25,
+    "high": 2375055.75
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "fixed time step of 5e-9 s (OpenFOAM's trial)",
+   "speed": 1966.7909931797894,
+   "speed_dev": -0.005938220516244597,
+   "speed_first": 1966.4413351551202,
+   "speed_second": 1967.257516613278,
+   "gap_max": 0.0001019266502698471,
+   "gap_mean": 9.432705935609313e-05,
+   "sonic": {
+    "p": 1509287.0751858517,
+    "T": 2934.3402232815324,
+    "behind": 0.0048513561057966295,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557804.0911200491,
+    "T": 2938.1425712963137
+   },
+   "energy_rebuilt": 0.001033399283960179,
+   "p_shock_of_this_speed": 2776045.358186037,
+   "peak_ratio": 0.854505980743838
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1200,
+   "steps": 3149,
+   "gpu_s": 3.68879099800013,
+   "wall_s": 3.751181815999985,
+   "detonation": true,
+   "mass": 3.3306690738754696e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 2.1316282072803006e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.9158457711442787,
+   "ns_per_cell_step": 976.1805329734651,
+   "p_peak": {
+    "mean": 2352498.7648514854,
+    "low": 2350799.75,
+    "high": 2355358.0
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "splitting: chemistry then flow",
+   "speed": 1966.811540070434,
+   "speed_dev": -0.005927835641213242,
+   "speed_first": 1966.487649498799,
+   "speed_second": 1967.3337659207514,
+   "gap_max": 0.00010657393958919681,
+   "gap_mean": 0.0001020838571908985,
+   "sonic": {
+    "p": 1509290.6139530884,
+    "T": 2934.233682691193,
+    "behind": 0.004851369609866443,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557717.1501237624,
+    "T": 2937.946966129718
+   },
+   "energy_rebuilt": -6.459297285732468e-05,
+   "p_shock_of_this_speed": 2776104.641693753,
+   "peak_ratio": 0.8474099749410678
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1200,
+   "steps": 3154,
+   "gpu_s": 3.9309432759999163,
+   "wall_s": 4.0074817829999745,
+   "detonation": true,
+   "mass": 2.220446049250313e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 2.6867397195928788e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.9310531600084548,
+   "ns_per_cell_step": 1038.6132096808064,
+   "p_peak": {
+    "mean": 2367132.358910891,
+    "low": 2365557.0,
+    "high": 2370161.0
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "splitting: half the chemistry, flow, half the chemistry",
+   "speed": 1966.7879239568756,
+   "speed_dev": -0.005939771772683122,
+   "speed_first": 1966.4365316437654,
+   "speed_second": 1967.2597021000975,
+   "gap_max": 0.00010274520597959927,
+   "gap_mean": 9.571888687534063e-05,
+   "sonic": {
+    "p": 1509275.5649934558,
+    "T": 2934.308475371,
+    "behind": 0.004850991517405991,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557722.8173886137,
+    "T": 2938.084429629486
+   },
+   "energy_rebuilt": 0.0015017520705125076,
+   "p_shock_of_this_speed": 2776036.502677506,
+   "peak_ratio": 0.8527021732703357
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1200,
+   "steps": 3157,
+   "gpu_s": 7.957479519000337,
+   "wall_s": 8.02263112,
+   "detonation": true,
+   "mass": 3.3306690738754696e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 1.7319479184152442e-14,
+   "status": 0,
+   "substeps_per_cell_step": 2.392587899904973,
+   "ns_per_cell_step": 2100.4855662021796,
+   "p_peak": {
+    "mean": 2381756.99009901,
+    "low": 2380123.5,
+    "high": 2384753.75
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "chemistry default bs23, tolerance 1e-6",
+   "speed": 1966.7595087477944,
+   "speed_dev": -0.005954133478325185,
+   "speed_first": 1966.3785165699676,
+   "speed_second": 1967.1959279726,
+   "gap_max": 9.958788983959604e-05,
+   "gap_mean": 9.03894489660196e-05,
+   "sonic": {
+    "p": 1509252.6866265454,
+    "T": 2934.377839085401,
+    "behind": 0.004850638356680513,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557729.257951733,
+    "T": 2938.2162872012295
+   },
+   "energy_rebuilt": -3.332227029362311e-05,
+   "p_shock_of_this_speed": 2775954.5180706433,
+   "peak_ratio": 0.8579956820598018
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1200,
+   "steps": 3157,
+   "gpu_s": 17.67357105600003,
+   "wall_s": 17.742356510999997,
+   "detonation": true,
+   "mass": 3.3306690738754696e-16,
+   "atoms": 4.440892098500626e-16,
+   "energy": 3.241851231905457e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.9136733185513674,
+   "ns_per_cell_step": 4665.180829901813,
+   "p_peak": {
+    "mean": 2381756.1981866453,
+    "low": 2380121.409616119,
+    "high": 2384753.355602318
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "double precision",
+   "speed": 1966.7593844716785,
+   "speed_dev": -0.005954196290356317,
+   "speed_first": 1966.3783381352544,
+   "speed_second": 1967.1957895801002,
+   "gap_max": 9.958761826074289e-05,
+   "gap_mean": 9.038907090451623e-05,
+   "sonic": {
+    "p": 1509252.501954775,
+    "T": 2934.377697093557,
+    "behind": 0.00485064160602632,
+    "found": 101,
+    "of": 101
+   },
+   "back": {
+    "p": 1557729.6025079326,
+    "T": 2938.216194414395
+   },
+   "energy_rebuilt": 0.001085088359233266,
+   "p_shock_of_this_speed": 2775954.159507324,
+   "peak_ratio": 0.857995507609304
+  }
+ ],
+ "full_gpu": [
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1228800,
+   "steps": 4383,
+   "gpu_s": 266.04075084100015,
+   "wall_s": 268.913021499,
+   "detonation": true,
+   "mass": 7.904787935331115e-14,
+   "atoms": 2.2093438190040615e-13,
+   "energy": 7.127631818093505e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.6541033538672142,
+   "ns_per_cell_step": 49.39642192242076,
+   "p_peak": {
+    "mean": 2379090.4318181816,
+    "low": 2377400.0,
+    "high": 2381605.0
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "stacked 1200 x 1024, chosen chemistry setting",
+   "rows_identical": true,
+   "speed": 1966.8144480006795,
+   "speed_dev": -0.005926365905829845,
+   "speed_first": 1966.3289079261444,
+   "speed_second": 1967.649061208758,
+   "gap_max": 0.00010023052742676175,
+   "gap_mean": 9.278311267326939e-05,
+   "sonic": {
+    "p": 1509325.5206723053,
+    "T": 2934.3177847090915,
+    "behind": 0.0048498720441830035,
+    "found": 11,
+    "of": 11
+   },
+   "back": {
+    "p": 1557186.2289772728,
+    "T": 2938.055432128906
+   },
+   "energy_rebuilt": null,
+   "p_shock_of_this_speed": 2776113.03193518,
+   "peak_ratio": 0.8569861545442042
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1228800,
+   "steps": 4383,
+   "gpu_s": 267.51968107900024,
+   "wall_s": 269.18964045499996,
+   "detonation": true,
+   "mass": 7.904787935331115e-14,
+   "atoms": 2.2093438190040615e-13,
+   "energy": 7.127631818093505e-14,
+   "status": 0,
+   "substeps_per_cell_step": 0.6541033538672142,
+   "ns_per_cell_step": 49.67101843366628,
+   "p_peak": {
+    "mean": 2379090.4318181816,
+    "low": 2377400.0,
+    "high": 2381605.0
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "stacked 1200 x 1024, chosen chemistry setting, parts timed",
+   "times": {
+    "flow_s": 208.20901527699496,
+    "chemistry_s": 53.18564782799821
+   },
+   "rows_identical": true,
+   "speed": 1966.8144480006795,
+   "speed_dev": -0.005926365905829845,
+   "speed_first": 1966.3289079261444,
+   "speed_second": 1967.649061208758,
+   "gap_max": 0.00010023052742676175,
+   "gap_mean": 9.278311267326939e-05,
+   "sonic": {
+    "p": 1509325.5206723053,
+    "T": 2934.3177847090915,
+    "behind": 0.0048498720441830035,
+    "found": 11,
+    "of": 11
+   },
+   "back": {
+    "p": 1557186.2289772728,
+    "T": 2938.055432128906
+   },
+   "energy_rebuilt": null,
+   "p_shock_of_this_speed": 2776113.03193518,
+   "peak_ratio": 0.8569861545442042
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1228800,
+   "steps": 4383,
+   "gpu_s": 329.78006277399965,
+   "wall_s": 330.9109407750001,
+   "detonation": true,
+   "mass": 7.649436639667329e-14,
+   "atoms": 2.2859492077031973e-13,
+   "energy": 3.8191672047105385e-14,
+   "status": 0,
+   "substeps_per_cell_step": 1.9469577534413263,
+   "ns_per_cell_step": 61.231052276358284,
+   "p_peak": {
+    "mean": 2379091.227272727,
+    "low": 2377400.75,
+    "high": 2381606.0
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "stacked 1200 x 1024, chemistry default bs23, tolerance 1e-6",
+   "rows_identical": true,
+   "speed": 1966.8144282430085,
+   "speed_dev": -0.0059263758918148834,
+   "speed_first": 1966.3288768090306,
+   "speed_second": 1967.649042537528,
+   "gap_max": 0.00010023071792576721,
+   "gap_mean": 9.278344216490161e-05,
+   "sonic": {
+    "p": 1509325.71646045,
+    "T": 2934.317815733469,
+    "behind": 0.0048498690885096,
+    "found": 11,
+    "of": 11
+   },
+   "back": {
+    "p": 1557186.1610795453,
+    "T": 2938.055364990234
+   },
+   "energy_rebuilt": null,
+   "p_shock_of_this_speed": 2776112.974928395,
+   "peak_ratio": 0.8569864586775657
+  },
+  {
+   "N": 1200,
+   "h": 9.999999999999999e-05,
+   "cells": 1228800,
+   "steps": 4383,
+   "gpu_s": 330.6195770880005,
+   "wall_s": 331.8021009449999,
+   "detonation": true,
+   "mass": 7.649436639667329e-14,
+   "atoms": 2.2859492077031973e-13,
+   "energy": 3.8191672047105385e-14,
+   "status": 0,
+   "substeps_per_cell_step": 1.9469577534413263,
+   "ns_per_cell_step": 61.38692690508793,
+   "p_peak": {
+    "mean": 2379091.227272727,
+    "low": 2377400.75,
+    "high": 2381606.0
+   },
+   "guard": {
+    "first_order": 0,
+    "species_flat": 0,
+    "species": 0,
+    "cold": 0,
+    "mass_moved": 0.0,
+    "energy_added": 0.0
+   },
+   "given": {
+    "T_ign": 2500.0,
+    "p_ign": 3000000.0,
+    "L_ign": 0.0015
+   },
+   "tag": "stacked 1200 x 1024, chemistry default bs23, tolerance 1e-6, parts timed",
+   "times": {
+    "flow_s": 208.66185320400797,
+    "chemistry_s": 115.84929425100214
+   },
+   "rows_identical": true,
+   "speed": 1966.8144282430085,
+   "speed_dev": -0.0059263758918148834,
+   "speed_first": 1966.3288768090306,
+   "speed_second": 1967.649042537528,
+   "gap_max": 0.00010023071792576721,
+   "gap_mean": 9.278344216490161e-05,
+   "sonic": {
+    "p": 1509325.71646045,
+    "T": 2934.317815733469,
+    "behind": 0.0048498690885096,
+    "found": 11,
+    "of": 11
+   },
+   "back": {
+    "p": 1557186.1610795453,
+    "T": 2938.055364990234
+   },
+   "energy_rebuilt": null,
+   "p_shock_of_this_speed": 2776112.974928395,
+   "peak_ratio": 0.8569864586775657
+  }
+ ],
+ "cost": {
+  "one_row": {
+   "ms_per_step": {
+    "400": 2.108309904904907,
+    "800": 1.4622873843843873,
+    "1600": 0.9624353562005271,
+    "3200": 0.7269749405244343,
+    "1200": 1.1581293706050022,
+    "2400": 0.8231299548762742,
+    "4800": 0.45735397622718954,
+    "9600": 0.35825795378655767,
+    "19200": 0.5592241319430442
+   }
+  },
+  "full_gpu": {
+   "cells": 1228800,
+   "steps": 4383,
+   "ns_per_cell_step": 49.39642192242076,
+   "flow_ns": 38.65866538927683,
+   "chemistry_ns": 9.875106321208742,
+   "chemistry_share": 0.1988102244047314,
+   "chemistry_ns_bs23_default": 21.51001528956466
+  }
+ },
+ "openfoam": {
+  "solution": {
+   "N800": {
+    "N": 800,
+    "cores": 8,
+    "wall_time": 73.30689095700001,
+    "us_per_cell_step": 52.36206496928572,
+    "speed_err": -0.003210733350405337,
+    "gap_max": 0.00010411986206881885,
+    "steps": 1700,
+    "dt": 2.9411764705882354e-08
+   },
+   "N400": {
+    "N": 400,
+    "cores": 8,
+    "wall_time": 35.46474191900006,
+    "us_per_cell_step": 92.93695471436074,
+    "speed_err": -0.004913073030494042,
+    "gap_max": 0.0001210437490713201,
+    "steps": 900,
+    "dt": 5.555555555555556e-08
+   },
+   "N1600": {
+    "N": 1600,
+    "cores": 8,
+    "wall_time": 171.03424395499997,
+    "us_per_cell_step": 31.937975043882574,
+    "speed_err": -0.004112213081251426,
+    "gap_max": 7.80381885037984e-05,
+    "steps": 3300,
+    "dt": 1.5151515151515152e-08
+   },
+   "N3200": {
+    "N": 3200,
+    "cores": 8,
+    "wall_time": 401.33546710400003,
+    "us_per_cell_step": 18.879622681017615,
+    "speed_err": -0.005130884511296507,
+    "gap_max": 5.9708395438298756e-05,
+    "steps": 6600,
+    "dt": 7.575757575757576e-09
+   }
+  },
+  "finest": {
+   "speed": 1968.3886360689016,
+   "wall_s": 401.33546710400003,
+   "cores": 8
+  },
+  "trial": {
+   "cells": 1200,
+   "speed_dev": -0.011,
+   "us_per_cell_step": 57.0,
+   "wall_s": 689.0,
+   "cores": 1,
+   "p_peak": 1970000.0,
+   "p_back": 1560000.0,
+   "T_back": 2920.0,
+   "dt": 5e-09,
+   "source": "dev/agent_checks/case21_toolgap.py, as the task statement of stage 2 gave it"
+  },
+  "ratio_wall_time_3200_cells": 64.90307739508958,
+  "not_like_for_like": [
+   "One GPU (RTX 4070) against 8 CPU cores (OpenFOAM's solution) or 1 core (its trial).",
+   "In one dimension the GPU is almost idle: a step costs about 0.7 to 1.2 ms whatever the number of cells. The stacked tube shows the cost on a full GPU.",
+   "gpucfd takes three flux evaluations per step at Courant number 0.4 with its own step size; OpenFOAM's solution takes a fixed step (Courant number about 0.4 of the wave) with five passes per step; its trial took 5e-9 s.",
+   "Chemistry: gpucfd's explicit method at relative tolerance 1e-4 in mixed precision; OpenFOAM's RKF45 at 1e-6 in double (its trial: seulex at 1e-3).",
+   "Flow scheme: gpucfd is a density-based solver with a Riemann solver and conserves energy to rounding; reactingFoam is pressure-based and loses 0.2 % of the heat released.",
+   "Tuning: gpucfd's flow setting was fixed before the runs and its chemistry setting chosen with 12 runs; OpenFOAM's solution had its own studies (passes, time step, chemistry method)."
+  ]
+ }
+}

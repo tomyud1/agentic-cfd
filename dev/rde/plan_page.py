@@ -158,7 +158,7 @@ page = dict(
     hard=dict(head=["The engine needs", "Where we are today"], rows=[
         ["Gas that is squeezed and expands, with shock waves", "<b>Done</b> (steps 1 and 2). OpenFOAM's shock solver and a new shock solver in gpucfd both match the exact solutions."],
         ["Burning: a chain of chemical reactions between hydrogen and air", "<b>Done</b> (step 3). OpenFOAM's chemistry solver and new chemistry on the GPU in gpucfd both match the reference."],
-        ["Shock and burning in one solver", "<b>Done with OpenFOAM</b> (step 4). <b>In progress for gpucfd:</b> its shock solver and its chemistry are being joined."],
+        ["Shock and burning in one solver", "<b>Done with both</b> (step 4): OpenFOAM and gpucfd give the same wave speed on the same grid. <b>Open:</b> on cells fine enough to resolve the zone between shock and burning, the wave dies in our one-dimensional tube."],
         ["Very small cells at the wave: the burning zone is far thinner than the engine", "Measured in one dimension (step 4): the wave's speed is right even with cells larger than the burning zone; the pressure peak at the front is not. What two dimensions need is measured on step 5. The second paper needed cells of half a micrometre to resolve the zone fully."],
         ["Checks and reports that understand such flows", "Four cases solved. What each one broke was turned into a check, a tool or a note for the next agent."],
     ]),
@@ -186,7 +186,10 @@ page = dict(
              result='Solved with OpenFOAM on 2026-11-16 by a fresh agent in about an hour and a half. The wave runs 0.5 % below the '
                     'theoretical speed (required: 2 %) and the flame stays within 0.06 mm of the shock. OpenFOAM needed five passes per '
                     'time step to keep the energy; with one it lost 15 % of the heat. Almost all the time is chemistry. '
-                    'The GPU solver is being built for this step now. '
+                    'gpucfd\'s shock solver and chemistry were joined the same day. On the same grid it gives the same wave speed '
+                    '(1968.3 against 1968.4 m/s) in 6 s, against 401 s on 8 cores; the two runs are not like for like. '
+                    'It also showed a weakness of our test problem: with 4000 cells or more no detonation starts. The hot layer that '
+                    'should ignite the gas is too weak, and coarse cells had helped it by smearing. A trial with a stronger ignition and a tube four times longer settles 0.3 % above the theoretical speed on cells down to 25 micrometres, the same on each grid. On finer cells the wave pulses and dies; why is open. '
                     '<a href="../detonation_tube_h2_air/brief.html">One-page report</a>'),
         dict(name="Detonation cells", what="In two dimensions a detonation front is not flat: it wrinkles into a regular pattern of cells.",
              new="the fine structure of the wave", answer="published cell patterns", where="this PC or the lab: to be measured", status="planned"),
@@ -200,7 +203,7 @@ page = dict(
          "then the tools and the workflow are improved with what it learned. Each step ends in a one-page report with "
          "accuracy and speed side by side.",
     ways=[
-        dict(letter="A", name="OpenFOAM's own burning solver", have="Done on step 4: the wave speed is within 0.5 % of the theory.",
+        dict(letter="A", name="OpenFOAM's own burning solver", have="Done on step 4: the wave speed is within 0.5 % of the theory. Not run on grids finer than 3200 cells.",
              idea="It was made for flames, not for shocks. The second paper shows that a solver of this kind can carry a detonation, "
                   "on another branch of OpenFOAM than ours.",
              risk="It may smear the shock or get its speed wrong. Found: with the setting of its own examples it lost 15 % of the heat "
@@ -208,8 +211,8 @@ page = dict(
         dict(letter="B", name="A published detonation solver", have="Not started. Lowest priority since Prof. Frankel's answers.",
              idea="Research groups have built solvers for exactly this job on top of OpenFOAM. The first paper describes one.",
              risk="That paper lists no public link to its code, so another one may be needed, and it may not build on our version."),
-        dict(letter="C", name="Our own solver in gpucfd", have="Its shock solver (steps 1 and 2) and its chemistry on the GPU (step 3) are built and tested. "
-                                                                 "They are being joined now, for step 4.",
+        dict(letter="C", name="Our own solver in gpucfd", have="Its shock solver (steps 1 and 2), its chemistry on the GPU (step 3) and the two joined are built and tested. "
+                                                                 "Done on step 4: the same wave speed as OpenFOAM on the same grid. On cells below 25 micrometres the wave dies in one dimension: open.",
              idea="A GPU solver for detonations, open to everyone. The flat engine is a rectangle that repeats sideways: "
                   "the kind of grid gpucfd is built for.",
              risk="The most work. New code must pass steps 1 to 3 before it is trusted on step 4."),
@@ -242,6 +245,8 @@ page = dict(
         "How accurate must an engine answer be? Each step states its required accuracy before the runs.",
         "Which lab result stays hidden from the agent for step 7?",
         "Which GPUs can gpucfd be tested on, and how are they reached?",
+        "How does the lab start a detonation in a simulation? Our thin hot layer was too weak: on fine grids no detonation starts (step 4).",
+        "Should a detonation in one dimension survive on cells that resolve the zone between shock and burning? Ours runs at the theoretical speed on cells of 25 micrometres and more, and pulses and dies on finer ones (step 4).",
     ],
     words=[
         dict(name="Shock wave", meaning="A very thin front where pressure, density and temperature jump. It moves faster than sound."),

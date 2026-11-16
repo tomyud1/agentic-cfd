@@ -48,8 +48,8 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   reviewed on 2026-11-15): it runs steps 1 and 2 on the GPU, as accurate as OpenFOAM or better
   and 20 to 70 times faster. It is the base of the third detonation solver.
 - **gpucfd has chemistry on the GPU now** ([`gpucfd/CHEMISTRY.md`](gpucfd/CHEMISTRY.md), built
-  and reviewed on 2026-11-15): a kernel that burns many cells at once, each by itself. It is not
-  yet joined to the flow solver. On step 3's ignition problem it meets the three requirements
+  and reviewed on 2026-11-15): a kernel that burns many cells at once, each by itself. On step
+  3's ignition problem it meets the three requirements
   and, with the same constants, agrees with OpenFOAM to one part in ten million. With a million
   cells it advances about 200 million cells times steps per second at a flow solver's time
   step; for one cell it is slower than OpenFOAM on one core. A fair ratio of the two tools'
@@ -57,10 +57,22 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   At the state behind a detonation's shock (28 atm, 1540 K) the kernel's answer is right, but
   hot gas needs about ten small steps of chemistry per flow step, burnt gas included, so there
   it runs at 16 to 19 million and chemistry would be most of a run's time.
-  **Next for gpucfd, in order:** join the two: the flow carries each species, heat capacities
-  change with temperature, and a guard stops negative pressure; make the chemistry cheaper at
-  detonation states (the other built-in methods gain only 1.6 times; the implicit one needs an
-  exact matrix, or burnt gas a cheaper rule); then step 4 on the GPU.
+- **gpucfd runs a detonation now** ([`gpucfd/REACTING.md`](gpucfd/REACTING.md), built and
+  reviewed on 2026-11-16): the shock solver and the chemistry kernel are joined. The flow
+  carries the ten species, the heat capacities change with temperature, and the chemistry works
+  on the flow solver's own arrays on the GPU. Checked on a ladder: equal to the shock solver for
+  one inert gas (to 8e-13), a shock tube of two different gases against an exact solution
+  (shock speed within 0.014 %), a gas at rest that ignites (ignition time to 6 parts in a
+  million, and nothing moves), then step 4's tube. Mass, atoms and energy are kept to
+  rounding. With the GPU full (1.2 million cells) a cell costs 49 nanoseconds per time step;
+  the flow part is 78 % of that, more than expected, and not yet optimised. The chemistry was
+  made 2.2 times cheaper in the tube (a looser tolerance that still keeps the accuracy rule,
+  and one plain step for cells where nothing happens); the exact matrix for the implicit method
+  is correct but was not faster.
+  **Next for gpucfd, in order:** find out why the detonation dies on very fine cells in one
+  dimension (step 4 below: ask the professor, then a published case or a second solver); a faster
+  flow step;
+  then a detonation in two dimensions (step 5).
 - **Step 3 is done (2026-11-15):** ignition of hydrogen and air in one cell (case 20), with
   OpenFOAM's `chemFoam` and the full hydrogen scheme, solved by a fresh agent in about 35
   minutes. Ignition time within 0.03 % of the reference, final temperature within 0.002 %
@@ -71,9 +83,34 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   with slightly different constants than the reference program. The agent's independent
   chemistry solution is now a tool, `cfdlib.chem`: the reference for chemistry in gpucfd and
   the base for the theory of step 4.
-- **Step 4 is done with OpenFOAM (2026-11-16); the GPU solver is next on it.** A detonation in a
-  straight tube (case 21), solved by a fresh agent in about an hour and a half with
-  `reactingFoam` and the full hydrogen scheme.
+- **Step 4 is done with OpenFOAM and with gpucfd (2026-11-16), and the case has a weakness.** A
+  detonation in a straight tube (case 21), solved by a fresh agent in about an hour and a half
+  with `reactingFoam` and the full hydrogen scheme; gpucfd's joined solver ran it afterwards.
+  - **gpucfd next to OpenFOAM.** On OpenFOAM's four grids (400 to 3200 cells) gpucfd meets both
+    requirements: wave speed 0.75 to 0.52 % below the theory, flame at most 0.17 mm behind. On
+    3200 cells the two tools give 1968.3 and 1968.4 m/s. gpucfd takes 6 s on the GPU, OpenFOAM
+    401 s on 8 cores. That is not like for like: other time steps and chemistry settings, and a
+    single row of cells leaves the GPU almost idle.
+  - **The weakness of the case, found with gpucfd.** With 4000 cells or more no detonation
+    starts: the shock runs ahead and dies. The hot layer the problem prescribes is too weak. Its
+    shock heats the fresh gas to about 930 K at 1.4 MPa, and gas in that state needs more than
+    200 microseconds to ignite; the run lasts 50 (computed on the CPU with `cfdlib.chem`,
+    without the flow solver). On coarse cells the scheme smears hot burnt gas into the fresh gas
+    and that starts the wave: a first-order scheme starts it on 4800 cells, a sharper one loses
+    it sooner. Once started the wave is a real detonation with the right speed. So the answer of
+    case 21 holds up to about 3200 cells only. OpenFOAM's study stopped there and was not run
+    finer. A first try with a four times stronger layer detonates on every grid
+    up to 19 200 cells with one speed, but is still 6 % too fast when the 0.12 m tube ends.
+  - **A trial with a checked ignition and a longer tube (2026-11-16, gpucfd only).** A 10 MPa
+    layer, 0.48 m, 200 microseconds. On cells of 100, 50 and 25 micrometres the wave settles
+    0.3 % above the theoretical speed, the same on the three grids within 0.01 %. On cells of
+    12.5 and 6.25 micrometres the detonation dies on the way; on the finest the front first
+    pulses harder and harder. On the grids that keep the wave, the burning sits one to two cells
+    behind the shock, closer than the 0.15 mm the chemistry needs: the grid holds the two
+    together. Whether the loss on fine cells is physics (a detonation in one dimension is known
+    to pulse) or the solver is not known. **Before the next detonation case:** ask the
+    professor, and check against a published case or a second solver
+    ([`gpucfd/REACTING.md`](gpucfd/REACTING.md), rung d5).
   - **Result.** The wave runs 0.51 % below the theoretical (Chapman-Jouguet) speed of 1978.5 m/s
     (required: 2 %), on every grid from 400 to 3200 cells, and the flame stays within 0.06 mm of
     the shock (required: 1 mm). One prediction of the agent was missed: the peak pressure at the
@@ -93,7 +130,7 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
 - **Three solvers for shock and burning together.** Three ways are tried, all three (the
   student's decision), and compared on step 4 on the same grid: OpenFOAM's own burning solver
   (`reactingFoam`, which the trial above showed can do it), a published detonation solver (to
-  be found; lowest priority), and gpucfd once its two parts are joined. Each gets a tuning
+  be found; lowest priority), and gpucfd (joined on 2026-11-16). Each gets a tuning
   budget fixed before its runs. The report shows all three, whatever the outcome.
 - **Hardware.** Steps 1 to 4 fit the development PC. Steps 5 to 7 probably need the lab's
   machines; their cost is measured on steps 4 and 5 first.

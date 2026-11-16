@@ -1,0 +1,260 @@
+# Plan for gpucfd's reacting solver (stage 2 of its detonation solver): the shock solver joined to the
+# chemistry kernel, verified rung by rung up to the detonation tube of case 21.
+# Written 2026-11-16, before any run of the joined solver. What was found is added below each rung under
+# "found", after its runs. A pass rule is never changed after its result is seen; a missed expectation is
+# reported as "expected, found".
+written: 2026-11-16
+purpose: >
+  Can gpucfd carry a detonation with the full hydrogen scheme, on the GPU from end to end, and what does it
+  cost next to OpenFOAM's reactingFoam on the same tube?
+
+what_is_built:
+  - "gpucfd/src/gcfdr.cu: the flow solver of gcfdc.cu with the mass of every species as conserved numbers, a
+    mixture with heat capacities that change with temperature, a guard, and the chemistry of gcfdk.cu working
+    on the same GPU arrays (no copies)."
+  - "gpucfd/src/gcfdk_core.h: the one copy of the thermodynamics, the temperature search, the rates and the
+    integrators, used by both libraries. New in it: an exact matrix for the implicit method (ros34a) and a
+    rule for quiet cells."
+  - "gpucfd/reacting.py (wrapper), gpucfd/exact_mixture.py (exact shock-tube solution for mixtures with
+    temperature-dependent heat capacities, for rung b)."
+
+fixed_before_the_runs:
+  flow_setting: "van Leer reconstruction, hybrid flux (HLLC; HLL on faces along a strong shock, which never happens in one dimension), three stages, Courant number 0.4, mixed precision. The solver's default; not tuned on the detonation."
+  constants: "OpenFOAM's constants for the detonation (cfdlib.chem.openfoam_conventions), so that the reference is the first block of cases/detonation_tube_h2_air/reference/cj.yaml (1978.54 m/s) and OpenFOAM's trial is like for like."
+  machine: "RTX 4070; nvidia-smi and the process list checked before every timing; one GPU job at a time."
+  run_end: "Every run ends at the end time its problem states. A run that produces a value that is not a number stops at once and is recorded as broken. No run above 15 minutes."
+
+ladder:
+  refactor:
+    what: "gcfdk.cu now takes its formulas from gcfdk_core.h. The chemistry ladder (bash gpucfd/run_ladder.sh chemistry) is run again."
+    pass: "All five chemistry tests pass as before."
+    found: "2026-11-16: all five chemistry tests pass on the kernel that takes its formulas from the shared file (rates, parcel, batch, speed, precision: 0 failed each)."
+
+  a:
+    what: "One inert gas with constant heat capacities: the joined solver against the shock solver (gpucfd.euler) and against the exact solution."
+    runs:
+      - "a1. The shock tube of case 18 (cases/shock_tube_sod/problem.yaml), air as one species with heat capacity 3.5 R. Joined solver and shock solver with the same setting, 400 and 3200 cells, two settings (van Leer with HLL; WENO5 with HLLC), Courant 0.4."
+      - "a2. The grid family 100 to 12800 cells with WENO5 and HLLC in mixed precision: errors against the exact solution, next to those of the shock solver run in the same test."
+      - "a3. The same air as two species with the same properties, one on each side."
+      - "a4. Two dimensions: the Mach 5.09 shock round a corner of case 19 on 100 x 100 cells, joined against shock solver. A one-dimensional problem along y and along z against the same along x."
+    pass:
+      - "a1: density, velocity and pressure of the two solvers agree within 1e-9 of their scales in double precision and within 1e-5 in mixed."
+      - "a2: each mean error of the joined solver within 0.1 % (relative) of the shock solver's on every grid."
+      - "a3: density, velocity, pressure equal to a1's within 1e-12 (double); the two mass fractions between 0 and 1 and adding up to one within 1e-13; the mass of each species kept within 1e-13."
+      - "a1 to a3: total mass and energy kept within 1e-13 in double and mixed."
+      - "a4: the corner within 1e-8 in double; along y and z equal to along x bit for bit."
+      - "The guard is not used in any run of this rung."
+    expected:
+      - "a1 in double: agreement near 1e-12 (the two codes form the energy and the wave speeds by different formulas that are the same number)."
+      - "a1 in mixed: near 1e-6 (fluxes in single precision)."
+    found:
+      - "a1 double: the joined solver equals the shock solver within 9e-15 to 8e-13 of the scales (limit 1e-9). PASS."
+      - "a1 mixed: expected within 1e-5, found 9e-7 (van Leer, 400 cells), 1.0e-5 (van Leer, 3200), 3.4e-5 and 3.2e-5 (WENO5). RULE MISSED. For scale, measured after: each solver's own mixed run differs from its own double run by 5e-7 to 1.8e-4 (shock solver) and 9e-7 to 1.8e-4 (joined solver). Two programs that do the same sums in another order cannot agree closer than that; the limit was a wrong guess of mine about single-precision rounding. Not changed; the check stays failing in the test."
+      - "a2: every mean error of the joined solver equals the shock solver's within 5.4e-4 relative on 100 to 12800 cells (limit 1e-3). PASS."
+      - "a3 first run: FAILED by 3e-3. Cause: each species was reconstructed by itself, and limiters are not linear (the sum of limited species is not the limited sum). Changed the solver: density, and the mass fraction of every species, are reconstructed; the face's mass fractions are scaled to add up to one. After the change: two equal species give the one-species answer within 2e-15 (van Leer) and 1e-13 (WENO5); mass fractions between 0 and 1, sum one within 2e-16, each species' mass kept within 2e-16. PASS."
+      - "a4: the corner of case 19 within 8e-14 (limit 1e-8); along y and z equal to along x bit for bit. PASS."
+      - "Mass and energy kept within 1e-15 in every run. PASS."
+      - "The guard is not used in any run: expected so, found used in ONE run, a3 with WENO5: 12 242 times a mass fraction came out negative at a face next to the border between the two species and was put back to the cell's value (and once a species of 3e-176 kg was set to zero). RULE MISSED. WENO5 does not keep a step that ends at zero above zero; that is what the guard is for. With van Leer the guard is not used (after two repairs of rounding in the van Leer slope, found by this check)."
+      - "Slower than the shock solver by 10 to 30 % on these one-species runs (2.3 s against 1.7 s on 12800 cells)."
+
+  b:
+    what: "Two different gases with heat capacities that change with temperature, no reactions."
+    runs:
+      - "b0. The exact solution (gpucfd/exact_mixture.py) checked by itself: its shock against cfdlib.chem.shock_frozen (independent code); entropy along its expansion; mass, momentum and energy of the whole solution."
+      - "b1. Shock tube, 0.12 m, closed ends, border in the middle. Left: water vapour and nitrogen (2 : 3.76 by moles) at 2500 K and 3 MPa. Right: hydrogen, oxygen, nitrogen (2 : 1 : 3.76) at 300 K and 1 atm (the fresh gas of case 21). End 30 microseconds. Grids 200, 400, 800, 1600, 3200. The fixed flow setting; WENO5 with HLLC once on each grid for information."
+      - "b2. A border between the same two gases at one pressure (1 atm), left 2500 K, right 300 K, both moving at 500 m/s through a periodic tube of 0.12 m, once round (240 microseconds), 400 and 1600 cells. Exact answer: pressure and velocity stay uniform."
+    pass:
+      - "b0: shock state (pressure, temperature, density, gas speed) within 1e-8 of cfdlib.chem.shock_frozen at the same shock speed; entropy constant within 1e-9 along the expansion; mass, momentum (against the push of the walls) and energy of the exact solution within 1e-6."
+      - "b1 on 3200 cells: speed of the shock (fit of its position over the second half of the time) within 0.2 %; pressure, velocity, density and temperature between border and shock (mean over the middle half of that stretch) within 0.5 %; mean error of density, velocity, pressure and temperature along the tube below 0.2 % of their scales."
+      - "b1: the mean errors fall with the cell size with a fitted order of at least 0.7."
+      - "b1, b2: no mass fraction below 0 or above 1, their sum one within 1e-12; mass of every species, total mass and total energy kept within 1e-12."
+    expected:
+      - "b1: a wiggle of pressure and velocity at the border between the gases, at most 2 % of the pressure there, not falling with the grid. This is the known weakness of a conservative scheme where the ratio of heat capacities jumps; no cure is built."
+      - "b2: pressure disturbed by at most 1 %, velocity by at most 1 % of the speed of sound."
+      - "b1, b2: a mass fraction leaves the range of its two end values by at most 1e-3."
+      - "The guard is not used with van Leer; it may be used with WENO5."
+    found:
+      - "b0: the exact solution's shock agrees with cfdlib.chem.shock_frozen within 9e-16; entropy along its expansion constant within 6.5e-12; its mass, momentum and energy within 1.3e-10, 6.6e-10, 1.5e-10. PASS."
+      - "b1 on 3200 cells: shock speed 1182.15 m/s against 1181.99 (0.014 %; limit 0.2 %); state between border and shock within 0.021 % (limit 0.5 %); mean errors 0.092 % (density), 0.042 % (velocity), 0.016 % (pressure), 0.076 % (temperature) (limit 0.2 %). PASS."
+      - "b1 order: expected at least 0.7 for every field, found 0.77 (density), 0.91 (velocity), 0.95 (pressure), 0.66 (temperature). RULE MISSED for temperature. A scheme of second order spreads a border between two gases over a width that falls as the cell size to the power 2/3, so the mean error of a field that jumps there can fall no faster than 0.67; the limit was set too high by me. WENO5 on the same grids: 0.70."
+      - "b1, b2: mass fractions between 0 and 1, sum one within 2e-16; mass, each species and energy kept within 3e-14 (limit 1e-12). PASS."
+      - "Expected a pressure wiggle at the border of at most 2 %: found 0.18 to 0.30 % with van Leer on every grid, not falling with the grid (0.8 to 1.7 % with WENO5)."
+      - "Expected in b2 a pressure disturbed by at most 1 % and a velocity by at most 1 % of the speed of sound: found 15 % during the run on both grids (the first steps, when the border is one cell wide) and 2.2 % (400 cells) and 1.3 % (1600 cells) at the end; velocity 2.7 % and 1.9 %. EXPECTATION MISSED: the known weakness (a conservative scheme at a border where the ratio of heat capacities jumps and the temperature jumps from 2500 to 300 K) is ten times larger at the start than I expected. No cure is built."
+      - "Expected a mass fraction to leave the range of its end values by at most 1e-3: first run 2.8e-3 (b1) and 1.7e-2 (b2). After the change of a3 (mass fractions reconstructed): 2e-7 and 1e-6."
+      - "Guard with van Leer: not used (after the change). With WENO5: a mass fraction put back to the cell's value 6800 to 225 000 times, a species set to zero up to 6000 times (4e-26 kg moved)."
+
+  c:
+    what: "Uniform gas at rest that ignites: the mixture of case 20 (H2 : O2 : N2 = 1 : 1 : 3.76) at 1000 K and 2 atm in a closed box, flow and chemistry both switched on."
+    runs:
+      - "64 cells in one dimension and 32 x 32 in two; steps of 1e-8 s to 0.3 ms (ignition time: first crossing of 1200 K, straight line over the step), and steps of 1e-7 s to 1 ms (end state). With the chemistry default (bs23) and with the method the tuning below chooses."
+    reference: "cfdlib.chem.VolumeParcel with the same constants (ignition 214.18 microseconds, 2477.04 K and 460 486 Pa at 1 ms with CHEMKIN's constants)."
+    pass:
+      - "Ignition time within 1e-4 of the reference; temperature at 1 ms within 0.1 K; pressure at 1 ms within 1e-5."
+      - "Nothing moves: the highest gas speed is exactly zero after every step, and highest and lowest temperature are the same number after every step."
+      - "Mass, atoms of each element and total energy kept within 1e-12; every cell's chemistry status 0; the guard not used."
+    expected:
+      - "Ignition time within 1e-5 and end temperature within 0.01 K in mixed precision."
+    found:
+      - "Reference 214.1822 microseconds, 2477.0407 K, 460 486.47 Pa. Found on 64 cells and on 32 x 32, with the kernel's default and with the chosen setting alike: ignition 214.1834 microseconds (+5.6e-6; limit 1e-4), 2477.0410 K (+3e-4 K; limit 0.1), pressure +1.4e-7 (limit 1e-5). PASS."
+      - "Nothing moves: highest gas speed exactly 0 and highest minus lowest temperature exactly 0 after every one of 40 000 steps. PASS."
+      - "Mass 2e-15, atoms 2e-14, energy 0 (limit 1e-12); chemistry status 0; guard not used. PASS."
+
+  chemistry_cheaper:
+    what: "Item 5 of the task: make the chemistry cheaper at detonation states."
+    candidates:
+      - "ros34a: the implicit method with its matrix written out exactly (3 rate evaluations and one matrix per sub-step in place of 11 rate evaluations), and with the species changed by whole reactions, so that atoms are kept to round-off in mixed precision too."
+      - "quiet rule: a cell whose species would change over the whole step by less than the allowed error takes one plain step after one rate evaluation (cold gas ahead of the wave)."
+    checks_before_tuning:
+      - "j1. The exact matrix against central differences of cfdlib.chem's rates (independent code): 300 random states and the states at the front and behind a CJ detonation, at constant volume and at constant pressure, double precision. Pass: within 1e-5 of each row's largest entry. Expected 1e-6 (the accuracy of the differences)."
+      - "j2. Order of ros34a with fixed sub-steps: 4 within 0.4."
+      - "j3. Atoms over a burning parcel in mixed precision: ros34a within 1e-12. Expected for the old ros34: about 1e-7."
+    tuning_budget: >
+      12 runs, no more. State (i), the same as dev/agent_checks/chem_detonation_methods.py so that the numbers
+      stand next to it: 250 000 cells at the state behind a shock of the CJ speed, burning at constant volume,
+      400 steps of 5e-9 s. Runs 1 to 6: bs23, ros34, ros34a at relative tolerance 1e-4 and 1e-6 in mixed
+      precision. Runs 7 and 8: ros34a in double at both tolerances. State (ii): 250 000 cells of fresh gas at
+      300 K and 1 atm, 400 steps of 5e-9 s. Runs 9 to 12: bs23 and ros34a, quiet rule off and on (quiet = 1).
+    rule: >
+      Accuracy rule as in the review check: time to 2000 K within 0.1 %, temperature after 2 microseconds within
+      0.01 % of cfdlib.chem.VolumeParcel, every cell status 0, atoms within 1e-10. Among the mixed-precision
+      settings that keep it, the least GPU time on state (i) becomes the joined solver's chemistry setting. The
+      quiet rule is kept if on state (ii) it changes no species by more than 1e-12 mol/kg and is cheaper.
+    expected:
+      - "ros34a at tolerance 1e-4: 50 to 80 million cells x steps per second on state (i) (ros34: 29, the default bs23: 19), so about 3 times the default."
+      - "ros34a keeps the accuracy rule at 1e-6 in mixed precision with fewer than 5 sub-steps per step (ros34 needed 15)."
+      - "The quiet rule makes fresh gas 3 to 5 times cheaper."
+    found:
+      - "j1: the exact matrix agrees with central differences of cfdlib.chem's rates within 4.9e-7 of a row's largest entry on 303 states at constant volume and 4.2e-7 at constant pressure (limit 1e-5; expected 1e-6). PASS."
+      - "j2: with sub-steps from 1e-9 s down to 1.6e-11 s the measured order is 2.88, 3.14, 3.42, 3.65, 3.80, 3.90 (the old ros34 gives the same numbers). The first run of the test stopped at the fourth value and failed (3.42); the plan fixes no sub-step sizes, so the test now goes on to shorter ones. PASS at 3.90. At this state (the temperature rise behind a detonation's shock) the method reaches its order only for sub-steps well below 1e-10 s."
+      - "j3: ros34a keeps atoms within 1.6e-15 in mixed precision (limit 1e-12); the old ros34 loses 7.1e-7 (expected 1e-7). PASS."
+      - "Tuning, the 12 runs (million cells x steps per second on state (i), sub-steps per step): bs23 at 1e-4: 23.5, 8.8. bs23 at 1e-6 (the kernel's default): 18.5, 10.5. ros34 at 1e-4: 27.5, 2.8, OUT (atoms 7e-7). ros34 at 1e-6: 5.2, 15.2, OUT (atoms 8e-9). ros34a at 1e-4: 17.1, 2.4. ros34a at 1e-6: 5.9, 7.5. ros34a double at 1e-4: 6.2; at 1e-6: 3.0. Every run kept the time to 2000 K within 0.017 % and the end temperature within 0.00001 %."
+      - "CHOSEN by the rule: bs23 at tolerance 1e-4, 1.27 times cheaper than the kernel's default."
+      - "Expected ros34a at 1e-4 to reach 50 to 80 million: found 17.1. EXPECTATION MISSED. The exact matrix needs fewer sub-steps than the differenced one (2.4 against 2.8; 7.5 against 15.2 at 1e-6) and keeps atoms exactly, but one of its sub-steps costs 1.9 times one of ros34: it keeps a table of 27 reactions x 9 species per cell, and rebuilds the reaction progress at each of 4 stages. Not optimised further (the budget of runs was used)."
+      - "Expected ros34a at 1e-6 with fewer than 5 sub-steps per step in mixed precision: found 7.5 (4.6 in double)."
+      - "Quiet rule, state (ii): 197 million cells x steps per second without it, 504 with it (2.6 times cheaper; expected 3 to 5), species changed by at most 1.7e-42 mol/kg. KEPT. Deviation from the plan: runs 9 to 12 were made with bs23 at both tolerances (1e-6 and 1e-4), not with bs23 and ros34a, because the test was written to try the default and the chosen method."
+
+  d:
+    what: "The detonation tube of case 21 exactly as cases/detonation_tube_h2_air/problem.yaml states it."
+    runs:
+      - "d1. 1200 cells (0.1 mm, the grid of OpenFOAM's trial), then 2400, 4800, 9600 (12.5 micrometres); 19200 only if the answers still move and the run stays below 15 minutes. Fixed flow setting, chosen chemistry setting, 200 samples (every 0.25 microseconds)."
+      - "d2. On 1200 cells, for information (not tuning; the fixed setting stays the answer): WENO5 with HLLC; Courant 0.8; a fixed time step of 5e-9 s (OpenFOAM's trial); the three orders of splitting (flow then chemistry, chemistry then flow, half-flow-half); the chemistry default bs23; double precision."
+      - "d3. Cost on a full GPU: the 1200-cell tube stacked 1024 times across (1.2 million cells, the same tube in every row, two-dimensional code path), timed with the chosen chemistry setting and with the default bs23, each with the time of flow and of chemistry measured apart."
+    reading_rules:
+      pressure_front: "The rightmost place where the pressure crosses half-way between the start pressure and the CJ pressure (straight line between cell centres)."
+      wave_speed: "Slope of a straight line through the pressure front's position over 25 to 50 microseconds (the problem's definition)."
+      burning_front: "The rightmost place where the mass fraction of water crosses half of its CJ value."
+      gap: "Pressure front minus burning front, at every sample from 10 microseconds on."
+      burnt_state: "Two readings, both means over 25 to 50 microseconds. (i) At the sonic point: the first place behind the front where gas speed plus the solver's speed of sound falls to the measured wave speed. (ii) As OpenFOAM's trial read it: the mean over 2 to 6 mm behind the pressure front."
+      front_pressure: "The highest pressure in the tube, at every time step; its mean, lowest and highest value over 25 to 50 microseconds."
+      conserved: "Total mass, atoms of H, O and N (largest relative change over the samples), total energy (change over the start value), and the total energy rebuilt from the output by cfdlib.chem.total_energy."
+      cost: "Wall time, steps, time per cell and step; share of the chemistry from the two timers."
+    pass:
+      - "Required by the problem: wave speed within 2 % of 1978.54 m/s, on the finest grid; every grid is reported."
+      - "Required by the problem: from 10 microseconds on the burning front within 1 mm of the pressure front, on every grid."
+      - "The run does not break: no value that is not a number, every cell's chemistry status 0."
+      - "Total mass and atoms of each element kept within 1e-9; total energy within 1e-9 (the solver stores it, so only the guard can change it)."
+    expected:
+      - "0.1 mm cells: speed within 1 % of CJ (OpenFOAM's trial: 1.1 % below); highest pressure 2.0 to 2.6 MPa (trial 1.97; a resolved front has 2.81)."
+      - "Finer grids: the highest pressure rises towards 2.81 MPa. On the finest grids the front may pulse (a resolved one-dimensional detonation in this mixture is known to be unstable), so the highest pressure may swing above 2.81 MPa; the speed over the second half stays within 1 % of CJ."
+      - "Gap 0 to 0.3 mm on every grid."
+      - "Burnt state at the sonic point: pressure within 5 % and temperature within 3 % of CJ (1.581 MPa, 2970 K). Read 2 to 6 mm behind the front: 1.4 to 1.6 MPa, because the gas behind a detonation in a closed tube expands at once."
+      - "The three orders of splitting differ by less than 0.2 % in speed; flow then chemistry stays the default because it is the cheapest."
+      - "The guard is not used with van Leer."
+      - "Cost in one dimension: the GPU is idle, a step costs 0.3 to 0.6 ms whatever the grid; 1200 cells take about 2 s (trial: 689 s)."
+      - "Cost on the stacked tube: flow 15 to 30 ns per cell and step; chemistry 30 to 60 ns with bs23 (more than half of the time) and 8 to 20 ns with the chosen setting."
+    comparison_with_openfoam: >
+      OpenFOAM's trial (dev/agent_checks/case21_toolgap.py): reactingFoam, 1200 cells, time step at most 5e-9 s
+      (Courant 0.1), chemistry seulex at relative tolerance 1e-3, one CPU core: wave 1.1 % below CJ, highest
+      pressure 1.97 MPa, 689 s, 57 microseconds per cell and step. Not like for like, to be stated with the
+      numbers: gpucfd's own time step is larger (Courant 0.4), its step has three stages, its chemistry
+      tolerance differs, one core stands against a GPU, and in one dimension the GPU is mostly idle. The run
+      with 5e-9 s (d2) and the stacked tube (d3) show both ends of that. The solver agent's own results of
+      case 21 (results/detonation_tube_h2_air) are not read before rung d is finished.
+    found:
+      - "On 0.1 mm cells (1200) and on every coarser or equal grid of OpenFOAM's solution, and up to 3200 cells: a detonation. Speed from CJ: -0.75 % (400 cells), -0.63 % (800), -0.60 % (1200), -0.58 % (1600), -0.55 % (2400), -0.52 % (3200). Largest distance of the burning front from 10 microseconds on: 0.174, 0.124, 0.100, 0.085, 0.071, 0.064 mm. Both requirements of the problem are met on each of these grids."
+      - "On 4000, 4800, 9600 and 19200 cells: NO DETONATION. The shock leaves the burnt gas behind and slows down (975, 951, 918, 906 m/s over the second half of the time, about half the CJ speed); at the end the burning front is 26 to 31 mm behind it and the highest pressure is 0.6 MPa. REQUIREMENT MISSED on the finest grid: rung d does not pass as its rule is written (speed within 2 % on the finest grid)."
+      - "Why, checked three ways. (1) Not the chemistry setting, not the precision: 4800 cells with bs23 at 1e-6 without the quiet rule, with ros34a, and in double precision give the same numbers to four digits. (2) It follows the smearing of the scheme: on 4800 cells first-order reconstruction (more smearing) gives a detonation, WENO5 (less) loses it sooner; 3200 cells with van Leer is the borderline (the shock runs ahead for 5 microseconds, then the burning catches it). (3) Independent code on the CPU (cfdlib.chem, gpucfd/exact_mixture.py): the patch burns to 3665 K and 4.07 MPa (the solver shows the same two numbers) and drives a shock of 1.37 MPa and 931 K; gas at that state, at the 1.65 MPa and 1050 K seen behind the shock on fine grids, and at 1.85 MPa and 1120 K does not ignite within 200 microseconds (at 2.0 MPa and 1180 K it takes 143). So the patch of the problem cannot start a detonation by its shock; on coarse cells the shock and the burning are held together by the cells themselves."
+      - "Next to OpenFOAM's solution on its finest grid, 3200 cells: speed 1968.3 against 1968.4 m/s; distance of the fronts 0.064 against 0.060 mm; sonic point 1.511 MPa and 2936 K against 1.512 MPa and 2936 K; heat released 2.594e5 against 2.599e5 J per square metre."
+      - "Highest pressure: 2.15, 2.30, 2.38, 2.44, 2.52, 2.57 MPa (400 to 3200 cells) = 0.78 to 0.93 of the pressure behind a non-burning shock of the run's own speed (2.78 MPa). Expected 2.0 to 2.6 on 0.1 mm: found 2.38. Expected to rise towards 2.81 on finer grids: it rises as far as a detonation exists."
+      - "Burnt state at the sonic point (4.85 mm behind): 1.505 to 1.511 MPa (-4.8 to -4.4 % from CJ; expected within 5 %), 2931 to 2936 K (-1.3 to -1.1 %; expected within 3 %). 2 to 6 mm behind: 1.556 to 1.561 MPa and 2934 to 2940 K (expected 1.4 to 1.6 MPa; OpenFOAM's trial 1.56 MPa, 2920 K)."
+      - "Kept: mass within 7e-16, atoms within 2e-14, energy within 1.1e-13 of its start value on every grid (1.5e-17 of the heat released on 3200 cells). The FIRST run missed the rule: energy changed by 1.3e-9 (limit 1e-9). Cause: the flux through a closed end came out of the flux formula as zero up to single-precision rounding. The flux through a wall is now set to pressure only; after that, the numbers above. PASS."
+      - "No run broke; chemistry status 0 everywhere; the guard not used with van Leer (WENO5 on 1200 cells: a mass fraction put back 56 332 times, a species set to zero 432 times, 7e-38 kg)."
+      - "Other settings on 1200 cells: WENO5 with HLLC -0.55 % and a highest pressure of 2.68 MPa; Courant number 0.8: -0.60 %; steps of 5e-9 s: -0.59 %; the three orders of splitting: 1966.8 m/s each (expected within 0.2 %: they agree within 0.01 %; distance of the fronts 0.100, 0.107, 0.103 mm); the kernel's default chemistry: the same speed, 8.0 s in place of 3.7 s; double precision: the same to four digits, 17.7 s."
+      - "Cost in one dimension: expected 0.3 to 0.6 ms per step and about 2 s for 1200 cells; found 1.16 ms and 3.7 s (0.73 ms per step on 3200 cells, 2.1 ms on 400, where each step needs more chemistry sub-steps). EXPECTATION MISSED by a factor of two."
+      - "Cost on a full GPU (1 228 800 cells, 4383 steps, every row identical): 49.4 ns per cell and step. Flow 38.7 ns (expected 15 to 30: MISSED), chemistry 9.9 ns with the chosen setting (expected 8 to 20) and 21.5 ns with the kernel's default (expected 30 to 60). The flow is 78 % of the time, the chemistry 20 %; I expected the chemistry to be more than half."
+      - "Against OpenFOAM, not like for like (see comparison_with_openfoam): its trial took 689 s on one core for 1200 cells, gpucfd 3.7 s (6.2 s with the trial's step of 5e-9 s); its solution took 401 s on 8 cores for 3200 cells, gpucfd 6.2 s. Per cell and step: 57 and 19 microseconds against 0.05 on a full GPU."
+
+  d4:
+    added: "2026-11-16, after the first runs of d1 and before any run of d4."
+    why: >
+      d1 found that the problem as stated gives a detonation on 1200, 2400 and 3200 cells and none on 4000 cells
+      and more: the shock leaves the burnt gas behind and dies away. A check with independent code on the CPU
+      (cfdlib.chem and gpucfd/exact_mixture.py) agrees: the patch of the problem (2500 K, 3 MPa) burns to
+      3665 K and 4.07 MPa and drives a shock of 1.37 MPa and 931 K into the fresh gas; gas at that state, and
+      at the 1.65 MPa and 1050 K seen in the fine runs, does not ignite within 200 microseconds. So on fine
+      grids there is no detonation to measure, and the solver's behaviour on a detonation under refinement
+      (speed, highest pressure) cannot be read from the problem as stated.
+    what: >
+      The same tube with one number changed: the patch's pressure 12 MPa in place of 3 MPa (2500 K and 1.5 mm
+      kept). Chosen by the same CPU calculation, before any run: it is the first of 6, 8, 10, 12, 15 MPa whose
+      shock into the fresh gas (3.03 MPa, 1630 K, 2051 m/s) is faster than the CJ speed; gas behind it ignites
+      after 0.28 microseconds. This is NOT case 21's problem; it is reported apart and never as the case's answer.
+    runs:
+      - "1200, 2400, 4800, 9600 and 19200 cells, the fixed flow setting and the chosen chemistry setting; read by the rules of d."
+    pass:
+      - "A detonation on every grid: the pressure front exists at every sample from 10 microseconds on, and the burning front is within 1 mm of it."
+      - "Wave speed over 25 to 50 microseconds within 2 % of the CJ speed on every grid."
+      - "The run does not break, chemistry status 0, mass, atoms and energy within 1e-9."
+    expected:
+      - "Speed 0 to 1 % above or below CJ: the wave starts about 4 % too fast and slows towards CJ; the 0.6 % below CJ of d1 is expected again on 0.1 mm cells."
+      - "Highest pressure rises with the grid towards 2.81 MPa; on the finest grids it may swing above it (the front pulses)."
+      - "Gap falls with the grid towards the true distance between shock and burning (about 0.1 to 0.3 mm)."
+    found:
+      - "A detonation on every grid, 1200 to 19200 cells; burning front within 0.095, 0.064, 0.049, 0.041 and 0.356 mm. PASS."
+      - "Speed: expected within 1 % of CJ and required by my rule within 2 %; found +5.85 % (1200 cells), +5.91 %, +5.94 %, +5.94 % (9600), +5.33 % (19200). RULE MISSED on every grid. The wave is still slowing when the time ends (2122 m/s over the first half of the reading window, 2073 over the second): four times the energy in the patch drives the wave harder than a 0.12 m tube lets it forget. My choice of patch was too strong; I did not try a second one, because choosing a patch until the answer fits would be tuning."
+      - "What the rung does show: the speed does not depend on the grid (1200 to 9600 cells agree within 0.09 %), and the highest pressure goes to the pressure behind a non-burning shock of the wave's own speed (3.16 MPa from cfdlib.chem.shock_frozen): 0.87, 0.90, 0.94, 0.98 of it on 1200 to 9600 cells."
+      - "On 19200 cells (6 micrometres) the front pulses, as expected for a resolved front in one dimension: highest pressure between 2.52 and 7.11 MPa, distance of the fronts up to 0.356 mm, speed 0.6 % lower."
+      - "No run broke, chemistry status 0, mass and atoms within 7e-15, energy within 1.3e-14. PASS."
+
+  d5:
+    added: "2026-11-16 by the developing agent, after the review of rungs a to d4 and before any run of d5."
+    why: >
+      Two things are still open after d and d4. The problem's own patch starts no detonation on fine grids, and
+      the stronger patch of d4 (12 MPa) starts one on every grid but drives it 6 % too fast, still slowing when
+      the 0.12 m tube ends. So the wave speed of a settled detonation on fine grids has not been read yet.
+      Question of this rung: with a patch that the CPU check says can start the wave, and a tube long enough to
+      let the wave forget its start, does the speed settle at the Chapman-Jouguet speed, the same on every grid
+      and for every patch?
+    what: >
+      The tube of case 21 with three numbers changed: length 0.48 m (four times), end time 200 microseconds
+      (four times), patch pressure 10 MPa (2500 K and 1.5 mm kept). The patch is chosen from the CPU table of
+      why_no_detonation.py, written before d4's runs: of 6, 8, 10, 12, 15 MPa it is the one whose shock into the
+      fresh gas is closest to the CJ speed (1957 m/s, 1.1 % below); gas behind that shock ignites after 0.47
+      microseconds. This is NOT case 21's problem and not a new case: a trial with gpucfd only. No patch is
+      chosen after seeing a run.
+    runs:
+      - "Grid: 10 MPa patch on cells of 100, 50, 25 and 12.5 micrometres (4800, 9600, 19200, 38400 cells), fixed flow setting, chosen chemistry setting."
+      - "Patch: 8 MPa and 12 MPa on cells of 25 micrometres, to see whether the settled speed depends on the start."
+      - "Finer (6.25 micrometres, 76800 cells) only if the speed over 150 to 200 microseconds differs by more than 0.1 % of CJ between the two finest grids, and the run is expected to stay below 15 minutes."
+      - "Expected time on the GPU: about five minutes for the six runs. Nothing else is run; no setting is tuned."
+    readings:
+      - "Detonation: as in d (pressure front at every sample from 10 microseconds on; burning front within 1 mm of it)."
+      - "Wave speed: straight-line fit of the pressure front's place over 50 to 100, 100 to 150 and 150 to 200 microseconds. The last window is the answer; the three together show whether the wave has settled."
+      - "Highest pressure over the second half, lowest to highest (a pulsing front shows as a wide range)."
+    health:
+      - "No run breaks, chemistry status 0, mass, atoms and energy within 1e-9. A run that misses this is a failed run."
+    expected:
+      - "A detonation on every grid and with every patch."
+      - "Speed over 150 to 200 microseconds within 1 % of the CJ speed (1978.5 m/s) on every grid. My guess is about half a per cent below, as on the 3200 cells of the case."
+      - "The four grids within 0.2 % of each other over the last window."
+      - "The three patches within 0.5 % of each other over the last window, and each run's last two windows within 0.5 % of each other (the wave has settled)."
+      - "On the finest grid the front may pulse (seen on 6-micrometre cells in d4); then the speed of one window can swing and the three windows are read together."
+    found:
+      - "Seven runs (the finer grid was run by its rule), 11 minutes on the GPU. All healthy: no run broke, chemistry status 0, mass, atoms and energy within 1e-13. Numbers: gpucfd_long_tube.json and its two logs."
+      - "A detonation on every grid and with every patch: expected, found on 5 of 7 runs. On 100, 50 and 25 micrometres (all three patches) the wave is a detonation to the end. On 12.5 micrometres the burning falls behind the shock at 80 microseconds (168 mm along) and the wave dies; on 6.25 micrometres at 63 microseconds (133 mm)."
+      - "Speed over the last window within 1 % of CJ: +0.28 %, +0.29 %, +0.29 % on 100, 50, 25 micrometres (I guessed half a per cent below: wrong sign; the wave comes down from above and is still slowing by about 0.05 % per 10 microseconds at the end). No speed on the two finest grids."
+      - "Grids within 0.2 % of each other: 0.01 % over the three grids that keep the detonation."
+      - "Patches within 0.5 %: +0.11 % (8 MPa), +0.29 % (10 MPa), +0.50 % (12 MPa); spread 0.39 %. The stronger the start, the later the wave settles. Last two windows of each surviving run within 0.5 %: 0.17 to 0.45 %."
+      - "The front pulses on the finest grid: expected as possible, found. From about 17 microseconds on the highest pressure swings between 2.5 and 8.2 MPa with growing swings, and the distance between shock and burning between 0.02 and 0.48 mm, until the burning is left behind. On 12.5 micrometres there is no visible pulsing before the loss: speed and pressure follow the 25-micrometre run to 74 microseconds, then the distance opens within 3 microseconds."
+      - "Not expected, and the main finding: on the grids that keep the wave, the burning sits one to two cells behind the shock on every grid (0.089, 0.066, 0.052 mm on 100, 50, 25 micrometres). Without a flow solver the distance in a steady wave is about 0.15 mm (gas leaves the shock at 367 m/s and ignites after 0.41 microseconds). So on those grids shock and burning are held together by the grid's own smearing, not by resolved chemistry: the same help that started case 21's wave on coarse grids. The two grids that have 12 and 24 cells in that distance lose the detonation."
+      - "What this rung does and does not show. It shows: a coupled wave has the right speed, the same on every grid and nearly the same for every start. It does not show whether a detonation in one dimension survives when the zone between shock and burning is resolved. A pulsing front in one dimension is known from the literature, and real detonations are held by waves across the tube; but the loss here was not checked against a published case or a second solver, so physics and solver are not told apart yet. No further patch or setting was tried: choosing until the wave survives would be tuning."

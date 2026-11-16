@@ -1,0 +1,20 @@
+patch at 3 MPa: burns to 3665 K and 4.07 MPa; its shock into the fresh gas: 1.366 MPa, 931 K, 1391 m/s (-29.7 % from CJ); that gas does not ignite within 200 microseconds
+patch at 6 MPa: burns to 3771 K and 8.32 MPa; its shock into the fresh gas: 2.069 MPa, 1236 K, 1704 m/s (-13.9 % from CJ); that gas ignites after 29.43 microseconds
+patch at 8 MPa: burns to 3815 K and 11.19 MPa; its shock into the fresh gas: 2.433 MPa, 1388 K, 1844 m/s (-6.8 % from CJ); that gas ignites after 1.10 microseconds
+patch at 10 MPa: burns to 3849 K and 14.08 MPa; its shock into the fresh gas: 2.747 MPa, 1517 K, 1957 m/s (-1.1 % from CJ); that gas ignites after 0.47 microseconds
+patch at 12 MPa: burns to 3877 K and 16.99 MPa; its shock into the fresh gas: 3.025 MPa, 1630 K, 2051 m/s (+3.7 % from CJ); that gas ignites after 0.28 microseconds
+patch at 15 MPa: burns to 3911 K and 21.37 MPa; its shock into the fresh gas: 3.392 MPa, 1777 K, 2170 m/s (+9.7 % from CJ); that gas ignites after 0.17 microseconds
+fresh gas at 1.65 MPa and 1050 K: does not ignite within 200 microseconds
+fresh gas at 1.85 MPa and 1120 K: does not ignite within 200 microseconds
+fresh gas at 2.00 MPa and 1180 K: ignites after 142.72 microseconds
+fresh gas at 2.81 MPa and 1543 K: ignites after 0.41 microseconds
+3200 cells, fixed setting: at 5 microseconds the gas behind the shock has 2.55 MPa and 1290 K, burning front 0.41 mm behind; at 30 microseconds 2.24 MPa, 2598 K, 0.10 mm behind: a detonation
+4000 cells, fixed setting: at 5 microseconds the gas behind the shock has 1.73 MPa and 1089 K, burning front 0.93 mm behind; at 30 microseconds 0.73 MPa, 644 K, 15.32 mm behind: NO detonation
+4800 cells, fixed setting: at 5 microseconds the gas behind the shock has 1.65 MPa and 1056 K, burning front 1.07 mm behind; at 30 microseconds 0.70 MPa, 625 K, 16.15 mm behind: NO detonation
+4800 cells, chemistry bs23 at 1e-6, quiet rule off: at 5 microseconds the gas behind the shock has 1.65 MPa and 1056 K, burning front 1.07 mm behind; at 30 microseconds 0.70 MPa, 625 K, 16.15 mm behind: NO detonation
+4800 cells, chemistry ros34a at 1e-6, quiet rule off: at 5 microseconds the gas behind the shock has 1.65 MPa and 1056 K, burning front 1.07 mm behind; at 30 microseconds 0.70 MPa, 625 K, 16.15 mm behind: NO detonation
+4800 cells, first-order reconstruction: at 5 microseconds the gas behind the shock has 2.15 MPa and 2220 K, burning front 0.13 mm behind; at 30 microseconds 2.30 MPa, 2380 K, 0.12 mm behind: a detonation
+4800 cells, WENO5 with HLLC: at 5 microseconds the gas behind the shock has 1.54 MPa and 1005 K, burning front 1.35 mm behind; at 30 microseconds 0.65 MPa, 601 K, 17.58 mm behind: NO detonation
+4800 cells, double precision (15 microseconds): at 5 microseconds the gas behind the shock has 1.65 MPa and 1056 K, burning front 1.07 mm behind; at 15 microseconds 1.04 MPa, 797 K, 6.37 mm behind: NO detonation
+wrote why_no_detonation.json
+exit 0

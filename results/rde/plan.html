@@ -2964,7 +2964,7 @@ z
   <h2>Why it is hard for us</h2>
   <div class="table-wrap"><table class="full">
     <tr><th>The engine needs</th><th>Where we are today</th></tr>
-    <tr><td style="font-weight: 600; width: 38%">Gas that is squeezed and expands, with shock waves</td><td><b>Done</b> (steps 1 and 2). OpenFOAM's shock solver and a new shock solver in gpucfd both match the exact solutions.</td></tr><tr><td style="font-weight: 600; width: 38%">Burning: a chain of chemical reactions between hydrogen and air</td><td><b>Done</b> (step 3). OpenFOAM's chemistry solver and new chemistry on the GPU in gpucfd both match the reference.</td></tr><tr><td style="font-weight: 600; width: 38%">Shock and burning in one solver</td><td><b>Done with OpenFOAM</b> (step 4). <b>In progress for gpucfd:</b> its shock solver and its chemistry are being joined.</td></tr><tr><td style="font-weight: 600; width: 38%">Very small cells at the wave: the burning zone is far thinner than the engine</td><td>Measured in one dimension (step 4): the wave's speed is right even with cells larger than the burning zone; the pressure peak at the front is not. What two dimensions need is measured on step 5. The second paper needed cells of half a micrometre to resolve the zone fully.</td></tr><tr><td style="font-weight: 600; width: 38%">Checks and reports that understand such flows</td><td>Four cases solved. What each one broke was turned into a check, a tool or a note for the next agent.</td></tr>
+    <tr><td style="font-weight: 600; width: 38%">Gas that is squeezed and expands, with shock waves</td><td><b>Done</b> (steps 1 and 2). OpenFOAM's shock solver and a new shock solver in gpucfd both match the exact solutions.</td></tr><tr><td style="font-weight: 600; width: 38%">Burning: a chain of chemical reactions between hydrogen and air</td><td><b>Done</b> (step 3). OpenFOAM's chemistry solver and new chemistry on the GPU in gpucfd both match the reference.</td></tr><tr><td style="font-weight: 600; width: 38%">Shock and burning in one solver</td><td><b>Done with both</b> (step 4): OpenFOAM and gpucfd give the same wave speed on the same grid. <b>Open:</b> on cells fine enough to resolve the zone between shock and burning, the wave dies in our one-dimensional tube.</td></tr><tr><td style="font-weight: 600; width: 38%">Very small cells at the wave: the burning zone is far thinner than the engine</td><td>Measured in one dimension (step 4): the wave's speed is right even with cells larger than the burning zone; the pressure peak at the front is not. What two dimensions need is measured on step 5. The second paper needed cells of half a micrometre to resolve the zone fully.</td></tr><tr><td style="font-weight: 600; width: 38%">Checks and reports that understand such flows</td><td>Four cases solved. What each one broke was turned into a check, a tool or a note for the next agent.</td></tr>
   </table></div>
 </section>
 
@@ -3020,7 +3020,7 @@ z
       <div>
         <div class="name">Detonation in a straight tube<span class="badge done">done</span><span class="badge mark">The three solvers are compared here</span></div>
         <div class="what">A detonation wave runs down a tube of hydrogen and air.</div>
-        <div class="what" style="color: var(--ink)">Solved with OpenFOAM on 2026-11-16 by a fresh agent in about an hour and a half. The wave runs 0.5 % below the theoretical speed (required: 2 %) and the flame stays within 0.06 mm of the shock. OpenFOAM needed five passes per time step to keep the energy; with one it lost 15 % of the heat. Almost all the time is chemistry. The GPU solver is being built for this step now. <a href="../detonation_tube_h2_air/brief.html">One-page report</a></div>
+        <div class="what" style="color: var(--ink)">Solved with OpenFOAM on 2026-11-16 by a fresh agent in about an hour and a half. The wave runs 0.5 % below the theoretical speed (required: 2 %) and the flame stays within 0.06 mm of the shock. OpenFOAM needed five passes per time step to keep the energy; with one it lost 15 % of the heat. Almost all the time is chemistry. gpucfd's shock solver and chemistry were joined the same day. On the same grid it gives the same wave speed (1968.3 against 1968.4 m/s) in 6 s, against 401 s on 8 cores; the two runs are not like for like. It also showed a weakness of our test problem: with 4000 cells or more no detonation starts. The hot layer that should ignite the gas is too weak, and coarse cells had helped it by smearing. A trial with a stronger ignition and a tube four times longer settles 0.3 % above the theoretical speed on cells down to 25 micrometres, the same on each grid. On finer cells the wave pulses and dies; why is open. <a href="../detonation_tube_h2_air/brief.html">One-page report</a></div>
         <div class="facts">
           <div><div class="lbl">What is new</div>shock and burning together</div>
           <div><div class="lbl">How we know the answer</div>the wave's speed follows from the gas alone, with no simulation</div>
@@ -3081,7 +3081,7 @@ z
     
     <div class="way">
       <div class="name"><span class="letter">A</span>OpenFOAM's own burning solver</div>
-      <div class="have">Done on step 4: the wave speed is within 0.5 % of the theory.</div>
+      <div class="have">Done on step 4: the wave speed is within 0.5 % of the theory. Not run on grids finer than 3200 cells.</div>
       <p>It was made for flames, not for shocks. The second paper shows that a solver of this kind can carry a detonation, on another branch of OpenFOAM than ours.</p>
       <p class="risk"><b>Risk:</b> It may smear the shock or get its speed wrong. Found: with the setting of its own examples it lost 15 % of the heat and the wave ran 17 % too slow; five passes per time step fix that, at five times the cost.</p>
     </div>
@@ -3095,7 +3095,7 @@ z
     
     <div class="way">
       <div class="name"><span class="letter">C</span>Our own solver in gpucfd</div>
-      <div class="have">Its shock solver (steps 1 and 2) and its chemistry on the GPU (step 3) are built and tested. They are being joined now, for step 4.</div>
+      <div class="have">Its shock solver (steps 1 and 2), its chemistry on the GPU (step 3) and the two joined are built and tested. Done on step 4: the same wave speed as OpenFOAM on the same grid. On cells below 25 micrometres the wave dies in one dimension: open.</div>
       <p>A GPU solver for detonations, open to everyone. The flat engine is a rectangle that repeats sideways: the kind of grid gpucfd is built for.</p>
       <p class="risk"><b>Risk:</b> The most work. New code must pass steps 1 to 3 before it is trusted on step 4.</p>
     </div>
@@ -3111,7 +3111,7 @@ z
       <span class="tag">Answered by Prof. Frankel (15 November 2026)</span>
       <ul class="points"><li>Is this flat engine the right target? <b>Yes. It is a generic engine; the lab has no specific design yet.</b></li><li>Full hydrogen chemistry, or a one-reaction model first? <b>Full chemistry from the start. A one-reaction model predicts a temperature much too high. The one-reaction option is dropped.</b></li><li>Which published detonation solver does the lab trust? <b>None was named. Chemistry on the GPU is the key to speed in the lab's own code, so it was built first (step 3). The published solver now has the lowest priority.</b></li><li>Does OpenFOAM run the chemistry on the GPU? (his question to us) <b>As installed, it does not. gpucfd now does.</b></li><li>Is there a lab result for step 7? <b>The lab has run the flat engine in two dimensions with its own code and sent a video of it.</b></li></ul>
       <div style="margin-top: 12px"><span class="tag">Still open, for the next meeting</span></div>
-      <ul class="points"><li>The set-up behind the lab's video, so that step 6 matches it. In the video the fuel enters through separate small openings, not through an even layer.</li><li>How accurate must an engine answer be? Each step states its required accuracy before the runs.</li><li>Which lab result stays hidden from the agent for step 7?</li><li>Which GPUs can gpucfd be tested on, and how are they reached?</li></ul>
+      <ul class="points"><li>The set-up behind the lab's video, so that step 6 matches it. In the video the fuel enters through separate small openings, not through an even layer.</li><li>How accurate must an engine answer be? Each step states its required accuracy before the runs.</li><li>Which lab result stays hidden from the agent for step 7?</li><li>Which GPUs can gpucfd be tested on, and how are they reached?</li><li>How does the lab start a detonation in a simulation? Our thin hot layer was too weak: on fine grids no detonation starts (step 4).</li><li>Should a detonation in one dimension survive on cells that resolve the zone between shock and burning? Ours runs at the theoretical speed on cells of 25 micrometres and more, and pulses and dies on finer ones (step 4).</li></ul>
     </div>
   </div>
 </section>

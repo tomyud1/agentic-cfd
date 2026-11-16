@@ -9,16 +9,113 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-A session started on 2026-11-16 is joining gpucfd's chemistry to its shock solver, so that the GPU
-solver can run the detonation of case 21 next to OpenFOAM. Its files (`gpucfd/reacting.py`,
-`gpucfd/src/gcfdr.cu`, `dev/compare/detonation_tube_h2_air/`) are not committed and not reviewed
-yet.
+Nothing is running. Open after the long-tube trial (first entry below): on very fine cells the
+detonation dies in the one-dimensional tube, and why is not known yet. Not started: checking that
+against a published case or a second solver.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-16
 
-### Plan page of the detonation engine brought up to date, commit hash to be filled in
+### gpucfd runs a detonation, and it found a weakness in case 21, commit hash to be filled in
+- **What.** gpucfd's shock solver and its chemistry kernel are joined into one solver for gas with
+  shocks that burns (`gpucfd/reacting.py`, `gpucfd/src/gcfdr.cu`, notes in
+  [`gpucfd/REACTING.md`](gpucfd/REACTING.md)). Built by a separate session in one day, then
+  reviewed. The flow carries the ten species of the hydrogen scheme, the heat capacities change
+  with temperature, and the chemistry works on the flow solver's own arrays on the GPU. The
+  chemistry kernel's formulas moved to a shared file (`gpucfd/src/gcfdk_core.h`) that both use.
+- **Why it matters.** This is the third of the three detonation solvers the plan compares, and the
+  one Prof. Frankel asked about: chemistry on the GPU inside a flow solver.
+- **How it was checked, one new thing at a time.**
+  - One inert gas: equal to the shock solver within 8e-13 (16-digit arithmetic), on the shock tube
+    of step 1 and the corner of step 2.
+  - Two different gases whose heat capacities change with temperature, against an exact solution
+    written for this (`gpucfd/exact_mixture.py`): shock speed within 0.014 %.
+  - A gas at rest that ignites: 214.1834 against 214.1822 microseconds, and nothing moves.
+  - The detonation tube of case 21 (step 4).
+- **Result on case 21.** On OpenFOAM's four grids (400 to 3200 cells) gpucfd meets both
+  requirements: wave speed 0.75 to 0.52 % below the theory (2 % allowed), flame at most 0.17 mm
+  behind the shock (1 mm allowed). On 3200 cells: 1968.3 m/s, OpenFOAM 1968.4. Mass, atoms and
+  energy are kept to rounding (OpenFOAM lost 0.2 % of the heat). Time: 6 s on the GPU, 401 s for
+  OpenFOAM on 8 cores. **This ratio is not like for like:** other time steps, other chemistry
+  settings, mixed precision, and a single row of cells leaves the GPU almost idle. With the GPU
+  full (the same tube in 1024 rows, 1.2 million cells) a cell costs 49 nanoseconds per time step.
+- **The weakness of case 21, found with gpucfd.** With 4000 cells or more no detonation starts:
+  the shock runs ahead of the burning and dies. The cause is the case, not the solver. The hot
+  layer that the problem prescribes drives a shock that heats the fresh gas to about 930 K, and
+  gas in that state needs more than 200 microseconds to ignite; the run lasts 50. This was
+  computed on the CPU with `cfdlib.chem`, without the flow solver
+  (`dev/compare/detonation_tube_h2_air/why_no_detonation.py`). On coarse cells the scheme smears
+  hot burnt gas into the fresh gas next to it, and that starts the wave: with a first-order scheme
+  (more smearing) the wave starts on 4800 cells too, with a sharper scheme it is lost sooner. Once
+  started it is a real detonation with the right speed. So case 21's answer holds only up to
+  about 3200 cells. The fresh agent's OpenFOAM study stopped there (it cut finer grids for cost)
+  and could not see this. The case's one-page report, the catalogue and the plan page now say so.
+  **The case was prepared by the developing agent; checking that an ignition can start the wave
+  is now part of preparing a detonation case.**
+- **Review.** The ladder of the new solver and the five older chemistry tests were built and run
+  again from the files as left; the numbers are the same, line for line. The session stayed inside
+  its limits (only `gpucfd/` and `dev/compare/detonation_tube_h2_air/`, no commit). The reason
+  for the missing detonation was checked with an independent program and another hydrogen scheme
+  (Cantera, `dev/agent_checks/case21_ignition_cantera.py`): gas in the state behind the layer's
+  shock does not ignite within 2000 microseconds.
+- **Expected, found.** The builder wrote five limits for itself that were missed. By the project's
+  rule they are expectations, so they are shown as "expected, found" in `REACTING.md`, and the
+  tests now check what is known to be right:
+  - mixed precision equal to the shock solver within 1e-5: found up to 3.4e-5, which is the
+    rounding level (now checked against the rounding level measured in the same test);
+  - the repair for negative values never used: used by the sharper scheme (WENO5) next to a step,
+    without moving mass (now: never used with the scheme of the detonation runs);
+  - errors falling with order 0.7 at least: temperature 0.66, and 0.67 is the best possible at a
+    border between two gases;
+  - with a four times stronger ignition, speed within 2 % of the theory: found 5.9 % too fast on
+    every grid from 1200 to 9600 cells (the same speed on all within 0.09 %). The wave is driven
+    too hard and the 0.12 m tube is too short for it to slow down;
+  - flow at 15 to 30 nanoseconds per cell and step: found 39. The exact matrix for the implicit
+    chemistry method at 50 to 80 million cells times steps per second: found 17.
+- **Chemistry made cheaper.** With a budget of 12 runs: a looser tolerance that still keeps the
+  accuracy rule, and one plain step for cells where nothing happens. Chemistry in the tube is 2.2
+  times cheaper and is now 20 % of the time on a full GPU; the flow is 78 %.
+- **The session's 12 suggestions, each answered.** Taken now: the limit of case 21 is stated on
+  its pages (1); the missed limits are classed as expectations (2); the one-page report has
+  gpucfd's column (3); roadmap, README and design page updated (5). Noted in `REACTING.md` or its
+  tests, no change needed: the data ends at 6000 K (8), the energy of this tube is almost zero so
+  the share of the heat released is the measure (12, already a tool since case 21's review).
+  Left for later, listed in the roadmap or below: a check in `cfdlib` that a detonation case's
+  ignition can start a detonation, with the exact two-gas solution moved there (6); the old
+  forecast in `CHEMISTRY.md` (4); a lint for numbers such as `3e6` that YAML reads as text (7);
+  two notes for the development PC's page (9, 10); scratch files in `gpucfd/build/` (11).
+- **A longer tube and a checked ignition (trial with gpucfd only, the same day).** Question: with
+  an ignition that the check says can start the wave (a 10 MPa layer) and a tube four times longer
+  (0.48 m, 200 microseconds), does the speed settle at the theoretical value on fine grids? The plan
+  and what was expected were written before the runs (`dev/compare/detonation_tube_h2_air/plan.yaml`,
+  rung d5). Seven runs, 11 minutes on the GPU, all healthy (mass, atoms, energy within 1e-13).
+  - **Cells of 100, 50 and 25 micrometres: a detonation to the end.** The speed is the same on the
+    three grids within 0.01 % and comes down to 0.3 % above the theory, still slowing slowly
+    (0.1 % with an 8 MPa layer, 0.5 % with 12 MPa). Expected within 1 %: met.
+  - **Cells of 12.5 and 6.25 micrometres: the detonation dies**, after 80 and 63 microseconds. On
+    the finest grid the front first pulses harder and harder (highest pressure between 2.5 and
+    8.2 MPa). Expected a detonation in every run: found in 5 of 7.
+  - **On the grids that keep the wave, the grid holds shock and burning together.** The burning
+    sits one to two cells behind the shock on every grid (0.09, 0.07, 0.05 mm), closer than the
+    0.15 mm that the chemistry needs (estimated without a flow solver). This is the same help
+    that started case 21's wave on coarse grids.
+  - **What it means.** A coupled wave has the right speed, the same on every grid. Whether a
+    detonation in one dimension survives once the zone between shock and burning is resolved is
+    not answered. A pulsing front in one dimension is known from the literature, and real
+    detonations are held by waves across the tube (step 5), but the loss was not checked against
+    a published case or a second solver. No other layer or setting was tried after the runs.
+- **Open.**
+  - On cells of 12.5 micrometres and finer the detonation **dies in the one-dimensional tube**
+    (the long-tube trial above). Physics or solver: not known. To ask the professor, and to check
+    against a published case or a second solver.
+  - OpenFOAM was not run on 4800 cells; whether it loses the detonation too is not known.
+  - The flow step is slow for what it does and not optimised.
+  - A border between a hot and a cold gas disturbs the pressure by 15 % for the first steps; no
+    cure is built.
+  - No detonation in two dimensions has been run.
+
+### Plan page of the detonation engine brought up to date (`a4046d4`)
 - **What.** The student saw that the plan page still listed five "open questions for Prof.
   Frankel" which he had answered by email on 2026-11-15. Other parts were as old: the page said
   that one step was done, that no solver joins shock and burning, and that gpucfd's detonation

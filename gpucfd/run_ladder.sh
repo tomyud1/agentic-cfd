@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run the verification ladders (inside WSL, from anywhere): bash gpucfd/run_ladder.sh [incompressible|compressible|chemistry]
+# Run the verification ladders (inside WSL, from anywhere): bash gpucfd/run_ladder.sh [incompressible|compressible|chemistry|reacting]
 # With no argument all are run. Prints one summary line per test file; details and JSON results in
 # gpucfd/tests/results/.
 cd "$(dirname "$0")/.." || exit 1
@@ -36,5 +36,16 @@ if [ "$WHAT" = all ] || [ "$WHAT" = chemistry ]; then
   one test_chem_batch
   one test_chem_speed
   one test_chem_precision
+fi
+if [ "$WHAT" = all ] || [ "$WHAT" = reacting ]; then
+  # The reacting solver: shock solver joined to the chemistry (gpucfd/REACTING.md), about five minutes. Needs
+  # OpenFOAM's hydrogen scheme ($FOAM_TUTORIALS). Not rerun here: the chemistry tuning budget
+  # (python -m gpucfd.tests.test_react_chem tune) and the full study of the detonation tube
+  # (bash dev/compare/run.sh detonation_tube_h2_air gpucfd_run.py).
+  one test_react_inert
+  one test_react_mix
+  one test_react_chem
+  one test_react_ignite
+  one test_react_tube
 fi
 exit $fails

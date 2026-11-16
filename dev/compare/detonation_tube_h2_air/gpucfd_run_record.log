@@ -1,0 +1,20 @@
+3200 cells: gpucfd 1968.3 m/s (-0.52 %), gap 0.064 mm, highest pressure 2.572 MPa = 0.93 of the shock pressure 2.780 MPa, energy +1.5e-17 of the heat released (2.594e+05 J per square metre of the tube's cross-section), 6.2 s; OpenFOAM -0.51 %, gap 0.060 mm, 401 s on 8 cores: 65 times the wall time
+     400 cells: -0.75 %, gap 0.174 mm, peak 2.15 MPa = 0.78 of the shock's, 2.11 ms per step
+     800 cells: -0.63 %, gap 0.124 mm, peak 2.30 MPa = 0.83 of the shock's, 1.46 ms per step
+    1600 cells: -0.58 %, gap 0.085 mm, peak 2.44 MPa = 0.88 of the shock's, 0.96 ms per step
+    3200 cells: -0.52 %, gap 0.064 mm, peak 2.57 MPa = 0.93 of the shock's, 0.73 ms per step
+    1200 cells: -0.60 %, gap 0.100 mm, peak 2.38 MPa = 0.86 of the shock's, 1.16 ms per step
+    2400 cells: -0.55 %, gap 0.071 mm, peak 2.52 MPa = 0.91 of the shock's, 0.82 ms per step
+    4800 cells: no detonation; shock at 951 m/s
+    9600 cells: no detonation; shock at 918 m/s
+   19200 cells: no detonation; shock at 906 m/s
+    3200 cells: -0.52 %, gap 0.064 mm, peak 2.57 MPa = 0.93 of the shock's, 0.74 ms per step
+    4000 cells: no detonation; shock at 975 m/s
+  stronger patch,   1200 cells: 2094.2 m/s (+5.85 %), gap 0.095 mm, peak 2.73 MPa (2.61 to 2.91) = 0.87 of the shock's 3.16 MPa
+  stronger patch,   2400 cells: 2095.5 m/s (+5.91 %), gap 0.064 mm, peak 2.86 MPa (2.74 to 3.04) = 0.90 of the shock's 3.16 MPa
+  stronger patch,   4800 cells: 2096.0 m/s (+5.94 %), gap 0.049 mm, peak 2.98 MPa (2.87 to 3.16) = 0.94 of the shock's 3.16 MPa
+  stronger patch,   9600 cells: 2096.0 m/s (+5.94 %), gap 0.041 mm, peak 3.09 MPa (2.99 to 3.27) = 0.98 of the shock's 3.16 MPa
+  stronger patch,  19200 cells: 2084.0 m/s (+5.33 %), gap 0.356 mm, peak 3.53 MPa (2.52 to 7.11) = 1.13 of the shock's 3.12 MPa
+full GPU: 49.4 ns per cell and step; flow 38.7, chemistry 9.9 (20 %), chemistry with the kernel's default 21.5
+wrote gpucfd.json
+exit 0

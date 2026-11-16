@@ -1,0 +1,325 @@
+{
+ "reference": {
+  "t_ign": 0.0002141822351564361,
+  "T_end": 2477.0407084397602,
+  "p_end": 460486.4673285651
+ },
+ "runs": [
+  {
+   "tag": "the chemistry kernel's default",
+   "ignition": {
+    "n": [
+     64,
+     1,
+     1
+    ],
+    "dt": 1e-08,
+    "steps": 30000,
+    "setting": {
+     "method": "bs23",
+     "rtol": 1e-06,
+     "atol": 1e-14,
+     "quiet": 0.0,
+     "split": "flow-chemistry",
+     "max_substeps": 100000,
+     "on": true
+    },
+    "gpu_s": 6.751455341998487,
+    "t_ign": 0.00021418343750000002,
+    "T_end": 2462.122314453125,
+    "p_end": 458121.40625,
+    "still": 0.0,
+    "spread_T": 0.0,
+    "spread_end": 0.0,
+    "mass": 2.220446049250313e-15,
+    "energy": 0.0,
+    "atoms": 1.7430501486614958e-14,
+    "status": 0,
+    "substeps": 1.0012666666666667,
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    }
+   },
+   "end": {
+    "n": [
+     64,
+     1,
+     1
+    ],
+    "dt": 1e-07,
+    "steps": 10000,
+    "setting": {
+     "method": "bs23",
+     "rtol": 1e-06,
+     "atol": 1e-14,
+     "quiet": 0.0,
+     "split": "flow-chemistry",
+     "max_substeps": 100000,
+     "on": true
+    },
+    "gpu_s": 3.2218734590001405,
+    "t_ign": 0.00021418312351795802,
+    "T_end": 2477.041015625,
+    "p_end": 460486.53125,
+    "still": 0.0,
+    "spread_T": 0.0,
+    "spread_end": 0.0,
+    "mass": 1.3322676295501878e-15,
+    "energy": 0.0,
+    "atoms": 8.881784197001252e-15,
+    "status": 0,
+    "substeps": 2.7333,
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    }
+   }
+  },
+  {
+   "tag": "the chemistry kernel's default",
+   "ignition": {
+    "n": [
+     32,
+     32,
+     1
+    ],
+    "dt": 1e-08,
+    "steps": 30000,
+    "setting": {
+     "method": "bs23",
+     "rtol": 1e-06,
+     "atol": 1e-14,
+     "quiet": 0.0,
+     "split": "flow-chemistry",
+     "max_substeps": 100000,
+     "on": true
+    },
+    "gpu_s": 13.445506682999433,
+    "t_ign": 0.00021418343750000002,
+    "T_end": 2462.122314453125,
+    "p_end": 458121.40625,
+    "still": 0.0,
+    "spread_T": 0.0,
+    "spread_end": 0.0,
+    "mass": 2.220446049250313e-15,
+    "energy": 0.0,
+    "atoms": 1.7541523789077473e-14,
+    "status": 0,
+    "substeps": 1.0012666666666667,
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    }
+   },
+   "end": {
+    "n": [
+     32,
+     32,
+     1
+    ],
+    "dt": 1e-07,
+    "steps": 10000,
+    "setting": {
+     "method": "bs23",
+     "rtol": 1e-06,
+     "atol": 1e-14,
+     "quiet": 0.0,
+     "split": "flow-chemistry",
+     "max_substeps": 100000,
+     "on": true
+    },
+    "gpu_s": 6.148286187000573,
+    "t_ign": 0.00021418312351795802,
+    "T_end": 2477.041015625,
+    "p_end": 460486.53125,
+    "still": 0.0,
+    "spread_T": 0.0,
+    "spread_end": 0.0,
+    "mass": 1.3322676295501878e-15,
+    "energy": 0.0,
+    "atoms": 8.881784197001252e-15,
+    "status": 0,
+    "substeps": 2.7333,
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    }
+   }
+  },
+  {
+   "tag": "the joined solver's setting",
+   "ignition": {
+    "n": [
+     64,
+     1,
+     1
+    ],
+    "dt": 1e-08,
+    "steps": 30000,
+    "setting": {
+     "method": "bs23",
+     "rtol": 0.0001,
+     "atol": 1e-14,
+     "quiet": 1.0,
+     "split": "flow-chemistry",
+     "max_substeps": 100000,
+     "on": true
+    },
+    "gpu_s": 6.705488125998527,
+    "t_ign": 0.00021418343750000002,
+    "T_end": 2462.119140625,
+    "p_end": 458120.75,
+    "still": 0.0,
+    "spread_T": 0.0,
+    "spread_end": 0.0,
+    "mass": 2.220446049250313e-15,
+    "energy": 0.0,
+    "atoms": 1.7430501486614958e-14,
+    "status": 0,
+    "substeps": 0.9257333333333333,
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    }
+   },
+   "end": {
+    "n": [
+     64,
+     1,
+     1
+    ],
+    "dt": 1e-07,
+    "steps": 10000,
+    "setting": {
+     "method": "bs23",
+     "rtol": 0.0001,
+     "atol": 1e-14,
+     "quiet": 1.0,
+     "split": "flow-chemistry",
+     "max_substeps": 100000,
+     "on": true
+    },
+    "gpu_s": 3.2913156040012836,
+    "t_ign": 0.00021418313701297449,
+    "T_end": 2477.041015625,
+    "p_end": 460486.53125,
+    "still": 0.0,
+    "spread_T": 0.0,
+    "spread_end": 0.0,
+    "mass": 1.3322676295501878e-15,
+    "energy": 0.0,
+    "atoms": 1.2212453270876722e-14,
+    "status": 0,
+    "substeps": 2.6073,
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    }
+   }
+  },
+  {
+   "tag": "the joined solver's setting",
+   "ignition": {
+    "n": [
+     32,
+     32,
+     1
+    ],
+    "dt": 1e-08,
+    "steps": 30000,
+    "setting": {
+     "method": "bs23",
+     "rtol": 0.0001,
+     "atol": 1e-14,
+     "quiet": 1.0,
+     "split": "flow-chemistry",
+     "max_substeps": 100000,
+     "on": true
+    },
+    "gpu_s": 13.280732332002371,
+    "t_ign": 0.00021418343750000002,
+    "T_end": 2462.119140625,
+    "p_end": 458120.75,
+    "still": 0.0,
+    "spread_T": 0.0,
+    "spread_end": 0.0,
+    "mass": 2.220446049250313e-15,
+    "energy": 0.0,
+    "atoms": 1.7541523789077473e-14,
+    "status": 0,
+    "substeps": 0.9257333333333333,
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    }
+   },
+   "end": {
+    "n": [
+     32,
+     32,
+     1
+    ],
+    "dt": 1e-07,
+    "steps": 10000,
+    "setting": {
+     "method": "bs23",
+     "rtol": 0.0001,
+     "atol": 1e-14,
+     "quiet": 1.0,
+     "split": "flow-chemistry",
+     "max_substeps": 100000,
+     "on": true
+    },
+    "gpu_s": 6.197607144996524,
+    "t_ign": 0.00021418313701297449,
+    "T_end": 2477.041015625,
+    "p_end": 460486.53125,
+    "still": 0.0,
+    "spread_T": 0.0,
+    "spread_end": 0.0,
+    "mass": 1.3322676295501878e-15,
+    "energy": 0.0,
+    "atoms": 1.2434497875801753e-14,
+    "status": 0,
+    "substeps": 2.6073,
+    "guard": {
+     "first_order": 0,
+     "species_flat": 0,
+     "species": 0,
+     "cold": 0,
+     "mass_moved": 0.0,
+     "energy_added": 0.0
+    }
+   }
+  }
+ ]
+}

@@ -1,6 +1,6 @@
 # gpucfd: a GPU-resident incompressible flow solver
 
-(The solver for gas with shock waves is a separate library with its own notes: [`COMPRESSIBLE.md`](COMPRESSIBLE.md). So is the chemistry of many cells: [`CHEMISTRY.md`](CHEMISTRY.md).)
+(The solver for gas with shock waves is a separate library with its own notes: [`COMPRESSIBLE.md`](COMPRESSIBLE.md). So is the chemistry of many cells: [`CHEMISTRY.md`](CHEMISTRY.md). The two joined, gas with shocks that burns: [`REACTING.md`](REACTING.md).)
 
 Goal: a solver that keeps the whole time step on the GPU and is trusted because every part is
 verified before it is made fast. Case 5 showed why: OpenFOAM's GPU plugin only moves the pressure

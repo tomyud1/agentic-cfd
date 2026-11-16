@@ -59,6 +59,11 @@ Insights are gathered all the way through, from every agent.
      than the reference speed at the tabulated point; the edge of a published profile shows it).
    - Tool-gap check: can the tools read this solver's log and dictionaries, and extract the
      requested outputs? Fix gaps now.
+   - Check, without a flow solver, that the start can produce the flow the problem asks for
+     (case 21: the hot layer was to start a detonation, but the shock it drives heats the gas to
+     930 K, where ignition takes over 200 microseconds in a run of 50; coarse grids started the
+     wave by smearing, grids of 4000 cells and more did not. The check is
+     `dev/compare/detonation_tube_h2_air/why_no_detonation.py`, part "cpu").
    - Commit the problem before launching, so the review can show it was not changed.
 3. **Launch** a fresh solver agent with only this (other agents cannot load Claude's skill, so the
    prompt names files by path):

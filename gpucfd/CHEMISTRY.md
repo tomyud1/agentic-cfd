@@ -15,6 +15,13 @@ speed forecast for a detonation.
 | 4 | Precision: single, mixed, double; the default | **Pass** (`tests/test_chem_precision.py`): mixed is the default |
 | record | Case 20 next to OpenFOAM, for the one-page report | **Written** (`dev/compare/h2_air_ignition_box/gpucfd.json`) |
 
+**Added on 2026-11-16 by stage 2** (the coupling to the flow solver, [`REACTING.md`](REACTING.md)):
+the kernel's formulas moved to `src/gcfdk_core.h`, which the joined solver shares, and this page's
+ladder was run again on it (all pass). Two additions, both off by default here: the method `ros34a`
+(the implicit method with its matrix written out exactly; atoms kept to rounding in mixed precision,
+but not faster), and `control(quiet=1)` (a cell that hardly changes takes one plain step). The joined
+solver's own default is `bs23` at tolerance 1e-4 with `quiet=1`.
+
 To continue from here: the next stage is the coupling to the flow solver (last sections of this
 page). The pass rules, expectations and tuning budget were written before the runs in
 [`dev/compare/h2_air_ignition_box/plan.yaml`](../dev/compare/h2_air_ignition_box/plan.yaml), with

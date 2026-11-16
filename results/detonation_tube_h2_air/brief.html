@@ -254,7 +254,7 @@
 <section id="goal">
   <h2>Goal</h2>
   <p class="headline">Shock and burning together for the first time. Step 4 of 7 on the way to a rotating detonation engine.</p>
-  <p class="lead">Solved with OpenFOAM's burning solver by a fresh agent. gpucfd cannot run it yet: its shock solver and its chemistry are both built and tested, but they are not joined. That is the next thing to build.</p>
+  <p class="lead">Solved with OpenFOAM's burning solver by a fresh agent. gpucfd's shock solver and its chemistry were joined afterwards and run on the same tube. That showed a weakness of the case itself: with cells finer than OpenFOAM's study used, the detonation never starts.</p>
 </section>
 
 <section id="problem">
@@ -1911,29 +1911,29 @@ L 108 36
  </defs>
 </svg></figure>
     <div>
-      <ul class="points"><li>A closed tube, 0.12 m long, of hydrogen and air at rest at 1 atmosphere and \(300\,\mathrm{K}\). Only the distance along the tube matters.</li><li>A thin layer at one end (1.5 mm) starts hot and at high pressure. It sends a shock down the tube that ignites the gas behind it: a detonation.</li><li>The full hydrogen reaction scheme: 10 species and 27 reactions.</li><li>Asked for: the speed of the wave, whether shock and flame travel together, the burnt gas behind the wave, the peak pressure at the front, whether mass, atoms and energy are kept, and the cost.</li><li>Reference: the Chapman-Jouguet speed, the one speed a free-running detonation can have. It follows from the gas alone, with no simulation.</li><li>Required: wave speed within 2 % of that theory; from 10 microseconds on, the flame within 1 mm of the shock.</li></ul>
+      <ul class="points"><li>A closed tube, 0.12 m long, of hydrogen and air at rest at 1 atmosphere and \(300\,\mathrm{K}\). Only the distance along the tube matters.</li><li>A thin layer at one end (1.5 mm) starts hot and at high pressure. It is meant to send a shock down the tube that ignites the gas behind it: a detonation.</li><li>The full hydrogen reaction scheme: 10 species and 27 reactions.</li><li>Asked for: the speed of the wave, whether shock and flame travel together, the burnt gas behind the wave, the peak pressure at the front, whether mass, atoms and energy are kept, and the cost.</li><li>Reference: the Chapman-Jouguet speed, the one speed a free-running detonation can have. It follows from the gas alone, with no simulation.</li><li>Required: wave speed within 2 % of that theory; from 10 microseconds on, the flame within 1 mm of the shock.</li></ul>
     </div>
   </div>
 </section>
 
 <section id="results">
   <h2>Results</h2>
-  <ul class="points answer"><li>OpenFOAM carries the detonation down the tube at the theoretical speed to within about half a per cent. 2 % was allowed.</li><li>Shock and flame travel together, as they must in a detonation.</li><li>One prediction of the agent was missed by a hair: the pressure peak at the front is a little lower than it expected.</li><li>gpucfd cannot run this case yet: its shock solver and its chemistry are not joined.</li></ul>
+  <ul class="points answer"><li>OpenFOAM carries the detonation down the tube at the theoretical speed to within about half a per cent. 2 % was allowed.</li><li>gpucfd, joined afterwards, gives the same wave speed on the same grid. It needs 6 seconds on the GPU, where OpenFOAM needed 401 seconds on 8 cores.</li><li>In both tools shock and flame travel together, as they must in a detonation.</li><li>A weakness of the case, found with gpucfd: with 4000 cells or more, no detonation starts. The hot layer is too weak, and coarse cells had helped it.</li></ul>
   
   <div class="two">
-    <div><h4>Accuracy: how far from the theory (0 = perfect match)</h4><p class="what">Each number is how far the computed value is from <b>the theory</b>, on the finest grid (3200 cells of 0.0375 mm). <b>Zero would be a perfect match.</b> The first two rows are the problem's requirements.</p>
+    <div><h4>Accuracy: how far from the theory (0 = perfect match)</h4><p class="what">Each number is how far the computed value is from <b>the theory</b>, on 3200 cells of 0.0375 mm, the finest grid of OpenFOAM's study. <b>Zero would be a perfect match.</b> The first two rows are the problem's requirements.</p>
   <div class="table-wrap"><table class="full">
-    <tr><th class="">Requirement</th><th class="num">OpenFOAM: difference from the reference</th><th class="num">gpucfd</th></tr>
+    <tr><th class="">Requirement</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
-    <tr><td class="">Wave speed</td><td class="num">\(-0.51\,\%\)</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">Wave speed</td><td class="num">\(-0.51\,\%\)</td><td class="num">\(-0.52\,\%\)</td></tr>
     
-    <tr><td class="">How far the flame is behind the shock</td><td class="num"><span style='white-space:nowrap'>limit \(1\,\mathrm{mm}\)</span><br><span style='white-space:nowrap'>found \(0.06\,\mathrm{mm}\)</span></td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">How far the flame is behind the shock</td><td class="num"><span style='white-space:nowrap'>limit \(1\,\mathrm{mm}\)</span><br><span style='white-space:nowrap'>found \(0.06\,\mathrm{mm}\)</span></td><td class="num"><span style='white-space:nowrap'>limit \(1\,\mathrm{mm}\)</span><br><span style='white-space:nowrap'>found \(0.06\,\mathrm{mm}\)</span></td></tr>
     
-    <tr><td class="">Burnt gas behind the wave: pressure p, temperature T</td><td class="num"><span style='white-space:nowrap'>p \(-4.4\,\%\)</span><br><span style='white-space:nowrap'>T \(-1.2\,\%\)</span></td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">Burnt gas behind the wave: pressure p, temperature T</td><td class="num"><span style='white-space:nowrap'>p \(-4.4\,\%\)</span><br><span style='white-space:nowrap'>T \(-1.2\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>p \(-4.4\,\%\)</span><br><span style='white-space:nowrap'>T \(-1.1\,\%\)</span></td></tr>
     
-    <tr><td class="">Peak pressure at the front, against a shock of the same speed with no burning</td><td class="num">\(-21\,\%\)</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">Peak pressure at the front, against a shock of the same speed with no burning</td><td class="num">\(-21\,\%\)</td><td class="num">\(-7\,\%\)</td></tr>
     
-    <tr><td class="">Mass, atoms and energy kept (largest change)</td><td class="num"><span style='white-space:nowrap'>mass \(3 \times 10^{-8}\)</span><br><span style='white-space:nowrap'>energy \(-0.22\,\%\)</span></td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">Mass, atoms and energy kept (largest change)</td><td class="num"><span style='white-space:nowrap'>mass \(3 \times 10^{-8}\)</span><br><span style='white-space:nowrap'>energy \(-0.22\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>mass \(7 \times 10^{-16}\)</span><br><span style='white-space:nowrap'>energy \(2 \times 10^{-15}\,\%\)</span></td></tr>
     
   </table></div>
   </div>
@@ -1941,20 +1941,26 @@ L 108 36
   <div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
-    <tr><td class="">400 cells</td><td class="num">35 s on 8 cores, 954 steps</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">400 cells</td><td class="num">35 s on 8 cores, 954 steps</td><td class="num">2.4 s on the GPU, 999 steps</td></tr>
     
-    <tr><td class="">800 cells</td><td class="num">73 s on 8 cores, 1750 steps</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">800 cells</td><td class="num">73 s on 8 cores, 1750 steps</td><td class="num">3.0 s on the GPU, 1998 steps</td></tr>
     
-    <tr><td class="">1600 cells</td><td class="num">171 s on 8 cores, 3347 steps</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">1600 cells</td><td class="num">171 s on 8 cores, 3347 steps</td><td class="num">4.1 s on the GPU, 4169 steps</td></tr>
     
-    <tr><td class="">3200 cells</td><td class="num">401 s on 8 cores, 6643 steps</td><td class="num"><span class="wait">cannot yet</span></td></tr>
+    <tr><td class="">3200 cells</td><td class="num">401 s on 8 cores, 6643 steps</td><td class="num">6.2 s on the GPU, 8390 steps</td></tr>
+    
+    <tr><td class="">4800 cells: no detonation forms (7782 steps)</td><td class="num">–</td><td class="num">3.7 s on the GPU</td></tr>
+    
+    <tr><td class="">19200 cells: no detonation forms (29778 steps)</td><td class="num">–</td><td class="num">17 s on the GPU</td></tr>
+    
+    <tr><td class="">the 1200-cell tube in 1024 rows, a full GPU (4383 steps)</td><td class="num">–</td><td class="num">269 s on the GPU</td></tr>
     
   </table></div>
-  <p class="small">Most of the time is chemistry: on one core about 150 microseconds for each burnt cell, five times in every time step, against under 3 for the flow. Over a full run the flow takes 2 to 9 % of the processor time. Eight cores were only about twice as fast as one.</p></div>
+  <p class="small">Most of the time is chemistry: on one core about 150 microseconds for each burnt cell, five times in every time step, against under 3 for the flow. Over a full run the flow takes 2 to 9 % of the processor time. Eight cores were only about twice as fast as one. A single row of cells leaves the GPU almost idle, so gpucfd's times here understate it. gpucfd's times run from creating the solver to the final field; starting the GPU library adds 0.30 s once.</p></div>
   </div>
   <div class="two" style="margin-top: 14px">
-    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>Both requirements are met with a wide margin, on every grid, the coarsest included. The speed is right even where the front is not resolved, because it follows from keeping mass, momentum and energy and burning the gas completely.</li><li>One prediction of the agent was missed by a hair: the peak pressure at the front reaches 0.79 of the full shock pressure on the finest grid, where it expected at least 0.80. The burning zone is thinner than the cells.</li><li>For the detonation engine: OpenFOAM's solver does not keep energy by itself. With the setting of its own burning examples it lost 15 % of the heat and the wave ran 17 % too slow. Five passes per time step cut the loss to 0.2 %, at five times the cost.</li><li>For the detonation engine: the wave is still settling when the time ends, so finer cells do not bring the speed closer to the theory. The next case needs a longer tube or a later reading.</li><li>Chemistry and message passing take over 90 % of the processor time. gpucfd's chemistry kernel advances a burnt cell at this pressure in about 0.06 microseconds on the GPU, so the joined GPU solver is where the speed is to be won.</li></ul></div>
-    <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>gpucfd has no column: its shock solver and its chemistry are not joined yet.</li><li>The 0.06 against 150 microseconds is not a fair ratio: one GPU against one core, a kernel alone against a whole solver, and not the same states.</li><li>No grid finer than 3200 cells: the agent cut its plan for cost. The time-step study shows no trend and three small effects stay unexplained.</li><li>The reference is a theory value from the scheme's own data. Values in the literature for this mixture may differ by about half a per cent; none was checked.</li></ul></div>
+    <div class="callout info"><span class="tag">What it means</span><ul class="points"><li>Both tools meet both requirements with a wide margin on every grid of OpenFOAM's study, the coarsest included. The speed is right even where the front is not resolved, because it follows from keeping mass, momentum and energy and burning the gas completely.</li><li>A weakness of the case: the hot layer cannot start a detonation by its shock. That shock heats the gas to about \(930\,\mathrm{K}\), and such gas needs over 200 microseconds to ignite; the run lasts 50. On coarse cells the scheme smears hot burnt gas into the fresh gas, and that starts the wave.</li><li>Once started, the wave is a real detonation: the two tools agree on its speed and on the burnt gas behind it. gpucfd keeps mass, atoms and energy to rounding; OpenFOAM lost 0.2 % of the heat.</li><li>For the detonation engine: OpenFOAM's solver does not keep energy by itself. With the setting of its own burning examples it lost 15 % of the heat and the wave ran 17 % too slow. Five passes per time step cut the loss to 0.2 %, at five times the cost.</li><li>One prediction of the agent was missed by a hair: the peak pressure at the front reaches 0.79 of the full shock pressure on the finest grid, where it expected at least 0.80. The burning zone is thinner than the cells.</li><li>With the GPU full (the same tube in 1024 rows, 1.2 million cells), gpucfd needs 49 nanoseconds for a cell and a time step. OpenFOAM needed about 19 000 on 8 cores.</li></ul></div>
+    <div class="callout warn"><span class="tag">Limits</span><ul class="points"><li>The answer depends on the cell size: a detonation with up to 3200 cells, none with 4000 or more (gpucfd). OpenFOAM's study stopped at 3200 cells and was not run finer.</li><li>A trial with gpucfd on a tube four times longer with a stronger ignition (not this case's problem): on cells of 100 to 25 micrometres the wave settles 0.3 % above the theoretical speed, the same on the three grids. On cells of 12.5 and 6.25 micrometres the detonation dies on the way. Whether a detonation in one dimension survives on such fine cells is open.</li><li>The times are not like for like: one GPU against 8 cores, different time steps, different chemistry settings, and gpucfd in mixed precision.</li><li>The time-step study of OpenFOAM shows no trend and three small effects stay unexplained.</li><li>The reference is a theory value from the scheme's own data. Values in the literature for this mixture may differ by about half a per cent; none was checked.</li></ul></div>
   </div>
   <p class="small">Details: <a href="report.html">the full report of this case</a></p>
 </section>

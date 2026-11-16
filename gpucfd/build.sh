@@ -1,8 +1,9 @@
 #!/bin/bash
-# Compile the CUDA sources (inside WSL/Linux):  bash gpucfd/build.sh [incompressible|compressible|chemistry]
+# Compile the CUDA sources (inside WSL/Linux):  bash gpucfd/build.sh [incompressible|compressible|chemistry|reacting]
 #   build/libgcfd.so   the incompressible solver (src/gcfd.cu)
 #   build/libgcfdc.so  the compressible solver for gas with shocks (src/gcfdc.cu)
-#   build/libgcfdk.so  the chemistry of many independent cells (src/gcfdk.cu)
+#   build/libgcfdk.so  the chemistry of many independent cells (src/gcfdk.cu, with src/gcfdk_core.h)
+#   build/libgcfdr.so  the reacting solver: gas with shocks that burns (src/gcfdr.cu, with src/gcfdk_core.h)
 # With no argument all are built; with one, only that library (the other files are not touched).
 # ARCH defaults to the RTX 4070 (compute capability 8.9); e.g. ARCH=sm_80 for an A100.
 set -euo pipefail
@@ -24,5 +25,10 @@ fi
 if [ "$WHAT" = all ] || [ "$WHAT" = chemistry ]; then
   "$NVCC" -O3 -std=c++17 -arch="$ARCH" -lineinfo -Xcompiler -fPIC -shared src/gcfdk.cu -o build/libgcfdk.so.new
   mv build/libgcfdk.so.new build/libgcfdk.so
+fi
+if [ "$WHAT" = all ] || [ "$WHAT" = reacting ]; then
+  # --fmad=false for the same reason as the compressible solver: both cells of a face must get the same flux.
+  "$NVCC" -O3 -std=c++17 -arch="$ARCH" --fmad=false -lineinfo -Xcompiler -fPIC -shared src/gcfdr.cu -o build/libgcfdr.so.new
+  mv build/libgcfdr.so.new build/libgcfdr.so
 fi
 echo "BUILD_OK $ARCH"

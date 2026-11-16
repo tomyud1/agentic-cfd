@@ -26,7 +26,8 @@ import numpy as np
 LIB = Path(os.environ.get("GCFDK_LIB", Path(__file__).parent / "build" / "libgcfdk.so"))
 # "mixed": species and energy stored in double, rates computed in float, reactions applied in double
 PRECISION = {"float": 4, "double": 8, "mixed": 6}
-METHOD = {"bs23": 0, "dp45": 1, "ros34": 2}
+# "ros34": the implicit method with its matrix found by differences; "ros34a": with the matrix written out exactly
+METHOD = {"bs23": 0, "dp45": 1, "ros34": 2, "ros34a": 3}
 MODE = {"pressure": 0, "volume": 1}
 # The setting a Chemistry starts with. Integrator and tolerances: chosen by the tuning budget (48 runs,
 # tests/test_chem_batch.py tune, record tests/results/test_chem_tune.json) as the cheapest at steps of 1e-8 s
@@ -50,11 +51,12 @@ def lib():
         L.gcfdk_destroy.argtypes = [vp]
         L.gcfdk_set.argtypes = [vp, _dp, _dp, _dp]
         L.gcfdk_get.argtypes = [vp, _dp, _dp, _dp, _dp]
-        L.gcfdk_control.argtypes = [vp, i, d, d, i, i, d]
+        L.gcfdk_control.argtypes = [vp, i, d, d, i, i, d, d]
         L.gcfdk_advance.restype = d
         L.gcfdk_advance.argtypes = [vp, d, l, ctypes.c_void_p]
         L.gcfdk_stats.argtypes = [vp, _ip, _ip, _ip, _dp]
         L.gcfdk_rates.argtypes = [vp, _dp]
+        L.gcfdk_jacobian.argtypes = [vp, _dp]
         L.gcfdk_bytes.restype = d
         L.gcfdk_bytes.argtypes = [vp]
         L.gcfdk_time.restype = d
@@ -97,6 +99,7 @@ def pack(mech):
     dm += per_reaction
     for row in rows:
         dm += list(row)
+    dm += list(mech.W)
     return np.array([ns, nr, len(act), len(rows)] + act + im, np.int32), np.array(dm, np.float64)
 
 
@@ -110,19 +113,23 @@ class Chemistry:
         self._s = lib().gcfdk_create(self.n, PRECISION[precision], MODE[constant], im, dm)
         if not self._s:
             raise ValueError("the reaction scheme is larger than the kernel's compiled limits (src/gcfdk.cu)")
-        self.method, self.rtol, self.atol, self.fixed, self.max_substeps, self.level = method, rtol, atol, 0, 100000, 0.0
+        self.method, self.rtol, self.atol, self.fixed, self.max_substeps, self.level, self.quiet = method, rtol, atol, 0, 100000, 0.0, 0.0
         self.control()
 
     # ---- set-up ----
-    def control(self, method=None, rtol=None, atol=None, fixed=None, max_substeps=None, level=None):
-        """method: "bs23" (explicit, orders 3 and 2), "dp45" (explicit, 5 and 4) or "ros34" (implicit, 4 and 3).
+    def control(self, method=None, rtol=None, atol=None, fixed=None, max_substeps=None, level=None, quiet=None):
+        """method: "bs23" (explicit, orders 3 and 2), "dp45" (explicit, 5 and 4), "ros34" (implicit, 4 and 3, its
+        matrix by differences) or "ros34a" (the same with its matrix written out exactly: fewer rate evaluations,
+        and atoms kept to round-off in mixed precision too).
         rtol, atol: a sub-step is accepted when its estimated error is below atol (mol/kg) + rtol x the species.
         fixed > 0: that many equal sub-steps per step and no error control. level > 0: record, per cell, when the
-        temperature first reaches it (a straight line over the step in which it does)."""
-        for k, v in dict(method=method, rtol=rtol, atol=atol, fixed=fixed, max_substeps=max_substeps, level=level).items():
+        temperature first reaches it (a straight line over the step in which it does). quiet > 0: a cell whose
+        species would change over the whole step, at their present rates, by less than quiet times the allowed
+        error takes one plain step and no more rate evaluations (cold gas; 0 switches the rule off)."""
+        for k, v in dict(method=method, rtol=rtol, atol=atol, fixed=fixed, max_substeps=max_substeps, level=level, quiet=quiet).items():
             if v is not None:
                 setattr(self, k, v)
-        lib().gcfdk_control(self._s, METHOD[self.method], float(self.rtol), float(self.atol), int(self.fixed), int(self.max_substeps), float(self.level))
+        lib().gcfdk_control(self._s, METHOD[self.method], float(self.rtol), float(self.atol), int(self.fixed), int(self.max_substeps), float(self.level), float(self.quiet))
 
     def set(self, T, p=None, rho=None, Y=None, moles=None, sigma=None):
         """The state of every cell: temperature, pressure or density, and the mixture as mass fractions Y
@@ -177,6 +184,15 @@ class Chemistry:
         nr, ns = self.nr, self.ns
         return dict(qf=o[:, :nr], qr=o[:, nr:2 * nr], dsigma_dt=o[:, 2 * nr:2 * nr + ns], h=o[:, 2 * nr + ns:2 * nr + 2 * ns],
                     cp=o[:, 2 * nr + 2 * ns:2 * nr + 3 * ns], T=o[:, -2], v=o[:, -1])
+
+    def jacobian(self):
+        """For the tests: the matrix the method "ros34a" uses, (n, reacting species, reacting species): how the
+        rate of change of each reacting species (mol/(kg s)) changes with each reacting species (mol/kg) while the
+        cell's energy and its volume (or pressure) are held. Second value: the indices of the reacting species."""
+        act = [i for i in range(self.ns) if np.any(self.mech.dnu[:, i] != 0)]
+        out = np.empty(len(act) ** 2 * self.n)
+        lib().gcfdk_jacobian(self._s, out)
+        return out.reshape(self.n, len(act), len(act)), act
 
     @property
     def time(self):
