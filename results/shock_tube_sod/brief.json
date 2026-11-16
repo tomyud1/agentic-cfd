@@ -32,10 +32,15 @@
    "The two tools were not given the same care: OpenFOAM ran as the solver agent set it up, on one core and not tuned for speed. gpucfd's method was chosen by twelve short tries.",
    "Why OpenFOAM's error in the expansion falls slowly is not explained. gpucfd with the same kind of limiter does not show it, so it belongs to OpenFOAM's solver and not to the limiter.",
    "One dimension and no friction. The time step is not converged: the full report says how much error is left."
+  ],
+  "answer": [
+   "OpenFOAM matches the exact solution to about a hundredth of a per cent, with every wave in the right place.",
+   "gpucfd, built for this case and run on the same grids, is two to three times closer still, and much faster.",
+   "One prediction of the agent was missed: OpenFOAM's pressure error shrinks more slowly with finer grids than it expected. The answer itself is accurate."
   ]
  },
  "accuracy": {
-  "title": "Accuracy: difference from the reference",
+  "title": "Accuracy: how far from the exact solution (0 = perfect match)",
   "head": [
    "Requirement",
    "OpenFOAM",
@@ -43,27 +48,82 @@
   ],
   "rows": [
    [
-    "Density, velocity, pressure along the tube",
-    "\\(\\rho\\): \\(0.0085\\,\\%\\)<br>\\(u\\): \\(0.012\\,\\%\\)<br>\\(p\\): \\(0.0068\\,\\%\\)",
-    "\\(\\rho\\): \\(0.0041\\,\\%\\)<br>\\(u\\): \\(0.0053\\,\\%\\)<br>\\(p\\): \\(0.0021\\,\\%\\)"
+    "<span class=\"grp\">Along the whole tube, on average</span>",
+    "",
+    ""
    ],
    [
-    "States between the waves",
-    "\\(0.00023\\,\\%\\)<br>\\(0.000094\\,\\%\\)<br>\\(0.0022\\,\\%\\)<br>\\(0.000033\\,\\%\\)",
-    "\\(3.3 \\times 10^{-6}\\,\\%\\)<br>\\(3.7 \\times 10^{-6}\\,\\%\\)<br>\\(2.9 \\times 10^{-6}\\,\\%\\)<br>\\(3.6 \\times 10^{-6}\\,\\%\\)"
+    "<span class=\"ln\">density</span>",
+    "\\(\\rho\\): \\(0.0085\\,\\%\\)",
+    "\\(\\rho\\): \\(0.0041\\,\\%\\)"
    ],
    [
-    "Where each wave is, and its speed",
-    "\\(-0.11\\,\\mathrm{mm},\\ -0.04\\,\\mathrm{m/s}\\)<br>\\(+0.08\\,\\mathrm{mm},\\ +0.00\\,\\mathrm{m/s}\\)<br>\\(+0.03\\,\\mathrm{mm},\\ +0.05\\,\\mathrm{m/s}\\)<br>\\(+0.01\\,\\mathrm{mm},\\ -0.00\\,\\mathrm{m/s}\\)",
-    "\\(-0.00\\,\\mathrm{mm},\\ -0.00\\,\\mathrm{m/s}\\)<br>\\(+0.03\\,\\mathrm{mm},\\ +0.00\\,\\mathrm{m/s}\\)<br>\\(-0.02\\,\\mathrm{mm},\\ +0.00\\,\\mathrm{m/s}\\)<br>\\(+0.01\\,\\mathrm{mm},\\ -0.00\\,\\mathrm{m/s}\\)"
+    "<span class=\"ln\">velocity</span>",
+    "\\(u\\): \\(0.012\\,\\%\\)",
+    "\\(u\\): \\(0.0053\\,\\%\\)"
    ],
    [
-    "Mass and energy kept",
+    "<span class=\"ln last\">pressure</span>",
+    "\\(p\\): \\(0.0068\\,\\%\\)",
+    "\\(p\\): \\(0.0021\\,\\%\\)"
+   ],
+   [
+    "<span class=\"grp\">In the flat stretch between the waves</span>",
+    "",
+    ""
+   ],
+   [
+    "<span class=\"ln\">pressure</span>",
+    "\\(0.00023\\,\\%\\)",
+    "\\(3.3 \\times 10^{-6}\\,\\%\\)"
+   ],
+   [
+    "<span class=\"ln\">velocity</span>",
+    "\\(0.000094\\,\\%\\)",
+    "\\(3.7 \\times 10^{-6}\\,\\%\\)"
+   ],
+   [
+    "<span class=\"ln\">density, gas from the left</span>",
+    "\\(0.0022\\,\\%\\)",
+    "\\(2.9 \\times 10^{-6}\\,\\%\\)"
+   ],
+   [
+    "<span class=\"ln last\">density, gas from the right</span>",
+    "\\(0.000033\\,\\%\\)",
+    "\\(3.6 \\times 10^{-6}\\,\\%\\)"
+   ],
+   [
+    "<span class=\"grp\">Each wave: its position, its speed</span>",
+    "",
+    ""
+   ],
+   [
+    "<span class=\"ln\">front of the expansion</span>",
+    "\\(-0.11\\,\\mathrm{mm},\\ -0.04\\,\\mathrm{m/s}\\)",
+    "\\(-0.00\\,\\mathrm{mm},\\ -0.00\\,\\mathrm{m/s}\\)"
+   ],
+   [
+    "<span class=\"ln\">back of the expansion</span>",
+    "\\(+0.08\\,\\mathrm{mm},\\ +0.00\\,\\mathrm{m/s}\\)",
+    "\\(+0.03\\,\\mathrm{mm},\\ +0.00\\,\\mathrm{m/s}\\)"
+   ],
+   [
+    "<span class=\"ln\">border of the two gases</span>",
+    "\\(+0.03\\,\\mathrm{mm},\\ +0.05\\,\\mathrm{m/s}\\)",
+    "\\(-0.02\\,\\mathrm{mm},\\ +0.00\\,\\mathrm{m/s}\\)"
+   ],
+   [
+    "<span class=\"ln last\">shock</span>",
+    "\\(+0.01\\,\\mathrm{mm},\\ -0.00\\,\\mathrm{m/s}\\)",
+    "\\(+0.01\\,\\mathrm{mm},\\ -0.00\\,\\mathrm{m/s}\\)"
+   ],
+   [
+    "Mass and energy kept (largest change)",
     "round-off",
     "constant. Largest change: mass \\(9.9 \\times 10^{-16}\\), energy \\(1.1 \\times 10^{-15}\\) (relative; fluxes in single precision)"
    ]
   ],
-  "note": "Differences from the exact solution on the finest grid (12 800 cells). The first row is the mean difference along the tube."
+  "note": "Each number is how far the computed value is from <b>the exact solution</b>, on the finest grid (12 800 cells). <b>Zero would be a perfect match.</b> A percentage is that distance as a share of the exact value. A distance in mm says how far a computed wave sits from where the exact solution puts it, in a tube 1 m long (minus: further left)."
  },
  "speed": {
   "title": "Speed",

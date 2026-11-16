@@ -216,6 +216,21 @@
   .brief .two { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; align-items: start; }
   .brief .problem { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: center; }
   .brief .problem figure { margin: 0; }
+  /* A grid column is never narrower than its content unless told so: without min-width 0 a table
+     with long cells pushes its column, and the page, wider than the window. Cells wrap here; each
+     number stays on one line with its unit (a formula is never broken; a cell's lines end in <br>). */
+  .brief .two > *, .brief .problem > * { min-width: 0; }
+  .brief td.num { white-space: normal; overflow-wrap: break-word; }
+  .brief td:first-child { min-width: 92px; }
+  /* An answer of several values: a heading row (.grp), then one row per value with its name (.ln). */
+  .brief .grp { font-weight: 600; }
+  .brief .ln { display: inline-block; padding-left: 14px; color: var(--ink2); white-space: nowrap; }
+  .brief tr:has(.grp) td { border-bottom: none; padding-bottom: 1px; }
+  .brief tr:has(.ln) td { padding-top: 2px; padding-bottom: 2px; }
+  .brief tr:has(.ln:not(.last)) td { border-bottom: none; }
+  .brief tr:has(.ln.last) td { padding-bottom: 7px; }
+  .brief ul.answer { margin: 4px 0 16px; } .brief ul.answer li { font-size: 17px; margin: 5px 0; }
+  .brief .what { font-size: 14px; color: var(--ink2); margin: 4px 0 4px; } .brief .what b { color: var(--ink); }
   .brief table { font-size: 14px; }
   .brief th, .brief td { padding: 6px 8px; }
   .brief .miss { color: #b03a2e; font-weight: 700; }
@@ -1768,22 +1783,30 @@ L 108 36
 
 <section id="results">
   <h2>Results</h2>
-  <p class="headline">Completed, with one difference from what was expected. OpenFOAM ignites the mixture at \(217.709\,\mathrm{\mu s}\), \(0.028\,\%\) before the reference (required: within \(1\,\%\)), and ends at \(2220.54\,\mathrm{K}\), \(0.0016\,\%\) above it (required: \(0.1\,\%\)). gpucfd's new chemistry kernel solves the same parcel: ignition at 217.72 microseconds (-0.022 % from the reference) and \(2220.45\,\mathrm{K}\) at the end. For one parcel the GPU is slower than OpenFOAM on one core (15 s against 11 s for 80000 steps); its gain is in numbers: 4096 parcels take 6 s, and a million cells before ignition advance at about 199 million cells x steps per second (OpenFOAM's chemistry on a mesh of many cells was not timed, so there is no fair ratio yet).</p>
+  <ul class="points answer"><li>Both tools meet all three requirements, with a wide margin: the ignition time is right to a few hundredths of a per cent.</li><li>One prediction of the agent was wrong: OpenFOAM's shipped example is more accurate than it expected.</li><li>For one cell the GPU is slower than OpenFOAM. Its gain comes with many cells, which is what a detonation needs.</li></ul>
+  
   <div class="two">
-    <div><h4>Accuracy: difference from the reference</h4><div class="table-wrap"><table class="full">
+    <div><h4>Accuracy: how far from the reference program (0 = perfect match)</h4><p class="what">Each number is how far the computed value is from <b>the reference</b>, an independent chemistry program, with the smallest time step. <b>Zero would be a perfect match.</b> The first three rows are the problem's requirements.</p>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Requirement</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">Ignition time</td><td class="num">\(-0.028\,\%\)</td><td class="num">\(-0.022\,\%\)</td></tr>
     
-    <tr><td class="">Temperature at the end</td><td class="num"><span style='white-space:nowrap'>\(+0.0016\,\%\)</span><br><span style='white-space:nowrap'>\(+0.036\,\mathrm{K}\)</span></td><td class="num"><span style='white-space:nowrap'>\(-0.0023\,\%\)</span><br><span style='white-space:nowrap'>\(-0.050\,\mathrm{K}\)</span></td></tr>
+    <tr><td colspan="3"><span class="grp">Temperature at the end</span></td></tr>
     
-    <tr><td class="">Atoms and energy kept</td><td class="num"><span style='white-space:nowrap'>atoms \(9 \times 10^{-13}\)</span><br><span style='white-space:nowrap'>energy \(3 \times 10^{-8}\)</span></td><td class="num"><span style='white-space:nowrap'>atoms \(1 \times 10^{-14}\)</span><br><span style='white-space:nowrap'>energy \(8 \times 10^{-10}\)</span></td></tr>
+    
+    <tr><td class=""><span class="ln">as a share of it</span></td><td class="num"><span style='white-space:nowrap'>\(+0.0016\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>\(-0.0023\,\%\)</span></td></tr>
+    
+    <tr><td class=""><span class="ln last">in kelvin</span></td><td class="num"><span style='white-space:nowrap'>\(+0.036\,\mathrm{K}\)</span></td><td class="num"><span style='white-space:nowrap'>\(-0.050\,\mathrm{K}\)</span></td></tr>
+    
+    <tr><td class="">Atoms and energy kept (largest change)</td><td class="num"><span style='white-space:nowrap'>atoms \(9 \times 10^{-13}\)</span><br><span style='white-space:nowrap'>energy \(3 \times 10^{-8}\)</span></td><td class="num"><span style='white-space:nowrap'>atoms \(1 \times 10^{-14}\)</span><br><span style='white-space:nowrap'>energy \(8 \times 10^{-10}\)</span></td></tr>
     
     <tr><td class="">Temperature against time</td><td class="num"><span style='white-space:nowrap'>rise: \(-0.07\,\mathrm{\mu s}\)</span><br><span style='white-space:nowrap'>flat parts: \(0.15\,\mathrm{K}\)</span></td><td class="num"><span style='white-space:nowrap'>rise: \(-0.05\,\mathrm{\mu s}\)</span><br><span style='white-space:nowrap'>flat parts: \(0.11\,\mathrm{K}\)</span></td></tr>
     
   </table></div>
-  <p class="small">With the smallest time step. The first three rows are the problem's requirements.</p></div>
-    <div><h4>Speed</h4><div class="table-wrap"><table class="full">
+  </div>
+    <div><h4>Speed</h4>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">2500 time steps</td><td class="num">4.4 s on 1 core</td><td class="num">1.9 s on the GPU</td></tr>

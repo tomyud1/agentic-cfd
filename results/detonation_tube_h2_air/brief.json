@@ -35,10 +35,16 @@
    "The 0.06 against 150 microseconds is not a fair ratio: one GPU against one core, a kernel alone against a whole solver, and not the same states.",
    "No grid finer than 3200 cells: the agent cut its plan for cost. The time-step study shows no trend and three small effects stay unexplained.",
    "The reference is a theory value from the scheme's own data. Values in the literature for this mixture may differ by about half a per cent; none was checked."
+  ],
+  "answer": [
+   "OpenFOAM carries the detonation down the tube at the theoretical speed to within about half a per cent. 2 % was allowed.",
+   "Shock and flame travel together, as they must in a detonation.",
+   "One prediction of the agent was missed by a hair: the pressure peak at the front is a little lower than it expected.",
+   "gpucfd cannot run this case yet: its shock solver and its chemistry are not joined."
   ]
  },
  "accuracy": {
-  "title": "Accuracy",
+  "title": "Accuracy: how far from the theory (0 = perfect match)",
   "head": [
    "Requirement",
    "OpenFOAM: difference from the reference",
@@ -51,27 +57,27 @@
     "<span class=\"wait\">cannot yet</span>"
    ],
    [
-    "Flame behind the shock",
+    "How far the flame is behind the shock",
     "<span style='white-space:nowrap'>limit \\(1\\,\\mathrm{mm}\\)</span><br><span style='white-space:nowrap'>found \\(0.06\\,\\mathrm{mm}\\)</span>",
     "<span class=\"wait\">cannot yet</span>"
    ],
    [
-    "Burnt gas behind the wave",
+    "Burnt gas behind the wave: pressure p, temperature T",
     "<span style='white-space:nowrap'>p \\(-4.4\\,\\%\\)</span><br><span style='white-space:nowrap'>T \\(-1.2\\,\\%\\)</span>",
     "<span class=\"wait\">cannot yet</span>"
    ],
    [
-    "Peak pressure at the front",
+    "Peak pressure at the front, against a shock of the same speed with no burning",
     "\\(-21\\,\\%\\)",
     "<span class=\"wait\">cannot yet</span>"
    ],
    [
-    "Mass, atoms and energy kept",
+    "Mass, atoms and energy kept (largest change)",
     "<span style='white-space:nowrap'>mass \\(3 \\times 10^{-8}\\)</span><br><span style='white-space:nowrap'>energy \\(-0.22\\,\\%\\)</span>",
     "<span class=\"wait\">cannot yet</span>"
    ]
   ],
-  "note": "On the finest grid, 3200 cells of 0.0375 mm. The first two rows are the problem's requirements."
+  "note": "Each number is how far the computed value is from <b>the theory</b>, on the finest grid (3200 cells of 0.0375 mm). <b>Zero would be a perfect match.</b> The first two rows are the problem's requirements."
  },
  "speed": {
   "title": "Speed",

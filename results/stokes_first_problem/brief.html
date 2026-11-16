@@ -216,6 +216,21 @@
   .brief .two { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; align-items: start; }
   .brief .problem { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: center; }
   .brief .problem figure { margin: 0; }
+  /* A grid column is never narrower than its content unless told so: without min-width 0 a table
+     with long cells pushes its column, and the page, wider than the window. Cells wrap here; each
+     number stays on one line with its unit (a formula is never broken; a cell's lines end in <br>). */
+  .brief .two > *, .brief .problem > * { min-width: 0; }
+  .brief td.num { white-space: normal; overflow-wrap: break-word; }
+  .brief td:first-child { min-width: 92px; }
+  /* An answer of several values: a heading row (.grp), then one row per value with its name (.ln). */
+  .brief .grp { font-weight: 600; }
+  .brief .ln { display: inline-block; padding-left: 14px; color: var(--ink2); white-space: nowrap; }
+  .brief tr:has(.grp) td { border-bottom: none; padding-bottom: 1px; }
+  .brief tr:has(.ln) td { padding-top: 2px; padding-bottom: 2px; }
+  .brief tr:has(.ln:not(.last)) td { border-bottom: none; }
+  .brief tr:has(.ln.last) td { padding-bottom: 7px; }
+  .brief ul.answer { margin: 4px 0 16px; } .brief ul.answer li { font-size: 17px; margin: 5px 0; }
+  .brief .what { font-size: 14px; color: var(--ink2); margin: 4px 0 4px; } .brief .what b { color: var(--ink); }
   .brief table { font-size: 14px; }
   .brief th, .brief td { padding: 6px 8px; }
   .brief .miss { color: #b03a2e; font-weight: 700; }
@@ -1931,7 +1946,8 @@ L 108 36
   <h2>Results</h2>
   <p class="headline"><b>Verification passed.</b> OpenFOAM reproduces the exact solution of Stokes' first problem: on the finest run the velocity differs by at most \(0.00205\,\%\) of \(U\), and the wall shear stress at 20 s, \(0.002519\ \mathrm{Pa}\), by \(1.95 \times 10^{-4}\,\%\). gpucfd with the same cells and time steps: its four errors are 0.96 to 1.00 times OpenFOAM's, and its finest run takes 14 s.</p>
   <div class="two">
-    <div><h4>Accuracy: difference from the reference</h4><div class="table-wrap"><table class="full">
+    <div><h4>Accuracy: how far from the reference (0 = perfect match)</h4><p class="what">Differences from the exact solution on the finest run.</p>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Requirement</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">Velocity profiles at three times</td><td class="num">\(\le 0.00205\,\%\)</td><td class="num">\(\le 0.00202\,\%\)</td></tr>
@@ -1943,8 +1959,9 @@ L 108 36
     <tr><td class="">Momentum given to the water</td><td class="num">\(1.95 \times 10^{-4}\,\%\)</td><td class="num">\(1.95 \times 10^{-4}\,\%\)</td></tr>
     
   </table></div>
-  <p class="small">Differences from the exact solution on the finest run.</p></div>
-    <div><h4>Speed</h4><div class="table-wrap"><table class="full">
+  </div>
+    <div><h4>Speed</h4>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">125 cells, 500 steps</td><td class="num">0.72 s on 1 core</td><td class="num">0.65 s on the GPU</td></tr>

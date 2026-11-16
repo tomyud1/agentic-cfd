@@ -203,11 +203,20 @@ shock_tube_sod:
     - "Asked for at half a millisecond: density, velocity and pressure along the tube, the states between the waves, where each wave is, whether mass and energy are kept, and how sharp the computed jumps are."
     - "Reference: the exact solution of this problem."
     - "Pass limits: written by the solver agent before its fine runs."
+  answer:
+    - OpenFOAM matches the exact solution to about a hundredth of a per cent, with every wave in the right place.
+    - gpucfd, built for this case and run on the same grids, is two to three times closer still, and much faster.
+    - "One prediction of the agent was missed: OpenFOAM's pressure error shrinks more slowly with finer grids than it expected. The answer itself is accurate."
   gpucfd: not run
   record: dev/compare/shock_tube_sod/gpucfd.json
   accuracy:
-    note: "Differences from the exact solution on the finest grid (12 800 cells). The first row is the mean difference along the tube."
-    rows: {a: "Density, velocity, pressure along the tube", b: States between the waves, c: "Where each wave is, and its speed", d: Mass and energy kept}
+    title: "Accuracy: how far from the exact solution (0 = perfect match)"
+    note: "Each number is how far the computed value is from <b>the exact solution</b>, on the finest grid (12 800 cells). <b>Zero would be a perfect match.</b> A percentage is that distance as a share of the exact value. A distance in mm says how far a computed wave sits from where the exact solution puts it, in a tube 1 m long (minus: further left)."
+    rows:
+      a: {name: "Along the whole tube, on average", lines: [density, velocity, pressure]}
+      b: {name: "In the flat stretch between the waves", lines: [pressure, velocity, "density, gas from the left", "density, gas from the right"]}
+      c: {name: "Each wave: its position, its speed", lines: [front of the expansion, back of the expansion, border of the two gases, shock]}
+      d: Mass and energy kept (largest change)
   speed:
     data:
       files: [results/shock_tube_sod/runs/N100.json, results/shock_tube_sod/runs/N800.json, results/shock_tube_sod/runs/N3200.json, results/shock_tube_sod/runs/N12800.json]
@@ -234,11 +243,20 @@ shock_diffraction_corner:
     - "Asked for at 0.45 ms: the speed of the flat part of the shock and the gas behind it, whether mass and energy are kept, whether the flat part stays flat, and the pattern round the corner."
     - "Reference: the exact jump across a shock for the flat part. The pattern round the corner has no exact solution."
     - "Required: the flat part's speed within 0.5 % and the gas behind it within 1 %; mass and energy within 0.01 % of what flowed in; the flat part straight to within one cell."
+  answer:
+    - Both tools meet all three requirements, with a wide margin.
+    - The flat part of the shock moves at the exact speed to within a hundredth of a per cent, and stays flat.
+    - "gpucfd is about 50 times faster on the finest grid. It is worse in one place: the weak leftover waves behind the shock are about twice as tall as OpenFOAM's."
   gpucfd: not run
   record: dev/compare/shock_diffraction_corner/gpucfd.json
   accuracy:
-    note: "On 800 by 800 cells, the finest grid both tools ran. The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes."
-    rows: {a: "Flat part: shock speed, pressure, density, velocity", b: Mass and energy against what flowed in, c: Flat part stays straight, d: Same picture at two times}
+    title: "Accuracy: how far from the exact solution (0 = perfect match)"
+    note: "Each number is how far the computed value is from <b>the exact solution</b>, on 800 by 800 cells, the finest grid both tools ran. <b>Zero would be a perfect match.</b> The first three rows are the problem's requirements. The last row has no exact answer: it compares the picture at two times, which should be the same picture at two sizes."
+    rows:
+      a: {name: "Flat part of the shock", lines: [speed of the shock, pressure behind it, density behind it, gas velocity behind it]}
+      b: Mass and energy against what flowed in
+      c: Flat part stays straight
+      d: Same picture at two times
   speed:
     data:
       files: [results/shock_diffraction_corner/runs/N100.json, results/shock_diffraction_corner/runs/N200.json, results/shock_diffraction_corner/runs/N400.json, results/shock_diffraction_corner/runs/N800.json]
@@ -268,11 +286,20 @@ h2_air_ignition_box:
     - "Asked for: temperature against time, the ignition time, the final temperature, the species, whether atoms and energy are kept, and what the chemistry costs."
     - "Reference: an independent chemistry program (CHEMKIN II) with the same reaction scheme."
     - "Required: ignition time within 1 %, final temperature within 0.1 %, the atoms of each element constant within 0.001 %."
+  answer:
+    - "Both tools meet all three requirements, with a wide margin: the ignition time is right to a few hundredths of a per cent."
+    - "One prediction of the agent was wrong: OpenFOAM's shipped example is more accurate than it expected."
+    - "For one cell the GPU is slower than OpenFOAM. Its gain comes with many cells, which is what a detonation needs."
   gpucfd: not run
   record: dev/compare/h2_air_ignition_box/gpucfd.json
   accuracy:
-    note: "With the smallest time step. The first three rows are the problem's requirements."
-    rows: {b: Ignition time, c: Temperature at the end, e: Atoms and energy kept, a: Temperature against time}
+    title: "Accuracy: how far from the reference program (0 = perfect match)"
+    note: "Each number is how far the computed value is from <b>the reference</b>, an independent chemistry program, with the smallest time step. <b>Zero would be a perfect match.</b> The first three rows are the problem's requirements."
+    rows:
+      b: Ignition time
+      c: {name: Temperature at the end, lines: [as a share of it, in kelvin]}
+      e: Atoms and energy kept (largest change)
+      a: Temperature against time
   speed:
     data:
       files: [results/h2_air_ignition_box/runs/S2500.json, results/h2_air_ignition_box/runs/S10000.json, results/h2_air_ignition_box/runs/S40000.json, results/h2_air_ignition_box/runs/S80000.json]
@@ -302,10 +329,21 @@ detonation_tube_h2_air:
     - "Asked for: the speed of the wave, whether shock and flame travel together, the burnt gas behind the wave, the peak pressure at the front, whether mass, atoms and energy are kept, and the cost."
     - "Reference: the Chapman-Jouguet speed, the one speed a free-running detonation can have. It follows from the gas alone, with no simulation."
     - "Required: wave speed within 2 % of that theory; from 10 microseconds on, the flame within 1 mm of the shock."
+  answer:
+    - "OpenFOAM carries the detonation down the tube at the theoretical speed to within about half a per cent. 2 % was allowed."
+    - Shock and flame travel together, as they must in a detonation.
+    - "One prediction of the agent was missed by a hair: the pressure peak at the front is a little lower than it expected."
+    - "gpucfd cannot run this case yet: its shock solver and its chemistry are not joined."
   gpucfd: cannot yet
   accuracy:
-    note: "On the finest grid, 3200 cells of 0.0375 mm. The first two rows are the problem's requirements."
-    rows: {a: Wave speed, b: Flame behind the shock, c: Burnt gas behind the wave, d: Peak pressure at the front, e: "Mass, atoms and energy kept"}
+    title: "Accuracy: how far from the theory (0 = perfect match)"
+    note: "Each number is how far the computed value is from <b>the theory</b>, on the finest grid (3200 cells of 0.0375 mm). <b>Zero would be a perfect match.</b> The first two rows are the problem's requirements."
+    rows:
+      a: Wave speed
+      b: How far the flame is behind the shock
+      c: "Burnt gas behind the wave: pressure p, temperature T"
+      d: "Peak pressure at the front, against a shock of the same speed with no burning"
+      e: "Mass, atoms and energy kept (largest change)"
   speed:
     data:
       files: [results/detonation_tube_h2_air/runs/N400.json, results/detonation_tube_h2_air/runs/N800.json, results/detonation_tube_h2_air/runs/N1600.json, results/detonation_tube_h2_air/runs/N3200.json]

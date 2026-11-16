@@ -36,10 +36,15 @@
    "gpucfd's kernel is chemistry alone, tested with this one reaction scheme. It is not yet joined to the flow solver.",
    "One cell only. The cost per cell in a real flow depends on how many cells are igniting at the same time.",
    "The reference states no accuracy of its own. The agent's independent solution suggests it is good to about 0.03 %."
+  ],
+  "answer": [
+   "Both tools meet all three requirements, with a wide margin: the ignition time is right to a few hundredths of a per cent.",
+   "One prediction of the agent was wrong: OpenFOAM's shipped example is more accurate than it expected.",
+   "For one cell the GPU is slower than OpenFOAM. Its gain comes with many cells, which is what a detonation needs."
   ]
  },
  "accuracy": {
-  "title": "Accuracy: difference from the reference",
+  "title": "Accuracy: how far from the reference program (0 = perfect match)",
   "head": [
    "Requirement",
    "OpenFOAM",
@@ -52,12 +57,22 @@
     "\\(-0.022\\,\\%\\)"
    ],
    [
-    "Temperature at the end",
-    "<span style='white-space:nowrap'>\\(+0.0016\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(+0.036\\,\\mathrm{K}\\)</span>",
-    "<span style='white-space:nowrap'>\\(-0.0023\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.050\\,\\mathrm{K}\\)</span>"
+    "<span class=\"grp\">Temperature at the end</span>",
+    "",
+    ""
    ],
    [
-    "Atoms and energy kept",
+    "<span class=\"ln\">as a share of it</span>",
+    "<span style='white-space:nowrap'>\\(+0.0016\\,\\%\\)</span>",
+    "<span style='white-space:nowrap'>\\(-0.0023\\,\\%\\)</span>"
+   ],
+   [
+    "<span class=\"ln last\">in kelvin</span>",
+    "<span style='white-space:nowrap'>\\(+0.036\\,\\mathrm{K}\\)</span>",
+    "<span style='white-space:nowrap'>\\(-0.050\\,\\mathrm{K}\\)</span>"
+   ],
+   [
+    "Atoms and energy kept (largest change)",
     "<span style='white-space:nowrap'>atoms \\(9 \\times 10^{-13}\\)</span><br><span style='white-space:nowrap'>energy \\(3 \\times 10^{-8}\\)</span>",
     "<span style='white-space:nowrap'>atoms \\(1 \\times 10^{-14}\\)</span><br><span style='white-space:nowrap'>energy \\(8 \\times 10^{-10}\\)</span>"
    ],
@@ -67,7 +82,7 @@
     "<span style='white-space:nowrap'>rise: \\(-0.05\\,\\mathrm{\\mu s}\\)</span><br><span style='white-space:nowrap'>flat parts: \\(0.11\\,\\mathrm{K}\\)</span>"
    ]
   ],
-  "note": "With the smallest time step. The first three rows are the problem's requirements."
+  "note": "Each number is how far the computed value is from <b>the reference</b>, an independent chemistry program, with the smallest time step. <b>Zero would be a perfect match.</b> The first three rows are the problem's requirements."
  },
  "speed": {
   "title": "Speed",

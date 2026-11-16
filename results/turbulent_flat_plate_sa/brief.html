@@ -216,6 +216,21 @@
   .brief .two { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; align-items: start; }
   .brief .problem { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: center; }
   .brief .problem figure { margin: 0; }
+  /* A grid column is never narrower than its content unless told so: without min-width 0 a table
+     with long cells pushes its column, and the page, wider than the window. Cells wrap here; each
+     number stays on one line with its unit (a formula is never broken; a cell's lines end in <br>). */
+  .brief .two > *, .brief .problem > * { min-width: 0; }
+  .brief td.num { white-space: normal; overflow-wrap: break-word; }
+  .brief td:first-child { min-width: 92px; }
+  /* An answer of several values: a heading row (.grp), then one row per value with its name (.ln). */
+  .brief .grp { font-weight: 600; }
+  .brief .ln { display: inline-block; padding-left: 14px; color: var(--ink2); white-space: nowrap; }
+  .brief tr:has(.grp) td { border-bottom: none; padding-bottom: 1px; }
+  .brief tr:has(.ln) td { padding-top: 2px; padding-bottom: 2px; }
+  .brief tr:has(.ln:not(.last)) td { border-bottom: none; }
+  .brief tr:has(.ln.last) td { padding-bottom: 7px; }
+  .brief ul.answer { margin: 4px 0 16px; } .brief ul.answer li { font-size: 17px; margin: 5px 0; }
+  .brief .what { font-size: 14px; color: var(--ink2); margin: 4px 0 4px; } .brief .what b { color: var(--ink); }
   .brief table { font-size: 14px; }
   .brief th, .brief td { padding: 6px 8px; }
   .brief .miss { color: #b03a2e; font-weight: 700; }
@@ -2373,7 +2388,8 @@ L 108 36
   <h2>Results</h2>
   <p class="headline">OpenFOAM's Spalart-Allmaras model, set to NASA's standard form, gives a grid-converged skin friction at \(x_1\) of \(0.0027286\), \(-0.028\,\%\) from NASA's incompressible reference (\(0.0027294\); combined grid uncertainty \(0.024\,\%\)).</p>
   <div class="two">
-    <div><h4>Accuracy</h4><div class="table-wrap"><table class="full">
+    <div><h4>Accuracy</h4><p class="what">Only the first row has a like-for-like reference (NASA's incompressible runs). The others are compared with NASA's runs at Mach 0.2.</p>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Requirement</th><th class="num">OpenFOAM: difference from the reference</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">Friction at the check point</td><td class="num">\(-0.028\,\%\)</td><td class="num"><span class="wait">cannot yet</span></td></tr>
@@ -2387,8 +2403,9 @@ L 108 36
     <tr><td class="">Model viscosity at its peak</td><td class="num">\(+0.50\,\%\)</td><td class="num"><span class="wait">cannot yet</span></td></tr>
     
   </table></div>
-  <p class="small">Only the first row has a like-for-like reference (NASA's incompressible runs). The others are compared with NASA's runs at Mach 0.2.</p></div>
-    <div><h4>Speed</h4><div class="table-wrap"><table class="full">
+  </div>
+    <div><h4>Speed</h4>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">Cells</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">G1</td><td class="num">816</td><td class="num">10 s on 1 core</td><td class="num"><span class="wait">cannot yet</span></td></tr>

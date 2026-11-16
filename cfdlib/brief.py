@@ -19,22 +19,29 @@ Keys of a page b (render_brief; all required unless marked):
   goal            one sentence: what the case is for
   story           one or two sentences: which tool did what, in which order
   problem         dict(requirements[]): what is given and what is asked, as short bullets (at most 8)
-  results         dict(headline, meaning[], limits[]): the answer in two or three sentences, what it means,
-                  and what the comparison does not show
+  results         dict(headline, meaning[], limits[], answer[] (optional)): the answer, what it means, and
+                  what the comparison does not show. answer is one to four short points in plain words (at
+                  most 30 words each; the numbers are in the tables): the page opens its results with them.
+                  Without answer it shows headline, a paragraph with the report's numbers, which is hard to
+                  read: write answer for every new page.
   accuracy        dict(title, head[], rows[][], note (optional)): one row per requirement of the problem,
                   one column per tool or grid; a cell is text (miss() marks a value outside its limit,
-                  wait() a value that is not there)
+                  wait() a value that is not there). The note stands above the table: it says what the
+                  numbers are (a difference from what, on which grid). A cell never stacks several
+                  values without a name on each (check_brief refuses it): named() makes one row per value.
   speed           dict(title, head[], rows[][], note (optional))
   links[]         dict(href, text): the detailed reports
   verdict         optional: PASS / WARN / FAIL of the case, shown next to the title
 
 A case's entry in cases/briefs.yaml (from_case):
   goal, story, requirements[], meaning[], limits[]          the words
+  answer[]        the result in one to four short points, in plain words (see results above)
   gpucfd          what to write in gpucfd's cells when it has no numbers ("not run yet", "cannot yet")
   record          optional: the JSON record of gpucfd's runs of this same case (dev/compare/<folder>/gpucfd.json,
                   written by the script next to it; keys below). Its values fill gpucfd's column.
   accuracy        rows: {letter: short name} picks answers of the case's summary (results.json) for OpenFOAM's
-                  column; or pick: a ready table (below). Optional title, note.
+                  column; or pick: a ready table (below). Optional title, note. When an answer stacks
+                  several values, write {letter: {name, lines: [the name of each value, in order]}}.
   speed           performance: [run names] takes those rows of the report's cost table (cells, cores, wall
                   time); or data: {list or files, label, cells, wall, cores} takes them from results.json's data
                   (list) or from run records (files: JSON paths under the repository root); or
@@ -87,6 +94,41 @@ def wait(text="running"):
     return f'<span class="wait">{text}</span>'
 
 
+ANSWER_WORDS = 30
+_BR = re.compile(r"<br\s*/?>")
+_MATH = re.compile(r"\\\(.*?\\\)", re.S)
+
+
+def unnamed(rows):
+    """Rows with a cell of several stacked values none of which says what it is: (row, how many values).
+    A reader cannot tell four bare numbers apart (the student's comment on step 1's page, 2026-11-16)."""
+    out = []
+    for r in rows:
+        for cell in r[1:]:
+            parts = _BR.split(str(cell))
+            if len(parts) > 1 and not any(re.search(r"[A-Za-z]", _MATH.sub("", plain(p))) or re.match(r"\s*\\\([^()]{1,20}\\\)\s*:", plain(p))
+                                          for p in parts):
+                out.append((r, len(parts)))
+                break
+    return out
+
+
+def named(name, lines, cells):
+    """One requirement whose answer is several values: a heading row, then one row per value with its name.
+    Each cell is split at its line breaks; a cell of one line (a tool that did not run) is repeated."""
+    if not lines:
+        return [[name] + cells]
+    parts = [_BR.split(str(c)) for c in cells]
+    for c, p in zip(cells, parts):
+        if len(p) not in (1, len(lines)):
+            raise ValueError(f"row {name!r}: {len(lines)} names for a cell of {len(p)} values: {plain(c)[:80]}")
+    rows = [[f'<span class="grp">{name}</span>'] + [""] * len(cells)]
+    for i, label in enumerate(lines):
+        last = " last" if i == len(lines) - 1 else ""
+        rows.append([f'<span class="ln{last}">{label}</span>'] + [p[i] if len(p) > 1 else p[0] for p in parts])
+    return rows
+
+
 def check_brief(b):
     e = []
     _req(b, ["title", "date", "goal", "story", "problem", "results", "accuracy", "speed", "links"], "brief", e)
@@ -105,6 +147,14 @@ def check_brief(b):
         e.append("verdict must be PASS, WARN or FAIL")
     if not b["problem"].get("requirements") or len(b["problem"]["requirements"]) > 8:
         e.append("problem.requirements: one to eight short bullets")
+    answer = b["results"].get("answer")
+    if answer is not None:
+        if not 1 <= len(answer) <= 4:
+            e.append("results.answer: one to four short points")
+        e += [f"results.answer: a point of {len(plain(x).split())} words; at most {ANSWER_WORDS}, the tables hold the numbers"
+              for x in answer if len(plain(x).split()) > ANSWER_WORDS]
+    e += [f"accuracy, row {plain(r[0])!r}: {n} values stacked in one cell with no name on any of them; "
+          f"name them (lines: in cases/briefs.yaml)" for r, n in unnamed(b["accuracy"].get("rows", []))]
     for where, text in ((k, json.dumps(b[k], ensure_ascii=False)) for k in ("results", "accuracy", "speed", "problem")):
         if "{fig:" in text or re.search(r"\bFigure \d", text):
             e.append(f"{where}: refers to a figure of another report; a one-page report has none")
@@ -211,8 +261,11 @@ def from_case(folder, s):
         mine = (rec or {}).get("answers", {})
         gpu = lambda k: (short(mine[k].get("diff", "")) or short(mine[k]["sim"])) if k in mine else no_gpu
         head = ["Requirement", "OpenFOAM", "gpucfd"] if rec else ["Requirement", "OpenFOAM: difference from the reference", "gpucfd"]
-        rows = [[name, short(by[k]["diff"]) or short(by[k]["sim"]), gpu(k)] for k, name in a["rows"].items()]
-    accuracy = dict(title=a.get("title", "Accuracy: difference from the reference" if rec else "Accuracy"),
+        rows = []
+        for k, row in a["rows"].items():                          # a name, or {name, lines: the name of each stacked value}
+            name, lines = (row, None) if isinstance(row, str) else (row["name"], row.get("lines"))
+            rows += named(name, lines, [short(by[k]["diff"]) or short(by[k]["sim"]), gpu(k)])
+    accuracy = dict(title=a.get("title", "Accuracy: how far from the reference (0 = perfect match)" if rec else "Accuracy"),
                     head=head, rows=rows, note=a.get("note", ""))
     # speed
     sp = s["speed"]
@@ -277,7 +330,8 @@ def from_case(folder, s):
         headline += " " + rec["plain"].rstrip(".") + "."
     b = dict(title=res["title"], date=res["date"], verdict=res["verdict"], outcome=shown, goal=s["goal"], story=s["story"],
              problem=dict(requirements=list(s["requirements"])),
-             results=dict(headline=headline, meaning=list(s["meaning"]), limits=list(s["limits"])),
+             results=dict(headline=headline, meaning=list(s["meaning"]), limits=list(s["limits"]),
+                          **({"answer": list(s["answer"])} if s.get("answer") else {})),
              accuracy=accuracy, speed=speed, links=links)
     return b, sketch_of(folder)
 

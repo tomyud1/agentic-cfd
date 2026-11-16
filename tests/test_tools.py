@@ -732,3 +732,21 @@ with tempfile22.TemporaryDirectory() as d22:
     e22 = contract22.check_problem_file(f22)
 assert any("read as text" in x for x in e22) and any("backticks" in x for x in e22), e22
 print("lessons of case 21 as tools (energy of a reacting state, sound speeds at CJ, plain numbers, problem-file checks): ok")
+
+# 23. One-page report: several values stacked in one cell each need a name, and the result opens with short points
+# (the student could not tell four bare numbers apart on step 1's page, 2026-11-16).
+bare23 = r"\(0.1\,\%\)<br>\(0.2\,\%\)"
+assert [n for _, n in brief14.unnamed([["States", bare23, r"mass \(1\)<br>energy \(2\)"]])] == [2]      # bare numbers: refused
+assert brief14.unnamed([["a", r"\(\rho\): \(0.1\,\%\)<br>\(u\): \(0.2\,\%\)", "round-off"]]) == []      # named by word or symbol
+rows23 = brief14.named("States", ["pressure", "velocity"], [bare23, brief14.wait("cannot yet")])
+assert len(rows23) == 3 and "grp" in rows23[0][0] and rows23[1][1:] == [r"\(0.1\,\%\)", brief14.wait("cannot yet")] and "last" in rows23[2][0]
+assert brief14.unnamed(rows23) == [] and brief14.named("x", None, ["1", "2"]) == [["x", "1", "2"]]
+try:
+    brief14.named("States", ["pressure"], [bare23])
+    raise AssertionError("two values under one name were accepted")
+except ValueError:
+    pass
+b23 = dict(b14, results=dict(b14["results"], answer=["word " * 31]), accuracy=dict(b14["accuracy"], rows=[["States", bare23, "x"]]))
+e23 = brief14.check_brief(b23)
+assert any("results.answer" in x for x in e23) and any("no name" in x for x in e23), e23
+print("one-page report (stacked values need names, short answer points): ok")

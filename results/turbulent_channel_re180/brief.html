@@ -216,6 +216,21 @@
   .brief .two { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; align-items: start; }
   .brief .problem { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: center; }
   .brief .problem figure { margin: 0; }
+  /* A grid column is never narrower than its content unless told so: without min-width 0 a table
+     with long cells pushes its column, and the page, wider than the window. Cells wrap here; each
+     number stays on one line with its unit (a formula is never broken; a cell's lines end in <br>). */
+  .brief .two > *, .brief .problem > * { min-width: 0; }
+  .brief td.num { white-space: normal; overflow-wrap: break-word; }
+  .brief td:first-child { min-width: 92px; }
+  /* An answer of several values: a heading row (.grp), then one row per value with its name (.ln). */
+  .brief .grp { font-weight: 600; }
+  .brief .ln { display: inline-block; padding-left: 14px; color: var(--ink2); white-space: nowrap; }
+  .brief tr:has(.grp) td { border-bottom: none; padding-bottom: 1px; }
+  .brief tr:has(.ln) td { padding-top: 2px; padding-bottom: 2px; }
+  .brief tr:has(.ln:not(.last)) td { border-bottom: none; }
+  .brief tr:has(.ln.last) td { padding-bottom: 7px; }
+  .brief ul.answer { margin: 4px 0 16px; } .brief ul.answer li { font-size: 17px; margin: 5px 0; }
+  .brief .what { font-size: 14px; color: var(--ink2); margin: 4px 0 4px; } .brief .what b { color: var(--ink); }
   .brief table { font-size: 14px; }
   .brief th, .brief td { padding: 6px 8px; }
   .brief .miss { color: #b03a2e; font-weight: 700; }
@@ -2384,7 +2399,8 @@ L 108 36
   <h2>Results</h2>
   <p class="headline">On the same grid OpenFOAM meets 1 of 10 limits and gpucfd 5; gpucfd is \(7.2\times\) faster per time step. On a finer grid gpucfd meets all 10.</p>
   <div class="two">
-    <div><h4>Accuracy: difference from the reference</h4><div class="table-wrap"><table class="full">
+    <div><h4>Accuracy: difference from the reference</h4><p class="what">Per cent for the first four rows; wall units for the place of the peak; friction velocities for the profiles (largest difference along the profile). Red is outside its limit.</p>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Requirement</th><th class="num">Limit</th><th class="num">OpenFOAM<br>\(192\times64\times64\)</th><th class="num">gpucfd<br>\(192\times64\times64\)</th><th class="num">gpucfd<br>\(288\times64\times96\)</th></tr>
     
     <tr><td class="">Mean speed</td><td class="num">\(1\,\%\)</td><td class="num"><span class="miss">\(+4.48\,\%\)</span></td><td class="num">\(-0.34\,\%\)</td><td class="num">\(+0.17\,\%\)</td></tr>
@@ -2410,8 +2426,9 @@ L 108 36
     <tr><td class=""><b>Limits met</b></td><td class="num"></td><td class="num">1 of 10</td><td class="num">5 of 10</td><td class="num">10 of 10</td></tr>
     
   </table></div>
-  <p class="small">Per cent for the first four rows; wall units for the place of the peak; friction velocities for the profiles (largest difference along the profile). Red is outside its limit.</p></div>
-    <div><h4>Speed</h4><div class="table-wrap"><table class="full">
+  </div>
+    <div><h4>Speed</h4>
+  <div class="table-wrap"><table class="full">
     <tr><th class=""></th><th class="num">OpenFOAM<br>8 CPU cores</th><th class="num">gpucfd<br>RTX 4070</th><th class="num">gpucfd faster by</th></tr>
     
     <tr><td class="">One time step, \(192\times64\times64\)</td><td class="num">\(464\) ms</td><td class="num">\(65\) ms</td><td class="num">\(7.2\times\)</td></tr>

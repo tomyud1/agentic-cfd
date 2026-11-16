@@ -216,6 +216,21 @@
   .brief .two { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; align-items: start; }
   .brief .problem { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: center; }
   .brief .problem figure { margin: 0; }
+  /* A grid column is never narrower than its content unless told so: without min-width 0 a table
+     with long cells pushes its column, and the page, wider than the window. Cells wrap here; each
+     number stays on one line with its unit (a formula is never broken; a cell's lines end in <br>). */
+  .brief .two > *, .brief .problem > * { min-width: 0; }
+  .brief td.num { white-space: normal; overflow-wrap: break-word; }
+  .brief td:first-child { min-width: 92px; }
+  /* An answer of several values: a heading row (.grp), then one row per value with its name (.ln). */
+  .brief .grp { font-weight: 600; }
+  .brief .ln { display: inline-block; padding-left: 14px; color: var(--ink2); white-space: nowrap; }
+  .brief tr:has(.grp) td { border-bottom: none; padding-bottom: 1px; }
+  .brief tr:has(.ln) td { padding-top: 2px; padding-bottom: 2px; }
+  .brief tr:has(.ln:not(.last)) td { border-bottom: none; }
+  .brief tr:has(.ln.last) td { padding-bottom: 7px; }
+  .brief ul.answer { margin: 4px 0 16px; } .brief ul.answer li { font-size: 17px; margin: 5px 0; }
+  .brief .what { font-size: 14px; color: var(--ink2); margin: 4px 0 4px; } .brief .what b { color: var(--ink); }
   .brief table { font-size: 14px; }
   .brief th, .brief td { padding: 6px 8px; }
   .brief .miss { color: #b03a2e; font-weight: 700; }
@@ -2165,12 +2180,23 @@ L 108 36
 
 <section id="results">
   <h2>Results</h2>
-  <p class="headline"><b>Completed, as expected.</b> The three requirements are met: on 800 cells per side the flat part of the shock moves at the exact speed to within \(0.006\,\%\), the state behind it is within \(0.036\,\%\), mass and energy match the exact inflow to \(3 \times 10^{-9}\) of it, and the flat part is straight to \(6 \times 10^{-5}\) cells on every grid. gpucfd's new shock solver meets the same three requirements on the same grids, and on 800 by 800 cells it takes 16 s on the GPU against OpenFOAM's 742 s on 8 cores. Its pressure ripple behind the shock is larger: at most \(4.4\,\%\) at any written time against OpenFOAM's \(2.0\,\%\).</p>
+  <ul class="points answer"><li>Both tools meet all three requirements, with a wide margin.</li><li>The flat part of the shock moves at the exact speed to within a hundredth of a per cent, and stays flat.</li><li>gpucfd is about 50 times faster on the finest grid. It is worse in one place: the weak leftover waves behind the shock are about twice as tall as OpenFOAM's.</li></ul>
+  
   <div class="two">
-    <div><h4>Accuracy: difference from the reference</h4><div class="table-wrap"><table class="full">
+    <div><h4>Accuracy: how far from the exact solution (0 = perfect match)</h4><p class="what">Each number is how far the computed value is from <b>the exact solution</b>, on 800 by 800 cells, the finest grid both tools ran. <b>Zero would be a perfect match.</b> The first three rows are the problem's requirements. The last row has no exact answer: it compares the picture at two times, which should be the same picture at two sizes.</p>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Requirement</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
-    <tr><td class="">Flat part: shock speed, pressure, density, velocity</td><td class="num"><span style='white-space:nowrap'>\(+0.006\,\%\)</span><br><span style='white-space:nowrap'>\(-0.020\,\%\)</span><br><span style='white-space:nowrap'>\(-0.036\,\%\)</span><br><span style='white-space:nowrap'>\(+0.009\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>\(+0.005\,\%\)</span><br><span style='white-space:nowrap'>\(-0.023\,\%\)</span><br><span style='white-space:nowrap'>\(-0.038\,\%\)</span><br><span style='white-space:nowrap'>\(+0.010\,\%\)</span></td></tr>
+    <tr><td colspan="3"><span class="grp">Flat part of the shock</span></td></tr>
+    
+    
+    <tr><td class=""><span class="ln">speed of the shock</span></td><td class="num"><span style='white-space:nowrap'>\(+0.006\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>\(+0.005\,\%\)</span></td></tr>
+    
+    <tr><td class=""><span class="ln">pressure behind it</span></td><td class="num"><span style='white-space:nowrap'>\(-0.020\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>\(-0.023\,\%\)</span></td></tr>
+    
+    <tr><td class=""><span class="ln">density behind it</span></td><td class="num"><span style='white-space:nowrap'>\(-0.036\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>\(-0.038\,\%\)</span></td></tr>
+    
+    <tr><td class=""><span class="ln last">gas velocity behind it</span></td><td class="num"><span style='white-space:nowrap'>\(+0.009\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>\(+0.010\,\%\)</span></td></tr>
     
     <tr><td class="">Mass and energy against what flowed in</td><td class="num"><span style='white-space:nowrap'>mass \(3 \times 10^{-9}\)</span><br><span style='white-space:nowrap'>energy \(1 \times 10^{-12}\)</span></td><td class="num"><span style='white-space:nowrap'>mass \(6 \times 10^{-8}\)</span><br><span style='white-space:nowrap'>energy \(6 \times 10^{-8}\)</span></td></tr>
     
@@ -2179,8 +2205,9 @@ L 108 36
     <tr><td class="">Same picture at two times</td><td class="num"><span style='white-space:nowrap'>step face \(3.2\,\%\)</span><br><span style='white-space:nowrap'>line \(0.6\,\%\)</span></td><td class="num"><span style='white-space:nowrap'>step face \(3.8\,\%\)</span><br><span style='white-space:nowrap'>line \(0.5\,\%\)</span></td></tr>
     
   </table></div>
-  <p class="small">On 800 by 800 cells, the finest grid both tools ran. The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes.</p></div>
-    <div><h4>Speed</h4><div class="table-wrap"><table class="full">
+  </div>
+    <div><h4>Speed</h4>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">100 by 100 cells</td><td class="num">3.3 s on 1 core, 510 steps</td><td class="num">0.11 s on the GPU, 477 steps</td></tr>

@@ -216,6 +216,21 @@
   .brief .two { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; align-items: start; }
   .brief .problem { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; align-items: center; }
   .brief .problem figure { margin: 0; }
+  /* A grid column is never narrower than its content unless told so: without min-width 0 a table
+     with long cells pushes its column, and the page, wider than the window. Cells wrap here; each
+     number stays on one line with its unit (a formula is never broken; a cell's lines end in <br>). */
+  .brief .two > *, .brief .problem > * { min-width: 0; }
+  .brief td.num { white-space: normal; overflow-wrap: break-word; }
+  .brief td:first-child { min-width: 92px; }
+  /* An answer of several values: a heading row (.grp), then one row per value with its name (.ln). */
+  .brief .grp { font-weight: 600; }
+  .brief .ln { display: inline-block; padding-left: 14px; color: var(--ink2); white-space: nowrap; }
+  .brief tr:has(.grp) td { border-bottom: none; padding-bottom: 1px; }
+  .brief tr:has(.ln) td { padding-top: 2px; padding-bottom: 2px; }
+  .brief tr:has(.ln:not(.last)) td { border-bottom: none; }
+  .brief tr:has(.ln.last) td { padding-bottom: 7px; }
+  .brief ul.answer { margin: 4px 0 16px; } .brief ul.answer li { font-size: 17px; margin: 5px 0; }
+  .brief .what { font-size: 14px; color: var(--ink2); margin: 4px 0 4px; } .brief .what b { color: var(--ink); }
   .brief table { font-size: 14px; }
   .brief th, .brief td { padding: 6px 8px; }
   .brief .miss { color: #b03a2e; font-weight: 700; }
@@ -2014,7 +2029,8 @@ L 108 36
   <h2>Results</h2>
   <p class="headline">On the finest mesh (L4, 2,433,024 cells) the drag is \(6.1805\) (reference \(6.1853\), \(-0.077\,\%\)) and the lift \(0.00956\) (\(0.00940\), \(1.7\,\%\)); mesh-extrapolated: \(0.017\,\%\) and \(1.2\,\%\). The drag passes the band fixed beforehand (\(0.60\) times its width). gpucfd on its finest grid (6,291,456 cells, 31 across the cylinder's diameter): the drag is \(-0.91\,\%\) from the reference; the lift does not converge on its grids (0.0125, -0.0068, 0.0221).</p>
   <div class="two">
-    <div><h4>Accuracy: difference from the reference</h4><div class="table-wrap"><table class="full">
+    <div><h4>Accuracy: how far from the reference (0 = perfect match)</h4><p class="what">Each tool on its finest grid. Band: the share of the allowed difference that is used; above 1 is a miss. Each tool's band comes from its own three finest grids, so a tool whose grids still differ a lot gets a wide band. Compare the differences first.</p>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Requirement</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">Drag on the cylinder</td><td class="num">\(-0.0048\) (\(-0.077\,\%\))<br>0.60 band ✓</td><td class="num">\(-0.0561\) (\(-0.91\,\%\))<br>0.36 band ✓, a wide band: \(\pm 2.5\,\%\)</td></tr>
@@ -2022,8 +2038,9 @@ L 108 36
     <tr><td class="">Lift on the cylinder</td><td class="num">\(+0.00016\) (\(1.7\,\%\))<br>2.51 band ✗</td><td class="num">\(+0.01270\) (\(135\,\%\))<br>no band ✗: its grids do not converge</td></tr>
     
   </table></div>
-  <p class="small">Each tool on its finest grid. Band: the share of the allowed difference that is used; above 1 is a miss. Each tool's band comes from its own three finest grids, so a tool whose grids still differ a lot gets a wide band. Compare the differences first.</p></div>
-    <div><h4>Speed</h4><div class="table-wrap"><table class="full">
+  </div>
+    <div><h4>Speed</h4>
+  <div class="table-wrap"><table class="full">
     <tr><th class="">Run</th><th class="num">Cells</th><th class="num">OpenFOAM</th><th class="num">gpucfd</th></tr>
     
     <tr><td class="">L1</td><td class="num">4,752</td><td class="num">1 s on 1 core</td><td class="num">–</td></tr>

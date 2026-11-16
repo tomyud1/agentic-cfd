@@ -9,14 +9,52 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing is running. The session that joins gpucfd's chemistry to its shock solver waits for the
-student's go.
+A session started on 2026-11-16 is joining gpucfd's chemistry to its shock solver, so that the GPU
+solver can run the detonation of case 21 next to OpenFOAM. Its files (`gpucfd/reacting.py`,
+`gpucfd/src/gcfdr.cu`, `dev/compare/detonation_tube_h2_air/`) are not committed and not reviewed
+yet.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-16
 
-### The stuck `python` command on the development PC: cause found, commit hash to be filled in
+### One-page reports: every number named, the result in short points, commit hash to be filled in
+- **What.** The student read step 1's one-page report and could not follow it: the result was one
+  dense paragraph, and the accuracy table stacked four bare numbers in a cell with no word on
+  which was which or what they were measured against ("what is -0.11 mm?").
+- **Changed in the tool** (`cfdlib/brief.py` and its template):
+  - a page can open its results with one to four short points in plain words (`answer` in
+    `cases/briefs.yaml`), in place of the paragraph; the numbers stay in the tables;
+  - an answer of several values becomes a heading and one row per value, each with its name
+    (`lines`);
+  - the sentence that says what the numbers are (how far from which reference, on which grid)
+    now stands above the accuracy table, not in small print under it, with the reference and
+    "zero would be a perfect match" in bold; the table's title names the reference too
+    ("how far from the exact solution (0 = perfect match)"), so a glance is enough;
+  - a new check refuses a page that stacks several values in one cell with no name on any.
+    It found one more such cell, on step 3's page.
+- **Pages rewritten this way:** steps 1 to 4 of the detonation ladder (shock tube, corner,
+  ignition, detonation). The eight older pages keep their paragraph; they pass the new check.
+- **Verified.** Check 23 of `tests/test_tools.py`; all twelve pages rebuilt and measured again
+  at five window widths (none wider than its window); steps 1 and 4 read by eye in a browser.
+  No number changed: the same cells, re-arranged.
+
+### One-page reports: tables no longer run past the edge of the page (same commit)
+- **What.** On a laptop-size window the two result tables of a one-page report were wider than
+  the page: the right-hand table was cut off and the page scrolled sideways (the student saw it
+  on step 1's page).
+- **Cause.** Table cells were not allowed to wrap, and a column of the page layout never gets
+  narrower than its content unless it is told it may. One long sentence in a cell pushed the
+  whole page wider.
+- **Fix** (`cfdlib/templates/brief.html.j2`): the columns may shrink and the cells wrap. A
+  number still stays on one line with its unit. All twelve one-page reports rebuilt; only their
+  layout rules changed, no number or word.
+- **Verified** in a browser, by measuring every one-page report at five window widths (phone
+  to full HD): none is wider than its window. The old step 1 page, measured the same way, was
+  91 pixels too wide at 1366 pixels, as in the student's screenshot. On a phone some tables
+  scroll inside their own box.
+
+### The stuck `python` command on the development PC: cause found (`417a9a0`)
 - **What.** Case 21's agent lost minutes to a `python` command that never returned (insight 8).
   The first note in the machine file said that `python` on the Windows side hangs. That was
   wrong, and the note is corrected.

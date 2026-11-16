@@ -33,10 +33,15 @@
    "gpucfd is worse in one place: the weak waves left by the start of the shock are about twice as tall as OpenFOAM's.",
    "The pattern round the corner is checked only against itself (two times, two grids), not against an experiment.",
    "The start is not clean: the shock is put in as a sharp jump, and two weak waves from that start stay in the flow at about 2 % of the pressure."
+  ],
+  "answer": [
+   "Both tools meet all three requirements, with a wide margin.",
+   "The flat part of the shock moves at the exact speed to within a hundredth of a per cent, and stays flat.",
+   "gpucfd is about 50 times faster on the finest grid. It is worse in one place: the weak leftover waves behind the shock are about twice as tall as OpenFOAM's."
   ]
  },
  "accuracy": {
-  "title": "Accuracy: difference from the reference",
+  "title": "Accuracy: how far from the exact solution (0 = perfect match)",
   "head": [
    "Requirement",
    "OpenFOAM",
@@ -44,9 +49,29 @@
   ],
   "rows": [
    [
-    "Flat part: shock speed, pressure, density, velocity",
-    "<span style='white-space:nowrap'>\\(+0.006\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.020\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.036\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(+0.009\\,\\%\\)</span>",
-    "<span style='white-space:nowrap'>\\(+0.005\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.023\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(-0.038\\,\\%\\)</span><br><span style='white-space:nowrap'>\\(+0.010\\,\\%\\)</span>"
+    "<span class=\"grp\">Flat part of the shock</span>",
+    "",
+    ""
+   ],
+   [
+    "<span class=\"ln\">speed of the shock</span>",
+    "<span style='white-space:nowrap'>\\(+0.006\\,\\%\\)</span>",
+    "<span style='white-space:nowrap'>\\(+0.005\\,\\%\\)</span>"
+   ],
+   [
+    "<span class=\"ln\">pressure behind it</span>",
+    "<span style='white-space:nowrap'>\\(-0.020\\,\\%\\)</span>",
+    "<span style='white-space:nowrap'>\\(-0.023\\,\\%\\)</span>"
+   ],
+   [
+    "<span class=\"ln\">density behind it</span>",
+    "<span style='white-space:nowrap'>\\(-0.036\\,\\%\\)</span>",
+    "<span style='white-space:nowrap'>\\(-0.038\\,\\%\\)</span>"
+   ],
+   [
+    "<span class=\"ln last\">gas velocity behind it</span>",
+    "<span style='white-space:nowrap'>\\(+0.009\\,\\%\\)</span>",
+    "<span style='white-space:nowrap'>\\(+0.010\\,\\%\\)</span>"
    ],
    [
     "Mass and energy against what flowed in",
@@ -64,7 +89,7 @@
     "<span style='white-space:nowrap'>step face \\(3.8\\,\\%\\)</span><br><span style='white-space:nowrap'>line \\(0.5\\,\\%\\)</span>"
    ]
   ],
-  "note": "On 800 by 800 cells, the finest grid both tools ran. The first three rows are the problem's requirements. The last row has no reference: it compares the picture at two times, which should be the same picture at two sizes."
+  "note": "Each number is how far the computed value is from <b>the exact solution</b>, on 800 by 800 cells, the finest grid both tools ran. <b>Zero would be a perfect match.</b> The first three rows are the problem's requirements. The last row has no exact answer: it compares the picture at two times, which should be the same picture at two sizes."
  },
  "speed": {
   "title": "Speed",

@@ -33,7 +33,7 @@
   ]
  },
  "accuracy": {
-  "title": "Accuracy: difference from the reference",
+  "title": "Accuracy: how far from the reference (0 = perfect match)",
   "head": [
    "Requirement",
    "OpenFOAM",
