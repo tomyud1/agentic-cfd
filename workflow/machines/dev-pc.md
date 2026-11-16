@@ -68,6 +68,12 @@ MSYS_NO_PATHCONV=1 wsl -d Ubuntu-24.04 --cd "/mnt/d/Projects/Agentic CFD" -- /ho
 - The WSL warning "Failed to detect nested virtualization support" is harmless.
 - `/tmp` inside WSL is wiped when the WSL virtual machine idles between calls: keep files you need
   under `$FOAM_RUN` or the repository.
+- A job detached inside WSL (`nohup`, `&`) dies a few seconds after the `wsl` command that started
+  it returns: Windows shuts the virtual machine down. Keep the `wsl` command itself running, as a
+  background task of the agent's tool, for as long as the job.
+- MPI has a fixed cost per time step here: about 25 ms for `reactingFoam` with 5 passes on 8
+  ranks, whatever the grid. Small grids gain little from more cores (case 21: 8 ranks twice as
+  fast as one).
 - OpenFOAM cannot use paths with spaces, and the repository path has one: keep every case run under
   `$FOAM_RUN/agentic/<case>/`, never inside the repository.
 

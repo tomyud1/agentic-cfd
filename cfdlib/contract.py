@@ -61,6 +61,16 @@ def check_problem_file(path):
         e.append("setup: a list of short statements (geometry, boundary conditions, definitions)")
     if "quantities_of_interest" in p and not p["quantities_of_interest"]:
         e.append("quantities_of_interest: list the requested outputs")
+    for k, v in (p.get("given") or {}).items():    # YAML reads 3.0e6 as text: a number needs a signed exponent (case 21)
+        if isinstance(v, dict) and isinstance(v.get("value"), str):
+            try:
+                float(v["value"])
+                e.append(f"given.{k}.value: '{v['value']}' is read as text, not as a number; write the exponent with a sign (3.0e+6)")
+            except ValueError:
+                pass
+    for i, line in enumerate(p.get("setup") or [] if isinstance(p.get("setup"), list) else []):
+        if "`" in str(line):                       # the report shows setup lines as HTML: a backtick stays a backtick
+            e.append(f"setup[{i}]: mark file names and commands with <code>...</code>, not with backticks")
     ra = p.get("required_accuracy")                 # the accuracy the answer needs: only a miss of it makes a FAIL
     if ra is not None:
         keys = {q.get("key") for q in p.get("quantities_of_interest") or [] if isinstance(q, dict)}

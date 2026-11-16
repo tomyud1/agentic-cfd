@@ -22,6 +22,9 @@ def state(mech):
     X = cj["sigma"] / cj["sigma"].sum()
     return dict(speed_m_s=round(cj["D"], 3), pressure_Pa=round(cj["p"], 1), temperature_K=round(cj["T"], 2), density_kg_m3=round(cj["rho"], 5),
                 gas_speed_m_s=round(cj["u"], 3), gas_speed_relative_to_wave_m_s=round(cj["w"], 3),
+                sound_speed_m_s=dict(equilibrium=round(cj["w"], 3), fixed_composition=round(cj["c_frozen"], 3),
+                                     note="a simulated wave ends where the gas leaves the front at its own speed of sound; the two "
+                                          "values put that point at slightly different places (case 21)"),
                 mole_fractions={s: round(float(x), 6) for s, x in zip(mech.species, X) if x > 1e-6},
                 fresh=dict(density_kg_m3=round(cj["fresh"]["rho"], 6), sound_speed_m_s=round(cj["fresh"]["c"], 3)),
                 front_before_burning=dict(pressure_Pa=round(vn["p"], 1), temperature_K=round(vn["T"], 2), density_kg_m3=round(vn["rho"], 5),

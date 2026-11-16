@@ -118,9 +118,11 @@ def log_arrays(steps):
                 res={f: np.array([x["res"].get(f) for x in steps], dtype=float) for f in fields})
 
 
-def assess(log_path, end_time=None, courant_limit=1.0, residual_targets=None):
+def assess(log_path, end_time=None, courant_limit=1.0, residual_targets=None, t_start=None):
     """Health checks for a solver log. Status: ok / warn / fail.
 
+    t_start: judge only the steps from this time on. For a run that starts from rest with a tiny time step
+      that grows (a deliberate ramp): its first steps look like a blow-up to the trend checks (case 21).
     end_time: the full run's end time, for a run-time projection (est_full_runtime, seconds).
     residual_targets: steady runs that stop on residualControl, e.g. {"Ux": 1e-6, "p": 1e-5}. The
       projection is then made from the residual decay rate instead of end_time, and is only a LOWER
@@ -128,7 +130,11 @@ def assess(log_path, end_time=None, courant_limit=1.0, residual_targets=None):
       finest mesh, extrapolate the iteration counts of the coarser production runs instead.
     """
     log = parse_log(log_path)
-    return assess_arrays(log_arrays(log["steps"]), log, end_time, courant_limit, residual_targets)
+    arr = log_arrays(log["steps"])
+    if t_start is not None:
+        keep = arr["time"] >= t_start
+        arr = {k: ({f: r[keep] for f, r in v.items()} if isinstance(v, dict) else v[keep]) for k, v in arr.items()}
+    return assess_arrays(arr, log, end_time, courant_limit, residual_targets)
 
 
 def assess_arrays(arr, flags, end_time=None, courant_limit=1.0, residual_targets=None):

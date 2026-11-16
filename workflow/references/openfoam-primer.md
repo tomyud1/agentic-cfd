@@ -124,6 +124,41 @@ example: `cases/h2_air_ignition_box/`. `cfdlib.chem` gives an independent second
   shows an energy "error" of that size (3e-8 of the heat released) in its first microseconds. It
   belongs to the data, not to the solver.
 
+## Burning with flow (measured in case 21, a detonation in a tube with `reactingFoam`)
+Worked example: `cases/detonation_tube_h2_air/`.
+- **The solver does not keep energy by itself.** With one pass per time step (PISO mode, the
+  setting of OpenFOAM's reacting examples) the tube lost 15 % of the heat released and the
+  detonation ran 17 % too slow. The loss falls with the time step, not with the cell size, and
+  nothing in the log, the residuals or the mass shows it. Three passes (`nOuterCorrectors`) left
+  1.6 %, five left 0.2 %. Use an odd count: 2 and 8 passes added energy in the first microsecond
+  (not explained). **Check the energy balance of every reacting run:** the change of the total
+  energy over the heat released so far. `chem.total_energy` gives it from stored fields; the
+  worked example's `measure.py` (`totals`) gives it after every step from volume integrals.
+- **Chemistry is the cost, in every cell and every pass:** on one core about 20 to 30 µs per
+  cold cell and 100 to 150 µs per burnt cell, per pass, against under 3 µs for the flow. `Treact`
+  in `chemistryProperties` skips cells below that temperature: set it just above the start
+  temperature (at 500 K it moved the front by 0.09 %, because species smeared ahead of the
+  front react there). At flow steps of tens of nanoseconds the explicit `RKF45` gave the same
+  wave speed as `seulex` in a seventh of the time.
+- **The cost of a run grows with the square of the time covered** when a wave leaves burnt gas
+  behind. A timing over the first fifth says little, also for comparing two methods. Time a
+  short run at the plan's own settings, and count burnt cells.
+- **The first time step does not keep mass when the gas reacts in it** (0.04 % lost in a first
+  step of 40 ns). Start with a step of 1e-12 s that grows; `monitor.assess(..., t_start=)`
+  judges the log from the end of that ramp on.
+- **A layer set by `setFields` ends on a cell face:** on a grid where its edge falls inside a
+  cell the layer is a cell too thick. Use grids on which the edge is a face, and compare the
+  start state with numbers computed without the solver.
+- **The direct CHEMKIN reader works with the enthalpy form only** (`sensibleEnthalpy`); with
+  internal energy the scheme must first be converted by `chemkinToFoam`.
+- **Small differences mean nothing:** how the tube is split between cores moved the front by up
+  to 0.09 %. And before a grid study of a quantity read over a time window, check that it is
+  steady in that window on every grid: here the wave was still settling, so the grids compared
+  stages, not errors.
+- **"The burnt state behind the wave" needs a point,** because the pressure falls from the peak
+  straight into the expansion: the first point behind the front where the gas leaves it at its
+  own speed of sound (u + c = D). The reference file gives both speeds of sound there.
+
 ## Turbulence models (RANS; measured in case 7, a flat plate with Spalart-Allmaras)
 - **A model name covers several published variants,** and a solver's default may be another one
   than the benchmark's. Set `printCoeffs on` in the model's dictionary and compare the coefficients
@@ -170,6 +205,9 @@ z with real cells instead of one `empty` layer.
   is non-trivial before relying on it.
 - The solver log names every pressure solve of a PISO/PIMPLE step `p` (no `pFinal` in the log); count
   the final solve of a step by position (`cfdlib.perf` does).
+- **`maxDeltaT` does not bound the steps before a write or sampling time:** with an adjustable
+  step the solver stretches the last steps to land on it (17 % longer in case 21). Choose step
+  counts that fit a whole number of steps between samples, and read the largest step from the log.
 
 ## Parallel runs (MPI)
 `system/decomposeParDict` (`numberOfSubdomains N; method scotch;`), then `decomposePar`,

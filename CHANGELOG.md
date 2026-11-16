@@ -9,14 +9,51 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing is running. Case 21's 22 insights are being answered (primer, tools, machine file). The
-session that joins gpucfd's chemistry to its shock solver waits for the student's go.
+Nothing is running. The session that joins gpucfd's chemistry to its shock solver waits for the
+student's go.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
 ## 2026-11-16
 
-### Case 21 solved: a detonation in a tube, completed with one difference, commit hash to be filled in
+### What case 21's 22 insights led to, commit hash to be filled in
+- **Purpose.** Every limitation the solver agent logged gets an answer: a tool, a check, a line in
+  the notes, or a stated reason for leaving it.
+- **Tools changed** (each covered by check 22 of `tests/test_tools.py`):
+  - `chem.total_energy`: the total energy of a stored reacting state, for the energy balance that
+    caught OpenFOAM losing 15 % of the heat (insight 3);
+  - `foam.render_case` writes NumPy numbers as plain numbers; a list of them had reached a case
+    file as text the solver could not read (insight 1);
+  - `monitor.assess(..., t_start=)` judges a log from the end of a deliberate start ramp on;
+    the ramp looked like a blow-up to the trend checks (insight 9);
+  - the check of a new problem file now refuses a value that YAML reads as text (`3.0e6` needs
+    a signed exponent; this was a slip in the problem I wrote) and backticks in the set-up lines
+    (insights 16, 22);
+  - the reference of the detonation now gives both speeds of sound at the theory state, because
+    the choice moves the point where "the burnt state" is read (insight 18).
+- **Solver notes** (`workflow/references/openfoam-primer.md`, a new section "Burning with flow"):
+  energy is not kept without several passes per step; use an odd number of passes; chemistry
+  costs in every cell and every pass, with measured numbers; skip untouched cells with `Treact`
+  set just above the start temperature; the explicit chemistry solver is seven times cheaper
+  here; run cost grows with the square of the time covered; start with a tiny growing time step;
+  a start layer must end on a cell face; the direct reader of the scheme works only with the
+  enthalpy form; differences below 0.1 % mean nothing; check that a quantity is steady before a
+  grid study of it; `maxDeltaT` does not bound the steps before a sampling time (insights 2 to
+  7, 10 to 12, 15, 19, 20).
+- **Machine file** (`workflow/machines/dev-pc.md`): a job detached inside WSL dies when the
+  calling command returns; MPI costs about 25 ms per time step here (insights 11, 14).
+- **Not acted on, with the reason.**
+  - A run-time forecast for runs whose cost grows (insight 11): the notes now say how to time
+    such a run; a forecast tool waits for a second case that needs it.
+  - A hook that refuses a bare `python` in Git Bash (insight 8): it would change the student's
+    agent settings; that is his decision.
+  - Three unexplained effects stay open and are stated in the report (even number of passes,
+    dependence on the split between cores, no trend with the time step: insights 4, 12, 15).
+  - Insights 13, 17 and 21 are lessons the workflow already states; no change.
+- **For the next detonation case** (insights 18, 20): a longer tube or a later reading of the
+  speed with a settling check, and a named point for the burnt state. Noted in the roadmap.
+
+### Case 21 solved: a detonation in a tube, completed with one difference (`a7f84be`)
 - **Purpose.** Step 4 of 7 to the detonation engine: shock and burning together for the first
   time. Does the wave run at the speed the theory fixes?
 - **How.** A fresh agent with the workflow and OpenFOAM's burning solver (`reactingFoam`, full

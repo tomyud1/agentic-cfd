@@ -18,6 +18,11 @@ cj:
   density_kg_m3: 1.5306
   gas_speed_m_s: 880.475
   gas_speed_relative_to_wave_m_s: 1098.065
+  sound_speed_m_s:
+    equilibrium: 1098.065
+    fixed_composition: 1133.581
+    note: a simulated wave ends where the gas leaves the front at its own speed of sound; the two values put that point at
+      slightly different places (case 21)
   mole_fractions:
     H2: 0.029937
     H: 0.006223
@@ -44,6 +49,11 @@ cj_standard_constants:
   density_kg_m3: 1.53066
   gas_speed_m_s: 880.391
   gas_speed_relative_to_wave_m_s: 1097.862
+  sound_speed_m_s:
+    equilibrium: 1097.862
+    fixed_composition: 1133.443
+    note: a simulated wave ends where the gas leaves the front at its own speed of sound; the two values put that point at
+      slightly different places (case 21)
   mole_fractions:
     H2: 0.029993
     H: 0.006251

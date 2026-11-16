@@ -716,3 +716,19 @@ of21 = chem20.cj_detonation(mech20, ct21["p1"], ct21["T1"], mix21)
 assert 0 < of21["D"] - cj21["D"] < 1.0                           # OpenFOAM's constants move the speed by a fraction of a metre per second
 print(f"detonation theory: CJ speed {cj21['D']:.2f} m/s (Cantera {ct21['D']:.2f}), {cj21['p'] / 101325:.2f} atm, {cj21['T']:.0f} K; at the front "
       f"{vn21['p'] / 101325:.1f} atm, {vn21['T']:.0f} K; with OpenFOAM's constants {of21['D'] - cj21['D']:+.2f} m/s: ok")
+
+# 22. Lessons of case 21 (a detonation in a tube) as tools: the total energy of a stored reacting state, the two speeds of
+# sound at the CJ state, NumPy numbers in case files, a health check that skips a start ramp, text where a number belongs.
+par22 = chem20.Parcel(mech20, 3.0e6, 2500.0, mix21)
+E22 = chem20.total_energy(np.full(4, 0.25), np.full(4, par22.rho0), np.full(4, 2500.0), np.full(4, 3.0e6), np.zeros(4), np.tile(par22.Y0, (4, 1)), mech20)
+assert abs(E22 / (par22.rho0 * (par22.h0 - 3.0e6 / par22.rho0)) - 1) < 1e-12      # gas at rest: mass x (enthalpy - p / rho)
+assert 1.02 < of21["c_frozen"] / of21["w"] < 1.08                 # at fixed composition sound is a few percent faster
+from cfdlib import foam as foam22, contract as contract22
+assert repr(foam22._plain(dict(a=[np.float64(0.5)], b=np.int64(3)))) == "{'a': [0.5], 'b': 3}"
+import tempfile as tempfile22
+with tempfile22.TemporaryDirectory() as d22:
+    f22 = Path(d22) / "problem.yaml"
+    f22.write_text("name: x\ntitle: x\ndescription: x\nsetup: ['file `a.dat`']\ngiven: {p: {value: 3.0e6}}\nquantities_of_interest: [{key: a, text: b}]\n")
+    e22 = contract22.check_problem_file(f22)
+assert any("read as text" in x for x in e22) and any("backticks" in x for x in e22), e22
+print("lessons of case 21 as tools (energy of a reacting state, sound speeds at CJ, plain numbers, problem-file checks): ok")

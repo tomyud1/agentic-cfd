@@ -440,6 +440,17 @@ def enthalpy(T, Y, mech):
     return np.array([sigma[k] @ mech.h(T[k]) for k in range(len(T))])
 
 
+def total_energy(volume, rho, T, p, U2, Y, mech):
+    """Total energy of a stored state of a reacting flow, J (or J per m2 of cross-section when `volume` is the
+    cell length): the sum over the cells of volume x (rho x (enthalpy with chemical energy + U2 / 2) - p). In a
+    closed, insulated domain it must not change; its change over the heat released so far is the energy
+    balance of the run. A pressure-based solver does not keep it by construction (case 21: 15 % of the heat
+    lost with one pass per time step, and the detonation 17 % slow, with nothing in the log). Arrays over the
+    cells; U2 is the squared speed; Y is cells x species in the order of mech.species; build mech with the
+    SOLVER's constants."""
+    return float(np.sum(np.asarray(volume, float) * (np.asarray(rho, float) * (enthalpy(T, Y, mech) + 0.5 * np.asarray(U2, float)) - np.asarray(p, float))))
+
+
 def parcel_health(T, Y, mech, T_low, T_high, tol_sum=1e-9, tol_atoms=1e-8):
     """What a sound reacting history must do, whatever the solver: the temperature stays between T_low and
     T_high (for a parcel without heat exchange: the start and the temperature of complete burning), no mass
@@ -535,4 +546,5 @@ def cj_detonation(mech, p1, T1, moles, x_range=(0.45, 0.70)):
         raise RuntimeError(f"CJ point at the edge of x_range {x_range}: widen it")
     T, s, v = burnt(x, D)
     return dict(D=D, p=float(prod.p), T=float(T), rho=1.0 / v, u=D * (1 - x), w=D * x, ratio=x, sigma=s, mach=D / c1,
+                c_frozen=sound_speed_frozen(mech, float(T), s),   # at fixed composition; w is the equilibrium one
                 fresh=dict(rho=fresh.rho0, h=h1, c=c1))

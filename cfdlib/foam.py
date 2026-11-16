@@ -256,9 +256,23 @@ def running():
     return procs
 
 
+def _plain(v):
+    """NumPy numbers as plain Python ones, also inside lists and dicts: a list of NumPy numbers prints as
+    "np.float64(0.0285)", which a solver cannot read (case 21)."""
+    if isinstance(v, np.generic):
+        return v.item()
+    if isinstance(v, dict):
+        return {k: _plain(x) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return type(v)(_plain(x) for x in v)
+    return v
+
+
 def render_case(template_dir, case_dir, params):
-    """Copy a case template, filling {{ placeholders }} in every file with params."""
+    """Copy a case template, filling {{ placeholders }} in every file with params (NumPy numbers are written
+    as plain numbers)."""
     template_dir, case_dir = Path(template_dir), Path(case_dir)
+    params = _plain(params)
     if case_dir.exists():
         live = _running_in(case_dir)
         if live:          # deleting under a running solver lets it write into the new case (case 6)
