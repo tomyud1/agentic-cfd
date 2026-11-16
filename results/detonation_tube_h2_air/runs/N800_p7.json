@@ -1,0 +1,297 @@
+{
+ "N": 800,
+ "steps": 1700,
+ "passes": 7,
+ "ode": "RKF45",
+ "rel": 1e-06,
+ "t_react": 305.0,
+ "cores": 8,
+ "chemistry": true,
+ "profiling": {},
+ "fraction": 1.0,
+ "name": "N800_p7",
+ "stage": "preflight",
+ "studies": [
+  "passes"
+ ],
+ "case_dir": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/detonation_tube_h2_air/N800_p7",
+ "wall_time": 104.68888363500002,
+ "total_time": 104.05900597572327,
+ "mesh_ok": true,
+ "health": {
+  "status": "ok",
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "0.247",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.03\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: H",
+    "status": "ok",
+    "value": "\\(\\times\\,1.18\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: H2",
+    "status": "ok",
+    "value": "\\(\\times\\,0.542\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: H2O",
+    "status": "ok",
+    "value": "\\(\\times\\,0.528\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: H2O2",
+    "status": "ok",
+    "value": "\\(\\times\\,0.636\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: HO2",
+    "status": "ok",
+    "value": "\\(\\times\\,0.842\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: O",
+    "status": "ok",
+    "value": "\\(\\times\\,1.17\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: O2",
+    "status": "ok",
+    "value": "\\(\\times\\,0.548\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: OH",
+    "status": "ok",
+    "value": "\\(\\times\\,0.957\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.496\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: h",
+    "status": "ok",
+    "value": "\\(\\times\\,0.612\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,0.692\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.49\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "The run reaches the end of the time of interest",
+    "status": "ok",
+    "value": "1750 steps (planned 1700, plus the growing first steps)",
+    "meaning": "The history must cover the whole time."
+   },
+   {
+    "name": "Temperature and pressure never fall below the start values",
+    "status": "ok",
+    "value": "lowest temperature \\(300.000\\,\\mathrm{K}\\), lowest pressure \\(101325.0\\,\\mathrm{Pa}\\)",
+    "meaning": "Nothing in a closed tube of burning gas cools the gas below its start state. A value below it is an undershoot of the scheme at the front."
+   },
+   {
+    "name": "The mass in the tube does not change",
+    "status": "ok",
+    "value": "largest relative change \\(1.2 \\times 10^{-8}\\)",
+    "meaning": "The tube is closed."
+   }
+  ],
+  "steps": 1694,
+  "last_time": 5e-05,
+  "wall_time": 101.07,
+  "est_full_runtime": 101.07,
+  "est_kind": "fixed run length"
+ },
+ "openfoam": "v2606",
+ "python": "3.12.3",
+ "run_root": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/detonation_tube_h2_air",
+ "us_per_cell_step": 74.77777402500001,
+ "cpu_efficiency": 0.9740910850243013,
+ "cpu_s": 815.812066,
+ "peak_mem_mb": 246.8046875,
+ "lin_iters": {
+  "Ux": 2.2143673469387757,
+  "H2": 2.159265306122449,
+  "H": 2.6133061224489795,
+  "O2": 2.1270204081632653,
+  "O": 2.62,
+  "OH": 2.5408163265306123,
+  "HO2": 2.5099591836734696,
+  "H2O2": 2.6277551020408163,
+  "H2O": 2.254612244897959,
+  "h": 2.232734693877551,
+  "p": 1.9926530612244897
+ },
+ "solver_cpu_s": 101.07,
+ "load": 7.9267578125,
+ "steps_done": 1750,
+ "t_last": 5e-05,
+ "dx": 0.00015,
+ "dt": 2.9411764705882354e-08,
+ "courant_wave": 0.38794907800746176,
+ "cells_per_induction": 1.1481281839166622,
+ "headers": [
+  "# Time              \tfield               \tmin                 \tlocation(min)       \tprocessor           \tmax                 \tlocation(max)       \tprocessor           ",
+  "# Time              \tvolIntegrate(rho)\tvolIntegrate(p)",
+  "# Time              \tweightedVolIntegrate(h)\tweightedVolIntegrate(K)\tweightedVolIntegrate(H2)\tweightedVolIntegrate(H)\tweightedVolIntegrate(O2)\tweightedVolIntegrate(O)\tweightedVolIntegrate(OH)\tweightedVolIntegrate(HO2)\tweightedVolIntegrate(H2O2)\tweightedVolIntegrate(H2O)\tweightedVolIntegrate(N2)",
+  "x_H_H2_H2O_H2O2_HO2_N2_O_O2_OH_Qdot_T_p_rho_U.xy"
+ ],
+ "samples": 100,
+ "first": {
+  "mass": 4.69619143572686e-09,
+  "energy": -6.3102962619137e-10,
+  "p_max": 2999999.633712,
+  "T_max": 2499.999491232,
+  "dt": 1.2000000192e-12
+ },
+ "qdot_abs_max": 41388278674850.0,
+ "dt_max": 3.606723220199999e-08,
+ "mass_dev": 1.1892952844760885e-08,
+ "atoms_dev": {
+  "H": 2.469711457564472e-08,
+  "N": 6.850179090633901e-09,
+  "O": 2.749988814443327e-08
+ },
+ "atoms_start": {
+  "H": -1.992228604308366e-11,
+  "N": 6.308723987658027e-09,
+  "O": -1.919109315906553e-11
+ },
+ "sumY_dev": 5.662137425588298e-13,
+ "T_min": 300.0,
+ "T_max": 3659.638119572,
+ "p_min": 101325.0,
+ "p_max": 4063639.221085,
+ "energy_startup": -0.0018531278494175647,
+ "hot_cell_steps": 571165.9999999999,
+ "speed": {
+  "D": 1971.7943832661226,
+  "D_fit": 1971.7162187412594,
+  "D_min": 1952.0877997494028,
+  "D_max": 1988.732675305338,
+  "x_a": 0.05001102527080514,
+  "x_b": 0.09930588485245821
+ },
+ "speed_err": -0.003409541154811624,
+ "speed_fit_err": -0.0034490473124313414,
+ "x_front_end": 0.09930588485245821,
+ "gap_max": 0.00010506870884445518,
+ "gap_mean": 9.279489909567076e-05,
+ "gap_end": 9.196686999281278e-05,
+ "gap_step_max": 0.0006000000000000033,
+ "gap_step_mean": -0.0005182218956649523,
+ "gap_early_max": 0.00011924757231223,
+ "peak": {
+  "mean": 1927205.2075207685,
+  "low": 1908053.871259,
+  "high": 1944646.30207,
+  "vn": 2790500.532455833,
+  "ratio": 0.690630653929564,
+  "T_vn": 1534.7612322904263
+ },
+ "burnt": {
+  "found": true,
+  "subsonic_cells": 30,
+  "x": 0.09457544896543449,
+  "d": 0.004730435887023723,
+  "p": 1527824.064203328,
+  "T": 2931.301407132588,
+  "rho": 1.4969534316791038,
+  "u": 844.7219952755322,
+  "c": 1127.0723879905904,
+  "H2O": 0.2212915416740692,
+  "at": [
+   {
+    "d": 0.0005,
+    "p": 1911957.4864369838,
+    "T": 2573.461968134815,
+    "u": 1083.3208173684495,
+    "H2O": 0.18557735180745982
+   },
+   {
+    "d": 0.001,
+    "p": 1887355.0252507173,
+    "T": 2802.093682628096,
+    "u": 1056.9112083919547,
+    "H2O": 0.2012327334214752
+   },
+   {
+    "d": 0.002,
+    "p": 1709186.626403814,
+    "T": 2904.3003352778155,
+    "u": 952.5979942493583,
+    "H2O": 0.21329063430757741
+   },
+   {
+    "d": 0.005,
+    "p": 1516539.5781454823,
+    "T": 2930.9794866983175,
+    "u": 838.2364298899413,
+    "H2O": 0.2214613469034711
+   },
+   {
+    "d": 0.01,
+    "p": 1360924.9462206336,
+    "T": 2901.7062138222705,
+    "u": 737.8909383144953,
+    "H2O": 0.2243990422149284
+   }
+  ]
+ },
+ "end_p": 594908.7065809708,
+ "end_p_spread": 0.0010734642272597168,
+ "end_T": 2665.7073036880597,
+ "right_dev": 0.0,
+ "right_T": 300.0,
+ "energy": {
+  "end": -0.0017498398595424537,
+  "rate_late": -0.0017348466028455525,
+  "worst": 0.0017498398595424537,
+  "q_end": 259576.141006703,
+  "dE_end": -454.21667811974135,
+  "E0": -269.72534978809745,
+  "kinetic_end": 10339.83485274
+ },
+ "q_vs_cj": 0.06759186044485621,
+ "ramp_steps": 56
+}

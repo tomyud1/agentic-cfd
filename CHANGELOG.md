@@ -9,14 +9,50 @@ moves to a dated entry when it is committed.
 
 ## In progress
 
-Nothing is running. A fresh solver agent for case 21 waits for the student's go; its problem is
-ready.
+Nothing is running. Case 21's 22 insights are being answered (primer, tools, machine file). The
+session that joins gpucfd's chemistry to its shock solver waits for the student's go.
 
 What comes next, in order, is in [`ROADMAP.md`](ROADMAP.md).
 
+## 2026-11-16
+
+### Case 21 solved: a detonation in a tube, completed with one difference, commit hash to be filled in
+- **Purpose.** Step 4 of 7 to the detonation engine: shock and burning together for the first
+  time. Does the wave run at the speed the theory fixes?
+- **How.** A fresh agent with the workflow and OpenFOAM's burning solver (`reactingFoam`, full
+  hydrogen scheme), in about an hour and a half; 14 kept runs, 28 minutes of solver time.
+- **Result** (`results/detonation_tube_h2_air/report.html`, one page:
+  `results/detonation_tube_h2_air/brief.html`):
+  - wave speed 1968.4 m/s, **0.51 % below the theory** (required: 2 %), and within 0.5 % on all
+    four grids, 400 to 3200 cells;
+  - the flame stays **within 0.06 mm of the shock** (required: 1 mm): a detonation;
+  - mass and atoms kept to 3e-8; the energy to 0.2 % of the heat released;
+  - **expected, found:** the peak pressure at the front was expected to reach 0.80 of the full
+    shock pressure on the finest grid; found 0.79 (0.63, 0.69, 0.73, 0.79 from coarse to fine).
+    The burning zone is thinner than the cells.
+- **Verified** by the review (`dev/agent_checks/case21_review.py`): wave speed, the distance
+  between the fronts, mass, atoms, energy and the peak pressure recomputed from the stored
+  profiles with other rules and from the problem statement alone. All agree with the agent's.
+- **What we learned for the engine.**
+  - OpenFOAM's solver **does not keep energy by itself**. With one pass per time step, the
+    setting of its own burning examples, it lost 15 % of the heat and the wave ran 17 % too
+    slow. Nothing in the solver's log shows it. Five passes cut the loss to 0.2 %, at five
+    times the cost. An energy balance is now a must for every reacting run.
+  - **Chemistry is most of the cost:** about 150 microseconds per burnt cell and pass on one
+    core, against under 3 for the flow. A simple explicit chemistry solver gave the same answer
+    as the implicit one in a seventh of the time. Eight cores were only twice as fast as one.
+  - gpucfd's chemistry kernel advances a burnt cell at a similar pressure in about 0.06
+    microseconds. Not a fair ratio (one GPU against one core, a kernel against a whole solver),
+    but it shows where the joined GPU solver can win.
+- **Open.** The wave is still settling when the time ends, so finer cells do not bring the speed
+  closer to theory (no order claimed); the time-step study shows no trend; an even number of
+  passes adds energy at the start, unexplained; no grid finer than 3200 cells. gpucfd has no
+  column yet: its two halves are not joined. Not done: I could not look at the pages by eye
+  (the browser pane gives blank screenshots); the agent did view its report.
+
 ## 2026-11-15
 
-### The chemistry kernel's methods timed at detonation conditions, commit hash to be filled in
+### The chemistry kernel's methods timed at detonation conditions (`3a37d75`)
 - **Purpose.** The review found the kernel ten times slower behind a detonation's shock than in the
   ignition problem. Is one of its other built-in methods cheaper there?
 - **Test** (`dev/agent_checks/chem_detonation_methods.py`; 12 runs, fixed in advance): three methods,

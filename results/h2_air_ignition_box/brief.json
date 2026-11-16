@@ -13,7 +13,7 @@
  "story": "Solved with OpenFOAM's chemistry solver by a fresh agent, which also wrote an independent solution of its own to check both OpenFOAM and the reference. gpucfd had no chemistry. A chemistry kernel for the GPU was built the same day and run on the same parcel. It is not yet joined to gpucfd's flow solver.",
  "problem": {
   "requirements": [
-   "A parcel of hydrogen, oxygen and nitrogen at rest, suddenly at 1000 K. The pressure is held at 2 atmospheres and no heat is exchanged.",
+   "A parcel of hydrogen, oxygen and nitrogen at rest, suddenly at \\(1000\\,\\mathrm{K}\\). The pressure is held at 2 atmospheres and no heat is exchanged.",
    "After a short delay the mixture ignites and burns. Nothing flows, so only time matters.",
    "The full hydrogen reaction scheme: 10 species and 27 reactions.",
    "Asked for: temperature against time, the ignition time, the final temperature, the species, whether atoms and energy are kept, and what the chemistry costs.",

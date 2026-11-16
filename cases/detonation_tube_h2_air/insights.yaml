@@ -1,0 +1,321 @@
+# Workflow insights, logged LIVE (cfdlib/insights.py). One entry per problem, surprise or retry:
+#   id, stage, logged (real time first met), status (open | resolved), problem,
+#   then when solved: diagnosis, fix, lesson, guideline (the change to the workflow that would have prevented it).
+# stage: intake | theory | setup | preflight | production | analysis | report | tooling | performance
+
+- id: 1
+  stage: setup
+  logged: 2026-11-16 08:44
+  status: resolved
+  problem: The first trial stopped at once. OpenFOAM could not read the start value of the hydrogen mass fraction, because the
+    case file held the text <code>np.float64(0.0285...)</code> where a number belongs.
+  diagnosis: The mass fractions came from a NumPy array, and <code>repr()</code> of a NumPy number prints its type. <code>foam.render_case</code>
+    writes whatever text it is given.
+  fix: Converted every value to a Python float before it goes into the case parameters.
+  lesson: A value that goes into a case file must be a plain number. The mistake is silent in Python and stops the solver.
+  guideline: <code>foam.render_case</code> could convert NumPy numbers to plain ones, or refuse a rendered file that contains
+    <code>np.float64(</code>.
+- id: 2
+  stage: setup
+  logged: 2026-11-16 08:46
+  status: resolved
+  problem: The chemistry takes about 97 % of the run time of <code>reactingFoam</code> on this problem, and it costs the same in
+    every cell, also in the cold gas that the wave has not reached. Every chemistry method costs about the same.
+  diagnosis: 'OpenFOAM integrates the chemistry of every cell in every time step, at least one step of the method per cell: about
+    \(21\) to \(33\) microseconds per cell, whatever the cell holds. The flow part of a step costs under \(1\) microsecond per cell.
+    Five methods and tolerances were timed on the same short run: the explicit method <code>RKF45</code> was cheapest (\(25\,\mathrm{s}\)),
+    <code>seulex</code> dearest (\(40\,\mathrm{s}\)), and all put the front within \(0.02\,\mathrm{mm}\) of each other after \(19\,\mathrm{mm}\)
+    of travel.'
+  fix: Chose <code>RKF45</code>, and set the entry <code>Treact</code> of the chemistry dictionary just above the start temperature,
+    so that cells the wave has not reached are skipped. The same-answer check of that setting is a run of the plan.
+  lesson: In a flow solver the chemistry is not dear where it is fast; it is dear everywhere, because of the fixed cost per cell
+    and step. With time steps of a few nanoseconds no cell is stiff, so an explicit method is enough.
+  guideline: 'The primer''s chemistry section could say: in <code>reactingFoam</code> budget about \(20\) to \(30\) microseconds per
+    cell and step for the hydrogen scheme on one core, in every cell; <code>Treact</code> skips cold cells; the chemistry is solved
+    again in every outer corrector.'
+- id: 3
+  stage: setup
+  logged: 2026-11-16 08:49
+  status: resolved
+  problem: With the settings of OpenFOAM's reacting examples (one pass per time step, called PISO mode) the wave ran at about
+    \(1790\,\mathrm{m/s}\) on the first grid, 9 % below the Chapman-Jouguet speed, and a finer grid at the same Courant number was
+    no better.
+  diagnosis: 'The solver was losing energy. The total energy in the closed tube (heat content, chemical energy and kinetic energy
+    minus pressure times volume, summed from the solver''s own fields after every step) fell by about 10 % of the heat the burning
+    had released. Halving the time step halved the loss (5 %); halving the cell size at the same Courant number did not reduce
+    it (12 %). The cause is the order of the solver''s steps: the energy equation is solved before the pressure, with the pressure
+    change of the pass before. Repeating the pass (<code>nOuterCorrectors</code>) removes it: the loss is 0.8 % with 3 passes and
+    0.13 % with 5.'
+  fix: Five passes per time step, and the energy balance of every run as the physical check of the plan, with a limit set before
+    the runs.
+  lesson: 'A pressure-based solver does not conserve energy by construction. On a detonation the missing energy is missing heat
+    release, and the wave is slower: in the full runs on 800 cells it is 17 % below the CJ speed with one pass (15 % of the heat
+    lost), 0.6 % below with three passes (1.6 % lost) and 0.3 % below with five (0.2 % lost). It does not show in residuals, in the mass or in the look of the profiles, and
+    grid refinement does not remove it.'
+  guideline: 'The primer needs an entry for pressure-based compressible solvers with shocks or burning (<code>reactingFoam</code>,
+    <code>rhoPimpleFoam</code>): PISO mode loses energy in proportion to the time step; use 3 to 5 outer correctors and check the
+    energy balance. A helper in <code>cfdlib</code> that turns the volume integrals of a reacting run into total energy and atoms
+    would make this check one call (this case''s <code>measure.py</code> has it).'
+- id: 4
+  stage: setup
+  logged: 2026-11-16 08:53
+  status: open
+  problem: 'An even number of passes per time step (2 or 8) adds energy in the first microsecond: \(1750\) to \(2750\,\mathrm{J/m^2}\),
+    which is 12 to 19 % of what the ignition layer holds above the gas around it. An odd number (3, 5) does not (under \(40\,\mathrm{J/m^2}\)).'
+  diagnosis: Not explained. The passes of a step are not relaxed, so successive passes may overshoot in turn at the sharp jump
+    of the start, and the last pass then decides the sign of the error. Later, while the wave travels, 2 passes lose 2.1 % of
+    the heat released and 8 passes gain 0.13 %, in line with the odd counts.
+  fix: Odd counts only (5 in the main settings); the start-up error of each run is reported.
+- id: 5
+  stage: setup
+  logged: 2026-11-16 08:50
+  status: resolved
+  problem: The solver stopped when the energy variable was changed from enthalpy to internal energy (<code>sensibleInternalEnergy</code>),
+    with "Unknown chemistryReader type chemkinReader".
+  diagnosis: OpenFOAM v2606 builds its reader of CHEMKIN files for the enthalpy form only. With internal energy the scheme must
+    first be converted by <code>chemkinToFoam</code>.
+  fix: Stayed with enthalpy, the form of OpenFOAM's reacting examples. The internal-energy form was not tested.
+  lesson: The problem asks for the scheme's files as they are; the direct reader does that only with the enthalpy form.
+  guideline: A line in the primer's chemistry section.
+- id: 6
+  stage: setup
+  logged: 2026-11-16 08:54
+  status: resolved
+  problem: Skipping the chemistry below \(500\,\mathrm{K}\) (<code>Treact</code>) changed the answer a little, where I expected no change
+    at all. After \(10\) microseconds the front was \(0.018\,\mathrm{mm}\) behind (0.09 %).
+  diagnosis: On these grids the pressure front is two or three cells wide and the burning starts inside it. Cells in the foot of
+    the front are colder than \(500\,\mathrm{K}\) and already hold reactive species that the scheme has smeared forward. They react
+    there, and the cut-off stops that.
+  fix: The cut-off is set at \(305\,\mathrm{K}\), just above the start temperature, so that only cells the wave has not touched are
+    skipped. A run without the cut-off checks it.
+  lesson: A setting that should only save time can change the answer where the front is under-resolved. Measure it with a same-answer
+    pair.
+  guideline: None needed beyond the workflow's rule that a speed setting needs a check of the answer.
+- id: 7
+  stage: preflight
+  logged: 2026-11-16 09:06
+  status: resolved
+  problem: The first pre-flight failed its start-state check. After the first time step the tube held 0.17 % more mass than at
+    the start, the atoms had changed by 0.2 %, and the highest pressure was 3.34 instead of 3.00 megapascals. After that step
+    the mass no longer changed.
+  diagnosis: 'Two causes, found one after the other. (1) My plan had a grid of 600 cells, on which the \(1.5\,\mathrm{mm}\) ignition
+    layer is 7.5 cells; <code>setFields</code> took 8, so the layer was \(1.6\,\mathrm{mm}\) thick and held 0.21 % more mass.
+    (2) The solver''s first time step does not keep mass when the gas reacts in it: 0.04 % was lost in a first step of 40 nanoseconds.
+    My reading is that on its first step the solver has no stored gas state of the step before, so the pressure equation uses
+    the state after the first chemistry step in its place; this reading was not checked in the source beyond the order of the calls.'
+  fix: 'Grids with a multiple of 80 cells only (400 and 800 replace 600), and a guard in <code>run.py</code> that refuses any
+    other. The first time step is now \(10^{-12}\,\mathrm{s}\) and grows by a fifth per step to the step of the run. The start
+    then agrees with the values computed without the solver: mass to \(5 \times 10^{-9}\), energy and highest pressure exactly.'
+  lesson: A start-state check against numbers computed without the solver caught both. Without it the 600-cell run would have
+    looked healthy, with a slightly stronger ignition.
+  guideline: 'The primer could say for <code>reactingFoam</code> and its relatives: a first time step in which the gas reacts or
+    heats is not mass-conserving; start with a tiny step. And for any layer or jump set by <code>setFields</code>: check that
+    its edge is a cell face on every grid of the family.'
+- id: 9
+  stage: tooling
+  logged: 2026-11-16 09:12
+  status: resolved
+  problem: With the growing first step, <code>monitor.assess</code> marked a healthy short run as failed ("Courant number trend",
+    a factor of \(7 \times 10^{5}\), and "Continuity-error trend").
+  diagnosis: The run starts from rest with a step of \(10^{-12}\,\mathrm{s}\), so over the first 50 steps both the step and the
+    gas speed grow. The check has an exemption for a growing step, but it tests whether the speed stayed the same, and from rest
+    it does not.
+  fix: The case's health check gives <code>monitor.assess_arrays</code> the log from the first step of the planned size on.
+  lesson: A deliberate ramp from rest looks like a blow-up to a trend check.
+  guideline: <code>monitor.assess</code> could take a start time (or skip the steps before the time step first reaches its cap).
+- id: 10
+  stage: preflight
+  logged: 2026-11-16 09:15
+  status: resolved
+  problem: With an adjustable step OpenFOAM does not shorten the steps to land on a sampling time, it lengthens the last two.
+    On 400 cells with 833 steps (8.33 steps between two samples) two steps in every eight were 17 % longer than the step I had set
+    as the largest.
+  diagnosis: The solver rounds the number of steps to the next sampling time down, then spreads the remainder over the last
+    steps; <code>maxDeltaT</code> does not bound that.
+  fix: Step counts that are a multiple of the number of samples (100), so that a whole number of steps fits between samples.
+    The pre-flight checks that no step is more than 2 % longer than planned.
+  lesson: The largest step of a run is not what the dictionary says; read it from the output.
+  guideline: A line in the primer's list of function-object pitfalls.
+- id: 11
+  stage: preflight
+  logged: 2026-11-16 09:28
+  status: resolved
+  problem: 'My run plan did not fit the time. It went up to 9600 cells, with the studies on 1200 cells. The one-core timing
+    run of the pre-flight on 1200 cells was a third done after 100 seconds and getting slower, and the short test of the 9600-cell
+    grid took 92 milliseconds per time step on 16 ranks before much gas had burnt: 30 minutes for that run from this cost alone.'
+  diagnosis: 'Three costs, measured on short runs of 1200 cells. (1) The chemistry of a burnt cell costs about \(100\) to \(140\)
+    microseconds per pass at the time step of the plan, five times the figure of my first trials (insight 2), which were made at
+    half the time step and mostly on unburnt cells: the explicit method takes sub-steps in proportion to the flow step, and the
+    implicit methods were no cheaper (<code>seulex</code> \(21.5\,\mathrm{s}\), <code>Rosenbrock34</code> \(19.1\,\mathrm{s}\),
+    <code>RKF45</code> \(19.4\,\mathrm{s}\)). With five passes the chemistry is solved five times per step. (2) A parallel run
+    pays about \(25\) milliseconds per time step whatever the grid (the same on 400 and on 1200 cells), so 8 ranks were only
+    twice as fast as one core. (3) Balance: with one piece of tube per rank, 8 ranks were no faster than one, because all the
+    burnt gas is in the first ranks; 3 stretches per rank gave 1.3 times, 12 stretches 2 times.'
+  fix: 'The plan was cut before any full run was kept: four grids of ratio 2 up to 3200 cells (\(37.5\) micrometres) in place of
+    six up to 9600, the studies on 800 cells, the one-core run only over the first fifth of the time, 8 ranks everywhere. The
+    cut is written in <code>numerics.yaml</code> and in the mesh decision.'
+  lesson: 'Size the plan from a timing at the plan''s own settings (time step, passes, tolerance) and on burnt gas, not from
+    the first trial. For a wave that leaves burnt gas behind, the cost of a run grows with the square of the time covered, so
+    the first few percent say little.'
+  guideline: 'The pre-flight could give a cost forecast for runs whose cost per step grows (a quadratic fit of the run time
+    against the simulated time of the short run), next to its present straight-line one. The primer could say that MPI in WSL
+    on this PC costs about 25 ms per time step of <code>reactingFoam</code> with 5 passes on 8 ranks, so small grids gain little.'
+- id: 12
+  stage: preflight
+  logged: 2026-11-16 09:29
+  status: open
+  problem: 'The answer depends a little on how the tube is cut between the ranks. On a short run of 1200 cells the front after
+    \(10\) microseconds stood at \(20.472\,\mathrm{mm}\) on one core and between \(20.474\) and \(20.491\,\mathrm{mm}\) for four
+    ways of cutting: up to 0.09 %.'
+  diagnosis: 'Not settled. The linear solves go to \(10^{-10}\), so they should not differ in the fourth digit. My reading: a
+    detonation front whose burning zone is only one or two cells thick reacts strongly to small changes (a different chemistry
+    cut-off moved it by the same amount, insight 6), so differences in the last digits grow. Not tested further.'
+  fix: None. The spread is reported with the results as the size below which differences between runs mean nothing.
+- id: 13
+  stage: preflight
+  logged: 2026-11-16 09:40
+  status: resolved
+  problem: 'My rule for the burnt state found nothing on any run of the pre-flight. The rule looks for the first point behind the
+    front where the gas moves away from the front at its own speed of sound.'
+  diagnosis: 'The search started at the pressure front and took the first cell behind it that met the condition. Those are the
+    cells inside the front itself, where the gas is still cold and slow; they meet the condition too. The point that is meant
+    lies behind the hot stretch in which the gas is slower than its sound relative to the front.'
+  fix: 'The search now starts from the front end of that hot stretch. On 800 cells the point is \(4.8\,\mathrm{mm}\) behind the
+    front. The finished runs were read again with the corrected rule; no run was repeated.'
+  lesson: A reading rule written before any run needs one look at a real profile before the runs that depend on it. The pre-flight's
+    full run gave that look in time.
+  guideline: None beyond the workflow's rule that the pre-flight exercises every reading rule on real output.
+- id: 14
+  stage: tooling
+  logged: 2026-11-16 09:33
+  status: resolved
+  problem: 'A pre-flight that I started in the background inside WSL (with nohup, from a wsl command that then returned) never
+    ran. Half a minute later WSL reported an up-time of zero minutes.'
+  diagnosis: 'When the last wsl command returns, Windows shuts the WSL virtual machine down after a few seconds, and every process
+    in it dies, nohup or not. The machine file says that /tmp is wiped when the machine idles, which is the same event, but
+    not that background jobs die with it.'
+  fix: The long runs are started as a wsl command that stays in the foreground of a background task of the agent's tool.
+  lesson: On this PC a job lives only as long as a wsl command is attached to it.
+  guideline: 'A line in <code>workflow/machines/dev-pc.md</code>: a job detached inside WSL dies when the calling wsl command
+    returns; keep the wsl command itself running (in a background task) for as long as the job.'
+- id: 15
+  stage: preflight
+  logged: 2026-11-16 09:42
+  status: open
+  problem: 'The time-step study on 800 cells shows no trend: the wave speed is \(-0.40\,\%\), \(-0.32\,\%\) and \(-0.56\,\%\) from the
+    CJ speed at twice, once and half the main step. The energy loss does not fall with the step either (\(0.10\,\%\), \(0.21\,\%\),
+    \(0.16\,\%\) of the heat released).'
+  diagnosis: 'Not settled. With five passes per step the splitting error is already small, and what is left is of the size of the
+    changes that the same run shows when a setting that should not matter is changed (insight 12). A time-step error of first
+    order, which the Euler scheme and the coupling of flow and chemistry should give, is hidden below that.'
+  fix: None. The three results are reported as they are; no order in time is claimed.
+- id: 16
+  stage: analysis
+  logged: 2026-11-16 09:45
+  status: resolved
+  problem: The first run of the analysis stopped while it formatted the given data. The pressure of the ignition layer came out
+    of <code>problem.yaml</code> as text, not as a number.
+  diagnosis: 'The file writes the value as <code>3.0e6</code>. The YAML reader of Python takes a number in this notation only
+    when the exponent has a sign (<code>3.0e+6</code>); without it the value is a string. The other values of the file have a
+    signed exponent or none.'
+  fix: The analysis converts every given value to a number, as the theory module already did.
+  lesson: A value that looks like a number in a YAML file may not be one.
+  guideline: <code>contract.check_problem_file</code> could refuse a given value that is a string, or convert it; the problem
+    template could say to write exponents with a sign.
+- id: 17
+  stage: analysis
+  logged: 2026-11-16 09:44
+  status: resolved
+  problem: 'I wrote in a figure caption, in a decision and in the theory text that the strong ignition layer drives the wave too
+    fast at first. The first figure drawn from the runs showed the opposite: the wave starts several percent slower than the CJ
+    speed and rises to it.'
+  diagnosis: 'I had reasoned from the pressure of the layer (30 atmospheres against 16 behind a CJ wave) and written the text
+    before any full run existed. The layer is thin (\(1.5\,\mathrm{mm}\)), so its push fades within a few millimetres, and the
+    wave then needs time to build up.'
+  fix: The three texts were corrected, and the caption now takes the early speed and the settling time from the data.
+  lesson: Text about a result is written from the result. A sentence written before the runs is a prediction and belongs
+    with the rules, where it would have been checked.
+  guideline: None needed; the workflow already says that numbers and claims in the report come from code.
+- id: 18
+  stage: analysis
+  logged: 2026-11-16 09:47
+  status: resolved
+  problem: 'The problem asks for the pressure and temperature of the burnt gas "just behind the wave". In a closed tube there
+    is no such stretch of constant state: the pressure falls from the peak at the front straight into the expansion wave.'
+  diagnosis: 'The CJ state is one point of the profile, the point between the burning zone and the expansion. Reading the
+    state at a fixed distance gives any value from 1.2 to 0.9 of the CJ pressure, depending on the distance.'
+  fix: 'The burnt state is read at the first point behind the front where the gas moves away from it at its own speed of
+    sound (\(u + c = D\), with the speed of sound at fixed composition): the definition of the end of the wave proper. A table
+    gives the state at five fixed distances next to the two pictures of theory.'
+  lesson: An output of a problem needs a reading rule that names a point, not a region.
+  guideline: 'The problem statement of the next detonation case could name the point (where \(u + c = D\)), and the reference
+    file could give the equilibrium and the fixed-composition speed of sound at the CJ state, since the two differ by a
+    few percent and the choice moves the point.'
+- id: 19
+  stage: production
+  logged: 2026-11-16 10:02
+  status: resolved
+  problem: 'The run with the implicit chemistry solver <code>seulex</code> took \(513\,\mathrm{s}\), seven times the \(73\,\mathrm{s}\)
+    of the main settings on the same grid. My short timing tests had put the two within a tenth of each other.'
+  diagnosis: 'The short tests covered the first fifth of the time, when few cells are burnt and the fixed cost of a parallel step
+    hides the chemistry. Over the full run the burnt cells dominate, and there <code>seulex</code> pays for a Jacobian and its
+    factorisation in every cell and pass, for steps of some tens of nanoseconds that the explicit method covers in a few sub-steps.
+    The wave speed is the same to four digits.'
+  fix: None needed for the answer; the forecast was simply wrong, and this one run took a quarter of the production time.
+  lesson: The same lesson as insight 11, a second time. A timing over the first part of a run with a growing burnt region says
+    little about the whole run, also for the comparison of two methods.
+  guideline: 'The primer''s chemistry section could say: in a detonation run with flow steps of tens of nanoseconds, an explicit
+    chemistry solver with error control (<code>RKF45</code>) is several times cheaper than <code>seulex</code> at the same answer.'
+- id: 20
+  stage: analysis
+  logged: 2026-11-16 10:06
+  status: resolved
+  problem: 'The wave speed does not converge with the cell size. From 800 to 3200 cells it moves away from the CJ speed by a
+    tenth of a percent with each halving (\(-0.32\,\%\), \(-0.41\,\%\), \(-0.51\,\%\)), and the time-step study shows no trend
+    either.'
+  diagnosis: 'The wave has not finished settling when the time ends. Split into three stretches of the time, the front speed on
+    the finest grid is \(-0.57\,\%\), \(-0.54\,\%\) and \(-0.49\,\%\) from the CJ speed, and on the coarsest \(-1.04\,\%\),
+    \(-0.64\,\%\) and \(-0.34\,\%\): every grid closes in on the CJ speed from below, the coarse ones faster. So the speed over
+    the second half measures how far the settling has got, and that differs from grid to grid. Why finer grids settle more
+    slowly was not found out.'
+  fix: The report gives the three stretches for every grid, claims no order and extrapolates nothing.
+  lesson: Before reading a grid study of a quantity taken over a time window, check that the quantity is steady in that window
+    on every grid. A study of something that is still changing compares stages, not errors.
+  guideline: 'For the next detonation case: a longer tube, or a wave speed read over the last fifth of the time, with the
+    speed over two successive windows as a settling check. The problem statement could ask for that check.'
+- id: 21
+  stage: report
+  logged: 2026-11-16 10:10
+  status: resolved
+  problem: 'The visual review found five hand checks of the theory section wider than their boxes, a caption that described a
+    curve which lies outside its frame, a sentence that called two changes of the same sign "not in one direction", and an
+    answer that gave the share "of the chemistry" from a number that also holds the cost of message passing.'
+  diagnosis: 'The hand checks carried full formulas with every factor written out. The caption and the sentence were written
+    before the last runs, the second through a test on the grid-study helper''s flag that means something else. The share was
+    a label written faster than the number behind it was thought through.'
+  fix: Shorter hand checks; the caption now gives the value of the curve that is off the frame; the sentence is built from the
+    signs and sizes of the two changes; the answer gives the measured one-core share and the flow share separately.
+  lesson: The overflow test of the workflow and one look at every figure with its caption caught all four.
+  guideline: None needed.
+- id: 22
+  stage: report
+  logged: 2026-11-16 10:11
+  status: open
+  problem: The setup lines of <code>problem.yaml</code> mark file names with backticks, and the report shows the backticks as
+    they are.
+  diagnosis: The workflow says to pass the setup lines to the report unchanged, and the report treats them as HTML, where a
+    backtick means nothing.
+  fix: None; the problem file is given.
+  guideline: The problem template could say to mark file names with <code>&lt;code&gt;</code>, or the report could turn backticks
+    into code spans.
+- id: 8
+  stage: tooling
+  logged: 2026-11-16 09:09
+  status: resolved
+  problem: Two slips with the shell on this machine, both described in the machine file. I started a command with the word
+    python in Git Bash, which hung until the tool's time limit. And I patched Python code that holds LaTeX through a shell
+    here-document, which ate the backslashes; the patch stopped on its own check before it wrote anything.
+  diagnosis: Habit. Both warnings are in the machine file, which I had read an hour earlier.
+  fix: Stopped the hung command; made the edits with the file-editing tool.
+  lesson: A warning read once at the start does not hold through a long session.
+  guideline: None for the text. A hook that refuses a bare <code>python</code> in Git Bash on this machine would enforce it.

@@ -71,19 +71,25 @@ burning shock wave runs round a ring-shaped chamber. The plan in simple words, w
   with slightly different constants than the reference program. The agent's independent
   chemistry solution is now a tool, `cfdlib.chem`: the reference for chemistry in gpucfd and
   the base for the theory of step 4.
-- **Step 4 is next:** a detonation in a straight tube (case 21).
-  - **Its reference is ready** (`cfdlib.chem.cj_detonation`): a detonation that runs freely has one
-    speed, fixed by the gas alone. For hydrogen and air at 1 atm and 300 K: 1978 m/s, with 15.6 atm
-    and 2969 K behind the wave. An independent program (Cantera) gives the same from the same
-    data files, to 0.001 %.
-  - **OpenFOAM's burning solver can do it** (trial, `dev/agent_checks/case21_toolgap.py`): on
-    0.1 mm cells a wave with shock and flame together runs 1.1 % below the theoretical speed
-    and is still approaching it. A strong start pushed the wave 7.8 % too fast for the whole of
-    a short tube, so the problem uses a weak start and a longer tube. The front itself is not
-    resolved: its peak pressure is 1.97 MPa where theory has 2.81. Cost: about 60 to 90
-    microseconds per cell and step on one core, so 0.12 m of tube takes 11 minutes.
-  - **The problem is written** (`cases/detonation_tube_h2_air/problem.yaml`; required: speed
-    within 2 % of theory, flame within 1 mm of the shock). It waits for a fresh agent.
+- **Step 4 is done with OpenFOAM (2026-11-16); the GPU solver is next on it.** A detonation in a
+  straight tube (case 21), solved by a fresh agent in about an hour and a half with
+  `reactingFoam` and the full hydrogen scheme.
+  - **Result.** The wave runs 0.51 % below the theoretical (Chapman-Jouguet) speed of 1978.5 m/s
+    (required: 2 %), on every grid from 400 to 3200 cells, and the flame stays within 0.06 mm of
+    the shock (required: 1 mm). One prediction of the agent was missed: the peak pressure at the
+    front reaches 0.79 of the full shock pressure, expected 0.80. The review recomputed the
+    numbers from the raw profiles with its own rules and agrees.
+  - **Carried forward.** OpenFOAM's solver does not keep energy by itself: with one pass per
+    time step (the setting of its own burning examples) it loses 15 % of the heat and the wave
+    runs 17 % slow; five passes cut that to 0.2 %. So every reacting run needs an energy balance
+    as a check. Chemistry is most of the cost: about 150 microseconds per burnt cell and pass on
+    one core, against under 3 for the flow; a simple explicit chemistry solver gives the same
+    answer as the implicit one in a seventh of the time; 8 cores are only twice as fast as one.
+    The wave is still settling at the end of the time, so the next detonation case needs a
+    longer tube or a later reading, and a named point for "the burnt state".
+  - **The reference** (`cfdlib.chem.cj_detonation`): a detonation that runs freely has one speed,
+    fixed by the gas alone; an independent program (Cantera) gives the same to 0.001 %. Values in
+    the literature may differ by about half a per cent; none was checked.
 - **Three solvers for shock and burning together.** Three ways are tried, all three (the
   student's decision), and compared on step 4 on the same grid: OpenFOAM's own burning solver
   (`reactingFoam`, which the trial above showed can do it), a published detonation solver (to

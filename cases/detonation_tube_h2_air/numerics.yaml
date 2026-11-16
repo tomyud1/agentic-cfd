@@ -1,0 +1,78 @@
+# Numerical choices (made by the agent, not given by the user).
+solver: reactingFoam          # OpenFOAM's own solver for burning gas: pressure-based, with the full reaction scheme
+# What sets the error here, and what is studied:
+#   - the cell size (a family of equal cells, each level half the size of the one before);
+#   - the time step (fixed; chosen as a fraction of the time the wave needs to cross a cell);
+#   - the number of passes per time step. The solver solves energy before pressure; one pass loses energy worth
+#     10 % of the heat released (insight 3). Odd numbers of passes only (insight 4);
+#   - the chemistry solver and its tolerance.
+main:
+  courant_wave: 0.4           # (CJ speed) x (time step) / (cell size), rounded so that the steps divide t_end: see family
+  first_dt: 1.0e-12           # s: the first time step. The solver has no old gas state on its first step, and a first step in
+                              # which the hot layer reacts makes mass (insight 7). The step then grows by a fifth per step to
+                              # the step of the run (about 50 steps), and is shortened a little to land on each sampling time
+  max_co: 100.0               # the solver's Courant limit for the growing step: never reached (the flow's own number is about 0.2)
+  passes: 5                   # nOuterCorrectors
+  correctors: 2               # pressure corrections inside each pass (nCorrectors), as in OpenFOAM's reacting examples
+  ode: RKF45                  # chemistry: explicit Runge-Kutta-Fehlberg with error control (cheapest of five tried, same front)
+  rel_tol: 1.0e-6
+  abs_tol: 1.0e-12            # kmol/m^3
+  init_chem_dt: 1.0e-9        # first sub-step of the chemistry solver, s
+  t_react: 305.0              # K: cells colder than this are skipped by the chemistry (gas the wave has not reached is at 300 K)
+  limiter: limitedLinear      # the limiter of OpenFOAM's reacting examples, on every convected quantity
+  ddt: Euler
+  lin_tol: 1.0e-10            # absolute tolerance of every linear solve
+  cross_section: 1.0e-4       # m: side of the square cross-section of the one row of cells (any value gives the same flow)
+  samples: 100                # states along the tube are written at this many equally spaced times (every 0.5 microseconds)
+runs:
+  # [cells, steps]: cell sizes 300, 150, 75 and 37.5 micrometres, each half the one before; the step of a run is
+  # t_end / steps (56 down to 7.6 nanoseconds). The ignition layer must be a whole number of cells: the number of cells
+  # is a multiple of 80. The steps are a multiple of 100, so that a whole number of steps fits between two sampling
+  # times: otherwise the solver stretches the last two steps before each sampling time by up to a sixth (seen on 400
+  # cells with 833 steps).
+  # PLAN CUT ON COST (2026-11-16 09:30, before any full run was kept; insight 11): the first plan went to 9600 cells
+  # (12.5 micrometres) with the studies on 1200 cells. The one-core timing run showed the chemistry costs about 100
+  # microseconds per burnt cell and pass at these time steps, five times my trial figure, and 8 ranks give a speed-up
+  # of only 2 on 1200 cells. The first plan would have taken well over an hour. This plan is sized for about half an hour.
+  family: [[400, 900], [800, 1700], [1600, 3300], [3200, 6600]]
+  order_levels: [800, 1600, 3200]                            # the three finest: observed order and extrapolation
+  cores: {400: 8, 800: 8, 1600: 8, 3200: 8}                  # MPI ranks per grid: the 8 physical cores of this PC
+  stripes_per_rank: 12        # each rank gets this many separate stretches of the tube, so that every rank holds burnt and fresh gas
+  chemistry: {cells: 800, variants: [{ode: seulex}, {rel_tol: 1.0e-4}, {t_react: 0.0}]}   # one change each from the main settings
+preflight:
+  short: {cells: [400, 3200], fraction: 0.04}               # coarsest and finest grid, first 4 % of the time
+  serial: {cells: 800, fraction: 0.2}                       # one core, with profiling, the first 20 % of the time: the same answer as
+                                                            # the parallel run at that time, the cost of a burnt cell; and once without chemistry
+  timestep: {cells: 800, steps: [900, 3400]}                # time-step study in full: about twice and half the main step
+  passes: {cells: 800, values: [1, 3, 7]}                   # passes per time step, in full
+# Rules for the outcome. Written 2026-11-16 09:42, after the pre-flight (800 cells in full with the main settings: speed
+# -0.32 % from CJ, fronts 0.10 mm apart, peak 0.69 of the shock pressure, energy -0.21 %, burnt state -3.7 % in pressure
+# and -1.4 % in temperature, end pressure -0.6 %; time step and passes studied) and BEFORE the production runs
+# (400, 1600 and 3200 cells, and the three chemistry variants on 800 cells). req_*: the problem's required accuracy;
+# mass: health; exp_*: my own limits and predictions. The pre-flight studies (time step, passes, one core against 8)
+# were seen before these rules and are reported as findings, not as predictions.
+acceptance:
+  req_speed: 0.02             # wave speed within 2 % of the CJ speed: judged on the finest grid
+  req_gap: 1.0e-3             # m: burning front within 1 mm of the pressure front from 10 microseconds on: every sample, finest grid
+  mass: 1.0e-6                # mass and atoms of each element: largest relative change in any run
+  exp_energy_rate: 0.005      # total energy over the second half of the time, as a share of the heat released there, every grid
+  exp_all_grids_speed: 0.02   # every grid of the family within the required accuracy, the coarsest included
+  exp_grid_change: 0.005      # speed change from 1600 to 3200 cells, of the CJ speed
+  exp_peak_finest: [0.80, 1.05]   # peak pressure over shock pressure on the finest grid; and rising with every refinement.
+                              # Reason: the front is about 3 cells thick, 0.11 mm on 3200 cells, less than the 0.17 mm of the wait before burning
+  exp_sonic_T: 0.03           # burnt state (where u + c = D) on the finest grid: temperature against CJ
+  exp_sonic_p: 0.08           # ... and pressure against CJ (the expansion wave starts at once, so it reads low)
+  exp_end_p: 0.02             # pressure of the gas at rest at the closed end against the expansion wave of Theory
+  exp_steady: 0.02            # speed over each half microsecond of the second half against the CJ speed, finest grid
+  exp_right: 1.0e-6           # pressure at the far wall at the end against the start pressure
+  exp_chemistry: 0.003        # the three chemistry variants against the main settings, of the CJ speed
+  exp_finest_minutes: 15      # solver time of the 3200-cell run (forecast from the 800-cell run: about 10)
+# How outputs are read (cases/detonation_tube_h2_air/measure.py), fixed before the production runs.
+extraction:
+  pressure_front: 0.5         # pressure front: furthest point where p = p_0 + 0.5 (p_CJ - p_0), on a line between two cell centres
+  burning_front: 0.5          # burning front: furthest point where the water mass fraction = 0.5 of its CJ value
+  speed_window: [0.5, 1.0]    # of t_end: the problem's definition of the wave speed
+  attached_from: 1.0e-5       # s: the requirement on the distance between the fronts counts from here
+  burnt_distances: [0.0005, 0.001, 0.002, 0.005, 0.010]     # m behind the pressure front: states listed next to theory
+  end_plateau: [0.1, 0.4]     # of (speed of sound at the closed end) x t_end: stretch over which the end pressure is averaged
+  store_points: 4000          # points of each per-step history kept in results/ for the figures (the numbers use every step)

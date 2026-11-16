@@ -1,0 +1,14 @@
+N800_serial            preflight    800 cells   1700 steps, 5 passes, RKF45, rel 1e-06, Treact 305, 1 cores, studies: cores
+N800_serial_nochem     preflight    800 cells   1700 steps, 5 passes, RKF45, rel 1e-06, Treact 305, 1 cores, studies: cores
+N800                   preflight    800 cells   1700 steps, 5 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: cores, time step, passes, grid, chemistry
+N800_s900              preflight    800 cells    900 steps, 5 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: time step
+N800_s3400             preflight    800 cells   3400 steps, 5 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: time step
+N800_p1                preflight    800 cells   1700 steps, 1 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: passes
+N800_p3                preflight    800 cells   1700 steps, 3 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: passes
+N800_p7                preflight    800 cells   1700 steps, 7 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: passes
+N400                   production   400 cells    900 steps, 5 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: grid
+N1600                  production  1600 cells   3300 steps, 5 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: grid
+N3200                  production  3200 cells   6600 steps, 5 passes, RKF45, rel 1e-06, Treact 305, 8 cores, studies: grid
+N800_seulex            production   800 cells   1700 steps, 5 passes, seulex, rel 1e-06, Treact 305, 8 cores, studies: chemistry
+N800_rel0.0001         production   800 cells   1700 steps, 5 passes, RKF45, rel 0.0001, Treact 305, 8 cores, studies: chemistry
+N800_allcells          production   800 cells   1700 steps, 5 passes, RKF45, rel 1e-06, Treact 0, 8 cores, studies: chemistry

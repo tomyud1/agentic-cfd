@@ -1,0 +1,2 @@
+runs: ['N800_serial', 'N800_serial_nochem', 'N800', 'N800_s900', 'N800_s3400', 'N800_p1', 'N800_p3', 'N800_p7', 'N400'] | family: ['N400', 'N800'] | missing: ['N1600', 'N3200', 'N800_seulex', 'N800_rel0.0001', 'N800_allcells']
+conservation ok 109298

@@ -1,0 +1,17 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      decomposeParDict;
+}
+
+// Used by the parallel runs only. The list of ranks per cell is written by run.py (stripes along the tube).
+numberOfSubdomains {{ cores }};
+
+method          manual;
+
+manualCoeffs
+{
+    dataFile        "cellDecomposition";
+}

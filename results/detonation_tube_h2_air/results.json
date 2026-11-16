@@ -1,0 +1,3631 @@
+{
+ "title": "A detonation running down a closed tube of hydrogen and air",
+ "date": "2026-11-16",
+ "verdict": "WARN",
+ "expectations": [
+  {
+   "kind": "requirement",
+   "text": "Wave speed within 2 % of the Chapman-Jouguet speed of the reference",
+   "expected": "within \\(2\\,\\%\\) (finest grid, 3200 cells)",
+   "found": "\\(1968.4\\,\\mathrm{m/s}\\) against \\(1978.54\\,\\mathrm{m/s}\\): \\(-0.51\\,\\%\\)",
+   "met": true,
+   "key": "speed"
+  },
+  {
+   "kind": "requirement",
+   "text": "From 10 microseconds on, the burning front stays within 1 mm of the pressure front",
+   "expected": "at most \\(1\\,\\mathrm{mm}\\) at every sampled time from \\(10\\,\\mathrm{\\mu s}\\) on (finest grid)",
+   "found": "largest distance \\(0.060\\,\\mathrm{mm}\\); on the other grids \\(0.121\\,\\mathrm{mm}\\), \\(0.104\\,\\mathrm{mm}\\), \\(0.078\\,\\mathrm{mm}\\)",
+   "met": true,
+   "key": "attached"
+  },
+  {
+   "kind": "health",
+   "text": "Every planned run reaches the end time without a solver error, and its log passes the checks",
+   "expected": "14 runs",
+   "found": "14 of 14 finished; log checks: ok",
+   "met": true
+  },
+  {
+   "kind": "health",
+   "text": "The mass in the closed tube and the atoms of each element do not change",
+   "expected": "change of at most \\(1 \\times 10^{-6}\\) (relative) in every run",
+   "found": "largest change of the mass \\(3 \\times 10^{-8}\\), of the atoms of an element \\(3 \\times 10^{-8}\\)",
+   "met": true
+  },
+  {
+   "kind": "health",
+   "text": "Temperature and pressure never fall below their start values (no undershoot at the front)",
+   "expected": "not below \\(300\\,\\mathrm{K}\\) and \\(101325\\,\\mathrm{Pa}\\)",
+   "found": "lowest temperature \\(300.00\\,\\mathrm{K}\\), lowest pressure \\(101325.0\\,\\mathrm{Pa}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Energy balance: over the second half of the time the total energy changes by a small part of the heat released in that time, on every grid",
+   "expected": "at most \\(0.5\\,\\%\\)",
+   "found": "largest \\(0.27\\,\\%\\) (\\(-0.05\\,\\%\\), \\(-0.21\\,\\%\\), \\(-0.27\\,\\%\\), \\(-0.22\\,\\%\\), coarse to fine)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Every grid of the family, the coarsest included, gives the wave speed within the required accuracy",
+   "expected": "within \\(2\\,\\%\\) on all 4 grids",
+   "found": "\\(-0.49\\,\\%\\), \\(-0.32\\,\\%\\), \\(-0.41\\,\\%\\), \\(-0.51\\,\\%\\) (coarse to fine)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The wave speed has settled with the cell size: change from the second finest to the finest grid",
+   "expected": "at most \\(0.5\\,\\%\\) of the CJ speed",
+   "found": "\\(0.10\\,\\%\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The highest pressure at the front rises towards the shock pressure of Theory with every refinement, and does not pass it",
+   "expected": "rising; on the finest grid between 0.8 and 1.05 of the shock pressure",
+   "found": "\\(0.634\\), \\(0.690\\), \\(0.733\\), \\(0.790\\) (coarse to fine)",
+   "met": false
+  },
+  {
+   "kind": "expectation",
+   "text": "Burnt state on the finest grid, read where the gas leaves the front at its own speed of sound: temperature and pressure against the CJ state",
+   "expected": "the point exists; temperature within \\(3\\,\\%\\), pressure within \\(8\\,\\%\\)",
+   "found": "the point is \\(5.32\\,\\mathrm{mm}\\) behind the front: temperature \\(-1.15\\,\\%\\), pressure \\(-4.35\\,\\%\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Pressure of the gas at rest at the closed end, against the value of the expansion wave of Theory (finest grid)",
+   "expected": "within \\(2\\,\\%\\)",
+   "found": "\\(0.5951\\,\\mathrm{MPa}\\) against \\(0.5982\\,\\mathrm{MPa}\\): \\(-0.52\\,\\%\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The wave is steady over the second half of the time: speed of the front over each half microsecond (finest grid)",
+   "expected": "within \\(2\\,\\%\\) of the CJ speed",
+   "found": "between \\(-0.73\\,\\%\\) and \\(-0.30\\,\\%\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The gas at the far end is untouched at the end time (the wave has not arrived)",
+   "expected": "pressure within \\(1 \\times 10^{-6}\\) of the start value",
+   "found": "largest difference \\(0\\), temperature \\(300.000\\,\\mathrm{K}\\)",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "The chemistry settings do not matter (800 cells): another solver, a looser tolerance and no cut-off temperature give the wave speed of the main settings",
+   "expected": "within \\(0.3\\,\\%\\) of the CJ speed, 3 runs",
+   "found": "largest difference \\(0.01\\,\\%\\) over 3 runs",
+   "met": true
+  },
+  {
+   "kind": "expectation",
+   "text": "Solver time of the run on the finest grid",
+   "expected": "at most 15 minutes",
+   "found": "\\(6.7\\) minutes",
+   "met": true
+  }
+ ],
+ "comparison_type": "verification",
+ "summary": {
+  "headline": "Completed, with one difference from what was expected. OpenFOAM's <code>reactingFoam</code> carries a detonation down the tube at \\(1968.4\\,\\mathrm{m/s}\\), \\(0.51\\,\\%\\) below the Chapman-Jouguet speed (required: within \\(2\\,\\%\\)), with the burning front \\(0.06\\,\\mathrm{mm}\\) or less behind the pressure front (required: within \\(1\\,\\mathrm{mm}\\)).",
+  "answer_columns": [
+   "Requested",
+   "Theory (Chapman-Jouguet reference)",
+   "Simulation (OpenFOAM, 3200 cells)",
+   "Difference"
+  ],
+  "answers": [
+   {
+    "letter": "a",
+    "label": "Wave speed over the second half of the time",
+    "theory": "\\(1978.54\\,\\mathrm{m/s}\\)",
+    "sim": "\\(1968.4\\,\\mathrm{m/s}\\) on 3200 cells; \\(1969\\,\\mathrm{m/s}\\), \\(1972\\,\\mathrm{m/s}\\), \\(1970\\,\\mathrm{m/s}\\) on the coarser grids (Figure 2)",
+    "diff": "\\(-0.51\\,\\%\\)"
+   },
+   {
+    "letter": "b",
+    "label": "Do the two fronts travel together?",
+    "theory": "In the steady wave of Theory half of the water has formed \\(0.17\\,\\mathrm{mm}\\) behind the shock",
+    "sim": "Yes: a detonation. From \\(10\\,\\mathrm{\\mu s}\\) on the burning front is at most \\(0.060\\,\\mathrm{mm}\\) behind the pressure front (mean \\(0.057\\,\\mathrm{mm}\\)), and on no grid more than \\(0.121\\,\\mathrm{mm}\\) (Figure 7)",
+    "diff": "<span style='white-space:nowrap'>limit \\(1\\,\\mathrm{mm}\\)</span><br><span style='white-space:nowrap'>found \\(0.06\\,\\mathrm{mm}\\)</span>"
+   },
+   {
+    "letter": "c",
+    "label": "Burnt gas just behind the wave",
+    "theory": "<span style='white-space:nowrap'>\\(1.581\\,\\mathrm{MPa}\\)</span><br><span style='white-space:nowrap'>\\(2970\\,\\mathrm{K}\\)</span>",
+    "sim": "Where the gas leaves the front at its own speed of sound, \\(5.32\\,\\mathrm{mm}\\) behind it: \\(1.512\\,\\mathrm{MPa}\\) and \\(2936\\,\\mathrm{K}\\). The pressure has no flat part behind the front: it falls from the front's peak straight into the expansion (Figure 6)",
+    "diff": "<span style='white-space:nowrap'>p \\(-4.4\\,\\%\\)</span><br><span style='white-space:nowrap'>T \\(-1.2\\,\\%\\)</span>"
+   },
+   {
+    "letter": "d",
+    "label": "Highest pressure at the front",
+    "theory": "\\(2.781\\,\\mathrm{MPa}\\) behind a shock of the simulated speed without burning",
+    "sim": "\\(2.195\\,\\mathrm{MPa}\\) on 3200 cells, \\(0.79\\) of the shock pressure. With the cell size: \\(0.63\\), \\(0.69\\), \\(0.73\\), \\(0.79\\) (coarse to fine). The cells are too large to show the full peak",
+    "diff": "\\(-21\\,\\%\\)"
+   },
+   {
+    "letter": "e",
+    "label": "Mass, atoms and total energy",
+    "theory": "No change (closed tube)",
+    "sim": "Mass and atoms: kept, change of at most \\(3 \\times 10^{-8}\\). Total energy: not kept exactly; over the second half of the time the run on 3200 cells loses \\(0.22\\,\\%\\) of the heat released (Figure 4)",
+    "diff": "<span style='white-space:nowrap'>mass \\(3 \\times 10^{-8}\\)</span><br><span style='white-space:nowrap'>energy \\(-0.22\\,\\%\\)</span>"
+   },
+   {
+    "letter": "f",
+    "label": "Effect of cell size and time step, and cost",
+    "theory": "–",
+    "sim": "Cell size: \\(-0.49\\,\\%\\), \\(-0.32\\,\\%\\), \\(-0.41\\,\\%\\), \\(-0.51\\,\\%\\) from the CJ speed, coarse to fine. Time step (800 cells): \\(-0.40\\,\\%\\), \\(-0.32\\,\\%\\), \\(-0.56\\,\\%\\) at twice, once and half the main step. Cost: \\(19\\) microseconds per cell and step on the finest grid with 8 cores (Figure 5). Share of the chemistry: \\(82\\,\\%\\) of the run time on one core over the first fifth of the time, when only \\(8\\,\\%\\) of the cell-steps are burnt cells. Over the full runs the flow takes \\(2\\) to \\(9\\,\\%\\) of the core time; the rest is chemistry and message passing (appendix B)",
+    "diff": "–"
+   }
+  ],
+  "findings": [
+   "<b>It is a detonation, and it travels at the right speed.</b> On every grid the pressure front and the burning front move together, and the speed over the second half of the time is \\(-0.49\\,\\%\\), \\(-0.32\\,\\%\\), \\(-0.41\\,\\%\\), \\(-0.51\\,\\%\\) from the Chapman-Jouguet speed (400, 800, 1600, 3200 cells).",
+   "<b>The speed does not need a resolved front.</b> None of the grids resolves the stretch in which the gas waits before it burns (\\(0.17\\,\\mathrm{mm}\\); the finest grid has \\(4.6\\) cells in it). The speed is fixed by conservation and by the heat released, which a conservative run gets right on any grid. What the coarse grids miss is the pressure peak at the front: \\(0.63\\) of the shock pressure on the coarsest grid, \\(0.79\\) on the finest.",
+   "<b>Energy conservation is the setting that decides.</b> With one pass through the equations per time step, as in OpenFOAM's reacting examples, the solver loses energy and the wave runs \\(17.4\\,\\%\\) too slowly (energy lost over the second half: \\(15.3\\,\\%\\) of the heat released). Five passes per step bring the loss down to \\(0.21\\,\\%\\). The loss does not show in residuals or in the mass.",
+   "<b>The burnt state has no plateau.</b> In a closed tube an expansion wave follows the front at once, so the pressure falls continuously. Read where the gas leaves the front at its own speed of sound, the state is \\(-4.4\\,\\%\\) in pressure and \\(-1.2\\,\\%\\) in temperature from the CJ state. The gas at rest at the closed end is at \\(0.595\\,\\mathrm{MPa}\\), \\(-0.52\\,\\%\\) from the value Theory gives for the expansion.",
+   "<b>The wave is still closing in on the CJ speed when the time ends.</b> On the finest grid the front runs \\(-0.57\\,\\%\\), \\(-0.54\\,\\%\\), \\(-0.49\\,\\%\\) from the CJ speed over 10 to 25, 25 to 37.5, 37.5 to 50 microseconds; on the coarsest \\(-1.04\\,\\%\\), \\(-0.64\\,\\%\\), \\(-0.34\\,\\%\\). The deficit shrinks with time on every grid, faster on the coarsest than on the finest. So part of the deficit of the answer is a wave that has not finished settling, and the differences between the grids (\\(0.19\\,\\%\\) in all) reflect how far each one has got; they do not fall with the cell size. How much of the deficit a longer tube would leave is not known from these runs. The energy lost by the solver explains little of it: with three passes per step the loss is \\(1.6\\,\\%\\) of the heat released, against \\(0.2\\,\\%\\) with five, and the speed is only \\(0.32\\,\\%\\) lower.",
+   "<b>What moves the speed, and what does not</b> (800 cells). The time step: \\(0.23\\,\\%\\) between twice and half the main step, without a trend. The chemistry solver, its tolerance and the cut-off temperature: \\(0.007\\,\\%\\). The passes per step: \\(-17.12\\,\\%\\) with 1, \\(-0.32\\,\\%\\) with 3, \\(-0.02\\,\\%\\) with 7 against five.",
+   "<b>The chemistry is nearly all of the cost.</b> A burnt cell costs about \\(151\\) microseconds of one core per pass, a cell without chemistry \\(2.6\\) (800 cells, one core). The finest run took \\(6.7\\) minutes on 8 cores; all runs together \\(28\\) minutes."
+  ],
+  "limitations": [
+   "One dimension. A real detonation front is not flat: it carries a pattern of cross-waves (cells), which a tube with one row of cells cannot hold. This case says nothing about that structure.",
+   "No grid resolves the burning zone. The finest has \\(4.6\\) cells in the wait before burning and shows \\(0.79\\) of the pressure peak. A plan with 9600 cells was cut for cost before the runs (see the mesh decision).",
+   "The wave has not finished settling within the given time: on every grid its speed is still rising in the last quarter. The speed asked for is therefore not a converged property of the grid, no observed order is given, and nothing is extrapolated to zero cell size. A longer tube would be needed to see where each grid ends up.",
+   "The time-step, passes and chemistry studies were made on 800 cells only; on the finer grids the energy balance of each run stands in for them.",
+   "The reference is the ideal steady wave. It says nothing about the first microseconds, in which the wave forms out of the ignition layer, and the mixture's reaction scheme is taken as given (the reference file puts the spread between published schemes and data at about half a percent of the speed).",
+   "Total energy is not conserved by the solver. The remaining loss is \\(0.27\\,\\%\\) of the heat released at most; what it costs in speed was measured only through the passes study on 800 cells.",
+   "Solved with OpenFOAM only. The GPU solver gpucfd has no chemistry in its flow solver yet, so there is no second tool to compare with.",
+   "Run times are from a shared desktop on 8 cores under WSL, with another session at work; they repeat only roughly."
+  ]
+ },
+ "problem": {
+  "description": "A closed tube holds hydrogen and air at rest. A thin layer of the same gas at one end is suddenly hot and at high pressure. It sends a shock down the tube that ignites the gas behind it: a detonation. Find the speed of the wave and the state of the burnt gas, and compare them with the Chapman-Jouguet theory, which fixes both from the gas alone.",
+  "setup": [
+   "A straight tube of length \\(L\\), closed at both ends. Only the distance along the tube matters (one dimension).",
+   "Start: hydrogen, oxygen and nitrogen in the mole ratio \\(2 : 1 : 3.76\\), at rest, at \\(p_0\\) and \\(T_0\\) everywhere.",
+   "Ignition: a layer of thickness \\(L_{\\mathrm{ign}}\\) at the left end holds the same mixture at \\(T_{\\mathrm{ign}}\\) and \\(p_{\\mathrm{ign}}\\) at the start.",
+   "The gases are ideal gases whose heat capacities change with temperature. Friction and heat conduction play no part in the answer.",
+   "Reaction scheme and thermodynamic data: the hydrogen scheme that ships with OpenFOAM, files `chem.inp` and `therm.dat` in `$FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/` (10 species, 27 reaction lines). Use these files as they are.",
+   "The wave speed is the speed of the pressure front over the second half of the time, \\(t_{\\mathrm{end}}/2\\) to \\(t_{\\mathrm{end}}\\)."
+  ],
+  "given": [
+   {
+    "label": "Length of the tube",
+    "symbol": "\\(L\\)",
+    "value": "\\(0.12\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Pressure at the start (1 atm)",
+    "symbol": "\\(p_0\\)",
+    "value": "\\(1.01325 \\times 10^{5}\\)",
+    "unit": "Pa"
+   },
+   {
+    "label": "Temperature at the start",
+    "symbol": "\\(T_0\\)",
+    "value": "\\(300\\)",
+    "unit": "K"
+   },
+   {
+    "label": "Hydrogen, moles per mole of oxygen",
+    "symbol": "\\(n_{\\mathrm{H_2}}\\)",
+    "value": "\\(2\\)",
+    "unit": "-"
+   },
+   {
+    "label": "Oxygen (the unit of the mole ratio)",
+    "symbol": "\\(n_{\\mathrm{O_2}}\\)",
+    "value": "\\(1\\)",
+    "unit": "-"
+   },
+   {
+    "label": "Nitrogen, moles per mole of oxygen",
+    "symbol": "\\(n_{\\mathrm{N_2}}\\)",
+    "value": "\\(3.76\\)",
+    "unit": "-"
+   },
+   {
+    "label": "Thickness of the ignition layer",
+    "symbol": "\\(L_{\\mathrm{ign}}\\)",
+    "value": "\\(0.0015\\)",
+    "unit": "m"
+   },
+   {
+    "label": "Temperature of the ignition layer",
+    "symbol": "\\(T_{\\mathrm{ign}}\\)",
+    "value": "\\(2500\\)",
+    "unit": "K"
+   },
+   {
+    "label": "Pressure of the ignition layer",
+    "symbol": "\\(p_{\\mathrm{ign}}\\)",
+    "value": "\\(3 \\times 10^{6}\\)",
+    "unit": "Pa"
+   },
+   {
+    "label": "Duration of interest",
+    "symbol": "\\(t_{\\mathrm{end}}\\)",
+    "value": "\\(5 \\times 10^{-5}\\)",
+    "unit": "s"
+   }
+  ],
+  "wanted": [
+   {
+    "letter": "a",
+    "key": "speed",
+    "text": "Speed of the wave, compared with the Chapman-Jouguet speed of the reference"
+   },
+   {
+    "letter": "b",
+    "key": "attached",
+    "text": "Is it a detonation: do the pressure front and the burning front travel together, and how far apart are they?"
+   },
+   {
+    "letter": "c",
+    "key": "burnt",
+    "text": "Pressure and temperature of the burnt gas just behind the wave, compared with the Chapman-Jouguet state"
+   },
+   {
+    "letter": "d",
+    "key": "front",
+    "text": "The highest pressure at the front, compared with the pressure behind a shock of that speed without burning, and how it changes with the cell size"
+   },
+   {
+    "letter": "e",
+    "key": "conserved",
+    "text": "Are the mass in the tube and the number of atoms of each element kept, and how well is the total energy kept?"
+   },
+   {
+    "letter": "f",
+    "key": "cost",
+    "text": "How the speed depends on the cell size and the time step, and the cost per cell and time step with the share of the chemistry"
+   }
+  ],
+  "required_accuracy": [
+   {
+    "key": "speed",
+    "text": "Wave speed within 2 % of the Chapman-Jouguet speed of the reference"
+   },
+   {
+    "key": "attached",
+    "text": "From 10 microseconds on, the burning front stays within 1 mm of the pressure front"
+   }
+  ],
+  "reference": "Supplied with the problem: The Chapman-Jouguet speed and state of this mixture, computed from the thermodynamic data of the scheme (cfdlib.chem.cj_detonation, written to the file by setup/cj_h2_air_reference.py) and cross-checked with an independent program (Cantera). The file also gives the state at the front before burning, and says what the reference does not cover."
+ },
+ "assumptions": {
+  "rows": [
+   {
+    "name": "One dimension: only the distance along the tube matters",
+    "check": "Given. One row of cells; the side faces carry no flow. Real fronts are three-dimensional (see the limitations).",
+    "status": "imposed"
+   },
+   {
+    "name": "No friction and no heat conduction",
+    "check": "Given. The transport file that ships with the scheme sets the viscosity to zero, and with it the conduction and the diffusion of species in this solver. The front's thickness is then set by the grid.",
+    "status": "imposed"
+   },
+   {
+    "name": "Ideal gases with heat capacities from the data file",
+    "check": "Given. At the highest pressure of the runs (\\(4.1\\,\\mathrm{MPa}\\), in the ignition layer as it burns) and temperatures above \\(300\\,\\mathrm{K}\\) the gas is far from its liquid state; real-gas effects are well below the required accuracy.",
+    "status": "standard"
+   },
+   {
+    "name": "The reaction scheme and data files as shipped, unchanged",
+    "check": "The solver reads both files where OpenFOAM ships them. The start state it builds from them agrees with the one computed without the solver: mass to \\(5 \\times 10^{-9}\\), highest pressure \\(3.0000\\,\\mathrm{MPa}\\) (pre-flight).",
+    "status": "ok"
+   },
+   {
+    "name": "Closed ends: nothing enters or leaves",
+    "check": "Walls at both ends. The mass in the tube changes by at most \\(3 \\times 10^{-8}\\) and the atoms of each element by at most \\(3 \\times 10^{-8}\\) in every run.",
+    "status": "ok"
+   },
+   {
+    "name": "The wave does not reach the far end within the time of interest",
+    "check": "At the CJ speed the front is at \\(98.9\\,\\mathrm{mm}\\) of \\(120\\,\\mathrm{mm}\\) at the end. Found: front at \\(99.1\\,\\mathrm{mm}\\); the pressure at the far wall differs from its start value by \\(0\\).",
+    "status": "ok"
+   },
+   {
+    "name": "The wave has settled by the middle of the time",
+    "check": "The speed is read from \\(25\\,\\mathrm{\\mu s}\\) on. Over each half microsecond after that the front speed stays between \\(-0.73\\,\\%\\) and \\(-0.30\\,\\%\\) of the CJ speed (finest grid; Figure 2). It is not fully settled: over the third and the fourth quarter of the time the front runs \\(-0.54\\,\\%\\) and \\(-0.49\\,\\%\\) from the CJ speed, still closing in.",
+    "status": "ok"
+   },
+   {
+    "name": "The burnt gas behind the wave is in chemical equilibrium (assumed by the CJ state)",
+    "check": "Where the burnt state is read the water mass fraction is \\(0.2221\\) against \\(0.2223\\) at the CJ state.",
+    "status": "ok"
+   }
+  ]
+ },
+ "theory": {
+  "intro": "Theory gives much of the answer here, because a detonation that has settled travels as a steady wave. Three conservation laws across the wave, the thermodynamic data of the gas and one extra condition fix its speed and the state behind it. This is the Chapman-Jouguet (CJ) state of the reference file, and it does not depend on how fast the reactions are. The same laws give the state right behind the leading shock before anything has burnt, and, with the reaction rates of the scheme, how far the gas travels before it burns (the steady structure, known as the ZND model). In a closed tube the burnt gas must come to rest at the closed end, which fixes the expansion wave that follows the front and the pressure at the end. All of this is computed here with <code>cfdlib.chem</code> from the scheme's own two files and without the flow solver. What theory does not give: how the wave forms out of the ignition layer and how long it takes to settle, and whether the steady wave is stable. Those are what the simulation is for.",
+  "steps": [
+   {
+    "label": "Conservation across a steady wave",
+    "latex": "\\rho_1 D = \\rho_2 w,\\qquad p_1 + \\rho_1 D^2 = p_2 + \\rho_2 w^2,\\qquad h_1 + \\tfrac{1}{2}D^2 = h_2 + \\tfrac{1}{2}w^2",
+    "note": "Seen by someone travelling with the wave, fresh gas (1) flows in at the wave speed \\(D\\) and burnt gas (2) leaves at the speed \\(w\\). Mass, momentum and energy that flow in must flow out. The enthalpy \\(h\\) includes the chemical energy, so the heat of burning is inside \\(h_1 - h_2\\)."
+   },
+   {
+    "label": "Solved for the state behind the wave",
+    "latex": "p_2 = p_1 + \\rho_1^2 D^2\\,(v_1 - v_2),\\qquad h_2 - h_1 = \\tfrac{1}{2}\\,(p_2 - p_1)\\,(v_1 + v_2),\\qquad v = 1/\\rho",
+    "note": "The first relation is a straight line in pressure against volume whose slope is set by the wave speed. The second no longer contains the speed: it is the curve of all states that burnt gas can reach. Both were derived from the three laws with SymPy."
+   },
+   {
+    "label": "The extra condition (Chapman-Jouguet)",
+    "latex": "w = c_2\\qquad\\Longleftrightarrow\\qquad D_{\\mathrm{CJ}} = \\min_{v_2} D",
+    "note": "A wave that nothing pushes from behind settles at the lowest speed for which a burnt state exists. At that speed the burnt gas leaves the wave at exactly its own speed of sound \\(c_2\\), so nothing that happens behind the wave can catch up with it. The burnt gas is taken in chemical equilibrium (the composition of lowest Gibbs energy at its pressure and enthalpy)."
+   },
+   {
+    "label": "Right behind the shock, before burning",
+    "latex": "\\text{the same three laws with the composition of the fresh gas}",
+    "note": "The leading shock compresses and heats the gas faster than any reaction. This state has the highest pressure of the steady wave, well above the CJ pressure; the pressure then falls to the CJ value as the gas burns and speeds up."
+   },
+   {
+    "label": "The steady structure with the reaction rates",
+    "latex": "\\frac{d\\sigma_i}{dt} = v\\,\\omega_i(\\sigma, T, v),\\qquad p = p_1 + \\rho_1^2 D^2 (v_1 - v),\\qquad h(\\sigma, T) + \\tfrac{1}{2}(\\rho_1 D v)^2 = h_1 + \\tfrac{1}{2}D^2,\\qquad \\frac{dx}{dt} = \\rho_1 D\\,v",
+    "note": "A parcel is followed from the shock on. \\(\\sigma_i\\) are its moles of each species per kilogram and \\(\\omega_i\\) the rates of the 27 reactions. Pressure and temperature follow from the two conservation relations at every instant, and \\(x\\) is the distance behind the shock. For a while almost nothing happens (the reactive species multiply unseen), then the gas burns quickly."
+   },
+   {
+    "label": "The expansion behind the wave in a closed tube",
+    "latex": "u - \\int \\frac{dp}{\\rho\\,c} = \\text{const},\\qquad \\frac{x}{t} = u + c,\\qquad u = 0 \\text{ at the closed end}",
+    "note": "The burnt gas leaves the front moving forward at \\(u_{\\mathrm{CJ}}\\), but the end wall is at rest. An expansion wave slows it down. In this wave each state travels at its own fixed speed \\(u + c\\), so the profile stretches in proportion to time, and the gas is at rest between the wall and the point \\(x = c_{\\mathrm{end}}\\,t\\). Computed along the path of constant entropy with the gas in chemical equilibrium."
+   },
+   {
+    "label": "What the closed tube keeps",
+    "latex": "\\frac{d}{dt}\\int \\rho\\,dV = 0,\\qquad \\frac{d}{dt}\\int \\rho\\,Y_i\\,\\frac{a_{ie}}{W_i}\\,dV = 0,\\qquad \\frac{d}{dt}\\int \\left(\\rho\\,h + \\tfrac{1}{2}\\rho\\,u^2 - p\\right) dV = 0",
+    "note": "Mass, the atoms of each element (\\(a_{ie}\\) atoms of element \\(e\\) in species \\(i\\)) and total energy: nothing enters or leaves, no wall moves and no heat is exchanged. The solver is built to keep the first two. It is not built to keep the third, so the energy balance is the physical check of every run."
+   }
+  ],
+  "derived": [
+   {
+    "label": "Density of the fresh mixture",
+    "symbol": "\\rho_1",
+    "formula": "\\rho_1 = \\frac{p_0\\,W_0}{R\\,T_0}",
+    "value_tex": "0.849462",
+    "unit_tex": "\\mathrm{kg/m^3}",
+    "why": "The mass that the wave takes in per metre. Mass fractions of the start mixture: hydrogen \\(0.028522\\), oxygen \\(0.226362\\), nitrogen \\(0.745116\\). The pre-flight checks that the solver starts from these.",
+    "params": [
+     {
+      "tex": "p_0",
+      "meaning": "start pressure (given)",
+      "value": 101325.0,
+      "unit": "Pa"
+     },
+     {
+      "tex": "W_0",
+      "meaning": "mean molar mass of the mixture",
+      "value": 0.0209114,
+      "unit": "kg/mol"
+     },
+     {
+      "tex": "R",
+      "meaning": "gas constant (OpenFOAM's value)",
+      "value": 8.31447006650545,
+      "unit": "J/(mol K)"
+     },
+     {
+      "tex": "T_0",
+      "meaning": "start temperature (given)",
+      "value": 300.0,
+      "unit": "K"
+     }
+    ],
+    "check": "\\frac{101325\\times0.0209114}{8.314470\\times300} = 0.849462"
+   },
+   {
+    "label": "Chapman-Jouguet speed",
+    "symbol": "D_{\\mathrm{CJ}}",
+    "formula": "w = c_2 \\text{ on the curve of burnt states}",
+    "value_tex": "1978.54",
+    "unit_tex": "\\mathrm{m/s}",
+    "why": "The speed the wave must settle to, and the requirement of the problem (within 2 %). Mach number \\(4.840\\) against the fresh gas. This value was computed here and agrees with the reference file to \\(2 \\times 10^{-7}\\) (relative).",
+    "params": [
+     {
+      "tex": "\\rho_1",
+      "meaning": "density of the fresh gas",
+      "value": 0.8494618771258006,
+      "unit": "kg/m^3"
+     },
+     {
+      "tex": "p_1",
+      "meaning": "start pressure",
+      "value": 101325.0,
+      "unit": "Pa"
+     },
+     {
+      "tex": "w",
+      "meaning": "speed at which the burnt gas leaves the wave",
+      "value": 1098.0649255337646,
+      "unit": "m/s"
+     },
+     {
+      "tex": "c_2",
+      "meaning": "speed of sound of the burnt gas (equilibrium)",
+      "value": 1097.8142755005333,
+      "unit": "m/s"
+     }
+    ],
+    "check": "0.8495\\times1978.5 = 1680.7 = 1.5306\\times1098.1"
+   },
+   {
+    "label": "Pressure and temperature behind the wave (CJ)",
+    "symbol": "p_{\\mathrm{CJ}}",
+    "formula": "p_2 = p_1 + \\rho_1^2 D^2\\,(v_1 - v_2)",
+    "value_tex": "1.5811",
+    "unit_tex": "\\mathrm{MPa}",
+    "why": "The burnt state the simulation is compared with: \\(15.60\\) times the start pressure, temperature \\(2969.9\\,\\mathrm{K}\\), density \\(1.5306\\,\\mathrm{kg/m^3}\\), gas speed \\(880.5\\,\\mathrm{m/s}\\) in the direction of the wave. The burnt gas still holds \\(3.0\\) % of unburnt hydrogen by moles: at \\(2970\\,\\mathrm{K}\\) part of the water falls apart again.",
+    "params": [
+     {
+      "tex": "v_1",
+      "meaning": "volume of a kilogram of fresh gas",
+      "value": 1.1772158668068227,
+      "unit": "m^3/kg"
+     },
+     {
+      "tex": "v_2",
+      "meaning": "volume of a kilogram of burnt gas",
+      "value": 0.6533399671135747,
+      "unit": "m^3/kg"
+     },
+     {
+      "tex": "D",
+      "meaning": "wave speed",
+      "value": 1978.5402978380548,
+      "unit": "m/s"
+     }
+    ],
+    "check": "p_1 + 1680.7^2\\,(1.1772 - 0.6533) = 1.5811\\ \\mathrm{MPa}"
+   },
+   {
+    "label": "Pressure right behind the shock, before burning",
+    "symbol": "p_{\\mathrm{s}}",
+    "formula": "\\text{three laws, composition unchanged}",
+    "value_tex": "2.8100",
+    "unit_tex": "\\mathrm{MPa}",
+    "why": "The highest pressure of the steady wave: \\(1.78\\) times the CJ pressure, at \\(1543\\,\\mathrm{K}\\). A simulation shows this peak only if its cells are much smaller than the stretch in which the gas waits to burn; the peak pressure found is therefore a measure of how well the front is resolved.",
+    "params": [
+     {
+      "tex": "D",
+      "meaning": "wave speed (CJ)",
+      "value": 1978.5402978380548,
+      "unit": "m/s"
+     },
+     {
+      "tex": "\\rho_{\\mathrm{s}}",
+      "meaning": "density behind the shock",
+      "value": 4.581170855376921,
+      "unit": "kg/m^3"
+     }
+    ],
+    "check": "p_1 + 1680.7^2\\,(1.1772 - 0.2183) = 2.8101\\ \\mathrm{MPa}"
+   },
+   {
+    "label": "Wait before burning: induction time and length",
+    "symbol": "x_{\\mathrm{ind}}",
+    "formula": "x_{\\mathrm{ind}} = \\int_0^{t_{\\mathrm{ind}}} \\rho_1 D\\,v\\,dt",
+    "value_tex": "0.172",
+    "unit_tex": "\\mathrm{mm}",
+    "why": "Behind the shock the gas waits \\(0.453\\,\\mathrm{\\mu s}\\) before its temperature rises fastest, and travels this far from the shock meanwhile. It is the length the cells are measured against: the grids of this report put 0.6, 1.1, 2.3 and 4.6 cells in it. The water reaches 95 % of its CJ value \\(1.18\\,\\mathrm{mm}\\) behind the shock, so the steady burning front sits well inside the required \\(1\\,\\mathrm{mm}\\).",
+    "params": [
+     {
+      "tex": "t_{\\mathrm{ind}}",
+      "meaning": "time from the shock to the fastest temperature rise",
+      "value": 4.532524101476986e-07,
+      "unit": "s"
+     },
+     {
+      "tex": "\\rho_1 D",
+      "meaning": "mass flow through the wave",
+      "value": 1680.6945553705546,
+      "unit": "kg/(m^2 s)"
+     },
+     {
+      "tex": "v_{\\mathrm{s}}",
+      "meaning": "volume of a kilogram right behind the shock (the hand check keeps it for the whole wait)",
+      "value": 0.21828480787314447,
+      "unit": "m^3/kg"
+     }
+    ],
+    "check": "\\rho_1 D\\,v_{\\mathrm{s}}\\,t_{\\mathrm{ind}} = 1680.7\\times0.2183\\times0.453\\ \\mathrm{\\mu s} = 0.166\\ \\mathrm{mm}"
+   },
+   {
+    "label": "Pressure at the closed end",
+    "symbol": "p_{\\mathrm{end}}",
+    "formula": "u_{\\mathrm{CJ}} + \\int_{p_{\\mathrm{CJ}}}^{p_{\\mathrm{end}}} \\frac{dp}{\\rho\\,c} = 0",
+    "value_tex": "0.5982",
+    "unit_tex": "\\mathrm{MPa}",
+    "why": "The pressure of the gas at rest behind the expansion wave: \\(0.378\\) of the CJ pressure, at \\(2608\\,\\mathrm{K}\\). The gas is at rest from the wall to \\(c_{\\mathrm{end}}\\,t\\), which is \\(51.4\\,\\mathrm{mm}\\) at the end time, about half of the way to the front. The simulation's end pressure is compared with this value.",
+    "params": [
+     {
+      "tex": "u_{\\mathrm{CJ}}",
+      "meaning": "gas speed behind the front",
+      "value": 880.4753723042902,
+      "unit": "m/s"
+     },
+     {
+      "tex": "c_{\\mathrm{end}}",
+      "meaning": "speed of sound of the gas at rest",
+      "value": 1028.1852731895824,
+      "unit": "m/s"
+     },
+     {
+      "tex": "\\gamma_e",
+      "meaning": "ratio that ties pressure to density along the path, at the front (the hand check keeps it constant)",
+      "value": 1.1666740119535892,
+      "unit": ""
+     }
+    ],
+    "check": "p_{\\mathrm{CJ}}\\left(1 - \\tfrac{\\gamma_e - 1}{2}\\tfrac{u_{\\mathrm{CJ}}}{c_2}\\right)^{\\frac{2\\gamma_e}{\\gamma_e - 1}} = 0.6003\\ \\mathrm{MPa}"
+   },
+   {
+    "label": "Where the front is at the end time, if it travelled at the CJ speed from the start",
+    "symbol": "x_{\\mathrm{f}}",
+    "formula": "x_{\\mathrm{f}} = D_{\\mathrm{CJ}}\\,t_{\\mathrm{end}}",
+    "value_tex": "98.93",
+    "unit_tex": "\\mathrm{mm}",
+    "why": "The tube is \\(120\\,\\mathrm{mm}\\) long, so the wave does not reach the far wall within the time of interest and the gas ahead of it must stay untouched. The wave speed is read over the second half of the time, in which a CJ wave covers \\(49.5\\,\\mathrm{mm}\\).",
+    "params": [
+     {
+      "tex": "D_{\\mathrm{CJ}}",
+      "meaning": "CJ speed",
+      "value": 1978.5402978380548,
+      "unit": "m/s"
+     },
+     {
+      "tex": "t_{\\mathrm{end}}",
+      "meaning": "end of the time of interest (given)",
+      "value": 5e-05,
+      "unit": "s"
+     }
+    ],
+    "check": "1978.54\\times50\\times 10^{-6} = 0.09893\\ \\mathrm{m}"
+   },
+   {
+    "label": "Heat released per kilogram up to the CJ state",
+    "symbol": "q",
+    "formula": "q = \\sum_i h_i^{\\circ}\\,\\left(Y_{i,1} - Y_{i,\\mathrm{CJ}}\\right)",
+    "value_tex": "2.8676",
+    "unit_tex": "\\mathrm{MJ/kg}",
+    "why": "The scale of the energy balance: every energy error in this report is given as a fraction of the heat released so far. One millimetre of tube releases \\(2436\\,\\mathrm{J}\\) per square metre of cross-section. The ignition layer holds \\(12000\\,\\mathrm{J/m^2}\\) more than the same mass of fresh gas, as much as the burning of \\(4.9\\,\\mathrm{mm}\\) of mixture. The layer is itself unburnt mixture, so it burns too.",
+    "params": [
+     {
+      "tex": "h_i^{\\circ}",
+      "meaning": "chemical energy of species i per kilogram (its enthalpy at the standard temperature)",
+      "value": 0,
+      "unit": "J/kg"
+     },
+     {
+      "tex": "Y_{\\mathrm{H_2O,CJ}}",
+      "meaning": "mass fraction of water at the CJ state",
+      "value": 0.2222962063199447,
+      "unit": ""
+     }
+    ],
+    "check": "\\rho_1\\,q\\times 1\\ \\mathrm{mm} = 0.8495\\times2867592\\times 0.001 = 2436\\ \\mathrm{J/m^2}"
+   }
+  ],
+  "self_checks": [
+   {
+    "name": "The three conservation laws are satisfied by the solved relations",
+    "ok": true
+   },
+   {
+    "name": "Pressure behind the wave: the straight line in pressure and volume (Rayleigh line)",
+    "ok": true
+   },
+   {
+    "name": "Enthalpy behind the wave",
+    "ok": true
+   },
+   {
+    "name": "The speed drops out: enthalpy rise = half the pressure rise times the sum of the volumes (Hugoniot)",
+    "ok": true
+   },
+   {
+    "name": "The CJ state of the reference file satisfies the three conservation relations with this report's enthalpies",
+    "ok": true
+   },
+   {
+    "name": "The CJ state computed here reproduces the reference file: speed to \\(2 \\times 10^{-7}\\), pressure to \\(2 \\times 10^{-8}\\), temperature to \\(9 \\times 10^{-7}\\) (relative)",
+    "ok": true
+   },
+   {
+    "name": "The state right behind the shock reproduces the reference file: pressure to \\(3 \\times 10^{-7}\\), temperature to \\(3 \\times 10^{-6}\\)",
+    "ok": true
+   },
+   {
+    "name": "The steady structure ends at the CJ state: \\(21\\,\\mathrm{mm}\\) behind the shock its pressure is \\(+0.72\\,\\%\\) and its temperature \\(+0.08\\,\\%\\) from the CJ values",
+    "ok": true
+   },
+   {
+    "name": "The speed of sound found along the expansion path equals the speed at which the burnt gas leaves the wave: \\(1097.8\\) against \\(1098.1\\,\\mathrm{m/s}\\)",
+    "ok": true
+   },
+   {
+    "name": "Along the expansion, pressure, temperature and density fall together, and the gas comes to rest at \\(0.378\\) of the CJ pressure",
+    "ok": true
+   }
+  ]
+ },
+ "decisions": [
+  {
+   "area": "Solver",
+   "kind": "solver",
+   "choice": "<code>reactingFoam</code>, OpenFOAM's own solver for burning gas, started from its laminar flame example (<code>combustion/reactingFoam/laminar/counterFlowFlame2D</code>) with the pressure equation switched to its form for flows faster than sound (<code>transonic yes</code>)",
+   "settings": [
+    "system/controlDict/application",
+    "system/fvSolution/PIMPLE/transonic"
+   ],
+   "why": "The problem needs a shock and the full reaction scheme in one solver. Standard OpenFOAM v2606 has no density-based solver with chemistry: <code>rhoCentralFoam</code>, the shock solver of cases 18 and 19, carries one gas only. <code>reactingFoam</code> carries every species and calls the chemistry library of case 20 in every cell. It is pressure-based: it solves an equation for the pressure instead of advancing density, momentum and energy directly. With <code>transonic yes</code> that equation carries pressure with the flow, which a shock needs. Whether such a solver keeps the energy, and so drives a detonation at the right speed, is what this case measures. gpucfd was not used: its chemistry and its shock solver are still separate, and the GPU was in use by another session.",
+   "affects": "How the answer is reached, and here also the answer: a pressure-based solver does not keep the total energy by construction (see the passes per time step).",
+   "alternatives": "<code>rhoReactingFoam</code> (the same algorithm with the density taken from the gas law in another form). A density-based solver with chemistry, as published detonation solvers are: none ships with OpenFOAM, and downloading one was outside this task. gpucfd."
+  },
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "A mixture of ideal gases with heat capacities that change with temperature; the reaction scheme and its data read from the two files where OpenFOAM ships them; chemistry in every cell, no turbulence or combustion model in between",
+   "settings": [
+    "constant/thermophysicalProperties/thermoType/*",
+    "constant/thermophysicalProperties/CHEMKINFile",
+    "constant/thermophysicalProperties/CHEMKINThermoFile",
+    "constant/chemistryProperties/chemistry",
+    "constant/combustionProperties/*",
+    "constant/turbulenceProperties/simulationType"
+   ],
+   "why": "This is the gas of the problem statement. <code>hePsiThermo</code> with <code>perfectGas</code> and <code>janaf</code> is the ideal-gas law with the tabulated heat capacities. <code>sensibleEnthalpy</code> means the solver stores the enthalpy without the chemical part and adds the heat of the reactions as a source; the analysis rebuilds the total and checks it. The files are read in place (<code>$FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/</code>), so nothing is copied or edited; case 20 compared OpenFOAM's reading of them with an independent one. <code>combustionModel laminar</code> means the reaction rates of the scheme are used as they are.",
+   "affects": "Defines the equations solved. The Chapman-Jouguet state follows from these data alone.",
+   "alternatives": "One overall reaction: much cheaper, but it gives a burnt gas that is hundreds of kelvin too hot (the supervisor's remark on the plan). The internal-energy form (<code>sensibleInternalEnergy</code>): OpenFOAM's reader of these files is not built for it (insight 5)."
+  },
+  {
+   "area": "Physical model",
+   "kind": "physics",
+   "choice": "No friction, no heat conduction, no diffusion of species: the transport file that ships with the scheme sets the viscosity to zero",
+   "settings": [
+    "constant/thermophysicalProperties/CHEMKINTransportFile",
+    "system/fvSchemes/laplacianSchemes/*",
+    "system/fvSchemes/snGradSchemes/*",
+    "system/fvSchemes/divSchemes/div(((rho*nuEff)*dev2(T(grad(U)))))"
+   ],
+   "why": "Given: friction and heat conduction play no part. The file <code>transportProperties</code> next to the scheme has <code>As 0</code>, so viscosity, conductivity and diffusivity are all zero and every diffusion term of the solver vanishes. The schemes for those terms must still be named; they act on zeros.",
+   "affects": "Nothing spreads the front except the numerical scheme. Its thickness is then a number of cells, not a length.",
+   "alternatives": "Real viscosity and conduction: at these cell sizes they are far smaller than the smearing of the scheme, and the problem excludes them."
+  },
+  {
+   "area": "Inert species",
+   "kind": "physics",
+   "choice": "Nitrogen is the species found from the others (its mass fraction is one minus the sum); argon, which the scheme lists, is absent",
+   "settings": [
+    "constant/thermophysicalProperties/inertSpecie",
+    "0/Ydefault/*"
+   ],
+   "why": "The solver solves one equation per species except one, which it sets so that the mass fractions add up to one. Nitrogen does not react in this scheme, so it is the natural choice. <code>Ydefault</code> gives every species without a start file (the seven reactive ones and argon) a start value of zero.",
+   "affects": "Guarantees that the mass fractions add up to one. Any error in the other species lands in the nitrogen; its atoms are therefore checked like the others.",
+   "alternatives": "None in this solver."
+  },
+  {
+   "area": "Domain and boundary conditions",
+   "kind": "physics",
+   "choice": "One row of equal cells along the tube, closed ends (no flow through them, zero gradient for everything else), <code>empty</code> on the four sides",
+   "settings": [
+    "system/blockMeshDict/vertices",
+    "system/blockMeshDict/scale",
+    "system/blockMeshDict/boundary",
+    "0/*/boundaryField/*"
+   ],
+   "why": "Given: one dimension, closed at both ends. <code>empty</code> tells OpenFOAM that nothing varies across the tube. The cross-section is a square of \\(0.1\\,\\mathrm{mm}\\); its size cancels out of every result, and volume integrals are divided by its area.",
+   "affects": "Sets the problem. With closed ends, mass, atoms and total energy in the tube must not change: the physical checks of this case.",
+   "alternatives": "A shorter tube that ends just ahead of the wave: fewer cells, the same answer until the wave arrives; the chemistry cut-off already makes the untouched cells cheap."
+  },
+  {
+   "area": "Start state",
+   "kind": "physics",
+   "choice": "The mixture at rest at \\(p_0\\), \\(T_0\\) everywhere; the ignition layer set by <code>setFields</code> in the cells left of \\(L_{\\mathrm{ign}}\\), which is a cell face on every grid",
+   "settings": [
+    "0/*/internalField",
+    "system/setFieldsDict/defaultFieldValues",
+    "system/setFieldsDict/regions"
+   ],
+   "why": "As given. The mass fractions come from the mole ratio with OpenFOAM's own atomic weights (<code>cfdlib.chem</code>). Every grid has a whole number of cells in the layer (3 on the coarsest, 120 on the finest), so no cell holds a mixture of the two states and the mass and energy at the start are the same on every grid. The pre-flight checks both against values computed without the solver.",
+   "affects": "Defines the initial-value problem. The layer is stronger than the detonation it starts (\\(30\\) against \\(16\\) atmospheres behind the wave), but it is thin. The wave needs some microseconds to form and settle; the speed is read over the second half of the time for that reason (given). In the runs it starts a few percent slower than the CJ speed and rises to it.",
+   "alternatives": "None: given."
+  },
+  {
+   "area": "Mesh",
+   "kind": "accuracy",
+   "choice": "Equal cells, four levels: 400, 800, 1600 and 3200 cells (\\(300\\) down to \\(37.5\\) micrometres), each half the size of the one before",
+   "settings": [
+    "system/blockMeshDict/blocks"
+   ],
+   "why": "The length to resolve is the stretch behind the shock in which the gas waits before it burns, \\(0.17\\,\\mathrm{mm}\\) for this mixture (Theory). The grids put about 0.6, 1.1, 2.3 and 4.6 cells in it, so none of them resolves it: the case shows what an under-resolved front still gets right, which is the situation of an engine simulation. The finest level is set by cost. The first plan went on to 9600 cells (14 cells in that stretch); the timing run of the pre-flight showed it would take more than half an hour for that one run, and the plan was cut before any full run was kept (insight 11). Ratio 2 gives the observed order from the three finest. Every grid has a multiple of 80 cells, so that the ignition layer is a whole number of cells (a first attempt with 600 cells made the layer \\(1.6\\,\\mathrm{mm}\\) thick, insight 7). The wave crosses the whole tube, so there is nowhere to cluster cells.",
+   "affects": "How sharp the front is, the highest pressure at the front, and, through the numerical smearing, how the shock and the burning are coupled.",
+   "alternatives": "Cells that follow the front (adaptive refinement): the standard tool for detonations, not in standard OpenFOAM's reacting solver set-up used here. Finer levels (6400 cells and more): each costs about three times the level before."
+  },
+  {
+   "area": "Discretisation",
+   "kind": "accuracy",
+   "choice": "Second order in space with a limiter (<code>limitedLinear 1</code>) on every convected quantity and on the pressure flux; straight-line interpolation elsewhere; first order in time (<code>Euler</code>)",
+   "settings": [
+    "system/fvSchemes/divSchemes/default",
+    "system/fvSchemes/divSchemes/div(phi,U)",
+    "system/fvSchemes/divSchemes/div(phi,Yi_h)",
+    "system/fvSchemes/divSchemes/div(phi,K)",
+    "system/fvSchemes/divSchemes/div(phid,p)",
+    "system/fvSchemes/gradSchemes/*",
+    "system/fvSchemes/interpolationSchemes/*",
+    "system/fvSchemes/ddtSchemes/default"
+   ],
+   "why": "These are the schemes of OpenFOAM's reacting examples. The limiter keeps a jump from making new peaks. Species and enthalpy share one limiter (<code>div(phi,Yi_h)</code>), so that the mass fractions still add up to one after they are carried along and the energy stays consistent with the composition. The time scheme of those examples is the implicit Euler step; its error is studied with the time step.",
+   "affects": "The front is two to three cells wide. The first-order time scheme and the splitting between flow and chemistry make the time step an accuracy setting.",
+   "alternatives": "Other limiters (<code>vanLeer</code> gave the same speed in a trial); a second-order time scheme (<code>backward</code>, <code>CrankNicolson</code>): not tried, they can overshoot at a shock."
+  },
+  {
+   "area": "Time step",
+   "kind": "accuracy",
+   "choice": "A fixed time step on each grid, such that the wave crosses about 0.4 of a cell per step (\\(56\\) down to \\(7.6\\) nanoseconds), reached from a tiny first step; twice and half that step are run on one grid",
+   "settings": [
+    "system/controlDict/deltaT",
+    "system/controlDict/adjustTimeStep",
+    "system/controlDict/maxDeltaT",
+    "system/controlDict/maxCo",
+    "system/controlDict/startTime",
+    "system/controlDict/endTime"
+   ],
+   "why": "The step of a run is <code>maxDeltaT</code>. The run does not start with it: the first step is \\(10^{-12}\\,\\mathrm{s}\\) and each step is a fifth longer than the one before until the step of the run is reached, after about 50 steps and six steps' worth of time. The reason is a start-up fault of the solver: on its first step it has no stored gas state of the step before, and a first step of full size, in which the hot layer reacts, created 0.17 % of mass (insight 7). <code>maxCo 100</code> is the solver's own limit for the growing step and is never reached. The solver shortens a step slightly to land on each sampling time, so the states along the tube are written exactly every \\(0.5\\) microseconds, among them the two times of the wave speed. The size is a compromise found in trials: the energy lost per step falls in proportion to the time step and with the passes per step, and 0.4 of a cell with five passes costs the same as 0.2 with three while losing a third as much. The chemistry is integrated inside each step with sub-steps of its own, so the flow step need not resolve the fastest reactions (\\(10^{-9}\\,\\mathrm{s}\\)); it must resolve the wait before burning (\\(0.45\\) microseconds: 8 to 60 steps). The end time is given; nothing becomes steady in a closed tube.",
+   "affects": "The coupling of flow and chemistry (first order in the step), the energy balance and the cost.",
+   "alternatives": "A step that follows the flow's Courant number: the step would change with the grid's smearing of the front, and a time-step study would be harder to read. A fixed step from the first step on: not mass-conserving at the start."
+  },
+  {
+   "area": "Passes per time step",
+   "kind": "accuracy",
+   "choice": "Five passes through the equations per time step (<code>nOuterCorrectors 5</code>), two pressure corrections per pass, momentum solved first",
+   "settings": [
+    "system/fvSolution/PIMPLE/nOuterCorrectors",
+    "system/fvSolution/PIMPLE/nCorrectors",
+    "system/fvSolution/PIMPLE/momentumPredictor",
+    "system/fvSolution/PIMPLE/nNonOrthogonalCorrectors"
+   ],
+   "why": "In each pass the solver solves momentum, species, energy and then pressure. The energy equation needs the rate of change of the pressure, and in the first pass it only has the value of the step before. With one pass per step (the setting of OpenFOAM's reacting examples) the tube lost energy equal to 10 % of the heat released, and the wave ran 9 % too slowly; a finer grid did not help. Repeating the pass with the new pressure removes the error: 0.8 % with three passes, 0.13 % with five (trials on 1200 cells at half this time step). Even numbers of passes add energy at the start (insight 4), so the count is odd. The pre-flight repeats the comparison as a study.",
+   "affects": "Whether total energy is kept, and so the wave speed. Also the cost: the chemistry is solved again in every pass.",
+   "alternatives": "One pass with a time step ten times smaller: more costly for the same energy error. Stopping the passes on a residual (<code>outerCorrectorResidualControl</code>): the count would change from step to step, and with it the even-odd effect."
+  },
+  {
+   "area": "Chemistry solver",
+   "kind": "accuracy",
+   "choice": "The explicit method <code>RKF45</code> with error control, relative tolerance \\(10^{-6}\\); cells colder than \\(305\\,\\mathrm{K}\\) are skipped",
+   "settings": [
+    "constant/chemistryProperties/chemistryType/solver",
+    "constant/chemistryProperties/odeCoeffs/*",
+    "constant/chemistryProperties/initialChemicalTimeStep",
+    "constant/chemistryProperties/Treact"
+   ],
+   "why": "Inside each flow step the chemistry of each cell is integrated on its own, with sub-steps chosen by the method to meet the tolerance. In trials <code>RKF45</code> put the front within \\(0.02\\,\\mathrm{mm}\\) of the stiff solver <code>seulex</code> after \\(19\\,\\mathrm{mm}\\), in under two thirds of the time. At the time steps of the plan the explicit method needs many sub-steps in the burnt gas and its lead shrinks; timed again on a short run with the plan's settings it was still the cheapest of three (<code>seulex</code>, <code>Rosenbrock34</code>), all within \\(0.005\\,\\mathrm{mm}\\) of each other after \\(20\\,\\mathrm{mm}\\) (insight 11). The cut-off temperature saves the cells the wave has not reached, which are at exactly \\(300\\,\\mathrm{K}\\) and cannot react. It is set just above the start temperature because a higher cut-off changed the front a little (insight 6). Three variants check these choices on one grid.",
+   "affects": "The reaction progress per step and nearly all of the cost (see the performance appendix).",
+   "alternatives": "Run as variants: <code>seulex</code>, a looser tolerance (\\(10^{-4}\\)), no cut-off. Not run: storing and reusing chemistry results (OpenFOAM's TDAC), which adds a tolerance of its own."
+  },
+  {
+   "area": "Linear solvers",
+   "kind": "solver",
+   "choice": "Every equation solved with <code>PBiCGStab</code> and the <code>DILU</code> preconditioner to an absolute tolerance of \\(10^{-10}\\); the density equation is explicit (<code>diagonal</code>)",
+   "settings": [
+    "system/fvSolution/solvers/*"
+   ],
+   "why": "With the transonic form the pressure equation is not symmetric, so the usual solver for pressure does not apply; <code>PBiCGStab</code> handles any matrix. At these time steps every matrix is dominated by its diagonal and one or two iterations reach the tolerance, so the linear solves cost almost nothing and leave no iteration error to speak of.",
+   "affects": "Nothing beyond the tolerance.",
+   "alternatives": "A looser tolerance: no time to gain here."
+  },
+  {
+   "area": "Parallel runs",
+   "kind": "solver",
+   "choice": "Every full run uses 8 cores, with the tube cut into many short stretches that are dealt to the cores in turn, 12 stretches per core",
+   "settings": [
+    "constant/cellDecomposition*",
+    "system/decomposeParDict/*"
+   ],
+   "why": "The chemistry costs time only in cells the wave has reached. If each core owned one end-to-end piece of the tube, the cores would be busy one after the other. With stretches dealt in turn, every core holds its share of burnt gas at any time: on a short test, one piece per core was no faster than one core, 3 stretches per core 1.3 times faster and 12 stretches 2 times. The pre-flight compares a parallel run with a one-core run of the first fifth of the time.",
+   "affects": "Run time. The answer changes in the fourth digit with the way the tube is cut (the front moved by up to \\(0.02\\,\\mathrm{mm}\\) in \\(20\\,\\mathrm{mm}\\) between four cuts in the short test): the size of this is reported with the results.",
+   "alternatives": "OpenFOAM's automatic split (<code>scotch</code>, <code>simple</code>): contiguous pieces, unbalanced for this problem. 16 ranks on the 16 hardware threads: not used, another session shares this PC."
+  },
+  {
+   "area": "Outputs",
+   "kind": "output",
+   "choice": "After every step: the highest pressure, temperature and heat release and where they are; the integrals that give mass, atoms and total energy. At 100 equally spaced times: the state in every cell along the tube. Fields at \\(t_{\\mathrm{end}}/2\\) and \\(t_{\\mathrm{end}}\\), 12 digits",
+   "settings": [
+    "system/controlDict/functions/*",
+    "system/controlDict/writeControl",
+    "system/controlDict/writeInterval",
+    "system/controlDict/writePrecision",
+    "system/controlDict/timePrecision",
+    "system/controlDict/profiling/*"
+   ],
+   "why": "The fronts are read from the states along the tube (every \\(0.5\\) microseconds, in which the wave moves \\(1\\,\\mathrm{mm}\\)); the two times of the wave speed are among them. The balances are checked after every step, because an error that comes and goes would not show at the end. Mass-weighted integrals of the sensible enthalpy, the kinetic energy and each species, with the integral of the pressure, give the total energy and the atoms without any interpolation. <code>profiling</code> is switched on for the one-core timing run only.",
+   "affects": "What is measured. The function objects cost under 2 % of a step.",
+   "alternatives": "Probes at fixed places: arrival times instead of positions; they would not give the distance between the two fronts."
+  }
+ ],
+ "preflight": {
+  "purpose": "Before the production runs: does the solver start from the right state and keep mass and atoms, do the output files hold what the analysis needs, what do the runs cost, and how large are the effects of the time step and of the passes per step?",
+  "runs": [
+   {
+    "name": "400 and 3200 cells, first 4 % of the time",
+    "setup": "36 and 264 steps of the planned size after the growing first steps, 8 cores",
+    "outcome": "OK and OK: every check below (shown for 3200 cells)"
+   },
+   {
+    "name": "800 cells on one core, first fifth of the time, with and without chemistry",
+    "setup": "main settings",
+    "outcome": "same front as on 8 cores to the fourth digit; the two unit costs"
+   },
+   {
+    "name": "800 cells in full: main settings, twice and half the time step, 1, 3 and 7 passes",
+    "setup": "8 cores, one to two minutes each",
+    "outcome": "healthy; their numbers sized the rules for the outcome"
+   }
+  ],
+  "checks": [
+   {
+    "name": "Solver finished without errors",
+    "status": "ok",
+    "value": "no errors",
+    "meaning": "A crash or floating-point exception usually means the solution blew up or a setting is invalid."
+   },
+   {
+    "name": "No NaN values",
+    "status": "ok",
+    "value": "none",
+    "meaning": "NaN (not a number) means the calculation produced invalid values."
+   },
+   {
+    "name": "Max Courant number",
+    "status": "ok",
+    "value": "0.256",
+    "meaning": "Fluid should not cross more than about one cell per time step (limit used: 1.0)."
+   },
+   {
+    "name": "Courant number trend",
+    "status": "ok",
+    "value": "\\(\\times\\,1.19\\) (late vs early)",
+    "meaning": "A steadily growing Courant number is the typical signature of a blow-up."
+   },
+   {
+    "name": "Residual trend: H",
+    "status": "ok",
+    "value": "\\(\\times\\,0.845\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: H2",
+    "status": "ok",
+    "value": "\\(\\times\\,0.736\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: H2O",
+    "status": "ok",
+    "value": "\\(\\times\\,0.667\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: H2O2",
+    "status": "ok",
+    "value": "\\(\\times\\,0.617\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: HO2",
+    "status": "ok",
+    "value": "\\(\\times\\,0.997\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: O",
+    "status": "ok",
+    "value": "\\(\\times\\,0.736\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: O2",
+    "status": "ok",
+    "value": "\\(\\times\\,0.766\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: OH",
+    "status": "ok",
+    "value": "\\(\\times\\,1\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: Ux",
+    "status": "ok",
+    "value": "\\(\\times\\,0.195\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: h",
+    "status": "ok",
+    "value": "\\(\\times\\,0.764\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Residual trend: p",
+    "status": "ok",
+    "value": "\\(\\times\\,0.943\\) (late vs early)",
+    "meaning": "Residuals should fall or level off. Growth suggests divergence (or a near-zero field whose normalised residual is only noise)."
+   },
+   {
+    "name": "Continuity-error trend",
+    "status": "ok",
+    "value": "\\(\\times\\,3.43\\) (late vs early)",
+    "meaning": "Mass-conservation error per step; strong growth means the solution is degrading."
+   },
+   {
+    "name": "Temperature and pressure never fall below the start values",
+    "status": "ok",
+    "value": "lowest temperature \\(300.000\\,\\mathrm{K}\\), lowest pressure \\(101325.0\\,\\mathrm{Pa}\\)",
+    "meaning": "Nothing in a closed tube of burning gas cools the gas below its start state. A value below it is an undershoot of the scheme at the front."
+   },
+   {
+    "name": "The mass in the tube does not change",
+    "status": "ok",
+    "value": "largest relative change \\(3.6 \\times 10^{-10}\\)",
+    "meaning": "The tube is closed."
+   },
+   {
+    "name": "The grid passes checkMesh",
+    "status": "ok",
+    "value": "Mesh OK",
+    "meaning": "Equal cells in one row."
+   },
+   {
+    "name": "One row per time step in the three per-step files, and the sampled states along the tube at the planned times",
+    "status": "ok",
+    "value": "307 rows (264 steps of the planned size plus the growing first steps); 4 sampled states, 4 planned",
+    "meaning": "Fronts, totals and peaks are read from these files. No step may be longer than the planned one."
+   },
+   {
+    "name": "The solver starts from the start state of Theory",
+    "status": "ok",
+    "value": "after the first step: mass differs by \\(4762.74 \\times 10^{-12}\\) (relative), total energy by \\(0.000\\,\\%\\) of what the ignition layer holds above the gas around it, highest pressure \\(3.0000\\,\\mathrm{MPa}\\)",
+    "meaning": "Checks the mole ratio, the molar masses, the gas constant, the layer and the bookkeeping of the energy, all against values computed without the solver."
+   },
+   {
+    "name": "The chemistry is running",
+    "status": "ok",
+    "value": "largest heat release rate in the short run \\(40.84 \\times 10^{12}\\,\\mathrm{W/m^3}\\)",
+    "meaning": "A heat release that stays at zero would mean the reactions are switched off or the output is not written."
+   },
+   {
+    "name": "Atoms kept during the short run",
+    "status": "ok",
+    "value": "largest relative change \\(597.11 \\times 10^{-12}\\)",
+    "meaning": "The reactions only rearrange atoms."
+   },
+   {
+    "name": "Every setting belongs to a documented decision",
+    "status": "ok",
+    "value": "all covered",
+    "meaning": "Checked on the case of the finest grid."
+   },
+   {
+    "name": "A run on 8 cores gives the answer of a run on one core",
+    "status": "ok",
+    "value": "front after \\(10\\,\\mathrm{\\mu s}\\): \\(20.532\\,\\mathrm{mm}\\) on one core, \\(20.549\\,\\mathrm{mm}\\) on 8 (\\(+0.082\\,\\%\\)); energy balance \\(-0.212\\,\\%\\) and \\(-0.202\\,\\%\\)",
+    "meaning": "The split of the tube between cores must not change the answer. A difference in the fourth digit remains (insight 12)."
+   },
+   {
+    "name": "Where the time goes (one core, first fifth of the time)",
+    "status": "ok",
+    "value": "\\(23.0\\) s with chemistry, \\(4.0\\) s without: \\(151\\) microseconds per burnt cell and pass, \\(2.6\\) per cell and pass for the flow",
+    "meaning": "These two costs sized the run plan (insight 11)."
+   },
+   {
+    "name": "Time step, 800 cells, in full",
+    "status": "ok",
+    "value": "wave speed \\(-0.40\\,\\%\\), \\(-0.32\\,\\%\\) and \\(-0.56\\,\\%\\) from the CJ speed at twice, once and half the main step",
+    "meaning": "No trend with the step: the three differ by less than the required accuracy by a factor of five or more."
+   },
+   {
+    "name": "Passes per time step, 800 cells, in full",
+    "status": "ok",
+    "value": "wave speed \\(-17.44\\,\\%\\) with 1, \\(-0.64\\,\\%\\) with 3, \\(-0.32\\,\\%\\) with 5, \\(-0.34\\,\\%\\) with 7 passes; energy lost over the second half \\(15.33\\,\\%\\), \\(1.60\\,\\%\\), \\(0.21\\,\\%\\), \\(0.17\\,\\%\\)",
+    "meaning": "One pass per step fails the requirement on the speed. Three or more meet it; five is the main setting."
+   }
+  ],
+  "conclusion": "The setup is right: the start state, mass, atoms and the output files all check. The pre-flight changed the plan twice. A first version failed the start-state check (an ignition layer of 7.5 cells, and a first time step that made mass), which led to the grid rule and the tiny first step. And its timing run showed that the first run plan, up to 9600 cells, would take over an hour; the plan was cut to four grids up to 3200 cells before any full run was kept."
+ },
+ "simulation": {
+  "model": [
+   {
+    "aspect": "Tube",
+    "real": "A straight closed tube, the same across its section",
+    "model": "One row of equal cells between two walls; the side faces are empty (no flow through them)"
+   },
+   {
+    "aspect": "Gas",
+    "real": "Hydrogen, oxygen, nitrogen and what they form: ideal gases, heat capacities from the data file",
+    "model": "The same data file, read by OpenFOAM in place; 9 species carried, nitrogen as the remainder"
+   },
+   {
+    "aspect": "Burning",
+    "real": "27 reactions with rates from the given file",
+    "model": "The same file. In every cell behind the front the reactions are integrated over each time step with error control"
+   },
+   {
+    "aspect": "Ignition",
+    "real": "A layer at the left end, hot and at high pressure at the start",
+    "model": "The cells of the first \\(1.5\\,\\mathrm{mm}\\) start at the given state: a whole number of cells on every grid"
+   },
+   {
+    "aspect": "Friction, conduction",
+    "real": "None (given)",
+    "model": "Viscosity zero in the scheme's transport file; the front's thickness comes from the grid"
+   },
+   {
+    "aspect": "Time",
+    "real": "From the start to \\(50\\,\\mathrm{\\mu s}\\)",
+    "model": "900 to 6600 equal steps after a short ramp; five passes through the equations per step"
+   }
+  ],
+  "meshes": {
+   "intro": "Equal cells along the tube, each grid with half the cell size of the one before. The length to compare the cells with is the stretch behind the shock in which the gas waits before it burns, \\(0.172\\,\\mathrm{mm}\\) in the steady wave of Theory. The time step is fixed on each grid so that the wave crosses about 0.4 of a cell per step.",
+   "head": [
+    "Cells",
+    "Cell size (µm)",
+    "Cells in the wait before burning",
+    "Time steps",
+    "Time step (ns)",
+    "Cells crossed by the wave per step",
+    "Cores",
+    "Solver time (s)"
+   ],
+   "rows": [
+    [
+     400,
+     "\\(300.0\\)",
+     "\\(0.6\\)",
+     900,
+     "\\(55.6\\)",
+     "\\(0.37\\)",
+     8,
+     "\\(35\\)"
+    ],
+    [
+     800,
+     "\\(150.0\\)",
+     "\\(1.1\\)",
+     1700,
+     "\\(29.4\\)",
+     "\\(0.39\\)",
+     8,
+     "\\(73\\)"
+    ],
+    [
+     1600,
+     "\\(75.0\\)",
+     "\\(2.3\\)",
+     3300,
+     "\\(15.2\\)",
+     "\\(0.40\\)",
+     8,
+     "\\(171\\)"
+    ],
+    [
+     3200,
+     "\\(37.5\\)",
+     "\\(4.6\\)",
+     6600,
+     "\\(7.6\\)",
+     "\\(0.40\\)",
+     8,
+     "\\(401\\)"
+    ]
+   ]
+  },
+  "results": {
+   "head": [
+    "Cells",
+    "Wave speed (m/s)",
+    "From the CJ speed",
+    "Largest distance between the fronts (µm)",
+    "Highest pressure at the front (MPa)",
+    "Of the shock pressure",
+    "Burnt state: distance behind the front (mm)",
+    "Pressure / CJ",
+    "Temperature / CJ",
+    "Pressure at the closed end (MPa)"
+   ],
+   "rows": [
+    [
+     400,
+     "\\(1968.8\\)",
+     "\\(-0.49\\,\\%\\)",
+     "\\(121\\)",
+     "\\(1.763\\)",
+     "\\(0.634\\)",
+     "\\(5.10\\)",
+     "\\(0.964\\)",
+     "\\(0.986\\)",
+     "\\(0.5950\\)"
+    ],
+    [
+     800,
+     "\\(1972.2\\)",
+     "\\(-0.32\\,\\%\\)",
+     "\\(104\\)",
+     "\\(1.927\\)",
+     "\\(0.690\\)",
+     "\\(4.77\\)",
+     "\\(0.963\\)",
+     "\\(0.986\\)",
+     "\\(0.5946\\)"
+    ],
+    [
+     1600,
+     "\\(1970.4\\)",
+     "\\(-0.41\\,\\%\\)",
+     "\\(78\\)",
+     "\\(2.042\\)",
+     "\\(0.733\\)",
+     "\\(5.05\\)",
+     "\\(0.961\\)",
+     "\\(0.988\\)",
+     "\\(0.5947\\)"
+    ],
+    [
+     3200,
+     "\\(1968.4\\)",
+     "\\(-0.51\\,\\%\\)",
+     "\\(60\\)",
+     "\\(2.195\\)",
+     "\\(0.790\\)",
+     "\\(5.32\\)",
+     "\\(0.956\\)",
+     "\\(0.988\\)",
+     "\\(0.5951\\)"
+    ],
+    [
+     "Theory",
+     "\\(1978.54\\)",
+     "–",
+     "–",
+     "\\(2.810\\)",
+     "\\(1\\)",
+     "–",
+     "\\(1\\)",
+     "\\(1\\)",
+     "\\(0.5982\\)"
+    ]
+   ]
+  },
+  "health": {
+   "head": [
+    "Run",
+    "Log checks",
+    "Lowest temperature (K)",
+    "Lowest pressure (Pa)",
+    "Mass: largest change",
+    "Atoms: largest change",
+    "Energy at the end (% of heat released)",
+    "Energy, second half (% of heat released there)",
+    "Energy after the first microsecond (% of the layer's surplus)"
+   ],
+   "rows": [
+    [
+     "800 cells",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(-0.210\\)",
+     "\\(-0.213\\)",
+     "\\(-0.13\\)"
+    ],
+    [
+     "800 cells, step x 2",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(-0.103\\)",
+     "\\(-0.098\\)",
+     "\\(-0.15\\)"
+    ],
+    [
+     "800 cells, step / 2",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(9 \\times 10^{-9}\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(-0.157\\)",
+     "\\(-0.162\\)",
+     "\\(-0.08\\)"
+    ],
+    [
+     "800 cells, 1 pass",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(-15.418\\)",
+     "\\(-15.331\\)",
+     "\\(-3.88\\)"
+    ],
+    [
+     "800 cells, 3 passes",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(2 \\times 10^{-9}\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(-1.544\\)",
+     "\\(-1.600\\)",
+     "\\(-0.53\\)"
+    ],
+    [
+     "800 cells, 7 passes",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(3 \\times 10^{-8}\\)",
+     "\\(-0.175\\)",
+     "\\(-0.173\\)",
+     "\\(-0.19\\)"
+    ],
+    [
+     "400 cells",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(2 \\times 10^{-9}\\)",
+     "\\(2 \\times 10^{-8}\\)",
+     "\\(-0.056\\)",
+     "\\(-0.046\\)",
+     "\\(-0.13\\)"
+    ],
+    [
+     "1600 cells",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(-0.259\\)",
+     "\\(-0.266\\)",
+     "\\(-0.09\\)"
+    ],
+    [
+     "3200 cells",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(2 \\times 10^{-8}\\)",
+     "\\(2 \\times 10^{-8}\\)",
+     "\\(-0.209\\)",
+     "\\(-0.216\\)",
+     "\\(-0.19\\)"
+    ],
+    [
+     "800 cells, seulex",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(-0.210\\)",
+     "\\(-0.212\\)",
+     "\\(-0.13\\)"
+    ],
+    [
+     "800 cells, looser tolerance",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(5 \\times 10^{-9}\\)",
+     "\\(6 \\times 10^{-9}\\)",
+     "\\(-0.212\\)",
+     "\\(-0.211\\)",
+     "\\(-0.13\\)"
+    ],
+    [
+     "800 cells, no cut-off",
+     "OK",
+     "\\(300.00\\)",
+     "\\(101325.0\\)",
+     "\\(1 \\times 10^{-8}\\)",
+     "\\(2 \\times 10^{-8}\\)",
+     "\\(-0.211\\)",
+     "\\(-0.214\\)",
+     "\\(-0.13\\)"
+    ]
+   ],
+   "notes": [
+    "A run that marches in time has no final residual to judge. The evidence that each run is sound is physical: the mass and the atoms of each element in the closed tube must not change, the total energy should not, and nothing may cool below the start state. All are checked after every time step from the solver's own integrals.",
+    "Total energy is the sum over the tube of heat content, chemical energy and kinetic energy, minus pressure times volume. The solver does not conserve it by construction (it solves the energy equation before the pressure). The table gives the change as a share of the heat that the burning had released; Figure 4 shows it in time.",
+    "The linear solvers reach their tolerance in two to three iterations per equation; no run reached a limit of iterations.",
+    "The runs stop at the given end time. Nothing becomes steady in a closed tube, so there is no convergence in time to wait for; the wave speed itself is steady over the second half (Figure 2)."
+   ]
+  },
+  "tables": [
+   {
+    "title": "One setting changed at a time, 800 cells",
+    "head": [
+     "Run",
+     "Time steps",
+     "Passes per step",
+     "Wave speed (m/s)",
+     "From the CJ speed",
+     "Largest distance between the fronts (µm)",
+     "Highest pressure / shock pressure",
+     "Energy, second half",
+     "Solver time (s)"
+    ],
+    "rows": [
+     [
+      "step x 2",
+      900,
+      5,
+      "\\(1970.7\\)",
+      "\\(-0.40\\,\\%\\)",
+      "\\(95\\)",
+      "\\(0.719\\)",
+      "\\(-0.098\\,\\%\\)",
+      "\\(55\\)"
+     ],
+     [
+      "main",
+      1700,
+      5,
+      "\\(1972.2\\)",
+      "\\(-0.32\\,\\%\\)",
+      "\\(104\\)",
+      "\\(0.690\\)",
+      "\\(-0.213\\,\\%\\)",
+      "\\(73\\)"
+     ],
+     [
+      "step / 2",
+      3400,
+      5,
+      "\\(1967.5\\)",
+      "\\(-0.56\\,\\%\\)",
+      "\\(111\\)",
+      "\\(0.682\\)",
+      "\\(-0.162\\,\\%\\)",
+      "\\(110\\)"
+     ],
+     [
+      "1 pass",
+      1700,
+      1,
+      "\\(1633.4\\)",
+      "\\(-17.44\\,\\%\\)",
+      "\\(182\\)",
+      "\\(0.861\\)",
+      "\\(-15.331\\,\\%\\)",
+      "\\(14\\)"
+     ],
+     [
+      "3 passes",
+      1700,
+      3,
+      "\\(1965.9\\)",
+      "\\(-0.64\\,\\%\\)",
+      "\\(104\\)",
+      "\\(0.692\\)",
+      "\\(-1.600\\,\\%\\)",
+      "\\(45\\)"
+     ],
+     [
+      "7 passes",
+      1700,
+      7,
+      "\\(1971.8\\)",
+      "\\(-0.34\\,\\%\\)",
+      "\\(105\\)",
+      "\\(0.691\\)",
+      "\\(-0.173\\,\\%\\)",
+      "\\(105\\)"
+     ],
+     [
+      "seulex",
+      1700,
+      5,
+      "\\(1972.2\\)",
+      "\\(-0.32\\,\\%\\)",
+      "\\(104\\)",
+      "\\(0.690\\)",
+      "\\(-0.212\\,\\%\\)",
+      "\\(513\\)"
+     ],
+     [
+      "looser tolerance",
+      1700,
+      5,
+      "\\(1972.1\\)",
+      "\\(-0.33\\,\\%\\)",
+      "\\(104\\)",
+      "\\(0.691\\)",
+      "\\(-0.211\\,\\%\\)",
+      "\\(64\\)"
+     ],
+     [
+      "no cut-off",
+      1700,
+      5,
+      "\\(1972.2\\)",
+      "\\(-0.32\\,\\%\\)",
+      "\\(103\\)",
+      "\\(0.690\\)",
+      "\\(-0.214\\,\\%\\)",
+      "\\(87\\)"
+     ]
+    ],
+    "note": "Time step and passes were run in the pre-flight, the chemistry settings in production. One pass per step is the setting of OpenFOAM's reacting examples. The cut-off is the temperature below which the chemistry skips a cell (\\(305\\,\\mathrm{K}\\) in the main settings: only gas the wave has not reached)."
+   },
+   {
+    "title": "The state behind the front at the end time, 3200 cells, next to the two pictures of Theory",
+    "head": [
+     "Distance behind the pressure front (mm)",
+     "Pressure / CJ: simulation",
+     "steady wave",
+     "expansion wave",
+     "Temperature / CJ: simulation",
+     "steady wave",
+     "expansion wave",
+     "Water mass fraction",
+     "Gas speed (m/s)"
+    ],
+    "rows": [
+     [
+      "\\(0.5\\)",
+      "\\(1.238\\)",
+      "\\(1.294\\)",
+      "\\(0.990\\)",
+      "\\(0.926\\)",
+      "\\(0.943\\)",
+      "\\(0.999\\)",
+      "\\(0.1965\\)",
+      "\\(1103\\)"
+     ],
+     [
+      "\\(1.0\\)",
+      "\\(1.150\\)",
+      "\\(1.197\\)",
+      "\\(0.980\\)",
+      "\\(0.966\\)",
+      "\\(0.982\\)",
+      "\\(0.998\\)",
+      "\\(0.2080\\)",
+      "\\(1025\\)"
+     ],
+     [
+      "\\(2.0\\)",
+      "\\(1.071\\)",
+      "\\(1.120\\)",
+      "\\(0.961\\)",
+      "\\(0.987\\)",
+      "\\(0.999\\)",
+      "\\(0.995\\)",
+      "\\(0.2159\\)",
+      "\\(950\\)"
+     ],
+     [
+      "\\(5.0\\)",
+      "\\(0.965\\)",
+      "\\(1.047\\)",
+      "\\(0.906\\)",
+      "\\(0.989\\)",
+      "\\(1.004\\)",
+      "\\(0.988\\)",
+      "\\(0.2218\\)",
+      "\\(848\\)"
+     ],
+     [
+      "\\(10.0\\)",
+      "\\(0.863\\)",
+      "\\(1.019\\)",
+      "\\(0.820\\)",
+      "\\(0.977\\)",
+      "\\(1.002\\)",
+      "\\(0.975\\)",
+      "\\(0.2244\\)",
+      "\\(747\\)"
+     ]
+    ],
+    "note": "The steady wave is the structure behind a shock of the CJ speed, with the scheme's reaction rates: it describes the first millimetres, where the gas burns and the pressure falls from the shock value towards the CJ value. The expansion wave is the ideal picture of a front of no thickness followed by the expansion to rest: it describes what comes after. The real profile passes from one into the other, and the CJ state is the point between them, not a stretch of constant state. CJ water mass fraction: \\(0.2223\\), CJ gas speed \\(880\\) m/s."
+   }
+  ]
+ },
+ "comparison": {
+  "kind": "Verification against theory: the Chapman-Jouguet speed and state of the reference file follow from conservation and the thermodynamic data alone, and the simulated wave must settle to them. The steady structure and the expansion wave of Theory stand next to the simulated profiles.",
+  "definitions": [
+   {
+    "name": "Wave speed",
+    "latex": "D = \\frac{x_p(t_{\\mathrm{end}}) - x_p(t_{\\mathrm{end}}/2)}{t_{\\mathrm{end}}/2}",
+    "meaning": "\\(x_p\\): the pressure front, the furthest point where the pressure is halfway between the start pressure and the CJ pressure, on a straight line between two cell centres."
+   },
+   {
+    "name": "Distance between the fronts",
+    "latex": "x_p - x_b",
+    "meaning": "\\(x_b\\): the burning front, the furthest point where the water mass fraction is half its CJ value. Judged at each of the sampled states (every half microsecond) from 10 microseconds on."
+   },
+   {
+    "name": "Burnt state",
+    "latex": "u + c = D",
+    "meaning": "The first point behind the front where the gas (speed \\(u\\), speed of sound \\(c\\) at fixed composition) moves away from the front at its own speed of sound. Nothing behind that point can reach the front; in the ideal wave it is the CJ state. The CJ state of the reference uses the speed of sound of gas that stays in chemical equilibrium, \\(1098\\,\\mathrm{m/s}\\); at fixed composition it is \\(1134\\,\\mathrm{m/s}\\) for the same state. With the lower value the point would lie closer to the front, where the pressure is higher, so this reading gives a pressure on the low side."
+   },
+   {
+    "name": "Highest pressure at the front",
+    "latex": "\\frac{\\overline{p_{\\max}}}{p_{\\mathrm{s}}(D)}",
+    "meaning": "The highest pressure in the tube, averaged over every step of the second half of the time, over the pressure behind a shock of the simulated speed \\(D\\) in the unburnt gas."
+   },
+   {
+    "name": "Change of total energy",
+    "latex": "\\frac{E(t) - E(0)}{q(t)}",
+    "meaning": "\\(E\\): total energy in the tube; \\(q\\): heat released by the burning up to time \\(t\\). For the second half of the time both differences are taken over that half."
+   }
+  ],
+  "head": [
+   "Cells",
+   "Cell size (µm)",
+   "Wave speed: from the CJ speed",
+   "Change from the grid before",
+   "Speed over each half microsecond, second half",
+   "Highest pressure / shock pressure",
+   "Largest distance between the fronts (µm)",
+   "Pressure at the closed end: from Theory",
+   "Energy, second half"
+  ],
+  "rows": [
+   [
+    400,
+    "\\(300.0\\)",
+    "\\(-0.49\\,\\%\\)",
+    "–",
+    "\\(-1.7\\,\\%\\) to \\(+1.3\\,\\%\\)",
+    "\\(0.634\\)",
+    "\\(121\\)",
+    "\\(-0.53\\,\\%\\)",
+    "\\(-0.046\\,\\%\\)"
+   ],
+   [
+    800,
+    "\\(150.0\\)",
+    "\\(-0.32\\,\\%\\)",
+    "\\(+0.17\\,\\%\\)",
+    "\\(-1.2\\,\\%\\) to \\(+0.5\\,\\%\\)",
+    "\\(0.690\\)",
+    "\\(104\\)",
+    "\\(-0.60\\,\\%\\)",
+    "\\(-0.213\\,\\%\\)"
+   ],
+   [
+    1600,
+    "\\(75.0\\)",
+    "\\(-0.41\\,\\%\\)",
+    "\\(-0.09\\,\\%\\)",
+    "\\(-0.8\\,\\%\\) to \\(+0.0\\,\\%\\)",
+    "\\(0.733\\)",
+    "\\(78\\)",
+    "\\(-0.60\\,\\%\\)",
+    "\\(-0.266\\,\\%\\)"
+   ],
+   [
+    3200,
+    "\\(37.5\\)",
+    "\\(-0.51\\,\\%\\)",
+    "\\(-0.10\\,\\%\\)",
+    "\\(-0.7\\,\\%\\) to \\(-0.3\\,\\%\\)",
+    "\\(0.790\\)",
+    "\\(60\\)",
+    "\\(-0.52\\,\\%\\)",
+    "\\(-0.216\\,\\%\\)"
+   ]
+  ],
+  "findings": [
+   "<b>Speed.</b> Every grid is inside the required \\(2\\,\\%\\): \\(-0.49\\,\\%\\), \\(-0.32\\,\\%\\), \\(-0.41\\,\\%\\), \\(-0.51\\,\\%\\). The speed does not approach a limit as the cells shrink: the last two changes are \\(-0.09\\,\\%\\) and \\(-0.10\\,\\%\\), in the same direction and not shrinking. The second table shows why: the wave is still speeding up towards the CJ speed at the end of the time, and it does so more slowly on finer grids. What differs between the grids is how far the settling has got, so no order and no extrapolated value are given. Changing the chemistry settings moves the speed by \\(0.007\\,\\%\\) only.",
+   "<b>Why a coarse grid gets the speed right.</b> The CJ speed follows from the three conservation laws and the heat released. A run that conserves mass, momentum and energy and burns the gas completely must produce it, whatever the front looks like inside. The energy lost by the solver (\\(0.05\\,\\%\\), \\(0.21\\,\\%\\), \\(0.27\\,\\%\\), \\(0.22\\,\\%\\) of the heat released, coarse to fine) costs little speed: on 800 cells, with three passes per step the loss is \\(1.6\\,\\%\\) of the heat released, against \\(0.2\\,\\%\\) with five, and the speed is only \\(0.32\\,\\%\\) lower.",
+   "<b>Front structure.</b> The pressure peak is the part that needs resolution: \\(0.63\\), \\(0.69\\), \\(0.73\\), \\(0.79\\) of the shock pressure, coarse to fine. In the steady wave the pressure stays near the shock value for only \\(0.17\\,\\mathrm{mm}\\), less than \\(5\\) cells of the finest grid (Figure 6).",
+   "<b>Attached.</b> The burning front follows the pressure front at \\(102\\,\\mathrm{\\mu m}\\), \\(92\\,\\mathrm{\\mu m}\\), \\(73\\,\\mathrm{\\mu m}\\), \\(57\\,\\mathrm{\\mu m}\\) on average, coarse to fine, which is \\(0.3\\), \\(0.6\\), \\(1.0\\), \\(1.5\\) cells. In the steady wave of Theory the distance is \\(169\\,\\mathrm{\\mu m}\\); where the cells are larger than that, shock and burning share one smeared front. A second reading, made at every time step and not only at the sampled times, is the distance between the point of highest pressure and the point of highest heat release: at most \\(1.50\\,\\mathrm{mm}\\), \\(0.60\\,\\mathrm{mm}\\), \\(0.23\\,\\mathrm{mm}\\), \\(0.11\\,\\mathrm{mm}\\), coarse to fine (\\(5\\), \\(4\\), \\(3\\), \\(3\\) cells). The heat release peaks at the leading edge of the smeared front and the pressure a few cells behind it, so this reading grows with the cell size; the requirement is judged on the two fronts as defined before the runs.",
+   "<b>Behind the wave.</b> The pressure at the closed end is \\(-0.52\\,\\%\\) from the value of the expansion wave, and the temperature there is \\(2652\\,\\mathrm{K}\\) against \\(2608\\,\\mathrm{K}\\): the gas near the wall is what the ignition layer left behind, which the ideal picture does not contain."
+  ],
+  "tables": [
+   {
+    "title": "Speed of the pressure front over three stretches of the time, as a difference from the CJ speed",
+    "head": [
+     "Run",
+     "10 to 25 µs",
+     "25 to 37.5 µs",
+     "37.5 to 50 µs",
+     "Second half (the asked speed)"
+    ],
+    "rows": [
+     [
+      "400 cells",
+      "\\(-1.04\\,\\%\\)",
+      "\\(-0.64\\,\\%\\)",
+      "\\(-0.34\\,\\%\\)",
+      "\\(-0.49\\,\\%\\)"
+     ],
+     [
+      "800 cells",
+      "\\(-0.73\\,\\%\\)",
+      "\\(-0.38\\,\\%\\)",
+      "\\(-0.26\\,\\%\\)",
+      "\\(-0.32\\,\\%\\)"
+     ],
+     [
+      "1600 cells",
+      "\\(-0.54\\,\\%\\)",
+      "\\(-0.45\\,\\%\\)",
+      "\\(-0.37\\,\\%\\)",
+      "\\(-0.41\\,\\%\\)"
+     ],
+     [
+      "3200 cells",
+      "\\(-0.57\\,\\%\\)",
+      "\\(-0.54\\,\\%\\)",
+      "\\(-0.49\\,\\%\\)",
+      "\\(-0.51\\,\\%\\)"
+     ],
+     [
+      "800 cells, step x 2",
+      "\\(-1.07\\,\\%\\)",
+      "\\(-0.52\\,\\%\\)",
+      "\\(-0.27\\,\\%\\)",
+      "\\(-0.40\\,\\%\\)"
+     ],
+     [
+      "800 cells, step / 2",
+      "\\(-0.78\\,\\%\\)",
+      "\\(-0.61\\,\\%\\)",
+      "\\(-0.50\\,\\%\\)",
+      "\\(-0.56\\,\\%\\)"
+     ]
+    ],
+    "note": "The wave starts below the CJ speed and closes in on it from below. From the first to the last stretch the deficit shrinks by \\(0.70\\,\\%\\) on the coarsest grid and by \\(0.08\\,\\%\\) on the finest. The last rows are the time-step study: the run with half the step closes in more slowly than the main run, as a finer grid does."
+   }
+  ]
+ },
+ "insights": [
+  {
+   "id": 1,
+   "stage": "setup",
+   "logged": "2026-11-16 08:44",
+   "status": "resolved",
+   "problem": "The first trial stopped at once. OpenFOAM could not read the start value of the hydrogen mass fraction, because the case file held the text <code>np.float64(0.0285...)</code> where a number belongs.",
+   "diagnosis": "The mass fractions came from a NumPy array, and <code>repr()</code> of a NumPy number prints its type. <code>foam.render_case</code> writes whatever text it is given.",
+   "fix": "Converted every value to a Python float before it goes into the case parameters.",
+   "lesson": "A value that goes into a case file must be a plain number. The mistake is silent in Python and stops the solver.",
+   "guideline": "<code>foam.render_case</code> could convert NumPy numbers to plain ones, or refuse a rendered file that contains <code>np.float64(</code>."
+  },
+  {
+   "id": 2,
+   "stage": "setup",
+   "logged": "2026-11-16 08:46",
+   "status": "resolved",
+   "problem": "The chemistry takes about 97 % of the run time of <code>reactingFoam</code> on this problem, and it costs the same in every cell, also in the cold gas that the wave has not reached. Every chemistry method costs about the same.",
+   "diagnosis": "OpenFOAM integrates the chemistry of every cell in every time step, at least one step of the method per cell: about \\(21\\) to \\(33\\) microseconds per cell, whatever the cell holds. The flow part of a step costs under \\(1\\) microsecond per cell. Five methods and tolerances were timed on the same short run: the explicit method <code>RKF45</code> was cheapest (\\(25\\,\\mathrm{s}\\)), <code>seulex</code> dearest (\\(40\\,\\mathrm{s}\\)), and all put the front within \\(0.02\\,\\mathrm{mm}\\) of each other after \\(19\\,\\mathrm{mm}\\) of travel.",
+   "fix": "Chose <code>RKF45</code>, and set the entry <code>Treact</code> of the chemistry dictionary just above the start temperature, so that cells the wave has not reached are skipped. The same-answer check of that setting is a run of the plan.",
+   "lesson": "In a flow solver the chemistry is not dear where it is fast; it is dear everywhere, because of the fixed cost per cell and step. With time steps of a few nanoseconds no cell is stiff, so an explicit method is enough.",
+   "guideline": "The primer's chemistry section could say: in <code>reactingFoam</code> budget about \\(20\\) to \\(30\\) microseconds per cell and step for the hydrogen scheme on one core, in every cell; <code>Treact</code> skips cold cells; the chemistry is solved again in every outer corrector."
+  },
+  {
+   "id": 3,
+   "stage": "setup",
+   "logged": "2026-11-16 08:49",
+   "status": "resolved",
+   "problem": "With the settings of OpenFOAM's reacting examples (one pass per time step, called PISO mode) the wave ran at about \\(1790\\,\\mathrm{m/s}\\) on the first grid, 9 % below the Chapman-Jouguet speed, and a finer grid at the same Courant number was no better.",
+   "diagnosis": "The solver was losing energy. The total energy in the closed tube (heat content, chemical energy and kinetic energy minus pressure times volume, summed from the solver's own fields after every step) fell by about 10 % of the heat the burning had released. Halving the time step halved the loss (5 %); halving the cell size at the same Courant number did not reduce it (12 %). The cause is the order of the solver's steps: the energy equation is solved before the pressure, with the pressure change of the pass before. Repeating the pass (<code>nOuterCorrectors</code>) removes it: the loss is 0.8 % with 3 passes and 0.13 % with 5.",
+   "fix": "Five passes per time step, and the energy balance of every run as the physical check of the plan, with a limit set before the runs.",
+   "lesson": "A pressure-based solver does not conserve energy by construction. On a detonation the missing energy is missing heat release, and the wave is slower: in the full runs on 800 cells it is 17 % below the CJ speed with one pass (15 % of the heat lost), 0.6 % below with three passes (1.6 % lost) and 0.3 % below with five (0.2 % lost). It does not show in residuals, in the mass or in the look of the profiles, and grid refinement does not remove it.",
+   "guideline": "The primer needs an entry for pressure-based compressible solvers with shocks or burning (<code>reactingFoam</code>, <code>rhoPimpleFoam</code>): PISO mode loses energy in proportion to the time step; use 3 to 5 outer correctors and check the energy balance. A helper in <code>cfdlib</code> that turns the volume integrals of a reacting run into total energy and atoms would make this check one call (this case's <code>measure.py</code> has it)."
+  },
+  {
+   "id": 4,
+   "stage": "setup",
+   "logged": "2026-11-16 08:53",
+   "status": "open",
+   "problem": "An even number of passes per time step (2 or 8) adds energy in the first microsecond: \\(1750\\) to \\(2750\\,\\mathrm{J/m^2}\\), which is 12 to 19 % of what the ignition layer holds above the gas around it. An odd number (3, 5) does not (under \\(40\\,\\mathrm{J/m^2}\\)).",
+   "diagnosis": "Not explained. The passes of a step are not relaxed, so successive passes may overshoot in turn at the sharp jump of the start, and the last pass then decides the sign of the error. Later, while the wave travels, 2 passes lose 2.1 % of the heat released and 8 passes gain 0.13 %, in line with the odd counts.",
+   "fix": "Odd counts only (5 in the main settings); the start-up error of each run is reported."
+  },
+  {
+   "id": 5,
+   "stage": "setup",
+   "logged": "2026-11-16 08:50",
+   "status": "resolved",
+   "problem": "The solver stopped when the energy variable was changed from enthalpy to internal energy (<code>sensibleInternalEnergy</code>), with \"Unknown chemistryReader type chemkinReader\".",
+   "diagnosis": "OpenFOAM v2606 builds its reader of CHEMKIN files for the enthalpy form only. With internal energy the scheme must first be converted by <code>chemkinToFoam</code>.",
+   "fix": "Stayed with enthalpy, the form of OpenFOAM's reacting examples. The internal-energy form was not tested.",
+   "lesson": "The problem asks for the scheme's files as they are; the direct reader does that only with the enthalpy form.",
+   "guideline": "A line in the primer's chemistry section."
+  },
+  {
+   "id": 6,
+   "stage": "setup",
+   "logged": "2026-11-16 08:54",
+   "status": "resolved",
+   "problem": "Skipping the chemistry below \\(500\\,\\mathrm{K}\\) (<code>Treact</code>) changed the answer a little, where I expected no change at all. After \\(10\\) microseconds the front was \\(0.018\\,\\mathrm{mm}\\) behind (0.09 %).",
+   "diagnosis": "On these grids the pressure front is two or three cells wide and the burning starts inside it. Cells in the foot of the front are colder than \\(500\\,\\mathrm{K}\\) and already hold reactive species that the scheme has smeared forward. They react there, and the cut-off stops that.",
+   "fix": "The cut-off is set at \\(305\\,\\mathrm{K}\\), just above the start temperature, so that only cells the wave has not touched are skipped. A run without the cut-off checks it.",
+   "lesson": "A setting that should only save time can change the answer where the front is under-resolved. Measure it with a same-answer pair.",
+   "guideline": "None needed beyond the workflow's rule that a speed setting needs a check of the answer."
+  },
+  {
+   "id": 7,
+   "stage": "preflight",
+   "logged": "2026-11-16 09:06",
+   "status": "resolved",
+   "problem": "The first pre-flight failed its start-state check. After the first time step the tube held 0.17 % more mass than at the start, the atoms had changed by 0.2 %, and the highest pressure was 3.34 instead of 3.00 megapascals. After that step the mass no longer changed.",
+   "diagnosis": "Two causes, found one after the other. (1) My plan had a grid of 600 cells, on which the \\(1.5\\,\\mathrm{mm}\\) ignition layer is 7.5 cells; <code>setFields</code> took 8, so the layer was \\(1.6\\,\\mathrm{mm}\\) thick and held 0.21 % more mass. (2) The solver's first time step does not keep mass when the gas reacts in it: 0.04 % was lost in a first step of 40 nanoseconds. My reading is that on its first step the solver has no stored gas state of the step before, so the pressure equation uses the state after the first chemistry step in its place; this reading was not checked in the source beyond the order of the calls.",
+   "fix": "Grids with a multiple of 80 cells only (400 and 800 replace 600), and a guard in <code>run.py</code> that refuses any other. The first time step is now \\(10^{-12}\\,\\mathrm{s}\\) and grows by a fifth per step to the step of the run. The start then agrees with the values computed without the solver: mass to \\(5 \\times 10^{-9}\\), energy and highest pressure exactly.",
+   "lesson": "A start-state check against numbers computed without the solver caught both. Without it the 600-cell run would have looked healthy, with a slightly stronger ignition.",
+   "guideline": "The primer could say for <code>reactingFoam</code> and its relatives: a first time step in which the gas reacts or heats is not mass-conserving; start with a tiny step. And for any layer or jump set by <code>setFields</code>: check that its edge is a cell face on every grid of the family."
+  },
+  {
+   "id": 9,
+   "stage": "tooling",
+   "logged": "2026-11-16 09:12",
+   "status": "resolved",
+   "problem": "With the growing first step, <code>monitor.assess</code> marked a healthy short run as failed (\"Courant number trend\", a factor of \\(7 \\times 10^{5}\\), and \"Continuity-error trend\").",
+   "diagnosis": "The run starts from rest with a step of \\(10^{-12}\\,\\mathrm{s}\\), so over the first 50 steps both the step and the gas speed grow. The check has an exemption for a growing step, but it tests whether the speed stayed the same, and from rest it does not.",
+   "fix": "The case's health check gives <code>monitor.assess_arrays</code> the log from the first step of the planned size on.",
+   "lesson": "A deliberate ramp from rest looks like a blow-up to a trend check.",
+   "guideline": "<code>monitor.assess</code> could take a start time (or skip the steps before the time step first reaches its cap)."
+  },
+  {
+   "id": 10,
+   "stage": "preflight",
+   "logged": "2026-11-16 09:15",
+   "status": "resolved",
+   "problem": "With an adjustable step OpenFOAM does not shorten the steps to land on a sampling time, it lengthens the last two. On 400 cells with 833 steps (8.33 steps between two samples) two steps in every eight were 17 % longer than the step I had set as the largest.",
+   "diagnosis": "The solver rounds the number of steps to the next sampling time down, then spreads the remainder over the last steps; <code>maxDeltaT</code> does not bound that.",
+   "fix": "Step counts that are a multiple of the number of samples (100), so that a whole number of steps fits between samples. The pre-flight checks that no step is more than 2 % longer than planned.",
+   "lesson": "The largest step of a run is not what the dictionary says; read it from the output.",
+   "guideline": "A line in the primer's list of function-object pitfalls."
+  },
+  {
+   "id": 11,
+   "stage": "preflight",
+   "logged": "2026-11-16 09:28",
+   "status": "resolved",
+   "problem": "My run plan did not fit the time. It went up to 9600 cells, with the studies on 1200 cells. The one-core timing run of the pre-flight on 1200 cells was a third done after 100 seconds and getting slower, and the short test of the 9600-cell grid took 92 milliseconds per time step on 16 ranks before much gas had burnt: 30 minutes for that run from this cost alone.",
+   "diagnosis": "Three costs, measured on short runs of 1200 cells. (1) The chemistry of a burnt cell costs about \\(100\\) to \\(140\\) microseconds per pass at the time step of the plan, five times the figure of my first trials (insight 2), which were made at half the time step and mostly on unburnt cells: the explicit method takes sub-steps in proportion to the flow step, and the implicit methods were no cheaper (<code>seulex</code> \\(21.5\\,\\mathrm{s}\\), <code>Rosenbrock34</code> \\(19.1\\,\\mathrm{s}\\), <code>RKF45</code> \\(19.4\\,\\mathrm{s}\\)). With five passes the chemistry is solved five times per step. (2) A parallel run pays about \\(25\\) milliseconds per time step whatever the grid (the same on 400 and on 1200 cells), so 8 ranks were only twice as fast as one core. (3) Balance: with one piece of tube per rank, 8 ranks were no faster than one, because all the burnt gas is in the first ranks; 3 stretches per rank gave 1.3 times, 12 stretches 2 times.",
+   "fix": "The plan was cut before any full run was kept: four grids of ratio 2 up to 3200 cells (\\(37.5\\) micrometres) in place of six up to 9600, the studies on 800 cells, the one-core run only over the first fifth of the time, 8 ranks everywhere. The cut is written in <code>numerics.yaml</code> and in the mesh decision.",
+   "lesson": "Size the plan from a timing at the plan's own settings (time step, passes, tolerance) and on burnt gas, not from the first trial. For a wave that leaves burnt gas behind, the cost of a run grows with the square of the time covered, so the first few percent say little.",
+   "guideline": "The pre-flight could give a cost forecast for runs whose cost per step grows (a quadratic fit of the run time against the simulated time of the short run), next to its present straight-line one. The primer could say that MPI in WSL on this PC costs about 25 ms per time step of <code>reactingFoam</code> with 5 passes on 8 ranks, so small grids gain little."
+  },
+  {
+   "id": 12,
+   "stage": "preflight",
+   "logged": "2026-11-16 09:29",
+   "status": "open",
+   "problem": "The answer depends a little on how the tube is cut between the ranks. On a short run of 1200 cells the front after \\(10\\) microseconds stood at \\(20.472\\,\\mathrm{mm}\\) on one core and between \\(20.474\\) and \\(20.491\\,\\mathrm{mm}\\) for four ways of cutting: up to 0.09 %.",
+   "diagnosis": "Not settled. The linear solves go to \\(10^{-10}\\), so they should not differ in the fourth digit. My reading: a detonation front whose burning zone is only one or two cells thick reacts strongly to small changes (a different chemistry cut-off moved it by the same amount, insight 6), so differences in the last digits grow. Not tested further.",
+   "fix": "None. The spread is reported with the results as the size below which differences between runs mean nothing."
+  },
+  {
+   "id": 13,
+   "stage": "preflight",
+   "logged": "2026-11-16 09:40",
+   "status": "resolved",
+   "problem": "My rule for the burnt state found nothing on any run of the pre-flight. The rule looks for the first point behind the front where the gas moves away from the front at its own speed of sound.",
+   "diagnosis": "The search started at the pressure front and took the first cell behind it that met the condition. Those are the cells inside the front itself, where the gas is still cold and slow; they meet the condition too. The point that is meant lies behind the hot stretch in which the gas is slower than its sound relative to the front.",
+   "fix": "The search now starts from the front end of that hot stretch. On 800 cells the point is \\(4.8\\,\\mathrm{mm}\\) behind the front. The finished runs were read again with the corrected rule; no run was repeated.",
+   "lesson": "A reading rule written before any run needs one look at a real profile before the runs that depend on it. The pre-flight's full run gave that look in time.",
+   "guideline": "None beyond the workflow's rule that the pre-flight exercises every reading rule on real output."
+  },
+  {
+   "id": 14,
+   "stage": "tooling",
+   "logged": "2026-11-16 09:33",
+   "status": "resolved",
+   "problem": "A pre-flight that I started in the background inside WSL (with nohup, from a wsl command that then returned) never ran. Half a minute later WSL reported an up-time of zero minutes.",
+   "diagnosis": "When the last wsl command returns, Windows shuts the WSL virtual machine down after a few seconds, and every process in it dies, nohup or not. The machine file says that /tmp is wiped when the machine idles, which is the same event, but not that background jobs die with it.",
+   "fix": "The long runs are started as a wsl command that stays in the foreground of a background task of the agent's tool.",
+   "lesson": "On this PC a job lives only as long as a wsl command is attached to it.",
+   "guideline": "A line in <code>workflow/machines/dev-pc.md</code>: a job detached inside WSL dies when the calling wsl command returns; keep the wsl command itself running (in a background task) for as long as the job."
+  },
+  {
+   "id": 15,
+   "stage": "preflight",
+   "logged": "2026-11-16 09:42",
+   "status": "open",
+   "problem": "The time-step study on 800 cells shows no trend: the wave speed is \\(-0.40\\,\\%\\), \\(-0.32\\,\\%\\) and \\(-0.56\\,\\%\\) from the CJ speed at twice, once and half the main step. The energy loss does not fall with the step either (\\(0.10\\,\\%\\), \\(0.21\\,\\%\\), \\(0.16\\,\\%\\) of the heat released).",
+   "diagnosis": "Not settled. With five passes per step the splitting error is already small, and what is left is of the size of the changes that the same run shows when a setting that should not matter is changed (insight 12). A time-step error of first order, which the Euler scheme and the coupling of flow and chemistry should give, is hidden below that.",
+   "fix": "None. The three results are reported as they are; no order in time is claimed."
+  },
+  {
+   "id": 16,
+   "stage": "analysis",
+   "logged": "2026-11-16 09:45",
+   "status": "resolved",
+   "problem": "The first run of the analysis stopped while it formatted the given data. The pressure of the ignition layer came out of <code>problem.yaml</code> as text, not as a number.",
+   "diagnosis": "The file writes the value as <code>3.0e6</code>. The YAML reader of Python takes a number in this notation only when the exponent has a sign (<code>3.0e+6</code>); without it the value is a string. The other values of the file have a signed exponent or none.",
+   "fix": "The analysis converts every given value to a number, as the theory module already did.",
+   "lesson": "A value that looks like a number in a YAML file may not be one.",
+   "guideline": "<code>contract.check_problem_file</code> could refuse a given value that is a string, or convert it; the problem template could say to write exponents with a sign."
+  },
+  {
+   "id": 17,
+   "stage": "analysis",
+   "logged": "2026-11-16 09:44",
+   "status": "resolved",
+   "problem": "I wrote in a figure caption, in a decision and in the theory text that the strong ignition layer drives the wave too fast at first. The first figure drawn from the runs showed the opposite: the wave starts several percent slower than the CJ speed and rises to it.",
+   "diagnosis": "I had reasoned from the pressure of the layer (30 atmospheres against 16 behind a CJ wave) and written the text before any full run existed. The layer is thin (\\(1.5\\,\\mathrm{mm}\\)), so its push fades within a few millimetres, and the wave then needs time to build up.",
+   "fix": "The three texts were corrected, and the caption now takes the early speed and the settling time from the data.",
+   "lesson": "Text about a result is written from the result. A sentence written before the runs is a prediction and belongs with the rules, where it would have been checked.",
+   "guideline": "None needed; the workflow already says that numbers and claims in the report come from code."
+  },
+  {
+   "id": 18,
+   "stage": "analysis",
+   "logged": "2026-11-16 09:47",
+   "status": "resolved",
+   "problem": "The problem asks for the pressure and temperature of the burnt gas \"just behind the wave\". In a closed tube there is no such stretch of constant state: the pressure falls from the peak at the front straight into the expansion wave.",
+   "diagnosis": "The CJ state is one point of the profile, the point between the burning zone and the expansion. Reading the state at a fixed distance gives any value from 1.2 to 0.9 of the CJ pressure, depending on the distance.",
+   "fix": "The burnt state is read at the first point behind the front where the gas moves away from it at its own speed of sound (\\(u + c = D\\), with the speed of sound at fixed composition): the definition of the end of the wave proper. A table gives the state at five fixed distances next to the two pictures of theory.",
+   "lesson": "An output of a problem needs a reading rule that names a point, not a region.",
+   "guideline": "The problem statement of the next detonation case could name the point (where \\(u + c = D\\)), and the reference file could give the equilibrium and the fixed-composition speed of sound at the CJ state, since the two differ by a few percent and the choice moves the point."
+  },
+  {
+   "id": 19,
+   "stage": "production",
+   "logged": "2026-11-16 10:02",
+   "status": "resolved",
+   "problem": "The run with the implicit chemistry solver <code>seulex</code> took \\(513\\,\\mathrm{s}\\), seven times the \\(73\\,\\mathrm{s}\\) of the main settings on the same grid. My short timing tests had put the two within a tenth of each other.",
+   "diagnosis": "The short tests covered the first fifth of the time, when few cells are burnt and the fixed cost of a parallel step hides the chemistry. Over the full run the burnt cells dominate, and there <code>seulex</code> pays for a Jacobian and its factorisation in every cell and pass, for steps of some tens of nanoseconds that the explicit method covers in a few sub-steps. The wave speed is the same to four digits.",
+   "fix": "None needed for the answer; the forecast was simply wrong, and this one run took a quarter of the production time.",
+   "lesson": "The same lesson as insight 11, a second time. A timing over the first part of a run with a growing burnt region says little about the whole run, also for the comparison of two methods.",
+   "guideline": "The primer's chemistry section could say: in a detonation run with flow steps of tens of nanoseconds, an explicit chemistry solver with error control (<code>RKF45</code>) is several times cheaper than <code>seulex</code> at the same answer."
+  },
+  {
+   "id": 20,
+   "stage": "analysis",
+   "logged": "2026-11-16 10:06",
+   "status": "resolved",
+   "problem": "The wave speed does not converge with the cell size. From 800 to 3200 cells it moves away from the CJ speed by a tenth of a percent with each halving (\\(-0.32\\,\\%\\), \\(-0.41\\,\\%\\), \\(-0.51\\,\\%\\)), and the time-step study shows no trend either.",
+   "diagnosis": "The wave has not finished settling when the time ends. Split into three stretches of the time, the front speed on the finest grid is \\(-0.57\\,\\%\\), \\(-0.54\\,\\%\\) and \\(-0.49\\,\\%\\) from the CJ speed, and on the coarsest \\(-1.04\\,\\%\\), \\(-0.64\\,\\%\\) and \\(-0.34\\,\\%\\): every grid closes in on the CJ speed from below, the coarse ones faster. So the speed over the second half measures how far the settling has got, and that differs from grid to grid. Why finer grids settle more slowly was not found out.",
+   "fix": "The report gives the three stretches for every grid, claims no order and extrapolates nothing.",
+   "lesson": "Before reading a grid study of a quantity taken over a time window, check that the quantity is steady in that window on every grid. A study of something that is still changing compares stages, not errors.",
+   "guideline": "For the next detonation case: a longer tube, or a wave speed read over the last fifth of the time, with the speed over two successive windows as a settling check. The problem statement could ask for that check."
+  },
+  {
+   "id": 21,
+   "stage": "report",
+   "logged": "2026-11-16 10:10",
+   "status": "resolved",
+   "problem": "The visual review found five hand checks of the theory section wider than their boxes, a caption that described a curve which lies outside its frame, a sentence that called two changes of the same sign \"not in one direction\", and an answer that gave the share \"of the chemistry\" from a number that also holds the cost of message passing.",
+   "diagnosis": "The hand checks carried full formulas with every factor written out. The caption and the sentence were written before the last runs, the second through a test on the grid-study helper's flag that means something else. The share was a label written faster than the number behind it was thought through.",
+   "fix": "Shorter hand checks; the caption now gives the value of the curve that is off the frame; the sentence is built from the signs and sizes of the two changes; the answer gives the measured one-core share and the flow share separately.",
+   "lesson": "The overflow test of the workflow and one look at every figure with its caption caught all four.",
+   "guideline": "None needed."
+  },
+  {
+   "id": 22,
+   "stage": "report",
+   "logged": "2026-11-16 10:11",
+   "status": "open",
+   "problem": "The setup lines of <code>problem.yaml</code> mark file names with backticks, and the report shows the backticks as they are.",
+   "diagnosis": "The workflow says to pass the setup lines to the report unchanged, and the report treats them as HTML, where a backtick means nothing.",
+   "fix": "None; the problem file is given.",
+   "guideline": "The problem template could say to mark file names with <code>&lt;code&gt;</code>, or the report could turn backticks into code spans."
+  },
+  {
+   "id": 8,
+   "stage": "tooling",
+   "logged": "2026-11-16 09:09",
+   "status": "resolved",
+   "problem": "Two slips with the shell on this machine, both described in the machine file. I started a command with the word python in Git Bash, which hung until the tool's time limit. And I patched Python code that holds LaTeX through a shell here-document, which ate the backslashes; the patch stopped on its own check before it wrote anything.",
+   "diagnosis": "Habit. Both warnings are in the machine file, which I had read an hour earlier.",
+   "fix": "Stopped the hung command; made the edits with the file-editing tool.",
+   "lesson": "A warning read once at the start does not hold through a long session.",
+   "guideline": "None for the text. A hook that refuses a bare <code>python</code> in Git Bash on this machine would enforce it."
+  }
+ ],
+ "figures": [
+  {
+   "key": "sketch",
+   "section": "problem",
+   "caption": "The problem as a picture (not a result). Top: the closed tube with the wave on its way; the ignition layer at the left end started it. Bottom: the pressure along the tube at the same moment, in outline: a jump at the front, a fall while the gas burns, an expansion, and gas at rest again towards the closed end."
+  },
+  {
+   "key": "xt",
+   "section": "simulation",
+   "caption": "Left: position of the pressure front (line) and of the burning front (circles) against time on 3200 cells; they cannot be told apart at this scale. The dashed line has the slope of the CJ speed; the shaded half is where the wave speed is read. Right: speed of the pressure front over 2 microseconds, as a difference from the CJ speed, on every grid; the shaded band is the required accuracy. Between 2 and 4 microseconds the wave on the finest grid is \\(4.1\\,\\%\\) slower than the CJ speed; from \\(11\\,\\mathrm{\\mu s}\\) on its speed stays within 1 % of it."
+  },
+  {
+   "key": "profiles",
+   "section": "simulation",
+   "caption": "Pressure (left) and temperature (right) along the tube at five times, 3200 cells. The wave keeps its height and shape and leaves a growing stretch of gas at rest behind it. The dashed line is the ideal wave of Theory at the end time (a front of no thickness followed by the expansion to rest), drawn with its front at the simulated front. The hot stretch at the closed end is what is left of the ignition layer."
+  },
+  {
+   "key": "structure",
+   "section": "comparison",
+   "caption": "The state behind the front at the end time on every grid, as pressure (left) and temperature (right) over their CJ values against the distance behind the pressure front. The dashed line is the steady wave of Theory with its sharp shock and the wait before burning; the dotted line is the CJ value. Circles mark where the burnt state is read (the gas leaves the front at its own speed of sound). The grids smear the shock and the burning into one front of a few cells and cut off the pressure peak."
+  },
+  {
+   "key": "attached",
+   "section": "comparison",
+   "caption": "Left: distance between the pressure front and the burning front against time, on a logarithmic scale; the dashed line is the required limit of 1 mm and the dotted line the time from which it applies. Right: the highest pressure in the tube over the pressure behind a shock of the CJ speed (dashed: that pressure; dotted: the CJ pressure). The spike at the start is the ignition layer, which is unburnt mixture and burns first, reaching \\(4.1\\,\\mathrm{MPa}\\). Finer grids show more of the peak."
+  },
+  {
+   "key": "conservation",
+   "section": "simulation",
+   "caption": "Change of the total energy in the tube as a percentage of the heat released so far. Left: the four grids with five passes per step. Right: the effect of the number of passes per step on 800 cells. One pass, the setting of OpenFOAM's reacting examples, lies below the frame: it has lost \\(15.4\\,\\%\\) at the end. The curves start at 2 microseconds, when enough heat has been released for the ratio to mean something."
+  },
+  {
+   "key": "convergence",
+   "section": "convergence",
+   "caption": "Wave speed as a difference from the CJ speed; the shaded band is the required accuracy. Left: against the cell size. Right: one setting changed at a time on 800 cells (time step, passes per step, chemistry solver, its tolerance, the cut-off temperature). The run with one pass per step, at \\(-17.4\\,\\%\\), is off the scale and is left out."
+  }
+ ],
+ "performance": {
+  "intro": "All full runs used 8 cores (MPI ranks) of one desktop under WSL, with the tube cut into 96 short stretches dealt to the ranks in turn. Solver time is wall-clock time. The chemistry works only in cells the wave has reached (in every cell in the run without the cut-off temperature), so the cost of a step grows as the wave travels; one column gives the share of those cells in all cell-steps.",
+  "head": [
+   "Run",
+   "Cores",
+   "Steps",
+   "Passes",
+   "Solver time (s)",
+   "Wall µs per cell and step",
+   "Cells the chemistry works on (share of cell-steps)",
+   "Core µs per such cell and pass (everything counted)",
+   "Share not spent on the flow",
+   "Pressure solver iterations"
+  ],
+  "rows": [
+   [
+    "800 cells",
+    8,
+    1750,
+    5,
+    "\\(73\\)",
+    "\\(52.4\\)",
+    "\\(41\\,\\%\\)",
+    "\\(205\\)",
+    "\\(97\\,\\%\\)",
+    "\\(2.1\\)"
+   ],
+   [
+    "800 cells, step x 2",
+    8,
+    954,
+    5,
+    "\\(55\\)",
+    "\\(71.6\\)",
+    "\\(40\\,\\%\\)",
+    "\\(290\\)",
+    "\\(98\\,\\%\\)",
+    "\\(2.6\\)"
+   ],
+   [
+    "800 cells, step / 2",
+    8,
+    3447,
+    5,
+    "\\(110\\)",
+    "\\(40.0\\)",
+    "\\(41\\,\\%\\)",
+    "\\(155\\)",
+    "\\(96\\,\\%\\)",
+    "\\(1.6\\)"
+   ],
+   [
+    "800 cells, 1 pass",
+    8,
+    1750,
+    1,
+    "\\(14\\)",
+    "\\(9.9\\)",
+    "\\(35\\,\\%\\)",
+    "\\(227\\)",
+    "\\(97\\,\\%\\)",
+    "\\(2.4\\)"
+   ],
+   [
+    "800 cells, 3 passes",
+    8,
+    1750,
+    3,
+    "\\(45\\)",
+    "\\(32.4\\)",
+    "\\(41\\,\\%\\)",
+    "\\(213\\)",
+    "\\(97\\,\\%\\)",
+    "\\(2.2\\)"
+   ],
+   [
+    "800 cells, 7 passes",
+    8,
+    1750,
+    7,
+    "\\(105\\)",
+    "\\(74.8\\)",
+    "\\(41\\,\\%\\)",
+    "\\(209\\)",
+    "\\(97\\,\\%\\)",
+    "\\(2.0\\)"
+   ],
+   [
+    "400 cells",
+    8,
+    954,
+    5,
+    "\\(35\\)",
+    "\\(92.9\\)",
+    "\\(40\\,\\%\\)",
+    "\\(372\\)",
+    "\\(98\\,\\%\\)",
+    "\\(2.2\\)"
+   ],
+   [
+    "1600 cells",
+    8,
+    3347,
+    5,
+    "\\(171\\)",
+    "\\(31.9\\)",
+    "\\(41\\,\\%\\)",
+    "\\(124\\)",
+    "\\(95\\,\\%\\)",
+    "\\(1.8\\)"
+   ],
+   [
+    "3200 cells",
+    8,
+    6643,
+    5,
+    "\\(401\\)",
+    "\\(18.9\\)",
+    "\\(41\\,\\%\\)",
+    "\\(73\\)",
+    "\\(91\\,\\%\\)",
+    "\\(1.6\\)"
+   ],
+   [
+    "800 cells, seulex",
+    8,
+    1750,
+    5,
+    "\\(513\\)",
+    "\\(366.3\\)",
+    "\\(41\\,\\%\\)",
+    "\\(1437\\)",
+    "\\(100\\,\\%\\)",
+    "\\(2.1\\)"
+   ],
+   [
+    "800 cells, looser tolerance",
+    8,
+    1750,
+    5,
+    "\\(64\\)",
+    "\\(45.8\\)",
+    "\\(41\\,\\%\\)",
+    "\\(179\\)",
+    "\\(96\\,\\%\\)",
+    "\\(2.1\\)"
+   ],
+   [
+    "800 cells, no cut-off",
+    8,
+    1750,
+    5,
+    "\\(87\\)",
+    "\\(62.4\\)",
+    "\\(96\\,\\%\\)",
+    "\\(104\\)",
+    "\\(97\\,\\%\\)",
+    "\\(2.1\\)"
+   ]
+  ],
+  "notes": [
+   "<b>Where the time goes.</b> On one core over the first fifth of the time (800 cells), the run took \\(23.0\\) s with chemistry and \\(4.0\\) s without, although only \\(8\\,\\%\\) of the cell-steps were burnt cells. That is \\(151\\) microseconds per burnt cell and pass for the chemistry, against \\(2.6\\) per cell and pass for the flow. The last column but one applies this flow cost to each run: what is left is chemistry and, on 8 ranks, the cost of message passing.",
+   "<b>Why the chemistry is dear.</b> Every burnt cell is integrated again in each of the five passes of a step, with an explicit method that needs many sub-steps in hot gas near equilibrium. The implicit method is no way out here: the same run with <code>seulex</code> gave the same wave speed (\\(-0.32\\,\\%\\)) and took \\(7.0\\) times as long (\\(513\\) s against \\(73\\) s). A looser tolerance of the explicit method saved \\(13\\,\\%\\) of the time for the same speed (\\(-0.33\\,\\%\\)). Without the cut-off temperature every cell is integrated in every pass, burnt or not: \\(87\\) s against \\(73\\) s.",
+   "<b>Parallel runs gain little on small grids.</b> In short trial runs before the plan was fixed (insight 11; not among the runs of this table), a step on 8 ranks cost about 25 milliseconds more than the work it held, on 400 cells as on 1200, so on 1200 cells 8 ranks were only twice as fast as one core. Without the cut into stretches they were no faster at all, because all the burnt gas sat in the first ranks. In the runs of this table the same shows as the cost per burnt cell and pass: \\(151\\) microseconds on one core, \\(205\\) core-microseconds on 8 ranks (800 cells).",
+   "<b>What would make it faster.</b> Solving the chemistry once per step with the heat release held over the passes (not possible in the stock solver); a density-based solver that conserves energy in one pass; tabulated or reduced chemistry; the chemistry of all cells on the GPU. None was tried here: the task was to solve with the stock solver.",
+   "All runs together took \\(28.4\\) minutes of solver time; the plan first drawn up (finest grid 9600 cells) would have taken over an hour."
+  ]
+ },
+ "reproducibility": {
+  "commands": [
+   {
+    "cmd": "python -m cases.detonation_tube_h2_air.theory",
+    "what": "The CJ state, the state behind the shock, the steady structure, the expansion wave, the SymPy checks"
+   },
+   {
+    "cmd": "python -m cases.detonation_tube_h2_air.run preflight",
+    "what": "Two short tests, the one-core pair, and the studies of time step and passes in full"
+   },
+   {
+    "cmd": "python -m cases.detonation_tube_h2_air.run production",
+    "what": "The other grids and the chemistry variants, one at a time; writes runs/*.json and runs/*.npz"
+   },
+   {
+    "cmd": "python -m cases.detonation_tube_h2_air.analyze",
+    "what": "The rules, the numbers, the figures and this report (checks the contract first)"
+   }
+  ],
+  "files": [
+   {
+    "path": "cases/detonation_tube_h2_air/problem.yaml",
+    "what": "The problem as given"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/reference/cj.yaml",
+    "what": "The reference as given"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/numerics.yaml",
+    "what": "Runs, reading rules, and the rules for the outcome written before the production runs"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/decisions.yaml",
+    "what": "Every choice, with the OpenFOAM settings it controls"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/insights.yaml",
+    "what": "Insights logged during the work"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/template/",
+    "what": "The OpenFOAM case with {{ placeholders }}"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/theory.py",
+    "what": "Theory numbers and SymPy checks"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/measure.py",
+    "what": "The rules that read fronts, speed, burnt state and totals from the solver's output"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/run.py",
+    "what": "Builds, pre-flights and runs the cases"
+   },
+   {
+    "path": "cases/detonation_tube_h2_air/analyze.py, figs.py, sketch.py",
+    "what": "The analysis, the figures and the sketch"
+   }
+  ],
+  "run_dirs": [
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/detonation_tube_h2_air/N<cells>[_s<steps>][_p<passes>][_seulex|_rel<tolerance>|_allcells|_serial[_nochem]]",
+    "what": "Full runs and the one-core pair"
+   },
+   {
+    "path": "/home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/detonation_tube_h2_air/pf_N*_preflight",
+    "what": "Short pre-flight runs"
+   },
+   {
+    "path": "results/detonation_tube_h2_air/",
+    "what": "theory.json, preflight.json, runs/, logs/, results.json and this report"
+   }
+  ],
+  "environment": [
+   [
+    "OpenFOAM",
+    "OpenFOAM v2606"
+   ],
+   [
+    "Python",
+    "3.12.3"
+   ],
+   [
+    "Operating system",
+    "Linux 6.18.58.1-microsoft-standard-WSL2"
+   ],
+   [
+    "CPU",
+    "AMD Ryzen 7 7800X3D 8-Core Processor, 16 logical cores"
+   ],
+   [
+    "Memory",
+    "23 GB visible to Linux"
+   ]
+  ],
+  "notes": [
+   "Runs were made one at a time. Another session was working on the same machine, so run times are rough.",
+   "The OpenFOAM case reads the reaction scheme from OpenFOAM's own tutorial folder; nothing is copied into this repository.",
+   "Earlier trial runs that led to the settings (other limiters, passes, chemistry solvers, a 1200-cell grid) are described in the insights; their folders are named trial_* and ode_*."
+  ]
+ },
+ "data": {
+  "reference": {
+   "speed": 1978.5402978380548,
+   "p": 1581135.1643696825,
+   "T": 2969.882618283525,
+   "p_shock": 2810049.53102691,
+   "p_end": 598224.2532374485
+  },
+  "runs": {
+   "N800_serial": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 1,
+    "wall_time": 22.975838944999992,
+    "us_per_cell_step": 73.64050943910254,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 2.091482542709855e-11,
+    "atoms_dev": {
+     "H": 2.0029866654169837e-11,
+     "N": 2.041400382069014e-11,
+     "O": 2.0071611039895743e-11
+    },
+    "energy_startup": -0.001350005509866458,
+    "hot_cell_steps": 25185.499999999996,
+    "front_last": 0.020531791189882402,
+    "energy_last": -0.002116062757664359
+   },
+   "N800_serial_nochem": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 1,
+    "wall_time": 4.021880533000001,
+    "us_per_cell_step": 12.890642733974362,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 1.901367951973043e-12,
+    "atoms_dev": {
+     "H": 0.0,
+     "N": 1.7861268020169518e-12,
+     "O": 4.198863479132342e-13
+    },
+    "energy_startup": -0.00010215678848137268,
+    "hot_cell_steps": 18020.000000000004,
+    "front_last": NaN,
+    "energy_last": null
+   },
+   "N800": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 73.30689095700001,
+    "us_per_cell_step": 52.36206496928572,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 1.0607639211457354e-08,
+    "atoms_dev": {
+     "H": 1.3548161259535618e-08,
+     "N": 9.695765745831864e-09,
+     "O": 1.4375342249905998e-08
+    },
+    "energy_startup": -0.0012788022778146297,
+    "hot_cell_steps": 571217.0,
+    "speed": {
+     "D": 1972.1877325186654,
+     "D_fit": 1972.031677778701,
+     "D_min": 1954.9654760411872,
+     "D_max": 1988.7349707196965,
+     "x_a": 0.05000963614787861,
+     "x_b": 0.09931432946084524
+    },
+    "speed_err": -0.003210733350405337,
+    "gap_max": 0.00010411986206881885,
+    "gap_mean": 9.245107555866593e-05,
+    "gap_step_max": 0.0006000000000000033,
+    "peak": {
+     "mean": 1927171.4904534759,
+     "low": 1911712.186727,
+     "high": 1944801.801818,
+     "vn": 2791638.5660797902,
+     "ratio": 0.6903370349836304,
+     "T_vn": 1535.2245132289045
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 31,
+     "x": 0.09454058760425713,
+     "d": 0.004773741856588118,
+     "p": 1523385.2148780965,
+     "T": 2929.4906963232706,
+     "rho": 1.4936964217911748,
+     "u": 845.5337948645307,
+     "c": 1126.6539376541348,
+     "H2O": 0.22141652398104703,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1909514.5266222537,
+       "T": 2574.180579144289,
+       "u": 1082.3261482693695,
+       "H2O": 0.18573162321588854
+      },
+      {
+       "d": 0.001,
+       "p": 1887226.2531305768,
+       "T": 2799.121287358782,
+       "u": 1059.0525157350776,
+       "H2O": 0.20110916792708194
+      },
+      {
+       "d": 0.002,
+       "p": 1709868.341560926,
+       "T": 2905.1697652236976,
+       "u": 953.5153394430696,
+       "H2O": 0.21344306854566067
+      },
+      {
+       "d": 0.005,
+       "p": 1515220.8101313391,
+       "T": 2929.2165989648424,
+       "u": 839.4936740070109,
+       "H2O": 0.22161305626682043
+      },
+      {
+       "d": 0.01,
+       "p": 1360395.5389624997,
+       "T": 2900.6339646989036,
+       "u": 738.6089099145546,
+       "H2O": 0.2244475733712689
+      }
+     ]
+    },
+    "end_p": 594614.250144796,
+    "end_T": 2665.2741430326223,
+    "energy": {
+     "end": -0.002104592755237282,
+     "rate_late": -0.00213327223717917,
+     "worst": 0.002104592755237282,
+     "q_end": 259636.44416772423,
+     "dE_end": -546.4289793909616,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10351.765657509999
+    },
+    "core_us_per_hot_pass": 205.33532008186032,
+    "flow_share": 0.03077285708063579
+   },
+   "N800_s900": {
+    "N": 800,
+    "steps": 900,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 54.64218114000002,
+    "us_per_cell_step": 71.59614929245286,
+    "dx": 0.00015,
+    "dt": 5.555555555555556e-08,
+    "mass_dev": 1.0169377562263548e-08,
+    "atoms_dev": {
+     "H": 9.908639464484281e-09,
+     "N": 1.0338679468091527e-08,
+     "O": 9.96771687411524e-09
+    },
+    "energy_startup": -0.0015097387800936794,
+    "hot_cell_steps": 301558.50000000006,
+    "speed": {
+     "D": 1970.6711515314062,
+     "D_fit": 1970.7339769459975,
+     "D_min": 1958.543096104512,
+     "D_max": 1982.598248918671,
+     "x_a": 0.04977680566895876,
+     "x_b": 0.09904358445724391
+    },
+    "speed_err": -0.003977248436762837,
+    "gap_max": 9.532281936104614e-05,
+    "gap_mean": 8.628718514817042e-05,
+    "gap_step_max": 0.0007500000000000007,
+    "peak": {
+     "mean": 2003422.6562406367,
+     "low": 1972278.02739,
+     "high": 2031230.531561,
+     "vn": 2787252.109252298,
+     "ratio": 0.718780568715067,
+     "T_vn": 1533.4387046919187
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 30,
+     "x": 0.09427925076754028,
+     "d": 0.004764333689703637,
+     "p": 1535999.1913572946,
+     "T": 2932.7990332573736,
+     "rho": 1.5035917474202551,
+     "u": 843.0391435917109,
+     "c": 1127.6320079396953,
+     "H2O": 0.22086020814940574,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1965854.0880860842,
+       "T": 2558.7938454851305,
+       "u": 1125.4254838736424,
+       "H2O": 0.18323099353750122
+      },
+      {
+       "d": 0.001,
+       "p": 1991108.9512803052,
+       "T": 2822.6815922099013,
+       "u": 1103.6176689275721,
+       "H2O": 0.2004492139072479
+      },
+      {
+       "d": 0.002,
+       "p": 1778635.190213576,
+       "T": 2920.843754004066,
+       "u": 985.2137440046873,
+       "H2O": 0.2128294967279623
+      },
+      {
+       "d": 0.005,
+       "p": 1523843.2404993386,
+       "T": 2931.700321878715,
+       "u": 836.5320534788517,
+       "H2O": 0.22116091984116332
+      },
+      {
+       "d": 0.01,
+       "p": 1352039.7057348192,
+       "T": 2898.679625259446,
+       "u": 728.9389161301457,
+       "H2O": 0.2243919860290356
+      }
+     ]
+    },
+    "end_p": 594325.8312811067,
+    "end_T": 2665.087738531748,
+    "energy": {
+     "end": -0.0010264109837576942,
+     "rate_late": -0.000978674678597999,
+     "worst": 0.0010264109837576942,
+     "q_end": 258744.57729154307,
+     "dE_end": -265.57827611978144,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10487.87114367
+    },
+    "core_us_per_hot_pass": 289.91883771805476,
+    "flow_share": 0.02250582409348445
+   },
+   "N800_s3400": {
+    "N": 800,
+    "steps": 3400,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 110.26684362,
+    "us_per_cell_step": 39.98652582680592,
+    "dx": 0.00015,
+    "dt": 1.4705882352941177e-08,
+    "mass_dev": 9.299509717841659e-09,
+    "atoms_dev": {
+     "H": 1.0160966512628988e-08,
+     "N": 1.0157250152076358e-08,
+     "O": 1.0630703206615522e-08
+    },
+    "energy_startup": -0.0008434629364963759,
+    "hot_cell_steps": 1140343.0000000002,
+    "speed": {
+     "D": 1967.5392279413877,
+     "D_fit": 1967.556620257961,
+     "D_min": 1946.2602553759116,
+     "D_max": 1987.9245181919414,
+     "x_a": 0.04997251689443297,
+     "x_b": 0.09916099759296766
+    },
+    "speed_err": -0.005560195012802138,
+    "gap_max": 0.0001111052933353042,
+    "gap_mean": 9.98575071210101e-05,
+    "gap_step_max": 0.0006000000000000033,
+    "peak": {
+     "mean": 1894702.7317125034,
+     "low": 1880936.779199,
+     "high": 1908671.798152,
+     "vn": 2778204.638992146,
+     "ratio": 0.6819881822671809,
+     "T_vn": 1529.7541967325508
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 34,
+     "x": 0.09389544971130284,
+     "d": 0.00526554788166482,
+     "p": 1514692.188129543,
+     "T": 2934.298995931005,
+     "rho": 1.4831943972800652,
+     "u": 840.1975854604956,
+     "c": 1127.3416424808922,
+     "H2O": 0.22173686537741202,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1889634.154739435,
+       "T": 2582.2995416519034,
+       "u": 1069.0483410590646,
+       "H2O": 0.18689162040355256
+      },
+      {
+       "d": 0.001,
+       "p": 1870276.0820467272,
+       "T": 2815.2149234692447,
+       "u": 1049.9512325792668,
+       "H2O": 0.2028633900438963
+      },
+      {
+       "d": 0.002,
+       "p": 1707546.324146381,
+       "T": 2914.8922182933484,
+       "u": 959.1045220285298,
+       "H2O": 0.21457771307245233
+      },
+      {
+       "d": 0.005,
+       "p": 1524734.9815223494,
+       "T": 2935.093821635076,
+       "u": 847.1743351342949,
+       "H2O": 0.22150984614970404
+      },
+      {
+       "d": 0.01,
+       "p": 1362645.7735444817,
+       "T": 2900.5440124599436,
+       "u": 742.9753042930504,
+       "H2O": 0.2244845870347513
+      }
+     ]
+    },
+    "end_p": 594758.0857319029,
+    "end_T": 2665.8179379234953,
+    "energy": {
+     "end": -0.0015736004352195675,
+     "rate_late": -0.0016242970244773058,
+     "worst": 0.0015736004352195675,
+     "q_end": 259286.0381045109,
+     "dE_end": -408.0126224076157,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10373.58024547
+    },
+    "core_us_per_hot_pass": 154.71393237999442,
+    "flow_share": 0.0402968327062463
+   },
+   "N800_p1": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 1,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 13.875042913000016,
+    "us_per_cell_step": 9.910744937857155,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 2.5991473306952173e-08,
+    "atoms_dev": {
+     "H": 2.6855461854324858e-08,
+     "N": 2.534566290179896e-08,
+     "O": 2.8083926739697063e-08
+    },
+    "energy_startup": -0.03879344571397038,
+    "hot_cell_steps": 488529.0,
+    "speed": {
+     "D": 1633.4311517219546,
+     "D_fit": 1633.6039721979812,
+     "D_min": 1600.9580090493655,
+     "D_max": 1665.898139941215,
+     "x_a": 0.043013817424793654,
+     "x_b": 0.08384959621784252
+    },
+    "speed_err": -0.1744261395601595,
+    "gap_max": 0.00018172910041110157,
+    "gap_mean": 0.00016553759215902288,
+    "gap_step_max": 0.000449999999999999,
+    "peak": {
+     "mean": 1635454.052801207,
+     "low": 1613133.176784,
+     "high": 1659893.044135,
+     "vn": 1898764.4454606362,
+     "ratio": 0.8613254038493697,
+     "T_vn": 1163.3488833784386
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 43,
+     "x": 0.077185902606283,
+     "d": 0.0066636936115595236,
+     "p": 1192657.042623244,
+     "T": 2665.7076991944427,
+     "rho": 1.2969621640539615,
+     "u": 563.4080332749024,
+     "c": 1070.0231184470522,
+     "H2O": 0.23190339680983246,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1615141.5351181072,
+       "T": 2298.4947272042255,
+       "u": 876.8395693973306,
+       "H2O": 0.19251342284050998
+      },
+      {
+       "d": 0.001,
+       "p": 1496734.834111556,
+       "T": 2512.20510524467,
+       "u": 781.0816720273757,
+       "H2O": 0.20973047874451486
+      },
+      {
+       "d": 0.002,
+       "p": 1388403.2730426567,
+       "T": 2613.7189175394838,
+       "u": 709.2100342568035,
+       "H2O": 0.2205902639903628
+      },
+      {
+       "d": 0.005,
+       "p": 1242157.3864636817,
+       "T": 2665.724545346802,
+       "u": 606.754284707231,
+       "H2O": 0.22987064565582258
+      },
+      {
+       "d": 0.01,
+       "p": 1099394.351078976,
+       "T": 2647.784205371012,
+       "u": 494.96634019687156,
+       "H2O": 0.23429349288179582
+      }
+     ]
+    },
+    "end_p": 622800.9950236796,
+    "end_T": 2547.7130541530105,
+    "energy": {
+     "end": -0.15417613412341602,
+     "rate_late": -0.15331046808999743,
+     "worst": 0.15417613412341602,
+     "q_end": 228589.09753221698,
+     "dE_end": -35242.98336027771,
+     "E0": -269.72534978809745,
+     "kinetic_end": 4180.792688316
+    },
+    "core_us_per_hot_pass": 227.21341681660684,
+    "flow_share": 0.032516836057233614
+   },
+   "N800_p3": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 3,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 45.428946833,
+    "us_per_cell_step": 32.44924773785714,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 1.7093149118352358e-09,
+    "atoms_dev": {
+     "H": 1.1358935125826974e-08,
+     "N": 3.849190854943174e-09,
+     "O": 1.222343182227803e-08
+    },
+    "energy_startup": -0.005297339962860006,
+    "hot_cell_steps": 569449.0000000001,
+    "speed": {
+     "D": 1965.8812647936015,
+     "D_fit": 1965.8152063864331,
+     "D_min": 1946.833783289309,
+     "D_max": 1984.718643082034,
+     "x_a": 0.049864725589619775,
+     "x_b": 0.09901175720945982
+    },
+    "speed_err": -0.006398167911103814,
+    "gap_max": 0.00010433278193138634,
+    "gap_mean": 9.21037170916492e-05,
+    "gap_step_max": 0.0006000000000000033,
+    "peak": {
+     "mean": 1918404.4152657886,
+     "low": 1902990.739057,
+     "high": 1932305.816683,
+     "vn": 2773421.183086671,
+     "ratio": 0.6917104502427958,
+     "T_vn": 1527.8055657129748
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 32,
+     "x": 0.0941130900029781,
+     "d": 0.004898667206481716,
+     "p": 1509924.81090482,
+     "T": 2911.5142303050284,
+     "rho": 1.4908804060592638,
+     "u": 843.1796023680436,
+     "c": 1122.701662425558,
+     "H2O": 0.22234066617266987,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1901372.0094381273,
+       "T": 2547.693350796429,
+       "u": 1083.4866890192523,
+       "H2O": 0.18628683991914954
+      },
+      {
+       "d": 0.001,
+       "p": 1882014.7052981644,
+       "T": 2787.3067629986303,
+       "u": 1055.2970571567441,
+       "H2O": 0.20269987228597397
+      },
+      {
+       "d": 0.002,
+       "p": 1700179.8438272453,
+       "T": 2886.265508306171,
+       "u": 954.614148945392,
+       "H2O": 0.21471215636105787
+      },
+      {
+       "d": 0.005,
+       "p": 1506579.720239288,
+       "T": 2911.4328926807266,
+       "u": 840.2560135962009,
+       "H2O": 0.22246232001356156
+      },
+      {
+       "d": 0.01,
+       "p": 1350257.515203924,
+       "T": 2882.6186882426573,
+       "u": 738.0999642737643,
+       "H2O": 0.225527726571214
+      }
+     ]
+    },
+    "end_p": 589524.9110505534,
+    "end_T": 2652.134409349126,
+    "energy": {
+     "end": -0.015441439520487217,
+     "rate_late": -0.01599663771949544,
+     "worst": 0.015441439520487217,
+     "q_end": 260147.24127449497,
+     "dE_end": -4017.0478925617103,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10330.56019006
+    },
+    "core_us_per_hot_pass": 212.73873203980216,
+    "flow_share": 0.029794163885043017
+   },
+   "N800_p7": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 7,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 104.68888363500002,
+    "us_per_cell_step": 74.77777402500001,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 1.1892952844760885e-08,
+    "atoms_dev": {
+     "H": 2.469711457564472e-08,
+     "N": 6.850179090633901e-09,
+     "O": 2.749988814443327e-08
+    },
+    "energy_startup": -0.0018531278494175647,
+    "hot_cell_steps": 571165.9999999999,
+    "speed": {
+     "D": 1971.7943832661226,
+     "D_fit": 1971.7162187412594,
+     "D_min": 1952.0877997494028,
+     "D_max": 1988.732675305338,
+     "x_a": 0.05001102527080514,
+     "x_b": 0.09930588485245821
+    },
+    "speed_err": -0.003409541154811624,
+    "gap_max": 0.00010506870884445518,
+    "gap_mean": 9.279489909567076e-05,
+    "gap_step_max": 0.0006000000000000033,
+    "peak": {
+     "mean": 1927205.2075207685,
+     "low": 1908053.871259,
+     "high": 1944646.30207,
+     "vn": 2790500.532455833,
+     "ratio": 0.690630653929564,
+     "T_vn": 1534.7612322904263
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 30,
+     "x": 0.09457544896543449,
+     "d": 0.004730435887023723,
+     "p": 1527824.064203328,
+     "T": 2931.301407132588,
+     "rho": 1.4969534316791038,
+     "u": 844.7219952755322,
+     "c": 1127.0723879905904,
+     "H2O": 0.2212915416740692,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1911957.4864369838,
+       "T": 2573.461968134815,
+       "u": 1083.3208173684495,
+       "H2O": 0.18557735180745982
+      },
+      {
+       "d": 0.001,
+       "p": 1887355.0252507173,
+       "T": 2802.093682628096,
+       "u": 1056.9112083919547,
+       "H2O": 0.2012327334214752
+      },
+      {
+       "d": 0.002,
+       "p": 1709186.626403814,
+       "T": 2904.3003352778155,
+       "u": 952.5979942493583,
+       "H2O": 0.21329063430757741
+      },
+      {
+       "d": 0.005,
+       "p": 1516539.5781454823,
+       "T": 2930.9794866983175,
+       "u": 838.2364298899413,
+       "H2O": 0.2214613469034711
+      },
+      {
+       "d": 0.01,
+       "p": 1360924.9462206336,
+       "T": 2901.7062138222705,
+       "u": 737.8909383144953,
+       "H2O": 0.2243990422149284
+      }
+     ]
+    },
+    "end_p": 594908.7065809708,
+    "end_T": 2665.7073036880597,
+    "energy": {
+     "end": -0.0017498398595424537,
+     "rate_late": -0.0017348466028455525,
+     "worst": 0.0017498398595424537,
+     "q_end": 259576.141006703,
+     "dE_end": -454.21667811974135,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10339.83485274
+    },
+    "core_us_per_hot_pass": 209.47402058245774,
+    "flow_share": 0.030167553231677156
+   },
+   "N400": {
+    "N": 400,
+    "steps": 900,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 35.46474191900006,
+    "us_per_cell_step": 92.93695471436074,
+    "dx": 0.0003,
+    "dt": 5.555555555555556e-08,
+    "mass_dev": 2.3082405986585286e-09,
+    "atoms_dev": {
+     "H": 1.775553726268697e-08,
+     "N": 3.675033610761602e-09,
+     "O": 1.5872216985179932e-08
+    },
+    "energy_startup": -0.0012659705840487043,
+    "hot_cell_steps": 152694.0,
+    "speed": {
+     "D": 1968.819584861001,
+     "D_fit": 1968.7039856147371,
+     "D_min": 1944.0114588745366,
+     "D_max": 2004.3318347782224,
+     "x_a": 0.0501722568961988,
+     "x_b": 0.09939274651772383
+    },
+    "speed_err": -0.004913073030494042,
+    "gap_max": 0.0001210437490713201,
+    "gap_mean": 0.00010201646497314464,
+    "gap_step_max": 0.0015000000000000013,
+    "peak": {
+     "mean": 1762915.250139346,
+     "low": 1730925.52264,
+     "high": 1787807.643891,
+     "vn": 2781901.514949417,
+     "ratio": 0.633708720695456,
+     "T_vn": 1531.2599006240912
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 16,
+     "x": 0.09429475075864883,
+     "d": 0.005097995759074991,
+     "p": 1523465.0754100243,
+     "T": 2927.617990107199,
+     "rho": 1.4940627615191524,
+     "u": 842.206893737668,
+     "c": 1126.612691123333,
+     "H2O": 0.22094421081512858,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1614752.532883565,
+       "T": 2374.736217593855,
+       "u": 915.4533170926294,
+       "H2O": 0.17722226869810498
+      },
+      {
+       "d": 0.001,
+       "p": 1748723.6988651333,
+       "T": 2676.049987643568,
+       "u": 988.9742897955958,
+       "H2O": 0.19559747149077933
+      },
+      {
+       "d": 0.002,
+       "p": 1766508.3747458288,
+       "T": 2877.7616947781335,
+       "u": 986.6983960226058,
+       "H2O": 0.20964463403190417
+      },
+      {
+       "d": 0.005,
+       "p": 1528227.073444147,
+       "T": 2927.839541857699,
+       "u": 845.1641915451364,
+       "H2O": 0.2208476309813323
+      },
+      {
+       "d": 0.01,
+       "p": 1355482.4024226186,
+       "T": 2898.333174155082,
+       "u": 735.081297190187,
+       "H2O": 0.22433756539729582
+      }
+     ]
+    },
+    "end_p": 595037.3053985,
+    "end_T": 2681.4565066507694,
+    "energy": {
+     "end": -0.000560113500221651,
+     "rate_late": -0.000457443003686511,
+     "worst": 0.000560113500221651,
+     "q_end": 259086.9246543331,
+     "dE_end": -145.11808422980167,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10132.77695692
+    },
+    "core_us_per_hot_pass": 371.6163508088078,
+    "flow_share": 0.017337886169168936
+   },
+   "N1600": {
+    "N": 1600,
+    "steps": 3300,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 171.03424395499997,
+    "us_per_cell_step": 31.937975043882574,
+    "dx": 7.5e-05,
+    "dt": 1.5151515151515152e-08,
+    "mass_dev": 1.0660877181045691e-08,
+    "atoms_dev": {
+     "H": 1.196340049247624e-08,
+     "N": 1.0980445330766031e-08,
+     "O": 1.1634935015436554e-08
+    },
+    "energy_startup": -0.0009316957973400018,
+    "hot_cell_steps": 2207667.0000000005,
+    "speed": {
+     "D": 1970.4041185435021,
+     "D_fit": 1970.3822827863435,
+     "D_min": 1962.0655233573902,
+     "D_max": 1979.2951027696793,
+     "x_a": 0.04998142745701578,
+     "x_b": 0.09924153042060334
+    },
+    "speed_err": -0.004112213081251426,
+    "gap_max": 7.80381885037984e-05,
+    "gap_mean": 7.326418898856867e-05,
+    "gap_step_max": 0.00022500000000000298,
+    "peak": {
+     "mean": 2041571.463612587,
+     "low": 2029514.533751,
+     "high": 2054159.299339,
+     "vn": 2786480.123968443,
+     "ratio": 0.7326703844221313,
+     "T_vn": 1533.1243786112716
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 66,
+     "x": 0.09419580100923515,
+     "d": 0.005045729411368188,
+     "p": 1519327.165170535,
+     "T": 2934.4720835069634,
+     "rho": 1.4877762351320034,
+     "u": 843.0912879195175,
+     "c": 1127.3128306239848,
+     "H2O": 0.22183007145904896,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 2002339.4726293748,
+       "T": 2693.444098862941,
+       "u": 1119.896234077771,
+       "H2O": 0.19226234420625185
+      },
+      {
+       "d": 0.001,
+       "p": 1824242.499432759,
+       "T": 2840.1649334462963,
+       "u": 1028.3676796108489,
+       "H2O": 0.20575307147629085
+      },
+      {
+       "d": 0.002,
+       "p": 1687587.0902167673,
+       "T": 2916.068206570641,
+       "u": 948.2217604166362,
+       "H2O": 0.21509463786507219
+      },
+      {
+       "d": 0.005,
+       "p": 1521699.093133962,
+       "T": 2934.9331708177124,
+       "u": 843.933083222395,
+       "H2O": 0.22178771747071324
+      },
+      {
+       "d": 0.01,
+       "p": 1365762.419576411,
+       "T": 2903.1400028693715,
+       "u": 742.882878184997,
+       "H2O": 0.22441308360089396
+      }
+     ]
+    },
+    "end_p": 594661.4141949562,
+    "end_T": 2655.9032870021465,
+    "energy": {
+     "end": -0.002592962225861714,
+     "rate_late": -0.0026649800721433416,
+     "worst": 0.002592962225861714,
+     "q_end": 259931.4749234924,
+     "dE_end": -673.9924957891373,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10492.60678749
+    },
+    "core_us_per_hot_pass": 123.95655247281401,
+    "flow_share": 0.050451863010501995
+   },
+   "N3200": {
+    "N": 3200,
+    "steps": 6600,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 401.33546710400003,
+    "us_per_cell_step": 18.879622681017615,
+    "dx": 3.75e-05,
+    "dt": 7.575757575757576e-09,
+    "mass_dev": 1.6980018280321474e-08,
+    "atoms_dev": {
+     "H": 1.75100240973336e-08,
+     "N": 1.7148285902379712e-08,
+     "O": 1.689125350701204e-08
+    },
+    "energy_startup": -0.0018751451868890734,
+    "hot_cell_steps": 8803014.000000004,
+    "speed": {
+     "D": 1968.3886360689016,
+     "D_fit": 1968.313528757665,
+     "D_min": 1964.087987705787,
+     "D_max": 1972.6960135824145,
+     "x_a": 0.04991967236571261,
+     "x_b": 0.09912938826743516
+    },
+    "speed_err": -0.005130884511296507,
+    "gap_max": 5.9708395438298756e-05,
+    "gap_mean": 5.68537298588654e-05,
+    "gap_step_max": 0.00011250000000000843,
+    "peak": {
+     "mean": 2195448.823353553,
+     "low": 2173862.810816,
+     "high": 2211199.061853,
+     "vn": 2780656.9234121223,
+     "ratio": 0.7895432208370154,
+     "T_vn": 1530.7530178670067
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 141,
+     "x": 0.09380829613762874,
+     "d": 0.005321092129806415,
+     "p": 1512295.8986189412,
+     "T": 2935.628614700005,
+     "rho": 1.4807192462504393,
+     "u": 841.0523863980187,
+     "c": 1127.336249670883,
+     "H2O": 0.222127017032332,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1957834.5962843494,
+       "T": 2751.5762606270973,
+       "u": 1103.265165358843,
+       "H2O": 0.19646762829671324
+      },
+      {
+       "d": 0.001,
+       "p": 1818754.7342660774,
+       "T": 2870.1681571570844,
+       "u": 1025.484538109778,
+       "H2O": 0.2079949108638644
+      },
+      {
+       "d": 0.002,
+       "p": 1693483.052533589,
+       "T": 2930.135770041857,
+       "u": 949.8734333722821,
+       "H2O": 0.21593014312717246
+      },
+      {
+       "d": 0.005,
+       "p": 1525812.0555987512,
+       "T": 2938.1066090756376,
+       "u": 847.8452527194938,
+       "H2O": 0.2218479766870353
+      },
+      {
+       "d": 0.01,
+       "p": 1364694.897866346,
+       "T": 2902.3329772215657,
+       "u": 746.7612974020128,
+       "H2O": 0.2244150616168395
+      }
+     ]
+    },
+    "end_p": 595104.9774271168,
+    "end_T": 2652.2329349851093,
+    "energy": {
+     "end": -0.002088836429054144,
+     "rate_late": -0.0021551152889516933,
+     "worst": 0.002088836429054144,
+     "q_end": 259913.70855999395,
+     "dE_end": -542.9172228506773,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10590.47664331
+    },
+    "core_us_per_hot_pass": 72.94510123082843,
+    "flow_share": 0.08534759242656349
+   },
+   "N800_seulex": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 5,
+    "ode": "seulex",
+    "rel": 1e-06,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 512.887118745,
+    "us_per_cell_step": 366.34794196071425,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 1.1030689917035374e-08,
+    "atoms_dev": {
+     "H": 8.509720483829142e-09,
+     "N": 1.203393629189975e-08,
+     "O": 9.394997446676712e-09
+    },
+    "energy_startup": -0.001276120005342328,
+    "hot_cell_steps": 571165.9999999999,
+    "speed": {
+     "D": 1972.2117062777527,
+     "D_fit": 1972.0960376063426,
+     "D_min": 1954.9710228100791,
+     "D_max": 1989.0849207300275,
+     "x_a": 0.0500105478240757,
+     "x_b": 0.09931584048101952
+    },
+    "speed_err": -0.0031986164584150156,
+    "gap_max": 0.00010398231315024431,
+    "gap_mean": 9.219790666223356e-05,
+    "gap_step_max": 0.0006000000000000033,
+    "peak": {
+     "mean": 1927100.8194874031,
+     "low": 1906070.182988,
+     "high": 1943666.218412,
+     "vn": 2791707.934313927,
+     "ratio": 0.69029456692109,
+     "T_vn": 1535.2527515064544
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 31,
+     "x": 0.09454626588738958,
+     "d": 0.0047695745936299355,
+     "p": 1524299.5733534696,
+     "T": 2930.2501927159933,
+     "rho": 1.4940076254831136,
+     "u": 845.3234232392161,
+     "c": 1126.8882830385364,
+     "H2O": 0.22127395238761352,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1909492.5957586544,
+       "T": 2569.7604083837628,
+       "u": 1082.0564959955398,
+       "H2O": 0.18549655099869056
+      },
+      {
+       "d": 0.001,
+       "p": 1888977.0228091618,
+       "T": 2800.3528997357425,
+       "u": 1058.4721404171821,
+       "H2O": 0.2011377964932053
+      },
+      {
+       "d": 0.002,
+       "p": 1708104.0535168604,
+       "T": 2906.3142177652826,
+       "u": 953.8323775010474,
+       "H2O": 0.21370606217037447
+      },
+      {
+       "d": 0.005,
+       "p": 1514572.7220247276,
+       "T": 2929.217147589204,
+       "u": 839.7011179504716,
+       "H2O": 0.22158019985456331
+      },
+      {
+       "d": 0.01,
+       "p": 1359613.8219639133,
+       "T": 2901.3289232594684,
+       "u": 739.139232836096,
+       "H2O": 0.22438485292212987
+      }
+     ]
+    },
+    "end_p": 594588.4680572038,
+    "end_T": 2665.4938935331074,
+    "energy": {
+     "end": -0.002104310654793934,
+     "rate_late": -0.0021165671247869986,
+     "worst": 0.002104310654793934,
+     "q_end": 259644.57267963243,
+     "dE_end": -546.3728407491685,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10352.18747754
+    },
+    "core_us_per_hot_pass": 1436.7441164074894,
+    "flow_share": 0.004398360567068747
+   },
+   "N800_rel0.0001": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 0.0001,
+    "t_react": 305.0,
+    "cores": 8,
+    "wall_time": 64.05028388999995,
+    "us_per_cell_step": 45.75020277857139,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 5.431209926243241e-09,
+    "atoms_dev": {
+     "H": 4.207167947356538e-09,
+     "N": 6.003890495875908e-09,
+     "O": 4.288710275801577e-09
+    },
+    "energy_startup": -0.001278549500440337,
+    "hot_cell_steps": 571182.9999999999,
+    "speed": {
+     "D": 1972.067611543754,
+     "D_fit": 1971.9956312981205,
+     "D_min": 1951.1096014228956,
+     "D_max": 1989.0360442479716,
+     "x_a": 0.050010830020216265,
+     "x_b": 0.09931252030881012
+    },
+    "speed_err": -0.0032714452676922967,
+    "gap_max": 0.00010449886652207432,
+    "gap_mean": 9.219218363599584e-05,
+    "gap_step_max": 0.0006000000000000033,
+    "peak": {
+     "mean": 1928181.7500443817,
+     "low": 1910747.820454,
+     "high": 1942951.88867,
+     "vn": 2791291.0084169647,
+     "ratio": 0.6907849250508347,
+     "T_vn": 1535.0830288485988
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 30,
+     "x": 0.09457961491240582,
+     "d": 0.004732905396404294,
+     "p": 1527683.659589636,
+     "T": 2930.9919408468472,
+     "rho": 1.4969543301773949,
+     "u": 845.0441605582337,
+     "c": 1127.0234509855204,
+     "H2O": 0.22127823393580984,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1910485.545131111,
+       "T": 2571.1096086606312,
+       "u": 1083.3203557848726,
+       "H2O": 0.1854375084393085
+      },
+      {
+       "d": 0.001,
+       "p": 1887799.3447854845,
+       "T": 2799.369710571355,
+       "u": 1058.630854201917,
+       "H2O": 0.2011205507494545
+      },
+      {
+       "d": 0.002,
+       "p": 1707832.9595736205,
+       "T": 2902.7285441704003,
+       "u": 953.6882625168951,
+       "H2O": 0.21320163541573894
+      },
+      {
+       "d": 0.005,
+       "p": 1516876.3103383519,
+       "T": 2930.5989215763702,
+       "u": 838.3350364593455,
+       "H2O": 0.22150093260655757
+      },
+      {
+       "d": 0.01,
+       "p": 1360608.2982869123,
+       "T": 2900.373286732136,
+       "u": 738.3331841123759,
+       "H2O": 0.22447325390052456
+      }
+     ]
+    },
+    "end_p": 594553.8875325632,
+    "end_T": 2665.290206156894,
+    "energy": {
+     "end": -0.0021209501289553697,
+     "rate_late": -0.002107111802400289,
+     "worst": 0.0021209501289553697,
+     "q_end": 259629.88222209289,
+     "dE_end": -550.6620321796154,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10349.95541366
+    },
+    "core_us_per_hot_pass": 179.41789973441075,
+    "flow_share": 0.03522017923167577
+   },
+   "N800_allcells": {
+    "N": 800,
+    "steps": 1700,
+    "passes": 5,
+    "ode": "RKF45",
+    "rel": 1e-06,
+    "t_react": 0.0,
+    "cores": 8,
+    "wall_time": 87.31408177100002,
+    "us_per_cell_step": 62.367201265000006,
+    "dx": 0.00015,
+    "dt": 2.9411764705882354e-08,
+    "mass_dev": 1.3085099892506946e-08,
+    "atoms_dev": {
+     "H": 3.761283284831052e-09,
+     "N": 1.624879319983563e-08,
+     "O": 4.1053125343637475e-09
+    },
+    "energy_startup": -0.0012767512357386805,
+    "hot_cell_steps": 1346400.0,
+    "speed": {
+     "D": 1972.1602570034318,
+     "D_fit": 1972.0788654226546,
+     "D_min": 1953.6307598390422,
+     "D_max": 1989.273405217573,
+     "x_a": 0.05001265728380354,
+     "x_b": 0.09931666370888934
+    },
+    "speed_err": -0.003224620110894083,
+    "gap_max": 0.00010339212221327845,
+    "gap_mean": 9.213776857031458e-05,
+    "gap_step_max": 0.0006000000000000033,
+    "peak": {
+     "mean": 1927000.319034752,
+     "low": 1911685.890945,
+     "high": 1942629.649301,
+     "vn": 2791559.066567838,
+     "ratio": 0.6902953772724421,
+     "T_vn": 1535.1921506235317
+    },
+    "burnt": {
+     "found": true,
+     "subsonic_cells": 30,
+     "x": 0.09459059775011375,
+     "d": 0.004726065958775588,
+     "p": 1528678.7482589993,
+     "T": 2931.2728670576184,
+     "rho": 1.4976060186919247,
+     "u": 845.000683067378,
+     "c": 1127.1595739360537,
+     "H2O": 0.22114986043353274,
+     "at": [
+      {
+       "d": 0.0005,
+       "p": 1904240.4930114301,
+       "T": 2571.828280346864,
+       "u": 1080.3536261785857,
+       "H2O": 0.18573907819517335
+      },
+      {
+       "d": 0.001,
+       "p": 1885060.0553285195,
+       "T": 2800.414154108325,
+       "u": 1059.5337578731346,
+       "H2O": 0.20124211899754368
+      },
+      {
+       "d": 0.002,
+       "p": 1708301.1795547477,
+       "T": 2902.264825783648,
+       "u": 953.2581925481452,
+       "H2O": 0.21326767726932114
+      },
+      {
+       "d": 0.005,
+       "p": 1517728.19347669,
+       "T": 2930.792918577292,
+       "u": 838.1574349897069,
+       "H2O": 0.2214826224490974
+      },
+      {
+       "d": 0.01,
+       "p": 1360473.4802263267,
+       "T": 2900.327037271833,
+       "u": 738.4462049730463,
+       "H2O": 0.22447039117155895
+      }
+     ]
+    },
+    "end_p": 594565.121585068,
+    "end_T": 2665.6280023361164,
+    "energy": {
+     "end": -0.002113898250878958,
+     "rate_late": -0.002144405438352099,
+     "worst": 0.002113898250878958,
+     "q_end": 259638.87542429287,
+     "dE_end": -548.8501646195924,
+     "E0": -269.72534978809745,
+     "kinetic_end": 10350.8279917
+    },
+    "core_us_per_hot_pass": 103.76004963874036,
+    "flow_share": 0.025836181663823694
+   }
+  },
+  "grid_study": {
+   "R": 1.1299992614242935,
+   "monotonic": false,
+   "p": NaN,
+   "p_used": 1.0,
+   "extrap": 1966.3731535943011,
+   "gci_abs": 2.519353093250629,
+   "gci": 0.0012799063391678927,
+   "delta": 2.0154824746005033,
+   "gci_reliable": false,
+   "gci_basis": "order 1 assumed: the three values do not approach a limit from one side"
+  },
+  "noise": 7.282880927724925e-05,
+  "serial": {
+   "t": 1e-05,
+   "front": 0.020531791189882402,
+   "front_par": 0.020548577245038238,
+   "diff": 0.0008175640888121727,
+   "energy": -0.002116062757664359,
+   "energy_par": -0.002022646044224918,
+   "wall": 22.975838944999992
+  },
+  "cost": {
+   "flow": 2.5781285467948726e-06,
+   "chem": 0.00015051484713029316,
+   "share_short": 0.824951744194079,
+   "burnt_share_short": 0.0807227564102564,
+   "wall_serial": 22.975838944999992,
+   "wall_nochem": 4.021880533000001
+  },
+  "behind": [
+   {
+    "d": 0.0005,
+    "p": 1957834.5962843494,
+    "T": 2751.5762606270973,
+    "u": 1103.265165358843,
+    "H2O": 0.19646762829671324,
+    "p_znd": 2045302.046306346,
+    "T_znd": 2801.272331351332,
+    "p_tw": 1565644.0669981798,
+    "T_tw": 2966.177734530034
+   },
+   {
+    "d": 0.001,
+    "p": 1818754.7342660774,
+    "T": 2870.1681571570844,
+    "u": 1025.484538109778,
+    "H2O": 0.2079949108638644,
+    "p_znd": 1893339.6921709962,
+    "T_znd": 2916.446236183365,
+    "p_tw": 1550278.3247320496,
+    "T_tw": 2962.471361761748
+   },
+   {
+    "d": 0.002,
+    "p": 1693483.052533589,
+    "T": 2930.135770041857,
+    "u": 949.8734333722821,
+    "H2O": 0.21593014312717246,
+    "p_znd": 1770358.0793170354,
+    "T_znd": 2967.7252939298546,
+    "p_tw": 1519977.0227490396,
+    "T_tw": 2955.054207623785
+   },
+   {
+    "d": 0.005,
+    "p": 1525812.0555987512,
+    "T": 2938.1066090756376,
+    "u": 847.8452527194938,
+    "H2O": 0.2218479766870353,
+    "p_znd": 1655852.3584190214,
+    "T_znd": 2980.287902535606,
+    "p_tw": 1432320.8705612558,
+    "T_tw": 2932.766951244788
+   },
+   {
+    "d": 0.01,
+    "p": 1364694.897866346,
+    "T": 2902.3329772215657,
+    "u": 746.7612974020128,
+    "H2O": 0.2244150616168395,
+    "p_znd": 1611531.1182003282,
+    "T_znd": 2975.8935742169692,
+    "p_tw": 1296524.4009816693,
+    "T_tw": 2895.491149773634
+   }
+  ],
+  "start": {
+   "early": -0.04114918174238069,
+   "t_settle": 1.0500000000000001e-05
+  }
+ }
+}

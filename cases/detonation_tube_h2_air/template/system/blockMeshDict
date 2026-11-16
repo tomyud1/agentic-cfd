@@ -1,0 +1,49 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+
+scale           1;
+
+vertices
+(
+    (0 0 0)
+    ({{ L }} 0 0)
+    ({{ L }} {{ h }} 0)
+    (0 {{ h }} 0)
+    (0 0 {{ h }})
+    ({{ L }} 0 {{ h }})
+    ({{ L }} {{ h }} {{ h }})
+    (0 {{ h }} {{ h }})
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ({{ N }} 1 1) simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    left
+    {
+        type wall;
+        faces ((0 4 7 3));
+    }
+    right
+    {
+        type wall;
+        faces ((1 2 6 5));
+    }
+    sides
+    {
+        type empty;
+        faces ((0 1 5 4) (3 7 6 2) (0 3 2 1) (4 5 6 7));
+    }
+);

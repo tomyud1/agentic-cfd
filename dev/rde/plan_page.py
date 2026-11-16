@@ -182,7 +182,12 @@ page = dict(
                     '<a href="../h2_air_ignition_box/brief.html">One-page report</a>'),
         dict(name="Detonation in a straight tube", what="A detonation wave runs down a tube of hydrogen and air.",
              new="shock and burning together", answer="the wave's speed follows from the gas alone, with no simulation",
-             where="this PC, hours (expected, not measured)", status="next", mark="The three solvers are compared here"),
+             where="this PC, minutes", status="done", mark="The three solvers are compared here",
+             result='Solved with OpenFOAM on 2026-11-16 by a fresh agent in about an hour and a half. The wave runs 0.5 % below the '
+                    'theoretical speed (required: 2 %) and the flame stays within 0.06 mm of the shock. OpenFOAM needed five passes per '
+                    'time step to keep the energy; with one it lost 15 % of the heat. Almost all the time is chemistry. '
+                    'The GPU solver comes next on this step. '
+                    '<a href="../detonation_tube_h2_air/brief.html">One-page report</a>'),
         dict(name="Detonation cells", what="In two dimensions a detonation front is not flat: it wrinkles into a regular pattern of cells.",
              new="the fine structure of the wave", answer="published cell patterns", where="this PC or the lab: to be measured", status="planned"),
         dict(name="The flat engine", what="The problem of this page.",

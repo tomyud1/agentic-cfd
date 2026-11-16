@@ -1,0 +1,11 @@
+steps 7 derived 8 checks [True, True, True, True, True, True, True, True, True, True]
+   Density of the fresh mixture = 0.849462 \mathrm{kg/m^3} | \frac{101325\times0.0209114}{8.314470\times300} = 0.849462
+   Chapman-Jouguet speed = 1978.54 \mathrm{m/s} | \rho_1 D = 0.84946\times1978.54 = 1680.69,\qquad \rho_2 w = 1.53060\times1098.06 = 1680.69\ \mathrm{kg/(m^2 s)}
+   Pressure and temperature behind the wave (CJ) = 1.5811 \mathrm{MPa} | 101325 + 0.84946^2\times1978.54^2\times(1.17722 - 0.65334) = 1581135\ \mathrm{Pa}
+   Pressure right behind the shock, before burning = 2.8100 \mathrm{MPa} | 101325 + 0.84946^2\times1978.54^2\times(1.17722 - 0.21828) = 2810050\ \mathrm{Pa}
+   Wait before burning: induction time and length = 0.172 \mathrm{mm} | \text{half of the water at } 0.169\ \mathrm{mm},\quad \text{pressure still } 20\,\% \text{ above CJ at } 1\ \mathrm{mm}
+   Pressure at the closed end = 0.5982 \mathrm{MPa} | \text{for a constant } \gamma_e:\ p_{\mathrm{CJ}}\left(1 - \tfrac{\gamma_e - 1}{2}\tfrac{u_{\mathrm{CJ}}}{c_2}\right)^{2\gamma_e/(\gamma_e -
+   Where the front is at the end time, if it travelled at the CJ speed from the start = 98.93 \mathrm{mm} | 1978.54\times50\times 10^{-6} = 0.09893\ \mathrm{m}
+   Heat released per kilogram up to the CJ state = 2.8676 \mathrm{MJ/kg} | \rho_1\,q\times 1\ \mathrm{mm} = 0.8495\times2867592\times 0.001 = 2436\ \mathrm{J/m^2}
+lint: ([], [])
+sketch ok 45696

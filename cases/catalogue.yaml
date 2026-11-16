@@ -164,12 +164,12 @@ cases:
 
   - id: "21"
     title: Detonation in a straight tube, hydrogen and air
-    status: planned
-    tier: rde
+    status: solved
     folder: detonation_tube_h2_air
-    new: "Step 4 of 7. Shock and burning together. Three solvers are compared here: OpenFOAM's own burning solver, a published detonation solver, and a new one in gpucfd"
-    reference: The Chapman-Jouguet speed and state, which follow from the gas's thermodynamic data alone (cfdlib.chem, cross-checked with Cantera)
-    gpucfd: "no"
+    tests: "Step 4 of 7 to the detonation engine. Shock and burning together (OpenFOAM's reactingFoam, the full hydrogen scheme), against the Chapman-Jouguet speed and state, which follow from the gas's thermodynamic data alone"
+    shows: "An energy balance as the physical check of a pressure-based solver: with one pass per time step OpenFOAM loses 15 % of the heat and the wave runs 17 % slow; a start-state check against numbers computed without the solver; a grid study that is honest about a wave that is still settling; where the cost sits (chemistry, in every burnt cell, in every pass)"
+    headline: "Wave speed 0.51 % below the Chapman-Jouguet speed (required: 2 %) and flame within 0.06 mm of the shock (required: 1 mm), on every grid from 400 to 3200 cells; mass and atoms kept to 3e-8, energy to 0.2 % of the heat released; one prediction of the agent was missed (peak pressure at the front 0.79 of the shock pressure, expected 0.80)"
+    reports: [{path: results/detonation_tube_h2_air/report.html}]
 
   - id: "22"
     title: Detonation cells in two dimensions

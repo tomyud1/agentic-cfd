@@ -1,0 +1,15 @@
+start {"rho0": 0.8494618771258006, "rho_ign": 3.0180732866053614, "W0": 0.0209114, "c0": 408.77839017843, "mass_per_area": 0.1051883423693154, "energy_per_area": -269.72534978809745, "layer_surplus": 11999.928966303989}
+cj {"D": 1978.5402978380548, "p": 1581135.1643696825, "T": 2969.882618283525, "rho": 1.5305967036089236, "u": 880.4753723042902, "w": 1098.0649255337646, "mach": 4.840129383978518, "q": 2867591.682211398}
+front {"p": 2810049.53102691, "T": 1542.7161329430603, "rho": 4.581170855376921, "u": 1611.6699671140075, "c": 899.094909746439}
+znd {"t_ind": 4.532524101476986e-07, "x_ind": 0.00017221922758749931, "T_ind": 2001.8309197363085, "x_half_water": 0.00016936636671309804, "x_95_water": 0.001177643793530479, "T_at_1mm": 2916.446236183365, "p_at_1mm": 1893339.6921709962, "T_end": 2972.4068697452344, "p_end": 1592461.0098144352, "x_end": 0.02074173486287664}
+taylor {"p": 598224.2532374485, "T": 2608.245367847998, "rho": 0.668453670645118, "c": 1028.1852731895824, "c_front": 1097.8142755005333, "gamma_e": 1.1666740119535892}
+  ok   The three conservation laws are satisfied by the solved relations
+  ok   Pressure behind the wave: the straight line in pressure and volume (Rayleigh line)
+  ok   Enthalpy behind the wave
+  ok   The speed drops out: enthalpy rise = half the pressure rise times the sum of the volumes (Hugoniot)
+  ok   The CJ state of the reference file satisfies the three relations with this module's enthalpies (largest relative residual 3.5e-06)
+  ok   cfdlib.chem.cj_detonation reproduces the reference file (speed +1.5e-07, pressure -2.3e-08, temperature +8.8e-07, relative)
+  ok   The state at the front before burning reproduces the reference file (pressure -3.1e-07, temperature -2.5e-06)
+  ok   The steady wave ends at the CJ state: after 20.7 mm its pressure is +0.72% and its temperature +0.08% from the CJ values
+  ok   The speed of sound found along the expansion path equals the speed at which the burnt gas leaves the wave (1097.8 against 1098.1 m/s)
+  ok   Along the expansion the entropy path is consistent: pressure, temperature and density fall together and the gas comes to rest at 0.378 of the CJ pressure

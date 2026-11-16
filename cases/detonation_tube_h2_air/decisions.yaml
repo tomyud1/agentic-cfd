@@ -1,0 +1,118 @@
+# Every modelling and numerical choice for this case. Written by the agent WHILE setting up the case.
+# `settings`: the OpenFOAM settings (path patterns, * = wildcard) this decision controls.
+
+- area: Solver
+  kind: solver
+  choice: '<code>reactingFoam</code>, OpenFOAM''s own solver for burning gas, started from its laminar flame example (<code>combustion/reactingFoam/laminar/counterFlowFlame2D</code>) with the pressure equation switched to its form for flows faster than sound (<code>transonic yes</code>)'
+  settings: [system/controlDict/application, system/fvSolution/PIMPLE/transonic]
+  why: 'The problem needs a shock and the full reaction scheme in one solver. Standard OpenFOAM v2606 has no density-based solver with chemistry: <code>rhoCentralFoam</code>, the shock solver of cases 18 and 19, carries one gas only. <code>reactingFoam</code> carries every species and calls the chemistry library of case 20 in every cell. It is pressure-based: it solves an equation for the pressure instead of advancing density, momentum and energy directly. With <code>transonic yes</code> that equation carries pressure with the flow, which a shock needs. Whether such a solver keeps the energy, and so drives a detonation at the right speed, is what this case measures. gpucfd was not used: its chemistry and its shock solver are still separate, and the GPU was in use by another session.'
+  affects: 'How the answer is reached, and here also the answer: a pressure-based solver does not keep the total energy by construction (see the passes per time step).'
+  alternatives: '<code>rhoReactingFoam</code> (the same algorithm with the density taken from the gas law in another form). A density-based solver with chemistry, as published detonation solvers are: none ships with OpenFOAM, and downloading one was outside this task. gpucfd.'
+
+- area: Physical model
+  kind: physics
+  choice: 'A mixture of ideal gases with heat capacities that change with temperature; the reaction scheme and its data read from the two files where OpenFOAM ships them; chemistry in every cell, no turbulence or combustion model in between'
+  settings: [constant/thermophysicalProperties/thermoType/*, constant/thermophysicalProperties/CHEMKINFile, constant/thermophysicalProperties/CHEMKINThermoFile,
+             constant/chemistryProperties/chemistry, constant/combustionProperties/*, constant/turbulenceProperties/simulationType]
+  why: 'This is the gas of the problem statement. <code>hePsiThermo</code> with <code>perfectGas</code> and <code>janaf</code> is the ideal-gas law with the tabulated heat capacities. <code>sensibleEnthalpy</code> means the solver stores the enthalpy without the chemical part and adds the heat of the reactions as a source; the analysis rebuilds the total and checks it. The files are read in place (<code>$FOAM_TUTORIALS/combustion/chemFoam/h2/chemkin/</code>), so nothing is copied or edited; case 20 compared OpenFOAM''s reading of them with an independent one. <code>combustionModel laminar</code> means the reaction rates of the scheme are used as they are.'
+  affects: 'Defines the equations solved. The Chapman-Jouguet state follows from these data alone.'
+  alternatives: 'One overall reaction: much cheaper, but it gives a burnt gas that is hundreds of kelvin too hot (the supervisor''s remark on the plan). The internal-energy form (<code>sensibleInternalEnergy</code>): OpenFOAM''s reader of these files is not built for it (insight 5).'
+
+- area: Physical model
+  kind: physics
+  choice: 'No friction, no heat conduction, no diffusion of species: the transport file that ships with the scheme sets the viscosity to zero'
+  settings: [constant/thermophysicalProperties/CHEMKINTransportFile, system/fvSchemes/laplacianSchemes/*, system/fvSchemes/snGradSchemes/*,
+             'system/fvSchemes/divSchemes/div(((rho*nuEff)*dev2(T(grad(U)))))']
+  why: 'Given: friction and heat conduction play no part. The file <code>transportProperties</code> next to the scheme has <code>As 0</code>, so viscosity, conductivity and diffusivity are all zero and every diffusion term of the solver vanishes. The schemes for those terms must still be named; they act on zeros.'
+  affects: 'Nothing spreads the front except the numerical scheme. Its thickness is then a number of cells, not a length.'
+  alternatives: 'Real viscosity and conduction: at these cell sizes they are far smaller than the smearing of the scheme, and the problem excludes them.'
+
+- area: Inert species
+  kind: physics
+  choice: 'Nitrogen is the species found from the others (its mass fraction is one minus the sum); argon, which the scheme lists, is absent'
+  settings: [constant/thermophysicalProperties/inertSpecie, '0/Ydefault/*']
+  why: 'The solver solves one equation per species except one, which it sets so that the mass fractions add up to one. Nitrogen does not react in this scheme, so it is the natural choice. <code>Ydefault</code> gives every species without a start file (the seven reactive ones and argon) a start value of zero.'
+  affects: 'Guarantees that the mass fractions add up to one. Any error in the other species lands in the nitrogen; its atoms are therefore checked like the others.'
+  alternatives: 'None in this solver.'
+
+- area: Domain and boundary conditions
+  kind: physics
+  choice: 'One row of equal cells along the tube, closed ends (no flow through them, zero gradient for everything else), <code>empty</code> on the four sides'
+  settings: [system/blockMeshDict/vertices, system/blockMeshDict/scale, system/blockMeshDict/boundary, '0/*/boundaryField/*']
+  why: 'Given: one dimension, closed at both ends. <code>empty</code> tells OpenFOAM that nothing varies across the tube. The cross-section is a square of \(0.1\,\mathrm{mm}\); its size cancels out of every result, and volume integrals are divided by its area.'
+  affects: 'Sets the problem. With closed ends, mass, atoms and total energy in the tube must not change: the physical checks of this case.'
+  alternatives: 'A shorter tube that ends just ahead of the wave: fewer cells, the same answer until the wave arrives; the chemistry cut-off already makes the untouched cells cheap.'
+
+- area: Start state
+  kind: physics
+  choice: 'The mixture at rest at \(p_0\), \(T_0\) everywhere; the ignition layer set by <code>setFields</code> in the cells left of \(L_{\mathrm{ign}}\), which is a cell face on every grid'
+  settings: ['0/*/internalField', system/setFieldsDict/defaultFieldValues, system/setFieldsDict/regions]
+  why: 'As given. The mass fractions come from the mole ratio with OpenFOAM''s own atomic weights (<code>cfdlib.chem</code>). Every grid has a whole number of cells in the layer (3 on the coarsest, 120 on the finest), so no cell holds a mixture of the two states and the mass and energy at the start are the same on every grid. The pre-flight checks both against values computed without the solver.'
+  affects: 'Defines the initial-value problem. The layer is stronger than the detonation it starts (\(30\) against \(16\) atmospheres behind the wave), but it is thin. The wave needs some microseconds to form and settle; the speed is read over the second half of the time for that reason (given). In the runs it starts a few percent slower than the CJ speed and rises to it.'
+  alternatives: 'None: given.'
+
+- area: Mesh
+  kind: accuracy
+  choice: 'Equal cells, four levels: 400, 800, 1600 and 3200 cells (\(300\) down to \(37.5\) micrometres), each half the size of the one before'
+  settings: [system/blockMeshDict/blocks]
+  why: 'The length to resolve is the stretch behind the shock in which the gas waits before it burns, \(0.17\,\mathrm{mm}\) for this mixture (Theory). The grids put about 0.6, 1.1, 2.3 and 4.6 cells in it, so none of them resolves it: the case shows what an under-resolved front still gets right, which is the situation of an engine simulation. The finest level is set by cost. The first plan went on to 9600 cells (14 cells in that stretch); the timing run of the pre-flight showed it would take more than half an hour for that one run, and the plan was cut before any full run was kept (insight 11). Ratio 2 gives the observed order from the three finest. Every grid has a multiple of 80 cells, so that the ignition layer is a whole number of cells (a first attempt with 600 cells made the layer \(1.6\,\mathrm{mm}\) thick, insight 7). The wave crosses the whole tube, so there is nowhere to cluster cells.'
+  affects: 'How sharp the front is, the highest pressure at the front, and, through the numerical smearing, how the shock and the burning are coupled.'
+  alternatives: 'Cells that follow the front (adaptive refinement): the standard tool for detonations, not in standard OpenFOAM''s reacting solver set-up used here. Finer levels (6400 cells and more): each costs about three times the level before.'
+
+- area: Discretisation
+  kind: accuracy
+  choice: 'Second order in space with a limiter (<code>limitedLinear 1</code>) on every convected quantity and on the pressure flux; straight-line interpolation elsewhere; first order in time (<code>Euler</code>)'
+  settings: [system/fvSchemes/divSchemes/default, 'system/fvSchemes/divSchemes/div(phi,U)', 'system/fvSchemes/divSchemes/div(phi,Yi_h)', 'system/fvSchemes/divSchemes/div(phi,K)',
+             'system/fvSchemes/divSchemes/div(phid,p)', system/fvSchemes/gradSchemes/*, system/fvSchemes/interpolationSchemes/*, system/fvSchemes/ddtSchemes/default]
+  why: 'These are the schemes of OpenFOAM''s reacting examples. The limiter keeps a jump from making new peaks. Species and enthalpy share one limiter (<code>div(phi,Yi_h)</code>), so that the mass fractions still add up to one after they are carried along and the energy stays consistent with the composition. The time scheme of those examples is the implicit Euler step; its error is studied with the time step.'
+  affects: 'The front is two to three cells wide. The first-order time scheme and the splitting between flow and chemistry make the time step an accuracy setting.'
+  alternatives: 'Other limiters (<code>vanLeer</code> gave the same speed in a trial); a second-order time scheme (<code>backward</code>, <code>CrankNicolson</code>): not tried, they can overshoot at a shock.'
+
+- area: Time step
+  kind: accuracy
+  choice: 'A fixed time step on each grid, such that the wave crosses about 0.4 of a cell per step (\(56\) down to \(7.6\) nanoseconds), reached from a tiny first step; twice and half that step are run on one grid'
+  settings: [system/controlDict/deltaT, system/controlDict/adjustTimeStep, system/controlDict/maxDeltaT, system/controlDict/maxCo, system/controlDict/startTime, system/controlDict/endTime]
+  why: 'The step of a run is <code>maxDeltaT</code>. The run does not start with it: the first step is \(10^{-12}\,\mathrm{s}\) and each step is a fifth longer than the one before until the step of the run is reached, after about 50 steps and six steps'' worth of time. The reason is a start-up fault of the solver: on its first step it has no stored gas state of the step before, and a first step of full size, in which the hot layer reacts, created 0.17 % of mass (insight 7). <code>maxCo 100</code> is the solver''s own limit for the growing step and is never reached. The solver shortens a step slightly to land on each sampling time, so the states along the tube are written exactly every \(0.5\) microseconds, among them the two times of the wave speed. The size is a compromise found in trials: the energy lost per step falls in proportion to the time step and with the passes per step, and 0.4 of a cell with five passes costs the same as 0.2 with three while losing a third as much. The chemistry is integrated inside each step with sub-steps of its own, so the flow step need not resolve the fastest reactions (\(10^{-9}\,\mathrm{s}\)); it must resolve the wait before burning (\(0.45\) microseconds: 8 to 60 steps). The end time is given; nothing becomes steady in a closed tube.'
+  affects: 'The coupling of flow and chemistry (first order in the step), the energy balance and the cost.'
+  alternatives: 'A step that follows the flow''s Courant number: the step would change with the grid''s smearing of the front, and a time-step study would be harder to read. A fixed step from the first step on: not mass-conserving at the start.'
+
+- area: Passes per time step
+  kind: accuracy
+  choice: 'Five passes through the equations per time step (<code>nOuterCorrectors 5</code>), two pressure corrections per pass, momentum solved first'
+  settings: [system/fvSolution/PIMPLE/nOuterCorrectors, system/fvSolution/PIMPLE/nCorrectors, system/fvSolution/PIMPLE/momentumPredictor, system/fvSolution/PIMPLE/nNonOrthogonalCorrectors]
+  why: 'In each pass the solver solves momentum, species, energy and then pressure. The energy equation needs the rate of change of the pressure, and in the first pass it only has the value of the step before. With one pass per step (the setting of OpenFOAM''s reacting examples) the tube lost energy equal to 10 % of the heat released, and the wave ran 9 % too slowly; a finer grid did not help. Repeating the pass with the new pressure removes the error: 0.8 % with three passes, 0.13 % with five (trials on 1200 cells at half this time step). Even numbers of passes add energy at the start (insight 4), so the count is odd. The pre-flight repeats the comparison as a study.'
+  affects: 'Whether total energy is kept, and so the wave speed. Also the cost: the chemistry is solved again in every pass.'
+  alternatives: 'One pass with a time step ten times smaller: more costly for the same energy error. Stopping the passes on a residual (<code>outerCorrectorResidualControl</code>): the count would change from step to step, and with it the even-odd effect.'
+
+- area: Chemistry solver
+  kind: accuracy
+  choice: 'The explicit method <code>RKF45</code> with error control, relative tolerance \(10^{-6}\); cells colder than \(305\,\mathrm{K}\) are skipped'
+  settings: [constant/chemistryProperties/chemistryType/solver, constant/chemistryProperties/odeCoeffs/*, constant/chemistryProperties/initialChemicalTimeStep, constant/chemistryProperties/Treact]
+  why: 'Inside each flow step the chemistry of each cell is integrated on its own, with sub-steps chosen by the method to meet the tolerance. In trials <code>RKF45</code> put the front within \(0.02\,\mathrm{mm}\) of the stiff solver <code>seulex</code> after \(19\,\mathrm{mm}\), in under two thirds of the time. At the time steps of the plan the explicit method needs many sub-steps in the burnt gas and its lead shrinks; timed again on a short run with the plan''s settings it was still the cheapest of three (<code>seulex</code>, <code>Rosenbrock34</code>), all within \(0.005\,\mathrm{mm}\) of each other after \(20\,\mathrm{mm}\) (insight 11). The cut-off temperature saves the cells the wave has not reached, which are at exactly \(300\,\mathrm{K}\) and cannot react. It is set just above the start temperature because a higher cut-off changed the front a little (insight 6). Three variants check these choices on one grid.'
+  affects: 'The reaction progress per step and nearly all of the cost (see the performance appendix).'
+  alternatives: 'Run as variants: <code>seulex</code>, a looser tolerance (\(10^{-4}\)), no cut-off. Not run: storing and reusing chemistry results (OpenFOAM''s TDAC), which adds a tolerance of its own.'
+
+- area: Linear solvers
+  kind: solver
+  choice: 'Every equation solved with <code>PBiCGStab</code> and the <code>DILU</code> preconditioner to an absolute tolerance of \(10^{-10}\); the density equation is explicit (<code>diagonal</code>)'
+  settings: [system/fvSolution/solvers/*]
+  why: 'With the transonic form the pressure equation is not symmetric, so the usual solver for pressure does not apply; <code>PBiCGStab</code> handles any matrix. At these time steps every matrix is dominated by its diagonal and one or two iterations reach the tolerance, so the linear solves cost almost nothing and leave no iteration error to speak of.'
+  affects: 'Nothing beyond the tolerance.'
+  alternatives: 'A looser tolerance: no time to gain here.'
+
+- area: Parallel runs
+  kind: solver
+  choice: 'Every full run uses 8 cores, with the tube cut into many short stretches that are dealt to the cores in turn, 12 stretches per core'
+  settings: ['constant/cellDecomposition*', system/decomposeParDict/*]
+  why: 'The chemistry costs time only in cells the wave has reached. If each core owned one end-to-end piece of the tube, the cores would be busy one after the other. With stretches dealt in turn, every core holds its share of burnt gas at any time: on a short test, one piece per core was no faster than one core, 3 stretches per core 1.3 times faster and 12 stretches 2 times. The pre-flight compares a parallel run with a one-core run of the first fifth of the time.'
+  affects: 'Run time. The answer changes in the fourth digit with the way the tube is cut (the front moved by up to \(0.02\,\mathrm{mm}\) in \(20\,\mathrm{mm}\) between four cuts in the short test): the size of this is reported with the results.'
+  alternatives: 'OpenFOAM''s automatic split (<code>scotch</code>, <code>simple</code>): contiguous pieces, unbalanced for this problem. 16 ranks on the 16 hardware threads: not used, another session shares this PC.'
+
+- area: Outputs
+  kind: output
+  choice: 'After every step: the highest pressure, temperature and heat release and where they are; the integrals that give mass, atoms and total energy. At 100 equally spaced times: the state in every cell along the tube. Fields at \(t_{\mathrm{end}}/2\) and \(t_{\mathrm{end}}\), 12 digits'
+  settings: [system/controlDict/functions/*, system/controlDict/writeControl, system/controlDict/writeInterval, system/controlDict/writePrecision, system/controlDict/timePrecision,
+             system/controlDict/profiling/*]
+  why: 'The fronts are read from the states along the tube (every \(0.5\) microseconds, in which the wave moves \(1\,\mathrm{mm}\)); the two times of the wave speed are among them. The balances are checked after every step, because an error that comes and goes would not show at the end. Mass-weighted integrals of the sensible enthalpy, the kinetic energy and each species, with the integral of the pressure, give the total energy and the atoms without any interpolation. <code>profiling</code> is switched on for the one-core timing run only.'
+  affects: 'What is measured. The function objects cost under 2 % of a step.'
+  alternatives: 'Probes at fixed places: arrival times instead of positions; they would not give the distance between the two fronts.'

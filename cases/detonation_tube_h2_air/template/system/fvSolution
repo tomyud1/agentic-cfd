@@ -1,0 +1,40 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+solvers
+{
+    "rho.*"
+    {
+        solver          diagonal;
+    }
+
+    "(p|U|h|Yi)"
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       {{ lin_tol }};
+        relTol          0;
+    }
+
+    "(p|U|h|Yi)Final"
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       {{ lin_tol }};
+        relTol          0;
+    }
+}
+
+PIMPLE
+{
+    momentumPredictor yes;
+    transonic       yes;
+    nOuterCorrectors {{ n_outer }};
+    nCorrectors     {{ n_corr }};
+    nNonOrthogonalCorrectors 0;
+}

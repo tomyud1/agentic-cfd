@@ -1,0 +1,99 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+
+application     reactingFoam;
+
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         {{ t_end }};
+deltaT          {{ first_dt }};
+
+// the step grows by a fifth per step from the tiny first one to maxDeltaT, the step of the run (maxCo never limits)
+adjustTimeStep  yes;
+maxDeltaT       {{ dt }};
+maxCo           {{ max_co }};
+
+writeControl    adjustable;
+writeInterval   {{ write_interval }};
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  12;
+writeCompression off;
+timeFormat      general;
+timePrecision   12;
+runTimeModifiable false;
+
+profiling
+{
+    active          {{ profiling }};
+}
+
+functions
+{
+    // the highest pressure, temperature and heat release in the tube and where they are, after every step
+    peaks
+    {
+        type            fieldMinMax;
+        libs            (fieldFunctionObjects);
+        fields          (p T Qdot);
+        location        yes;
+        log             no;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+
+    // what the tube holds, after every step: mass, and the mass-weighted sums that give energy and atoms
+    volume
+    {
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      all;
+        operation       volIntegrate;
+        fields          (rho p);
+        writeFields     no;
+        log             no;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+    mass
+    {
+        type            volFieldValue;
+        libs            (fieldFunctionObjects);
+        regionType      all;
+        operation       weightedVolIntegrate;
+        weightField     rho;
+        fields          (h K H2 H O2 O OH HO2 H2O2 H2O N2);
+        writeFields     no;
+        log             no;
+        writeControl    timeStep;
+        writeInterval   1;
+    }
+
+    // the state along the tube at equally spaced times (the step is shortened to land on them): fronts, burnt state, figures
+    line
+    {
+        type            sets;
+        libs            (sampling);
+        interpolationScheme cell;
+        setFormat       raw;
+        fields          (p T rho U Qdot H2 H O2 O OH HO2 H2O2 H2O N2);
+        sets
+        {
+            x
+            {
+                type    midPoint;
+                axis    x;
+                start   (0 {{ h_half }} {{ h_half }});
+                end     ({{ L }} {{ h_half }} {{ h_half }});
+            }
+        }
+        writeControl    adjustableRunTime;
+        writeInterval   {{ sample_interval }};
+    }
+}

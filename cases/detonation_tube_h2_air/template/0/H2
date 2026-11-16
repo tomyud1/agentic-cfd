@@ -1,0 +1,23 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      H2;
+}
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform {{ Y_H2 }};
+
+boundaryField
+{
+    "(left|right)"
+    {
+        type            zeroGradient;
+    }
+    sides
+    {
+        type            empty;
+    }
+}

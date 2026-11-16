@@ -1,0 +1,8 @@
+h t_end 1e-05 front 20.3841 mm speeds q2 q3 q4 half2:  1894.9  1923.0  1942.5  1932.7 gap um 89.3 pmax end 1.9395e+06
+n t_end 1e-05 front 20.5910 mm speeds q2 q3 q4 half2:  1918.8  1947.3  1970.8  1959.1 gap um 90.5 pmax end 2.0156e+06
+o t_end 1e-05 front 20.4089 mm speeds q2 q3 q4 half2:  1898.0  1922.2  1945.7  1934.0 gap um 89.6 pmax end 1.9553e+06
+p t_end 1e-05 front 20.5287 mm speeds q2 q3 q4 half2:  1914.9  1930.2  1957.5  1943.9 gap um 76.2 pmax end 1.9848e+06
+q t_end 1e-05 front 20.4089 mm speeds q2 q3 q4 half2:  1902.9  1930.6  1946.4  1938.5 gap um 80.5 pmax end 1.9338e+06
+r t_end 1e-05 front 20.4914 mm speeds q2 q3 q4 half2:  1911.1  1939.3  1950.1  1944.7 gap um 87.1 pmax end 1.9406e+06
+s t_end 1e-05 front 20.3665 mm speeds q2 q3 q4 half2:  1895.3  1919.3  1937.9  1928.6 gap um 85.1 pmax end 1.9428e+06
+u t_end 1e-05 front 20.3013 mm speeds q2 q3 q4 half2:  1894.8  1937.5  1945.3  1941.4 gap um 66.1 pmax end 2.0667e+06

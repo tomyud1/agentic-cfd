@@ -1,0 +1,32 @@
+FAILED 'reactingFoam' failed in /home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/detonation_tube_h2_air/trial_l (exit -6):
+
+Selecting thermodynamics package 
+{
+    type            hePsiThermo;
+    mixture         reactingMixture;
+    transport       sutherland;
+    thermo          janaf;
+    energy          sensibleInternalEnergy;
+    equationOfState perfectGas;
+    specie          specie;
+}
+
+Selecting chemistryReader chemkinReader
+
+
+--> FOAM FATAL IO ERROR: (openfoam-2606)
+Unknown chemistryReader type chemkinReader
+
+Valid chemistryReader types :
+1(foamChemistryReader)
+
+
+file: constant/thermophysicalProperties at line 11 to 25.
+
+    From static Foam::autoPtr<Foam::chemistryReader<ThermoType> > Foam::chemistryReader<ThermoType>::New(const Foam::dictionary&, Foam::speciesTable&) [with ThermoType = Foam::sutherlandTransport<Foam::species::thermo<Foam::janafThermo<Foam::perfectGas<Foam::specie> >, Foam::sensibleInternalEnergy> >; Foam::speciesTable = Foam::hashedWordList]
+    in file lnInclude/chemistryReader.C at line 53.
+
+FOAM exiting
+
+double free or corruption (!prev)
+l wall 0.5031771659851074 case /home/tomyud/OpenFOAM/tomyud-v2606/run/agentic/detonation_tube_h2_air/trial_l

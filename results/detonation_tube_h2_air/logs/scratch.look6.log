@@ -1,0 +1,27 @@
+ZND at   0.2 mm: p/pcj 1.5275 T/Tcj 0.7777 H2O/cj 0.7319
+ZND at   0.5 mm: p/pcj 1.2936 T/Tcj 0.9432 H2O/cj 0.8883
+ZND at   1.0 mm: p/pcj 1.1975 T/Tcj 0.9820 H2O/cj 0.9407
+ZND at   2.0 mm: p/pcj 1.1197 T/Tcj 0.9993 H2O/cj 0.9735
+ZND at   3.0 mm: p/pcj 1.0827 T/Tcj 1.0029 H2O/cj 0.9850
+ZND at   5.0 mm: p/pcj 1.0473 T/Tcj 1.0035 H2O/cj 0.9934
+ZND at   8.0 mm: p/pcj 1.0260 T/Tcj 1.0025 H2O/cj 0.9970
+ZND at  12.0 mm: p/pcj 1.0150 T/Tcj 1.0016 H2O/cj 0.9985
+ZND at  20.0 mm: p/pcj 1.0075 T/Tcj 1.0009 H2O/cj 0.9993
+Taylor t=25us at  1.0 mm behind: p/pcj 0.9613 T/Tcj 0.9950
+Taylor t=25us at  2.0 mm behind: p/pcj 0.9240 T/Tcj 0.9900
+Taylor t=25us at  5.0 mm behind: p/pcj 0.8200 T/Tcj 0.9750
+Taylor t=25us at 10.0 mm behind: p/pcj 0.6703 T/Tcj 0.9497
+Taylor t=25us at 15.0 mm behind: p/pcj 0.5462 T/Tcj 0.9240
+   fit 3-10 mm deg 1: p bias -0.0235 T bias +0.0002
+   fit 3-10 mm deg 2: p bias -0.0016 T bias -0.0000
+   fit 5-15 mm deg 2: p bias -0.0054 T bias -0.0001
+   fit 2-8 mm deg 2: p bias -0.0007 T bias -0.0000
+Taylor t=50us at  1.0 mm behind: p/pcj 0.9805 T/Tcj 0.9975
+Taylor t=50us at  2.0 mm behind: p/pcj 0.9613 T/Tcj 0.9950
+Taylor t=50us at  5.0 mm behind: p/pcj 0.9059 T/Tcj 0.9875
+Taylor t=50us at 10.0 mm behind: p/pcj 0.8200 T/Tcj 0.9750
+Taylor t=50us at 15.0 mm behind: p/pcj 0.7417 T/Tcj 0.9623
+   fit 3-10 mm deg 1: p bias -0.0063 T bias +0.0000
+   fit 3-10 mm deg 2: p bias -0.0002 T bias -0.0000
+   fit 5-15 mm deg 2: p bias -0.0008 T bias -0.0000
+   fit 2-8 mm deg 2: p bias -0.0001 T bias -0.0000

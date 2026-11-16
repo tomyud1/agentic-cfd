@@ -262,7 +262,7 @@ h2_air_ignition_box:
   goal: The first case with burning. Chemistry alone, with no flow. Step 3 of 7 on the way to a rotating detonation engine.
   story: "Solved with OpenFOAM's chemistry solver by a fresh agent, which also wrote an independent solution of its own to check both OpenFOAM and the reference. gpucfd had no chemistry. A chemistry kernel for the GPU was built the same day and run on the same parcel. It is not yet joined to gpucfd's flow solver."
   requirements:
-    - A parcel of hydrogen, oxygen and nitrogen at rest, suddenly at 1000 K. The pressure is held at 2 atmospheres and no heat is exchanged.
+    - A parcel of hydrogen, oxygen and nitrogen at rest, suddenly at \(1000\,\mathrm{K}\). The pressure is held at 2 atmospheres and no heat is exchanged.
     - After a short delay the mixture ignites and burns. Nothing flows, so only time matters.
     - "The full hydrogen reaction scheme: 10 species and 27 reactions."
     - "Asked for: temperature against time, the ignition time, the final temperature, the species, whether atoms and energy are kept, and what the chemistry costs."
@@ -291,3 +291,37 @@ h2_air_ignition_box:
     - "gpucfd's kernel is chemistry alone, tested with this one reaction scheme. It is not yet joined to the flow solver."
     - "One cell only. The cost per cell in a real flow depends on how many cells are igniting at the same time."
     - "The reference states no accuracy of its own. The agent's independent solution suggests it is good to about 0.03 %."
+
+detonation_tube_h2_air:
+  goal: Shock and burning together for the first time. Step 4 of 7 on the way to a rotating detonation engine.
+  story: "Solved with OpenFOAM's burning solver by a fresh agent. gpucfd cannot run it yet: its shock solver and its chemistry are both built and tested, but they are not joined. That is the next thing to build."
+  requirements:
+    - A closed tube, 0.12 m long, of hydrogen and air at rest at 1 atmosphere and \(300\,\mathrm{K}\). Only the distance along the tube matters.
+    - "A thin layer at one end (1.5 mm) starts hot and at high pressure. It sends a shock down the tube that ignites the gas behind it: a detonation."
+    - "The full hydrogen reaction scheme: 10 species and 27 reactions."
+    - "Asked for: the speed of the wave, whether shock and flame travel together, the burnt gas behind the wave, the peak pressure at the front, whether mass, atoms and energy are kept, and the cost."
+    - "Reference: the Chapman-Jouguet speed, the one speed a free-running detonation can have. It follows from the gas alone, with no simulation."
+    - "Required: wave speed within 2 % of that theory; from 10 microseconds on, the flame within 1 mm of the shock."
+  gpucfd: cannot yet
+  accuracy:
+    note: "On the finest grid, 3200 cells of 0.0375 mm. The first two rows are the problem's requirements."
+    rows: {a: Wave speed, b: Flame behind the shock, c: Burnt gas behind the wave, d: Peak pressure at the front, e: "Mass, atoms and energy kept"}
+  speed:
+    data:
+      files: [results/detonation_tube_h2_air/runs/N400.json, results/detonation_tube_h2_air/runs/N800.json, results/detonation_tube_h2_air/runs/N1600.json, results/detonation_tube_h2_air/runs/N3200.json]
+      label: "{N} cells"
+      detail: "{steps_done} steps"
+      wall: wall_time
+      cores: cores
+    note: "Most of the time is chemistry: on one core about 150 microseconds for each burnt cell, five times in every time step, against under 3 for the flow. Over a full run the flow takes 2 to 9 % of the processor time. Eight cores were only about twice as fast as one."
+  meaning:
+    - "Both requirements are met with a wide margin, on every grid, the coarsest included. The speed is right even where the front is not resolved, because it follows from keeping mass, momentum and energy and burning the gas completely."
+    - "One prediction of the agent was missed by a hair: the peak pressure at the front reaches 0.79 of the full shock pressure on the finest grid, where it expected at least 0.80. The burning zone is thinner than the cells."
+    - "For the detonation engine: OpenFOAM's solver does not keep energy by itself. With the setting of its own burning examples it lost 15 % of the heat and the wave ran 17 % too slow. Five passes per time step cut the loss to 0.2 %, at five times the cost."
+    - "For the detonation engine: the wave is still settling when the time ends, so finer cells do not bring the speed closer to the theory. The next case needs a longer tube or a later reading."
+    - "Chemistry and message passing take over 90 % of the processor time. gpucfd's chemistry kernel advances a burnt cell at this pressure in about 0.06 microseconds on the GPU, so the joined GPU solver is where the speed is to be won."
+  limits:
+    - "gpucfd has no column: its shock solver and its chemistry are not joined yet."
+    - "The 0.06 against 150 microseconds is not a fair ratio: one GPU against one core, a kernel alone against a whole solver, and not the same states."
+    - "No grid finer than 3200 cells: the agent cut its plan for cost. The time-step study shows no trend and three small effects stay unexplained."
+    - "The reference is a theory value from the scheme's own data. Values in the literature for this mixture may differ by about half a per cent; none was checked."

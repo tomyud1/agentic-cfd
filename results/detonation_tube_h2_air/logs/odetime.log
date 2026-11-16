@@ -1,0 +1,4 @@
+N1200_RKF45_1e-6_c8: wall 19.4 s, 548 steps, front 20.4827 mm, burning front 20.3940 mm, hot cell steps 5.469e+04, us per hot cell step 2839.0, energy -0.2338%, pmax 40.71 bar
+N1200_RKF45_1e-4_c8: wall 16.5 s, 548 steps, front 20.4851 mm, burning front 20.3977 mm, hot cell steps 5.471e+04, us per hot cell step 2418.0, energy -0.2367%, pmax 40.71 bar
+N1200_seulex_1e-4_c8: wall 21.5 s, 548 steps, front 20.4869 mm, burning front 20.3993 mm, hot cell steps 5.471e+04, us per hot cell step 3142.6, energy -0.2360%, pmax 40.71 bar
+N1200_Rosenbrock34_1e-4_c8: wall 19.1 s, 548 steps, front 20.4879 mm, burning front 20.4003 mm, hot cell steps 5.471e+04, us per hot cell step 2792.1, energy -0.2379%, pmax 40.71 bar
